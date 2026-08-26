@@ -1,0 +1,924 @@
+[
+  {
+    "سنة_الاختبار": "2024",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, then answer only five of the following six questions below:",
+        "النص_المرجعي": "Acids are important chemicals for industry. For example, Nitric acid is used in the food industry to sterilize canned foods because it kills bacteria that would otherwise spoil food. Phosphoric acid is used as a traditional method of removing rust from metals. It can also be used to produce plastic. Hydrochloric acid is one of the most common industrial acids. The chemical formula of hydrochloric acid is HCl, which stand for hydrogen chloride.\nStrong acids can be harmful and cause chemical burns on your skin. To protect yourself when dealing with acids, wear a lab coat. And for your eyes, wear safely goggles. It is important to use the right gloves for your hands.",
+        "الأسئلة": [
+          { "السؤال": "1- Are acids important for industry ?", "الإجابة_النموذجية": "Yes" },
+          { "السؤال": "2- Why is nitric acid used to sterilize foods ?", "الإجابة_النموذجية": "because it kills bacteria" },
+          { "السؤال": "3- What does HCl stand for ?", "الإجابة_النموذجية": "hydrochloric acid" },
+          { "السؤال": "4- How do you protect your eyes from strong acids ?", "الإجابة_النموذجية": "wear safely goggles" },
+          { "السؤال": "5- What can acids do to your skin ?", "الإجابة_النموذجية": "can cause chemical burns" },
+          { "السؤال": "6- Are these statements ( True ) or ( False ):\n(a) Hydrochloric acid is used to remove rust.\n(b) Wear a lab coat to protect your hands.", "الإجابة_النموذجية": "(a) False\n(b) False" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the paragraph, using the given words:",
+        "النص_المرجعي": "( damage / destroy / storms / heavy / winds )\nPowerful .......... like hurricanes can cause terrible .......... . The very strong .......... will .......... the wooden houses. The .......... rain will make rivers of mud.",
+        "الأسئلة": [
+          { "السؤال": "أكمل الفراغات في الفقرة السابقة", "الإجابة_النموذجية": "Powerful storms like hurricanes can cause terrible damage. The very strong winds will destroy the wooden houses. The heavy rain will make rivers of mud." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Choose the best alternatives :",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- My son is good .......... biology. ( in / on / at )", "الإجابة_النموذجية": "at" },
+          { "السؤال": "2- She was ill, .......... she took some medicine. ( because / so / a swell )", "الإجابة_النموذجية": "so" },
+          { "السؤال": "3- I am .......... than him. ( fast / fastest / faster )", "الإجابة_النموذجية": "faster" },
+          { "السؤال": "4- The town .......... he used to live in is nice. ( which / who / what )", "الإجابة_النموذجية": "which" },
+          { "السؤال": "5- How .......... sugar do you want ? ( many / much / less )", "الإجابة_النموذجية": "much" }
+        ]
+      },
+      {
+        "نوع_السؤال": "What part of speech are the underlined words?",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1- The boy started to (cry) .", "الإجابة_النموذجية": "verb" },
+          { "السؤال": "2- I heard a loud (cry) .", "الإجابة_النموذجية": "noun" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the best words for the given definitions:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- It has a sour taste. ( acid / alkali / rain )", "الإجابة_النموذجية": "acid" },
+          { "السؤال": "2- Deep water over normally dry land. ( cud / flood / blood )", "الإجابة_النموذجية": "flood" },
+          { "السؤال": "3- They have no fixed shape. ( liquids / solids / container )", "الإجابة_النموذجية": "liquids" },
+          { "السؤال": "4- Words with the same meaning. ( antonyms / compounds / synonyms )", "الإجابة_النموذجية": "synonyms" },
+          { "السؤال": "5- A group of letters at the end of the word. ( suffix / prefix / sets )", "الإجابة_النموذجية": "suffix" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make questions to match the underlined words:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- He lives in a big city .", "الإجابة_النموذجية": "Where does he live?" },
+          { "السؤال": "2- The short man broke that window.", "الإجابة_النموذجية": "Who broke the window?" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Spot the mistakes and re-write the sentences correctly:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- He is as taller as his father.", "الإجابة_النموذجية": "He is as tall as his father." },
+          { "السؤال": "2- I look forward to meet you.", "الإجابة_النموذجية": "I look forward to meeting you." },
+          { "السؤال": "3- Did you apply to the job ?", "الإجابة_النموذجية": "Did you apply for the job." },
+          { "السؤال": "4- We visit friends in Fridays.", "الإجابة_النموذجية": "We visit friends on friday." },
+          { "السؤال": "5- I would like playing football.", "الإجابة_النموذجية": "I would like to play football. OR: I like playing football." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the compound words:",
+        "النص_المرجعي": "building / classroom / development / good-looking / active",
+        "الأسئلة": [
+          { "السؤال": "استخرج الكلمات المركبة من القائمة", "الإجابة_النموذجية": "classroom / good-looking" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Put the verbs in brackets in the correct forms:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- They ( open ) .......... the new school tomorrow .", "الإجابة_النموذجية": "will open / are opening" },
+          { "السؤال": "2- She ( work ) .......... in this restaurant since 1977.", "الإجابة_النموذجية": "has worked / has been working" },
+          { "السؤال": "3- The horse ( drink ) .......... now.", "الإجابة_النموذجية": "is drinking" },
+          { "السؤال": "4- Ali sometimes ( go ) .......... for a walk in the morning .", "الإجابة_النموذجية": "goes" },
+          { "السؤال": "5- He ( come ) .......... to the meeting yesterday .", "الإجابة_النموذجية": "came" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Underline the prefixes in the following words:",
+        "النص_المرجعي": "beautiful / remake / hopeless / impossible / religious",
+        "الأسئلة": [
+          { "السؤال": "حدد البوادئ في الكلمات السابقة", "الإجابة_النموذجية": "remake / impossible" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- They are watching the film now .", "الإجابة_النموذجية": "The film is being watched now." },
+          { "السؤال": "2- She saved the child yesterday .", "الإجابة_النموذجية": "The child was saved." },
+          { "السؤال": "3- The teacher has written two sentences .", "الإجابة_النموذجية": "Two sentences have been written." },
+          { "السؤال": "4- He should clean his room .", "الإجابة_النموذجية": "His room should be cleaned." },
+          { "السؤال": "5- The man washes the car every week .", "الإجابة_النموذجية": "The car is washed every week." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the different word:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- bananas / milk / tea / soda .", "الإجابة_النموذجية": "bananas" },
+          { "السؤال": "2- wool / metal / fur / skin", "الإجابة_النموذجية": "metal" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Match the word to its meaning:",
+        "النص_المرجعي": "1- valley\n2- handicapped\n3- observe\n4- homeless\n5- simmer\n6- epidemic",
+        "الأسئلة": [
+          { "السؤال": "1- valley", "الإجابة_النموذجية": "d- a place between two hills ." },
+          { "السؤال": "2- handicapped", "الإجابة_النموذجية": "c- disabled ." },
+          { "السؤال": "3- observe", "الإجابة_النموذجية": "a- watch carefully." },
+          { "السؤال": "4- homeless", "الإجابة_النموذجية": "f- having nowhere to live ." },
+          { "السؤال": "5- simmer", "الإجابة_النموذجية": "b- boil gently." },
+          { "السؤال": "6- epidemic", "الإجابة_النموذجية": "e- an illness the spreads quickly." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Re-order the words to make meaningful sentences:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- each other / alkalis / acids / neutralize / and", "الإجابة_النموذجية": "Acids and alkalis neutralize each other." },
+          { "السؤال": "2- has / beautiful / she / hair", "الإجابة_النموذجية": "She has beautiful hair." }
+        ]
+      }
+    ]
+  },
+
+
+  {
+    "سنة_الاختبار": "2024",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, then answer only five of the following six questions below:",
+        "النص_المرجعي": "Cholesterol is a type of fat found in blood. Your body needs some cholesterol to make hormones and vitamin D. The liver makes cholesterol from the body naturally. Cholesterol is also found in foods like meat, fish, cheese, eggs, butter, and whole or low-fat milk. Everyone needs fat in their body, but just not a lot of it.\nThere are two main types of cholesterol usually seen as LDL or HDL. When the cholesterol level is high, it can cause a heart attack or a stroke. A variety of things can raise your risk for high cholesterol. Your cholesterol levels tend to rise as you get older. Being overweight also raises your cholesterol level.\nThere are mainly two things that can be done to keep cholesterol level low. Avoid eating foods that are high in cholesterol. You also need to regularly exercise. Doctors advice is to take periodically a blood test to measure your cholesterol level.",
+        "الأسئلة": [
+          { "السؤال": "1- What is cholesterol ?", "الإجابة_النموذجية": "a type of fat found in blood" },
+          { "السؤال": "2- Why does your body need cholesterol ?", "الإجابة_النموذجية": "to make hormones and vitamin D" },
+          { "السؤال": "3- How many types of cholesterol are there ?", "الإجابة_النموذجية": "two" },
+          { "السؤال": "4- When is there a risk of a heart attack ?", "الإجابة_النموذجية": "when the cholesterol level is high" },
+          { "السؤال": "5- Is a lot of fat good for your body ?", "الإجابة_النموذجية": "No" },
+          { "السؤال": "6- Are these statements ( True ) or ( False ):\n(a) A blood test will tell you about cholesterol level\n(b) As older as you get, the cholesterol level becomes low.", "الإجابة_النموذجية": "(a) True\n(b) False" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the paragraph. Use the given words:",
+        "النص_المرجعي": "( doctor / excellent / popular / college / parents )\nAli is .......... in his school. He is .......... at mathematics and biology. Both his .......... are teachers, but he wants to be a .......... . Next year, he will go to medicine .......... .",
+        "الأسئلة": [
+          { "السؤال": "أكمل الفراغات في الفقرة السابقة", "الإجابة_النموذجية": "Ali is popular in his school. He is excellent at mathematics and biology. Both his parents are teachers, but he wants to be a doctor. Next year, he will go to medicine college." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Choose the best alternatives :",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- The kitchen is .......... than the bathroom. ( larger / largest / large )", "الإجابة_النموذجية": "larger" },
+          { "السؤال": "2- .......... I cleaned my room, my sister didn't. ( Although / As well / Whereas )", "الإجابة_النموذجية": "Whereas" },
+          { "السؤال": "3- .......... bananas did you eat ? ( How many / How much / How )", "الإجابة_النموذجية": "How many" },
+          { "السؤال": "4- I was born .......... August. ( on / in / at )", "الإجابة_النموذجية": "in" },
+          { "السؤال": "5- She looks forward to .......... you. ( meeting / meet / meets )", "الإجابة_النموذجية": "meeting" }
+        ]
+      },
+      {
+        "نوع_السؤال": "What part of speech are the underlined words?",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1- We clean the (house) everyday .", "الإجابة_النموذجية": "verb" },
+          { "السؤال": "2- The (house) is clean .", "الإجابة_النموذجية": "adjective" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the best words for the given definitions:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Words with the same meaning . ( antonyms / acids / synonyms )", "الإجابة_النموذجية": "synonyms" },
+          { "السؤال": "2- A state of matter where particles are close together. ( solids / gas / liquid )", "الإجابة_النموذجية": "solids" },
+          { "السؤال": "3- A powerful storm with strong winds . ( famine / hurricane / epidemic )", "الإجابة_النموذجية": "hurricane" },
+          { "السؤال": "4- A vegetable dye to test the acidity of solutions. ( litmus / alkalis / gas )", "الإجابة_النموذجية": "litmus" },
+          { "السؤال": "5- A written permission to drive ( passport / licence / test )", "الإجابة_النموذجية": "licence" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make questions to match the underlined words:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- I like fish .", "الإجابة_النموذجية": "What do you like?" },
+          { "السؤال": "2- I go to school at seven o'clock .", "الإجابة_النموذجية": "What time do you go to school?" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Spot the mistakes and re-write the sentences correctly:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Newspapers are made of plastic .", "الإجابة_النموذجية": "Newspapers are made of paper." },
+          { "السؤال": "2- It is an old, beautiful house .", "الإجابة_النموذجية": "It's a beautiful, old house." },
+          { "السؤال": "3- This is the big school in Yemen .", "الإجابة_النموذجية": "This is the biggest school in Yemen." },
+          { "السؤال": "4- Ali has experience at teaching .", "الإجابة_النموذجية": "Ali has experience of teaching." },
+          { "السؤال": "5- I would like playing football .", "الإجابة_النموذجية": "I would like to play football. OR: I like playing football." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the compound words:",
+        "النص_المرجعي": "politeness / goverment / shopkeeper / confidence / beehive / handbag / perfection / friendliness / safe house / communication",
+        "الأسئلة": [
+          { "السؤال": "حدد الكلمات المركبة من القائمة", "الإجابة_النموذجية": "shopkeeper / beehive / handbag / safe house" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Put the verbs in brackets in the correct forms:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- I ( lose ) .......... my money yesterday .", "الإجابة_النموذجية": "lost" },
+          { "السؤال": "2- They ( watch ) .......... TV now .", "الإجابة_النموذجية": "are watching" },
+          { "السؤال": "3- My mother always ( wash ) .......... the dishes after lunch.", "الإجابة_النموذجية": "washes" },
+          { "السؤال": "4- She ( work ) .......... in this school since 1997.", "الإجابة_النموذجية": "has worked/has been working" },
+          { "السؤال": "5- We ( leave ) .......... tomorrow .", "الإجابة_النموذجية": "will leave/are leaving" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Underline the suffixes in the following words:",
+        "النص_المرجعي": "remake - successful - impolite - collection - suggest",
+        "الأسئلة": [
+          { "السؤال": "حدد اللواحق في الكلمات السابقة", "الإجابة_النموذجية": "successful / collection" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Someone cleaned the room .", "الإجابة_النموذجية": "The room was cleaned." },
+          { "السؤال": "2- I am going to make a dress .", "الإجابة_النموذجية": "A dress is going to be made." },
+          { "السؤال": "3- She has completed the lesson .", "الإجابة_النموذجية": "The lesson has been completed." },
+          { "السؤال": "4- People grow coffee in Yemen .", "الإجابة_النموذجية": "Coffee is grown in Yemen." },
+          { "السؤال": "5- We can cook fish curry soon .", "الإجابة_النموذجية": "Fish curry can be cooked." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the different word:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- famine / earthquake / epidemic / acids", "الإجابة_النموذجية": "acids" },
+          { "السؤال": "2- rounds / beautiful / nice / good", "الإجابة_النموذجية": "rounds" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Match the word to its meaning:",
+        "النص_المرجعي": "1- famine / 2- grazing / 3- alkalis / 4- recover / 5- brilliant / 6- childhood",
+        "الأسئلة": [
+          { "السؤال": "1- famine", "الإجابة_النموذجية": "c- when people die because of shortage of food." },
+          { "السؤال": "2- grazing", "الإجابة_النموذجية": "d- eating grass." },
+          { "السؤال": "3- alkalis", "الإجابة_النموذجية": "f- bases that dissolve in water." },
+          { "السؤال": "4- recover", "الإجابة_النموذجية": "e- get back to normal health." },
+          { "السؤال": "5- brilliant", "الإجابة_النموذجية": "a- very very good." },
+          { "السؤال": "6- childhood", "الإجابة_النموذجية": "b- the early part of a person's life." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Re-order the words to make meaningful sentences:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- is called / a very / a forest / wood / large", "الإجابة_النموذجية": "A very large wood is called a forest." },
+          { "السؤال": "2- quickly / spread / gases", "الإجابة_النموذجية": "Gases spread quickly." }
+        ]
+      }
+    ]
+  },
+
+
+
+  {
+    "سنة_الاختبار": "2024",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, then answer only five of the following six questions below:",
+        "النص_المرجعي": "Foods like buttermilk and lemon juice taste sour or bitter because of the acids and bases they contain. The most commonly used acids in the laboratory are: hydrochloric acid , sulphuric acid and nitric acid . Nature also has a large supply of acids . For example , citric acid can be found in fruit and vegetables such as lemons and oranges . Malic acid is found in apples .Tartaric acid is found in grapes . Acids are also formed in human beings and animals . Lactic acid is formed in our muscles when we exercise . Strong acids can be harmful to objects and people . They can cause chemical burns on our skin . When dealing with acids , it is important to wear a lab coat . To protect your eyes , always put safely goggles . Use the right gloves for your hands .",
+        "الأسئلة": [
+          { "السؤال": "1- Why do some foods taste sour ?", "الإجابة_النموذجية": "because of the acids and bases" },
+          { "السؤال": "2- How many acids are used in laboratories ?", "الإجابة_النموذجية": "three" },
+          { "السؤال": "3- What acids are found in grapes ?", "الإجابة_النموذجية": "Tartaric acid" },
+          { "السؤال": "4- When is lactic acid formed in our muscles ?", "الإجابة_النموذجية": "when we exercise" },
+          { "السؤال": "5- Can strong acids burn your skin ?", "الإجابة_النموذجية": "Yes" },
+          { "السؤال": "6- Are these statements ( True ) or ( False ):\n(a) Use goggles to protect your hands from acids .\n(b) Apples contain malic acid .", "الإجابة_النموذجية": "(a) ( False )\n(b) ( True )" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the paragraph, using the given words:",
+        "النص_المرجعي": "( hospitals / doctor / chemistry / job / ambition )\nMy .......... after leaving school is to become a .......... .\nI am very good at .......... and biology . I love to work in .......... .\nIt's a great .......... .",
+        "الأسئلة": [
+          { "السؤال": "أكمل الفراغات في الفقرة السابقة", "الإجابة_النموذجية": "My ambition after leaving school is to become a doctor. I am very good at chemistry and biology. I love to work in hospitals. It's a great job." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Choose the best alternatives :",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Windows are usually made .......... wood. ( of / in / for )", "الإجابة_النموذجية": "of" },
+          { "السؤال": "2- This car is .......... than that one . ( fast / fastest / faster )", "الإجابة_النموذجية": "faster" },
+          { "السؤال": "3- .......... I was sick , I did my homework . ( Although / Unlike / Because )", "الإجابة_النموذجية": "Although" },
+          { "السؤال": "4- This is the office .......... he works . ( which / who / where )", "الإجابة_النموذجية": "where" },
+          { "السؤال": "5- I look forward to .......... from you . ( hear / hearing / heard )", "الإجابة_النموذجية": "hearing" }
+        ]
+      },
+      {
+        "نوع_السؤال": "What part of speech are the underlined words?",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1- This is the oldest (dance) in the city .", "الإجابة_النموذجية": "noun" },
+          { "السؤال": "2- Can you (dance) ?", "الإجابة_النموذجية": "verb" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the best words for the given definitions:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Words with the opposite meaning . ( antonyms / synonyms / prefixes )", "الإجابة_النموذجية": "antonyms" },
+          { "السؤال": "2- A word used to describe what things are made of . ( acids / matter / light )", "الإجابة_النموذجية": "matter" },
+          { "السؤال": "3- A water shortage after a long period of time with no rain . ( famine / epidemic / drought )", "الإجابة_النموذجية": "drought" },
+          { "السؤال": "4- Bases that dissolve in water . ( suffixes / alkalis / particles )", "الإجابة_النموذجية": "alkalis" },
+          { "السؤال": "5- Two nouns combine to make one word . ( compounds / prefixes / suffixes )", "الإجابة_النموذجية": "compounds" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make questions to match the underlined words:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Ali is a doctor .", "الإجابة_النموذجية": "Who is a doctor" },
+          { "السؤال": "2- She has three brothers .", "الإجابة_النموذجية": "How many brothers does she have" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Spot the mistakes and re-write the sentences correctly:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- We doesn't live in Sana'a .", "الإجابة_النموذجية": "We don't live in Sana'a . OR: He/she/etc. doesn't live in Sana'a ." },
+          { "السؤال": "2- I want to apply in the job .", "الإجابة_النموذجية": "I want to apply for the job ." },
+          { "السؤال": "3- The two boys are the same high .", "الإجابة_النموذجية": "The two boys are the same height ." },
+          { "السؤال": "4- A tomato is curved .", "الإجابة_النموذجية": "A tomato is round . OR: something e.g banana is curved ." },
+          { "السؤال": "5- Have the children to go away.", "الإجابة_النموذجية": "Have the children go away . OR: Ask/Tell the children to go away ." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the compound words:",
+        "النص_المرجعي": "politeness / shopkeeper / goverment / taxi-driver / interesting / life-guard / architecture / civilization / farmhouse / importance",
+        "الأسئلة": [
+          { "السؤال": "حدد الكلمات المركبة من القائمة", "الإجابة_النموذجية": "shopkeeper / taxi-driver / life-guard / farmhouse" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Put the verbs in brackets in the correct forms:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- I ( do ) .......... it yesterday .", "الإجابة_النموذجية": "did" },
+          { "السؤال": "2- She ( clean ) .......... the house now .", "الإجابة_النموذجية": "is cleaning" },
+          { "السؤال": "3- My father always ( drink ) .......... soda after lunch.", "الإجابة_النموذجية": "drink" },
+          { "السؤال": "4- We ( live ) .......... here for thirteen years.", "الإجابة_النموذجية": "have lived / have been living" },
+          { "السؤال": "5- They ( come ) .......... tomorrow .", "الإجابة_النموذجية": "will come / are coming" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Underline the prefixes in the following words:",
+        "النص_المرجعي": "famous - disagree - collection - replay - darkness",
+        "الأسئلة": [
+          { "السؤال": "حدد البوادئ في الكلمات السابقة", "الإجابة_النموذجية": "disagree / replay" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Someone opened the window .", "الإجابة_النموذجية": "The window was opened ." },
+          { "السؤال": "2- I am going to clean the house .", "الإجابة_النموذجية": "The house is going to be cleaned ." },
+          { "السؤال": "3- We have arrested the killer .", "الإجابة_النموذجية": "The killer has been killed ." },
+          { "السؤال": "4- They can shorten the sentences.", "الإجابة_النموذجية": "The sentences can be shortened ." },
+          { "السؤال": "5- The factory makes a car every month .", "الإجابة_النموذجية": "A car is made every month ." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the different word:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- apples / rice / bananas / coffee .", "الإجابة_النموذجية": "coffee" },
+          { "السؤال": "2- epidemic / acids / alkalis / bases", "الإجابة_النموذجية": "epidemic" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Match the word to its meaning:",
+        "النص_المرجعي": "1- A valley\n2- Grazing\n3- Left\n4- Observe\n5- Light\n6- Licence",
+        "الأسئلة": [
+          { "السؤال": "1- A valley", "الإجابة_النموذجية": "c- a place between two hills ." },
+          { "السؤال": "2- Grazing", "الإجابة_النموذجية": "d- eating grass." },
+          { "السؤال": "3- Left", "الإجابة_النموذجية": "f- the opposite of right." },
+          { "السؤال": "4- Observe", "الإجابة_النموذجية": "e- to watch carefully." },
+          { "السؤال": "5- Light", "الإجابة_النموذجية": "a- a form of energy." },
+          { "السؤال": "6- Licence", "الإجابة_النموذجية": "b- a written permission to drive ." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Re-order the words to make meaningful sentences:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- house / the / big / is", "الإجابة_النموذجية": "The house is big ." },
+          { "السؤال": "2- in / matter / different / comes / three / forms", "الإجابة_النموذجية": "Matter comes in three different forms ." }
+        ]
+      }
+    ]
+  },
+
+
+  {
+    "سنة_الاختبار": "2024",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, then answer only five of the following six questions below:",
+        "النص_المرجعي": "We all need air for breathing. Air enters our body through the nose. It then reaches the lungs with the help of windpipe that connects the nose to the lungs. Inside the lungs, gas exchange takes place. The oxygen moves from the lungs into the blood while the blood releases carbon dioxide into the lungs.\nLike human beings, all mammals such as cats, cows, and dogs breathe with the help of their lungs. However, there is a number of animals that don't have lungs. Since a fish lives in water, it has special organ called gills. The gills help the fish to take in the oxygen which is dissolved in water. The water enters into the fish through its mouth. When this water passes through the gills, exchange of gases take place.",
+        "الأسئلة": [
+          { "السؤال": "1- What do we need for breathing ?", "الإجابة_النموذجية": "air" },
+          { "السؤال": "2- Where does gas exchange take place ?", "الإجابة_النموذجية": "Inside the lungs" },
+          { "السؤال": "3- How does air reach our lungs ?", "الإجابة_النموذجية": "with the help of windpipe" },
+          { "السؤال": "4- What helps fish to take in oxygen from water ?", "الإجابة_النموذجية": "the gills" },
+          { "السؤال": "5- Does the blood release oxygen into the lungs ?", "الإجابة_النموذجية": "No" },
+          { "السؤال": "6- Are these statements ( True ) or ( False ):\n(a) Carbon dioxide is dissolved in water.\n(b) A cow is a mammal.", "الإجابة_النموذجية": "(a) ( False )\n(b) ( True )" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the paragraph, using the given words:",
+        "النص_المرجعي": "( doctors / company / hard-working / business / hobbies )\nFareeda is .......... and gets on well with people. She has two .......... : painting and cooking. Her parents are .......... , but she would like to go onto .......... . She wants to work in a big .......... .",
+        "الأسئلة": [
+          { "السؤال": "تعبئة الفراغات بالكلمات المناسبة", "الإجابة_النموذجية": "Fareeda is hard-working and gets on well with people. She has two hobbies : painting and cooking. Her parents are doctors , but she would like to go onto business . She wants to work in a big company." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Choose the best alternatives :",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- .......... she has two cars, she can't drive. ( so / also / although )", "الإجابة_النموذجية": "although" },
+          { "السؤال": "2- The city .......... I used to live is very nice. ( where / what / who )", "الإجابة_النموذجية": "where" },
+          { "السؤال": "3- He doesn't have .......... money. ( many / few / any )", "الإجابة_النموذجية": "any" },
+          { "السؤال": "4- The table is made .......... wood. ( with / at / of )", "الإجابة_النموذجية": "of" },
+          { "السؤال": "5- I look forward to .......... from you. ( hear / hearing / heard )", "الإجابة_النموذجية": "hearing" }
+        ]
+      },
+      {
+        "نوع_السؤال": "What part of speech are the underlined words?",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1- He has a strong (tie) .", "الإجابة_النموذجية": "noun" },
+          { "السؤال": "2- I have to (tie) his hands .", "الإجابة_النموذجية": "verb" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the best words for the given definitions:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- An illness that spreads quickly. ( drought / epidemic / forest )", "الإجابة_النموذجية": "epidemic" },
+          { "السؤال": "2- Words with the opposite meaning. ( antonyms / synonyms / compounds )", "الإجابة_النموذجية": "antonyms" },
+          { "السؤال": "3- A substance that reacts with acids to produce salt. ( base / case / lace )", "الإجابة_النموذجية": "base" },
+          { "السؤال": "4- A group of letters at the beginning of the word. ( suffix / prefix / verb )", "الإجابة_النموذجية": "prefix" },
+          { "السؤال": "5- They have a fixed shape. ( Liquids / gases / solids )", "الإجابة_النموذجية": "solids" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make questions to match the underlined words:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- They grow tea in India .", "الإجابة_النموذجية": "Where do they grow tea ?" },
+          { "السؤال": "2- The man read three books last week.", "الإجابة_النموذجية": "How many books did the man read ?" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Spot the mistakes and re-write the sentences correctly:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- She is the same old as her friend.", "الإجابة_النموذجية": "She is the same age as her friend . OR: She is as old as her friend." },
+          { "السؤال": "2- I am very interested at history.", "الإجابة_النموذجية": "I'm very interested in history." },
+          { "السؤال": "3- He smelt something burned in the kitchen.", "الإجابة_النموذجية": "He smelt something burning ... OR: He smelt something burn ..." },
+          { "السؤال": "4- We don't go to school yesterday.", "الإجابة_النموذجية": "We didn't go to school yesterday." },
+          { "السؤال": "5- The student would like coming early.", "الإجابة_النموذجية": "The student would like to come early. OR: The student like coming early." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the compound words:",
+        "النص_المرجعي": "countryside / attractive / handbag / conductor / happily / decoration / postcard / employment / weekend / homeless",
+        "الأسئلة": [
+          { "السؤال": "استخراج الكلمات المركبة من القائمة", "الإجابة_النموذجية": "countryside / handbag / postcard / weekend" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Put the verbs in brackets in the correct forms:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- We ( go ) .......... to school tomorrow.", "الإجابة_النموذجية": "will go / are going / are to go" },
+          { "السؤال": "2- Ali ( work ) .......... in this company for ten years.", "الإجابة_النموذجية": "has worked / has been working" },
+          { "السؤال": "3- look ! The cat ( sleep ) .......... .", "الإجابة_النموذجية": "is sleeping" },
+          { "السؤال": "4- I ( meet ) .......... my uncle last night.", "الإجابة_النموذجية": "met" },
+          { "السؤال": "5- She usually ( visit ) .......... her friends on Fridays.", "الإجابة_النموذجية": "visits" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Underline the suffixes in the following words:",
+        "النص_المرجعي": "peaceful / understand / impolite / hopeless / outdoor",
+        "الأسئلة": [
+          { "السؤال": "تحديد اللواحق في الكلمات المعطاة", "الإجابة_النموذجية": "peaceful / hopeless" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- They built the school in 1998.", "الإجابة_النموذجية": "The school was built in 1998" },
+          { "السؤال": "2- The boys are cleaning the room now.", "الإجابة_النموذجية": "The room is being cleaned now." },
+          { "السؤال": "3- The teacher has finished the lesson.", "الإجابة_النموذجية": "The lesson has been finished." },
+          { "السؤال": "4- He should send the message.", "الإجابة_النموذجية": "The message should be sent." },
+          { "السؤال": "5- She uses her dictionary every day.", "الإجابة_النموذجية": "Her dictionary is used every day." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the different word:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- plastic / square / glass / wood .", "الإجابة_النموذجية": "square" },
+          { "السؤال": "2- acid / solid / liquid / gas", "الإجابة_النموذجية": "acid" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Match the word to its meaning:",
+        "النص_المرجعي": "1- valley\n2- grazing\n3- light\n4- vacancies\n5- peak\n6- left",
+        "الأسئلة": [
+          { "السؤال": "1- valley", "الإجابة_النموذجية": "e- a place between two mountains." },
+          { "السؤال": "2- grazing", "الإجابة_النموذجية": "d- eating grass." },
+          { "السؤال": "3- light", "الإجابة_النموذجية": "f- a form of energy." },
+          { "السؤال": "4- vacancies", "الإجابة_النموذجية": "b- unfilled jobs." },
+          { "السؤال": "5- peak", "الإجابة_النموذجية": "a- the highest part of a mountain." },
+          { "السؤال": "6- left", "الإجابة_النموذجية": "c- the opposite of right." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Re-order the words to make meaningful sentences:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- forms / matter / three / in / comes / different", "الإجابة_النموذجية": "Matter comes in three different words ." },
+          { "السؤال": "2- has / she / eyes / brown", "الإجابة_النموذجية": "She has brown eyes ." }
+        ]
+      }
+    ]
+  },
+
+
+  {
+    "سنة_الاختبار": "2024",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, then answer only five of the following six questions below:",
+        "النص_المرجعي": "We all need air for breathing. Air enters our body through the nose. It then reaches the lungs with the help of windpipe that connects the nose to the lungs. Inside the lungs, gas exchange takes place. The oxygen moves from the lungs into the blood while the blood releases carbon dioxide into the lungs.\nLike human beings, all mammals such as cats, cows, and dogs breathe with the help of their lungs. However, there is a number of animals that don't have lungs. Since a fish lives in water, it has special organ called gills. The gills help the fish to take in the oxygen which is dissolved in water. The water enters into the fish through its mouth. When this water passes through the gills, exchange of gases take place.",
+        "الأسئلة": [
+          { "السؤال": "1- What do we need for breathing ?", "الإجابة_النموذجية": "air" },
+          { "السؤال": "2- How does air reach our lungs ?", "الإجابة_النموذجية": "with the help of windpipe" },
+          { "السؤال": "3- Where does gas exchange take place ?", "الإجابة_النموذجية": "Inside the lungs" },
+          { "السؤال": "4- What helps fish to take in oxygen from water ?", "الإجابة_النموذجية": "the gills" },
+          { "السؤال": "5- Does the blood release oxygen into the lungs ?", "الإجابة_النموذجية": "No" },
+          { "السؤال": "6- Are these statements ( True ) or ( False ):\n(a) Carbon dioxide is dissolved in water.\n(b) A cow is a mammal.", "الإجابة_النموذجية": "(a) ( False )\n(b) ( True )" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the paragraph, using the given words:",
+        "النص_المرجعي": "( doctors / company / hard-working / business / hobbies )",
+        "الأسئلة": [
+          {
+            "السؤال": "Fareeda is .......... and gets on well with people. She has two .......... : painting and cooking. Her parents are .......... , but she would like to go onto .......... . She wants to work in a big .......... .",
+            "الإجابة_النموذجية": "Fareeda is hard-working and gets on well with people. She has two hobbies : painting and cooking. Her parents are doctors , but she would like to go onto business . She wants to work in a big company."
+          }
+        ]
+      },
+      {
+        "نوع_السؤال": "Choose the best alternatives :",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- .......... she has two cars, she can't drive. ( so / also / although )", "الإجابة_النموذجية": "although" },
+          { "السؤال": "2- The city .......... I used to live is very nice. ( where / what / who )", "الإجابة_النموذجية": "where" },
+          { "السؤال": "3- He doesn't have .......... money. ( many / few / any )", "الإجابة_النموذجية": "any" },
+          { "السؤال": "4- The table is made .......... wood. ( with / at / of )", "الإجابة_النموذجية": "of" },
+          { "السؤال": "5- I look forward to .......... from you. ( hear / hearing / heard )", "الإجابة_النموذجية": "hearing" }
+        ]
+      },
+      {
+        "نوع_السؤال": "What part of speech are the underlined words?",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1- He has a strong (tie) .", "الإجابة_النموذجية": "noun" },
+          { "السؤال": "2- I have to (tie) his hands .", "الإجابة_النموذجية": "verb" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the best words for the given definitions:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- An illness that spreads quickly. ( drought / epidemic / forest )", "الإجابة_النموذجية": "epidemic" },
+          { "السؤال": "2- Words with the opposite meaning. ( antonyms / synonyms / compounds )", "الإجابة_النموذجية": "antonyms" },
+          { "السؤال": "3- A substance that reacts with acids to produce salt. ( base / case / lace )", "الإجابة_النموذجية": "base" },
+          { "السؤال": "4- A group of letters at the beginning of the word. ( suffix / prefix / verb )", "الإجابة_النموذجية": "prefix" },
+          { "السؤال": "5- They have a fixed shape. ( Liquids / gases / solids )", "الإجابة_النموذجية": "solids" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make questions to match the underlined words:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- They grow tea in India .", "الإجابة_النموذجية": "Where do they grow tea" },
+          { "السؤال": "2- The man read three books last week.", "الإجابة_النموذجية": "How many books did the man read" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Spot the mistakes and re-write the sentences correctly:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- She is the same old as her friend.", "الإجابة_النموذجية": "She is the same age as her friend ." },
+          { "السؤال": "2- I am very interested at history.", "الإجابة_النموذجية": "I'm very interested in history." },
+          { "السؤال": "3- He smelt something burned in the kitchen.", "الإجابة_النموذجية": "He smelt something burning ... OR: He smelt something burn ..." },
+          { "السؤال": "4- We don't go to school yesterday.", "الإجابة_النموذجية": "We didn't go to school yesterday." },
+          { "السؤال": "5- The student would like coming early.", "الإجابة_النموذجية": "The student would like to come early. OR: The students like coming early." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the compound words:",
+        "النص_المرجعي": "countryside / attractive / handbag / conductor / happily / decoration / postcard / employment / weekend / homeless",
+        "الأسئلة": [
+          { "السؤال": "تحديد الكلمات المركبة", "الإجابة_النموذجية": "countryside / handbag / postcard / weekend" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Put the verbs in brackets in the correct forms:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- She ( cook ) .......... the food at the moment .", "الإجابة_النموذجية": "is cooking" },
+          { "السؤال": "2- They ( leave ) .......... the school last week.", "الإجابة_النموذجية": "left" },
+          { "السؤال": "3- My mother always ( wash ) .......... the dishes after lunch.", "الإجابة_النموذجية": "washes" },
+          { "السؤال": "4- She ( work ) .......... here since 1977.", "الإجابة_النموذجية": "has worked / has been working" },
+          { "السؤال": "5- We ( finish ) .......... the work tomorrow .", "الإجابة_النموذجية": "will finish / am going to finish" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Underline the prefixes in the following words:",
+        "النص_المرجعي": "covering - continuous - rename - painful - incomplete / Example: helpless - unpunished - school - dislike - light",
+        "الأسئلة": [
+          { "السؤال": "تحديد البوادئ", "الإجابة_النموذجية": "dislike / rename / incomplete" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- They grow rice in India .", "الإجابة_النموذجية": "Rice is grown in India ." },
+          { "السؤال": "2- We can repair it .", "الإجابة_النموذجية": "It can be repaired ." },
+          { "السؤال": "3- The children ate the bananas .", "الإجابة_النموذجية": "The bananas were eaten ." },
+          { "السؤال": "4- He is playing football now .", "الإجابة_النموذجية": "football is being played now ." },
+          { "السؤال": "5- They have visited the capital .", "الإجابة_النموذجية": "The capital has been visited ." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the different word:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- hurricane / volcano / acid / flood .", "الإجابة_النموذجية": "acid" },
+          { "السؤال": "2- chemistry / history / geography / valley", "الإجابة_النموذجية": "valley" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Match the word to its meaning:",
+        "النص_المرجعي": "1- brilliant / 2- childhood / 3- grazing / 4- alkalis / 5- recover / 6- drought",
+        "الأسئلة": [
+          { "السؤال": "1- brilliant", "الإجابة_النموذجية": "c- very good." },
+          { "السؤال": "2- childhood", "الإجابة_النموذجية": "e- early part of a person's life." },
+          { "السؤال": "3- grazing", "الإجابة_النموذجية": "a- eating grass." },
+          { "السؤال": "4- alkalis", "الإجابة_النموذجية": "f- bases that dissolve in water." },
+          { "السؤال": "5- recover", "الإجابة_النموذجية": "d- get back to normal health." },
+          { "السؤال": "6- drought", "الإجابة_النموذجية": "b- a shortage of water." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Re-order the words to make meaningful sentences:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- for a job / applied / she", "الإجابة_النموذجية": "She applied for the job ." },
+          { "السؤال": "2- carefully / is / driving / He / the car", "الإجابة_النموذجية": "He is driving the car carefully ." }
+        ]
+      }
+    ]
+  },
+
+
+  {
+    "سنة_الاختبار": "2024",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, then answer only five of the following six questions below:",
+        "النص_المرجعي": "We all need air for breathing. Air enters our body through the nose. It then reaches the lungs with the help of windpipe that connects the nose to the lungs. Inside the lungs, gas exchange takes place. The oxygen moves from the lungs into the blood while the blood releases carbon dioxide into the lungs.\nLike human beings, all mammals such as cats, cows, and dogs breathe with the help of their lungs. However, there is a number of animals that don't have lungs. Since a fish lives in water, it has special organ called gills. The gills help the fish to take in the oxygen which is dissolved in water. The water enters into the fish through its mouth. When this water passes through the gills, exchange of gases take place.",
+        "الأسئلة": [
+          { "السؤال": "1- What do we need for breathing ?", "الإجابة_النموذجية": "air" },
+          { "السؤال": "2- How does air reach our lungs ?", "الإجابة_النموذجية": "with the help of windpipe" },
+          { "السؤال": "3- Where does gas exchange take place ?", "الإجابة_النموذجية": "Inside the lungs" },
+          { "السؤال": "4- What helps fish to take in oxygen from water ?", "الإجابة_النموذجية": "the gills" },
+          { "السؤال": "5- Does the blood release oxygen into the lungs ?", "الإجابة_النموذجية": "No" },
+          { "السؤال": "6- Are these statements ( True ) or ( False ):\n(a) Carbon dioxide is dissolved in water.\n(b) A cow is a mammal.", "الإجابة_النموذجية": "(a) ( False )\n(b) ( True )" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Read the passage, then answer only five of the following six questions below:",
+        "النص_المرجعي": "Acids are important chemicals for industry . For example , sulphuric acid is used in the preservation of foods , and in car batteries . Nitric acid is used for making explosives . Hydrochloric acid is used to clean steel plates .\nStrong acids can be harmful and cause chemical burns on your skin . To protect yourself , wear a lab coat , and for your eyes-wear safely goggles . It is important to use the right gloves for your hands .\nThe sour or bitter taste in foods like buttermilk and lemon juice is caused by acids and bases . The most commonly used acids in the laboratory are : hydrochloric acid , sulphuric acid and nitric acid . Nature also has a large supply of acids . For example , citric acid can be found in fruit and vegetables such as lemons and oranges .",
+        "الأسئلة": [
+          { "السؤال": "1- Are acids important for industry ?", "الإجابة_النموذجية": "Yes" },
+          { "السؤال": "2- What acid is used to preserve food ?", "الإجابة_النموذجية": "Sulphuric acid" },
+          { "السؤال": "3- How do you protect your eyes form acids ?", "الإجابة_النموذجية": "wear safely goggles" },
+          { "السؤال": "4- How many acids are used in the Laboratory ?", "الإجابة_النموذجية": "three" },
+          { "السؤال": "5- What acid is found in lemons ?", "الإجابة_النموذجية": "citric acid" },
+          { "السؤال": "6- Are these statements ( True ) or ( False ):\n(a) Nitric acid is used to clean steel plates .\n(b) Buttermilk is sour .", "الإجابة_النموذجية": "(a) ( False )\n(b) ( True )" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the paragraph, using the given words:",
+        "النص_المرجعي": "( doctors / company / hard-working / business / hobbies )",
+        "الأسئلة": [
+          {
+            "السؤال": "Fareeda is .......... and gets on well with people. She has two .......... : painting and cooking. Her parents are .......... , but she would like to go onto .......... . She wants to work in a big .......... .",
+            "الإجابة_النموذجية": "Fareeda is hard-working and gets on well with people. She has two hobbies : painting and cooking. Her parents are doctors , but she would like to go onto business . She wants to work in a big company."
+          }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the paragraph, using the given words:",
+        "النص_المرجعي": "( doctor / excellent / popular / college / parents )",
+        "الأسئلة": [
+          {
+            "السؤال": "Ali is .......... in his school. He is .......... at mathematics and biology. Both his .......... are teachers, but he wants to be a .......... . Next year, he will go to medicine .......... .",
+            "الإجابة_النموذجية": "Ali is popular in his school. He is excellent at mathematics and biology. Both his parents are teachers, but he wants to be a doctor. Next year, he will go to medicine college."
+          }
+        ]
+      },
+      {
+        "نوع_السؤال": "Choose the best alternatives :",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- My son is good .......... biology . ( in / on / at )", "الإجابة_النموذجية": "at" },
+          { "السؤال": "2- She was ill, .......... she took some medicine . ( because / so / a swell )", "الإجابة_النموذجية": "so" },
+          { "السؤال": "3- I am .......... than him . ( fast / fastest / faster )", "الإجابة_النموذجية": "faster" },
+          { "السؤال": "4- The town .......... he used to live in is nice . ( which / who / what )", "الإجابة_النموذجية": "which" },
+          { "السؤال": "5- How .......... sugar do you want ? ( many / much / less )", "الإجابة_النموذجية": "much" },
+          { "السؤال": "6- Windows are usually made .......... wood. ( of / in / for )", "الإجابة_النموذجية": "of" },
+          { "السؤال": "7- This car is .......... than that one . ( fast / fastest / faster )", "الإجابة_النموذجية": "faster" },
+          { "السؤال": "8- .......... I was sick , I did my homework . ( Although / Unlike / Because )", "الإجابة_النموذجية": "Although" },
+          { "السؤال": "9- This is the office .......... he works . ( which / who / where )", "الإجابة_النموذجية": "where" },
+          { "السؤال": "10- I look forward to .......... from you . ( hear / hearing / heard )", "الإجابة_النموذجية": "hearing" },
+          { "السؤال": "11- .......... she has two cars , she can't drive . ( so / also / although )", "الإجابة_النموذجية": "although" },
+          { "السؤال": "12- The city .......... I used to live is very nice . ( where / what / who )", "الإجابة_النموذجية": "where" },
+          { "السؤال": "13- He doesn't have .......... money . ( many / few / any )", "الإجابة_النموذجية": "any" },
+          { "السؤال": "14- Cars are .......... than motor bikes . ( fast / fastest / faster )", "الإجابة_النموذجية": "faster" },
+          { "السؤال": "15- We haven't got .......... bread in our house . ( any / many / few )", "الإجابة_النموذجية": "any" },
+          { "السؤال": "16- My brother is interested .......... tennis . ( at / in / of )", "الإجابة_النموذجية": "in" }
+        ]
+      },
+      {
+        "نوع_السؤال": "What part of speech are the underlined words?",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1- (Water) is necessary for life .", "الإجابة_النموذجية": "noun" },
+          { "السؤال": "2- They (water) the tree everyday .", "الإجابة_النموذجية": "verb" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the best words for the given definitions:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- It has a sour taste . ( acid / alkali / rain )", "الإجابة_النموذجية": "acid" },
+          { "السؤال": "2- Deep water over normally dry land . ( cud / flood / blood )", "الإجابة_النموذجية": "flood" },
+          { "السؤال": "3- They have no fixed shape . ( liquids / solids / container )", "الإجابة_النموذجية": "liquids" },
+          { "السؤال": "4- Words with the same meaning . ( antonyms / compounds / synonyms )", "الإجابة_النموذجية": "synonyms" },
+          { "السؤال": "5- A group of letters at the end of the word . ( suffix / prefix / sets )", "الإجابة_النموذجية": "suffix" },
+          { "السؤال": "6- Words with the opposite meaning . ( antonyms / synonyms / prefixes )", "الإجابة_النموذجية": "antonyms" },
+          { "السؤال": "7- A word used to describe what things are made of . ( acids / matter / light )", "الإجابة_النموذجية": "matter" },
+          { "السؤال": "8- A water shortage after a long period of time with no rain . ( famine / epidemic / drought )", "الإجابة_النموذجية": "drought" },
+          { "السؤال": "9- Bases that dissolve in water . ( suffixes / alkalis / particles )", "الإجابة_النموذجية": "alkalis" },
+          { "السؤال": "10- Two nouns combine to make one word . ( compounds / prefixes / suffixes )", "الإجابة_النموذجية": "compounds" },
+          { "السؤال": "11- An illness that spreads quickly . ( drought / epidemic / forest )", "الإجابة_النموذجية": "epidemic" },
+          { "السؤال": "12- A substance that reacts with acids to produce salt . ( base / case / lace )", "الإجابة_النموذجية": "base" },
+          { "السؤال": "13- A group of letters at the beginning of the word . ( suffix / prefix / verb )", "الإجابة_النموذجية": "prefix" },
+          { "السؤال": "14- They have a fixed shape . ( Liquids / gases / solids )", "الإجابة_النموذجية": "solids" },
+          { "السؤال": "15- It means the ashes of plant in Arabic . ( alkali / acid / gas )", "الإجابة_النموذجية": "alkali" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make questions to match the underlined words:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- He lives in a big city .", "الإجابة_النموذجية": "Where does he live ?" },
+          { "السؤال": "2- The short man broke that window .", "الإجابة_النموذجية": "Who broke the window ?" },
+          { "السؤال": "3- Ali is a doctor .", "الإجابة_النموذجية": "Who is a doctor ?" },
+          { "السؤال": "4- She has three brothers .", "الإجابة_النموذجية": "How many brothers does she have ?" },
+          { "السؤال": "5- They grow tea in India .", "الإجابة_النموذجية": "Where do they grow tea ?" },
+          { "السؤال": "6- The man read three books last week .", "الإجابة_النموذجية": "How many books did the man read ?" },
+          { "السؤال": "7- Salim went to Oman .", "الإجابة_النموذجية": "Who went to Oman ?" },
+          { "السؤال": "8- We live in the countryside .", "الإجابة_النموذجية": "Where do you live ?" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Spot the mistakes and re-write the sentences correctly:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- He is as taller as his father .", "الإجابة_النموذجية": "He is as tall as his father" },
+          { "السؤال": "2- I look forward to meet you .", "الإجابة_النموذجية": "I look forward to meeting you" },
+          { "السؤال": "3- Did you apply to the job ?", "الإجابة_النموذجية": "Did you apply for the job ." },
+          { "السؤال": "4- We visit friends in Fridays .", "الإجابة_النموذجية": "We visit friends on Friday" },
+          { "السؤال": "5- I would like playing football .", "الإجابة_النموذجية": "I would like to play football . OR : I like playing football" },
+          { "السؤال": "6- We doesn't live in Sana'a .", "الإجابة_النموذجية": "We don't live in Sana'a" },
+          { "السؤال": "7- I want to apply in the job .", "الإجابة_النموذجية": "I want to apply for the job ." },
+          { "السؤال": "8- The two boys are the same high .", "الإجابة_النموذجية": "The two boys are the same height ." },
+          { "السؤال": "9- A tomato is curved .", "الإجابة_النموذجية": "A tomato is round . OR : A banana is curved" },
+          { "السؤال": "10- Have the children to go away .", "الإجابة_النموذجية": "Have the children go away . OR : Ask/Tell the children to go away ." },
+          { "السؤال": "11- She is the same old as her friend .", "الإجابة_النموذجية": "She is the same age as her friend . OR : She is as old as her friend" },
+          { "السؤال": "12- I am very interested at history .", "الإجابة_النموذجية": "I'm very interested in history" },
+          { "السؤال": "13- He smelt something burned in the kitchen .", "الإجابة_النموذجية": "He smelt something burning ... OR : He smelt something burn ..." },
+          { "السؤال": "14- We don't go to school yesterday .", "الإجابة_النموذجية": "We didn't go to school yesterday" },
+          { "السؤال": "15- The student would like coming early .", "الإجابة_النموذجية": "The student would like to come early . OR : The student like coming early" },
+          { "السؤال": "16- I have a good experience in teaching children .", "الإجابة_النموذجية": "of" },
+          { "السؤال": "17- Coffee are grown in Yemen .", "الإجابة_النموذجية": "is" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the compound words:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "استخرج الكلمات المركبة من القائمة", "الإجابة_النموذجية": "classroom / good-looking / shopkeeper / taxi-driver / life-guard / farmhouse / countryside / handbag / postcard / weekend / bookseller" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Put the verbs in brackets in the correct forms:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- I ( lose ) .......... my money yesterday .", "الإجابة_النموذجية": "lost" },
+          { "السؤال": "2- They ( watch ) .......... TV now .", "الإجابة_النموذجية": "are watching" },
+          { "السؤال": "3- My mother always ( wash ) .......... the dishes after lunch .", "الإجابة_النموذجية": "washes" },
+          { "السؤال": "4- She ( work ) .......... in this school since 1997 .", "الإجابة_النموذجية": "has worked / has been working" },
+          { "السؤال": "5- We ( leave ) .......... tomorrow .", "الإجابة_النموذجية": "will leave / are leaving" },
+          { "السؤال": "6- I ( buy ) .......... fish yesterday .", "الإجابة_النموذجية": "bought" },
+          { "السؤال": "7- She ( clean ) .......... the kitchen now .", "الإجابة_النموذجية": "is cleaning" },
+          { "السؤال": "8- My father always ( drink ) .......... coffee after lunch .", "الإجابة_النموذجية": "drinks" },
+          { "السؤال": "9- They ( open ) .......... the new school tomorrow .", "الإجابة_النموذجية": "will open / are going to open" },
+          { "السؤال": "10- He ( work ) .......... in this office for twenty years .", "الإجابة_النموذجية": "has worked / has been working" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Underline the suffixes/prefixes in the following words:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "تحديد اللواحق (Suffixes) والبوادئ (Prefixes)", "الإجابة_النموذجية": "Suffixes: successful / collection / enjoyment / Suffixes: -ful, -tion, -ment. Prefixes: rename / incomplete / dislike." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Someone cleaned the room .", "الإجابة_النموذجية": "The room was cleaned" },
+          { "السؤال": "2- I am going to make a dress .", "الإجابة_النموذجية": "A dress is going to be made" },
+          { "السؤال": "3- She has completed the lesson .", "الإجابة_النموذجية": "The lesson has been completed" },
+          { "السؤال": "4- People grow coffee in Yemen .", "الإجابة_النموذجية": "Coffee is grown in Yemen" },
+          { "السؤال": "5- We can cook fish curry soon .", "الإجابة_النموذجية": "Fish curry can be cooked" },
+          { "السؤال": "6- Omar killed a lion last week .", "الإجابة_النموذجية": "A lion was killed" },
+          { "السؤال": "7- They will destroy the old school .", "الإجابة_النموذجية": "The old school will be destroyed" },
+          { "السؤال": "8- They factory makes a car every month .", "الإجابة_النموذجية": "A car is made every month" },
+          { "السؤال": "9- We have arrested the killer .", "الإجابة_النموذجية": "The killer has been arrested" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Circle the different word:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- famine / earthquake / epidemic / acids .", "الإجابة_النموذجية": "acids" },
+          { "السؤال": "2- rounds / beautiful / nice / good .", "الإجابة_النموذجية": "rounds" },
+          { "السؤال": "3- wool / metal / fur / skin .", "الإجابة_النموذجية": "metal" },
+          { "السؤال": "4- figs / mangoes / papayas / liquid .", "الإجابة_النموذجية": "liquid" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Match the word to its meaning:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- famine", "الإجابة_النموذجية": "c- when people die because of shortage of food. (OR: b- a shortage of food.)" },
+          { "السؤال": "2- grazing", "الإجابة_النموذجية": "d- eating grass. (OR: a- eating grass.)" },
+          { "السؤال": "3- alkalis", "الإجابة_النموذجية": "f- bases that dissolve in water. (OR: e- bases that dissolve in water.)" },
+          { "السؤال": "4- recover", "الإجابة_النموذجية": "e- get back to normal health. (OR: c- get back to normal health.)" },
+          { "السؤال": "5- brilliant", "الإجابة_النموذجية": "a- very very good. (OR: c- very good.)" },
+          { "السؤال": "6- childhood", "الإجابة_النموذجية": "b- the early part of a person's life. (OR: e- early part of a person's life.)" },
+          { "السؤال": "7- homeless", "الإجابة_النموذجية": "f- having nowhere to live . (OR: d- having no place to live .)" },
+          { "السؤال": "8- drought", "الإجابة_النموذجية": "b- a shortage of water ." },
+          { "السؤال": "9- awful", "الإجابة_النموذجية": "f- very bad ." }
+        ]
+      },
+      {
+        "نوع_السؤال": "Re-order the words to make meaningful sentences:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- is called / a very / a forest / wood / large", "الإجابة_النموذجية": "A very large wood is called a forest ." },
+          { "السؤال": "2- quickly / spread / gases", "الإجابة_النموذجية": "Gases spread quickly ." },
+          { "السؤال": "3- for a job / applied / she", "الإجابة_النموذجية": "She applied for the job ." },
+          { "السؤال": "4- carefully / is / driving / He / the car", "الإجابة_النموذجية": "He is driving the car carefully ." }
+        ]
+      }
+    ]
+  }
+]

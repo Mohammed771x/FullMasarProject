@@ -1,0 +1,4203 @@
+# --- FILE: arabic.py ---
+# subjects/arabic.py
+"""
+قسم اللغة العربية - يعتمد على ذاكرة التطبيق (الجوال) فقط - Stateless
+مع دعم المحادثة الطبيعية (ترحيب) والدقة الصارمة في المنهج
+"""
+
+from .common import (
+    subject_book_path, load_json_safe, extract_all_texts_and_metas_physics,
+    enhanced_search_physics, system_prompt_strict_explain,
+    system_prompt_strict_summary, system_prompt_strict_qa,
+    filter_and_rank_exams, collect_exam_questions_by_years,
+    parse_exams_input, extract_keywords, faiss_search, format_arabic_math
+)
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE
+from models import AskRequest
+from typing import Dict, List, Optional
+import json
+import re
+import os
+import random
+import asyncio
+import time
+
+
+SUBJECT = "عربي"
+sessions_arabic = {}
+
+_arabic_session_timestamps = {}
+
+
+_book_cache = None
+
+def get_book_data():
+    global _book_cache
+    if _book_cache is not None:
+        return _book_cache
+    book = load_json_safe(subject_book_path(SUBJECT))
+    if not book:
+        return {}
+    _book_cache = book
+    return _book_cache
+
+
+
+# =====================
+# دوال مساعدة جديدة
+# =====================
+
+_subject_session_timestamps = {}
+
+def cleanup_subject_sessions(sessions_dict: dict, session_timestamps: dict):
+    """تنظيف الجلسات المنتهية لأي مادة"""
+    now = time.time()
+    expired = [
+        uid for uid, ts in session_timestamps.items()
+        if now - ts > 1800  # 30 دقيقة
+    ]
+    for uid in expired:
+        sessions_dict.pop(uid, None)
+        session_timestamps.pop(uid, None)
+        
+        
+        
+
+def extract_lesson_only(book_data, lesson_name):
+    """استخراج درس واحد فقط من الوحدات"""
+    for unit in book_data:
+        for lesson in unit.get("الدروس", []):
+            if lesson.get("اسم_الدرس") == lesson_name:
+                return [{
+                    "اسم_الوحدة": unit.get("اسم_الوحدة"),
+                    "الدروس": [lesson]
+                }]
+    return []
+
+
+async def enhanced_search_with_context(book_data, query, chat_history, top_k=5):
+    """بحث ذكي مع دعم السياق من المحادثة"""
+    last_ai_response = ""
+    if chat_history:
+        for msg in reversed(chat_history):
+            if msg.get('role') == 'assistant':
+                last_ai_response = msg.get('content', '')
+                break
+    
+    texts, metas = extract_all_texts_and_metas_physics(book_data)
+    if not texts: return [], []
+    
+    combined_query = query
+    if len(query.split()) < 5 and last_ai_response:
+        combined_query = last_ai_response[:150] + " " + query
+    
+    sem_results, idxs = await faiss_search(texts, combined_query, top_k=top_k)
+    keywords = extract_keywords(query)
+    direct_hits = []
+    direct_idxs = []
+    
+    for i, txt in enumerate(texts):
+        if any(k in txt for k in keywords):
+            direct_hits.append(txt)
+            direct_idxs.append(i)
+    
+    final_texts = []
+    final_idxs = []
+    
+    for t, i in zip(direct_hits, direct_idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    
+    for t, i in zip(sem_results, idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    
+    return final_texts[:top_k], final_idxs[:top_k]
+
+
+# =====================
+# الدوال الرئيسية
+# =====================
+async def handle_arabic_explain(req: AskRequest, gemini_client):
+    """وضع الشرح - العربي"""
+    book = get_book_data()
+    if not book: return {"answer": "❌ المادة غير متوفرة"}
+    
+    context_text = ""
+    refs = []
+
+    # 1. إذا الطالب حدد درس معين (الدرس قصير، نمرره كامل لضمان عدم تشتت السياق)
+    if req.lesson_name:
+        target_data = extract_lesson_only(book.get("الوحدات", []), req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        # تجميع محتوى الدرس بنص واحد مرتب
+        lesson_parts = target_data[0]['الدروس'][0].get('الأجزاء', [])
+        for part in lesson_parts:
+            context_text += f"[{part.get('اسم_الجزء', '')}]\n"
+            content = part.get('المحتوى', [])
+            if isinstance(content, list):
+                # دمج عناصر المصفوفة كنص واحد
+                for item in content:
+                    if isinstance(item, dict):
+                        context_text += f"- {item.get('المصطلح', '')}: {item.get('التعريف', '')}\n"
+                    else:
+                        context_text += f"- {item}\n"
+            else:
+                context_text += f"{content}\n"
+            context_text += "\n"
+            
+        refs.append(req.lesson_name)
+
+    # 2. إذا لم يحدد درس، نستخدم البحث الدلالي المعتاد على الوحدة أو الكتاب
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in book.get("الوحدات", []) if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = book if isinstance(book, list) else book.get("الوحدات", [])
+            
+        results, idxs = await enhanced_search_physics(target_data, req.content, top_k=5)
+        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        
+        # استخراج المراجع الخاصة بالبحث الدلالي
+        _, metas = extract_all_texts_and_metas_physics(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref = f"{metas[i].get('lesson', 'درس')}"
+                    if ref not in refs: refs.append(ref)
+
+    # 3. إعداد الـ System Prompt بشكل مباشر
+    system_prompt = f"""أنت الآن في وضع مدرس محترف داخل الصف لمادة {SUBJECT}.
+تتعامل مع الطالب وكأنك تشرح له أثناء الحصة الدراسية.
+
+📌 آلية التفكير:
+- اقرأ السؤال جيداً.
+- افهم المقصود الحقيقي منه.
+- حدد المفهوم الأساسي وراء السؤال.
+- ابدأ بشرح الفكرة من الداخل (التعريف، الفكرة الجوهرية,من الدرس).
+- اشرح بالاعتماد على النص من ناحية الامثلة وطريقة الشرح .
+- ثم وسّع الشرح من الخارج (السياق العام، لماذا نستخدمه، أين يطبق، علاقته بالمفاهيم الأخرى).
+
+📌 ذكاء المحادثة:
+- إذا كان السؤال مرتبطاً بسؤال سابق (مثل: وضح أكثر، ما الفرق، أعطني مثال):
+  → أكمل من حيث توقفت.
+- إذا كان سؤالاً جديداً:
+  → ابدأ شرحاً جديداً من الصفر.
+- احكم بذكاء على طبيعة السؤال.
+
+📌 أسلوب الشرح:
+1) اشرح باللغة العربية الفصحى السهلة.
+2) لا تكتب كلمات إنجليزية داخل الشرح.
+3) اشرح وكأنك داخل الصف فعلياً.
+4) قسم الشرح إلى خطوات مرتبة عند الحاجة.
+5) إذا وجدت معادلات، اشرحها بنفس الرموز الموجودة دون تغيير الصيغة.
+6) لا تكتفِ بالتعريف، بل وضّح لماذا وكيف.
+
+📌 مهم جداً:
+- لا تكن جامداً.
+- لا تكرر السؤال فقط.
+- الهدف هو الفهم العميق.
+- استخدم أمثلة تعليمية مبسطة عند الحاجة.
+- اربط بين المفاهيم حتى تتكوّن صورة كاملة عند الطالب.
+
+🎯 هدفك:
+أن يفهم الطالب الفكرة بعمق ويستطيع إعادة شرحها بنفسه."""
+
+    try:
+        # 4. بناء الرسائل للمودل
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        
+        # إرفاق سجل المحادثة إن وجد
+        if req.chat_history:
+            valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
+            messages_for_ai.extend(valid_history[-6:])
+        
+        # رسالة الـ User مخصصة فقط للبيانات والسؤال
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"المعلومات المستخرجة من الكتاب:\n{context_text}\n\nرسالة الطالب: {req.content}"
+        })
+        
+        response = await asyncio.wait_for(
+            gemini_client.chat.completions.create(
+            model="gemini-3.1-flash-lite",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.2
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
+        
+        raw_answer = response.choices[0].message.content
+        clean_answer = format_arabic_math(raw_answer)
+        answer = clean_answer
+    except asyncio.TimeoutError:
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+            
+    except Exception as e:
+        answer = f"خطأ في التوليد: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+
+async def handle_arabic_summary(req: AskRequest, gemini_client):
+    """وضع التلخيص - العربي"""
+    
+    book = get_book_data()
+    if not book: return {"answer": "❌ المادة غير متوفرة"}
+    
+    context_text = ""
+    refs = []
+
+    # 1. التعديل: إذا الطالب حدد درس معين، نمرر محتوى الدرس بنص واحد مرتب
+    if req.lesson_name:
+        target_data = extract_lesson_only(book.get("الوحدات", []), req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        lesson_parts = target_data[0]['الدروس'][0].get('الأجزاء', [])
+        for part in lesson_parts:
+            context_text += f"[{part.get('اسم_الجزء', '')}]\n"
+            content = part.get('المحتوى', [])
+            if isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict):
+                        context_text += f"- {item.get('المصطلح', '')}: {item.get('التعريف', '')}\n"
+                    else:
+                        context_text += f"- {item}\n"
+            else:
+                context_text += f"{content}\n"
+            context_text += "\n"
+            
+        refs.append(req.lesson_name)
+        
+    # 2. إذا لم يحدد درس، نستخدم البحث الدلالي
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in book.get("الوحدات", []) if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = book if isinstance(book, list) else book.get("الوحدات", [])
+        
+        results, idxs = await enhanced_search_physics(target_data, req.content, top_k=QA_TOP_K)
+        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        
+        _, metas = extract_all_texts_and_metas_physics(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref = f"{metas[i].get('lesson', 'درس')}"
+                    if ref not in refs: refs.append(ref)
+
+    # باقي الكود كما هو في دالتك الأصلية
+    system_prompt = system_prompt_strict_summary(SUBJECT, req.summary_level)
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        
+        if req.chat_history:
+            valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
+            messages_for_ai.extend(valid_history[-6:])
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"""
+المعلومات المستخرجة من الكتاب:
+{context_text}
+
+رسالة/موضوع الطالب: {req.content}
+
+التعليمات:
+1. إذا كانت رسالة الطالب ترحيب أو شكر، رد بلطف وتجاهل التلخيص.
+2. إذا طلب التلخيص، استخدم فقط المعلومات المستخرجة أعلاه لعمل التلخيص. إذا لم تكن هناك معلومات، أخبره أن الموضوع غير متوفر في المنهج.
+"""
+        })
+        
+        response = await asyncio.wait_for(
+            gemini_client.chat.completions.create(
+            model="gemini-3.1-flash-lite",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.15
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
+        
+        raw_answer = response.choices[0].message.content
+        clean_answer = format_arabic_math(raw_answer)
+        answer = clean_answer
+    except asyncio.TimeoutError:    
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+            
+    except Exception as e:
+        answer = f"خطأ: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+
+async def handle_arabic_question(req: AskRequest, gemini_client):
+    """وضع السؤال - العربي"""
+    
+    book = get_book_data()
+    if not book: return {"answer": "❌ المادة غير متوفرة"}
+    
+    # استخراج سجل المحادثة لاستخدامه في البحث الذكي أو التمرير للمودل
+    chat_history_from_app = req.chat_history or []
+    valid_history = [msg for msg in chat_history_from_app if msg.get('role') in ['user', 'assistant']]
+    recent_history = valid_history[-6:] if valid_history else []
+
+    context_text = ""
+    refs = []
+
+    # 1. التعديل: إذا الطالب حدد درس معين، نمرر محتوى الدرس بنص واحد مرتب
+    if req.lesson_name:
+        target_data = extract_lesson_only(book.get("الوحدات", []), req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        lesson_parts = target_data[0]['الدروس'][0].get('الأجزاء', [])
+        for part in lesson_parts:
+            context_text += f"[{part.get('اسم_الجزء', '')}]\n"
+            content = part.get('المحتوى', [])
+            if isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict):
+                        context_text += f"- {item.get('المصطلح', '')}: {item.get('التعريف', '')}\n"
+                    else:
+                        context_text += f"- {item}\n"
+            else:
+                context_text += f"{content}\n"
+            context_text += "\n"
+            
+        refs.append(req.lesson_name)
+        
+    # 2. إذا لم يحدد درس، نستخدم البحث الذكي مع السياق
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in book.get("الوحدات", []) if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = book if isinstance(book, list) else book.get("الوحدات", [])
+        
+        results, idxs = await enhanced_search_with_context(
+            target_data, 
+            req.content, 
+            recent_history, 
+            top_k=5
+        )
+        
+        context_text = "\n".join(results) if results else "لا توجد إجابة في الكتاب لهذا السؤال."
+        
+        _, metas = extract_all_texts_and_metas_physics(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref_str = f"{metas[i].get('lesson', 'درس')}"
+                    if ref_str not in refs: refs.append(ref_str)
+
+    # باقي الكود كما هو في دالتك الأصلية
+    system_prompt = system_prompt_strict_qa(SUBJECT)
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        messages_for_ai.extend(recent_history)
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"""
+المعلومات المستخرجة من المنهج:
+{context_text}
+
+سؤال/رسالة الطالب: {req.content}
+
+التعليمات:
+1. إذا كان الطالب يقول "مرحبا"، "كيفك"، "شكراً"، رد بلطف وبشكل طبيعي كمعلم.
+2. إذا كان سؤالاً في المادة، استخدم المعلومات المستخرجة للإجابة. إذا لم تكن الإجابة موجودة في المعلومات المستخرجة، لا تخمن! قل: "عذراً، هذه المعلومة غير متوفرة في المنهج المرفق".
+"""
+        })
+        
+        response = await asyncio.wait_for(
+            gemini_client.chat.completions.create(
+            model="gemini-3.1-flash-lite",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.1
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
+        
+        raw_answer = response.choices[0].message.content
+        clean_answer = format_arabic_math(raw_answer)
+        answer = clean_answer
+    except asyncio.TimeoutError:    
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+            
+    except Exception as e:
+        answer = f"حدث خطأ: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+
+
+
+
+
+
+async def handle_arabic_exams(req: AskRequest, sessions: Dict, gemini_client):
+    """وضع الوزاري - العربي (تجميع الأسئلة من كل الاختبارات في الملف)"""
+    content = req.content.strip()
+    _arabic_session_timestamps[req.user_id] = time.time()
+    cleanup_subject_sessions(sessions, _arabic_session_timestamps)
+
+    parts = content.split("|")
+    if len(parts) < 3:
+        return {"answer": "❌ خطأ في صيغة الطلب. الرجاء المحاولة من التطبيق.", "session_active": False}
+
+    year = parts[0].strip()
+    section_name = parts[1].strip()
+    q_type = parts[2].strip()
+    
+    # استخراج العدد (إذا ما حط رقم، نعتبره 1 للقطع، و 5 للأسئلة العامة)
+    count = 1
+    if len(parts) > 3 and parts[3].isdigit():
+        count = int(parts[3])
+    else:
+        count = 1 if q_type == "قطعة" else 5
+
+    # 🔴 المسار اللي طلبته
+    file_path = os.path.join(BASE_SUBJECTS_DIR, SUBJECT, "exams", f"{year}.json")
+    backup_path = os.path.join("data", "subjects", SUBJECT, "exams", f"{year}.json")
+    
+    # 💡 مسار إضافي: لو حطيت كل السنين في ملف واحد وسميته (all.json) أو (arabic.json)
+    all_file = os.path.join("subjects", SUBJECT, "exams", "all.json")
+
+    exams_data = None
+    if os.path.exists(file_path):
+        exams_data = load_json_safe(file_path)
+    elif os.path.exists(backup_path):
+        exams_data = load_json_safe(backup_path)
+    elif os.path.exists(all_file):
+        exams_data = load_json_safe(all_file)
+    else:
+        return {"answer": f"❌ الملف غير موجود!\nالمسار: {file_path}", "session_active": False}
+
+    if not exams_data:
+        return {"answer": "❌ الملف فارغ أو به خطأ في صيغة الجيسون.", "session_active": False}
+
+    if isinstance(exams_data, dict):
+        exams_data = [exams_data]
+
+    # 🔴 التعديل الجوهري: سلال فارغة لتجميع كل القطع والأسئلة من كل الاختبارات
+    target_pieces = []
+    target_general_qs = []
+
+    for exam in exams_data:
+        # إذا كانت السنة مطابقة، أو إذا اختار الطالب "الكل"
+        if year == "الكل" or year in str(exam.get("سنة_الاختبار", "")):
+            for sec in exam.get("الأقسام", []):
+                # إذا تطابق اسم القسم (مثل: أولاً: القراءة)
+                if sec.get("اسم_القسم", "").strip() == section_name:
+                    # نضيف كل القطع والأسئلة الموجودة في هذا الاختبار للسلة الكبيرة
+                    target_pieces.extend(sec.get("القطع", []))
+                    target_general_qs.extend(sec.get("أسئلة_عامة", []))
+
+    # إذا كانت السلال فارغة تماماً
+    if not target_pieces and not target_general_qs:
+        return {"answer": f"❌ لم أجد قسم '{section_name}' لسنة {year}.", "session_active": False}
+
+    text = f"✅ **تدريب {section_name} - {year}**\n\n"
+
+    # 1. إذا اختار الطالب "قطعة"
+    if q_type == "قطعة":
+        if not target_pieces:
+            return {"answer": "❌ لا توجد قطع ونصوص في هذا القسم، جرب اختيار 'أسئلة عامة'.", "session_active": False}
+
+        # السحب العشوائي من السلة الكبيرة اللي جمعناها (حسب العدد المطلوب)
+        num_to_sample = min(count, len(target_pieces))
+        selected_pieces = random.sample(target_pieces, num_to_sample)
+
+        for p in selected_pieces:
+            text += f"📑 **{p.get('اسم_القطعة', 'قطعة/نص')}**\n"
+            if p.get('النص_المرجعي'):
+                text += f"📜 {p.get('النص_المرجعي', '')}\n\n"
+            text += "📝 **الأسئلة وإجاباتها:**\n"
+            for idx, q in enumerate(p.get("الأسئلة", []), 1):
+                text += f"**س{idx}:** {q.get('السؤال')}\n"
+                text += f"💡 **الحل:** {q.get('الإجابة_النموذجية')}\n\n"
+            text += "---\n"
+
+    # 2. إذا اختار الطالب "أسئلة عامة"
+    elif q_type == "أسئلة عامة":
+        if not target_general_qs:
+            return {"answer": "❌ لا توجد أسئلة عامة في هذا القسم، جرب اختيار 'قطعة'.", "session_active": False}
+        
+        # السحب العشوائي من السلة الكبيرة للأسئلة
+        selected_qs = random.sample(target_general_qs, min(count, len(target_general_qs)))
+
+        text += f"📝 **أسئلة عامة (عدد {len(selected_qs)}):**\n\n"
+        for idx, q in enumerate(selected_qs, 1):
+            text += f"**س{idx}:** {q.get('السؤال')}\n"
+            text += f"💡 **الحل:** {q.get('الإجابة_النموذجية')}\n\n"
+
+    return {"answer": text, "session_active": False}
+async def handle_arabic_request(req: AskRequest, gemini_client):
+    """معالج الطلب الرئيسي للعربي"""
+    mode = req.mode.strip()
+    if mode == "شرح": return await handle_arabic_explain(req, gemini_client)
+    elif mode == "تلخيص": return await handle_arabic_summary(req, gemini_client)
+    elif mode == "سؤال": return await handle_arabic_question(req, gemini_client)
+    elif mode == "وزاري": return await handle_arabic_exams(req, sessions_arabic, gemini_client)
+    
+    return {"answer": "وضع غير معروف"}
+
+
+# --- FILE: biology.py ---
+# subjects/biology.py
+"""
+قسم الأحياء - النسخة الأصلية المصححة
+تعمل بنفس المنطق القديم (بحث الصفحات) مع التوافق مع الهيكلة الجديدة
+"""
+
+from .common import (
+    subject_book_path, load_json_safe, extract_all_texts_and_metas,
+    enhanced_qa_search, faiss_search, filter_and_rank_exams,
+    collect_exam_questions_by_years, pages_with_headers,
+    system_prompt_strict_explain, system_prompt_strict_summary,
+    system_prompt_strict_qa, normalize_arabic, extract_keywords,
+    parse_exams_input, fetch_pages_by_numbers
+)
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, MAX_PAGES_EXPLAIN_SUMMARY
+from models import AskRequest
+from typing import Dict, Any, List, Optional
+import json
+import os
+import re
+import asyncio
+
+SUBJECT = "احياء"
+sessions_biology = {}
+
+
+import time
+_biology_session_timestamps = {}
+
+
+# تخزين الكتاب في الذاكرة لمنع القراءة المتكررة من القرص
+_biology_book_cache = None
+
+def get_biology_data():
+    """تحميل بيانات الأحياء مرة واحدة في الذاكرة لسرعة استجابة فائقة"""
+    global _biology_book_cache
+    if _biology_book_cache is not None:
+        return _biology_book_cache
+    
+    book = load_json_safe(subject_book_path(SUBJECT))
+    if not book: return []
+    
+    # تحويل البيانات إلى قائمة موحدة وتخزينها
+    _biology_book_cache = book if isinstance(book, list) else book.get("الوحدات", [])
+    return _biology_book_cache
+
+
+_subject_session_timestamps = {}  
+
+
+
+def cleanup_subject_sessions(sessions_dict: dict, session_timestamps: dict):
+    """تنظيف الجلسات المنتهية لأي مادة"""
+    now = time.time()
+    expired = [
+        uid for uid, ts in session_timestamps.items()
+        if now - ts > 1800  # 30 دقيقة
+    ]
+    for uid in expired:
+        sessions_dict.pop(uid, None)
+        session_timestamps.pop(uid, None)
+
+# =====================
+# 1. وضع الشرح (نفس منطقك القديم)
+# =====================
+async def handle_biology_explain(req: AskRequest, gemini_client):
+    
+    # 1. تحميل البيانات
+    book_data = get_biology_data()
+    if not book_data:
+        return {"answer": "المادة غير متوفرة"}
+
+    # 2. فلترة الوحدة (إن وجدت) لتقليل نطاق البحث، وإلا نستخدم الكتاب كامل
+    if req.unit_name and req.unit_name not in ["الكل", ""]:
+        # نبحث عن الوحدة داخل القائمة
+        target_data = [u for u in book_data if u.get("اسم_الوحدة") == req.unit_name]
+        if not target_data:
+            return {"answer": f"لم أجد الوحدة '{req.unit_name}'"}
+    else:
+        target_data = book_data
+
+    # ==========================
+    # أ. الشرح عن طريق أرقام الصفحات (المنطق القديم)
+    # ==========================
+    if req.input_type == "صفحة":
+        # استخراج الأرقام من النص
+        numbers = re.findall(r'\d+', req.content)
+        if not numbers:
+            return {"answer": "صيغة غير صحيحة. الرجاء كتابة أرقام الصفحات."}
+        
+        page_nums = [int(n) for n in numbers]
+        
+        # التحقق من الحد الأقصى
+        if len(page_nums) > MAX_PAGES_EXPLAIN_SUMMARY:
+            return {"answer": f"الحد الأقصى {MAX_PAGES_EXPLAIN_SUMMARY} صفحات."}
+        
+        # جلب النصوص من الصفحات (استخدام الدالة المشتركة)
+        found_pages, missing = fetch_pages_by_numbers(target_data, page_nums)
+        
+        if not found_pages:
+            return {"answer": "الصفحات غير موجودة في النطاق المحدد."}
+        
+        # تنسيق النص للإرسال للذكاء الاصطناعي
+        context_text = pages_with_headers(found_pages)
+        system_prompt = system_prompt_strict_explain(SUBJECT)
+        
+        try:
+            messages_for_ai = [{"role": "system", "content": system_prompt}]
+            
+            # إضافة التاريخ
+            if req.chat_history:
+                valid_history = [msg for msg in req.chat_history 
+                                if msg.get('role') in ['user', 'assistant']]
+                messages_for_ai.extend(valid_history[-6:])
+            
+            # الرسالة الحالية
+            messages_for_ai.append({
+                "role": "user",
+                "content": f"نص الكتاب:\n{context_text}\n\nطلب الطالب: اشرح المحتوى أعلاه."
+            })
+            
+            response = await asyncio.wait_for(
+                gemini_client.chat.completions.create(
+                model="gemini-3.1-flash-lite",
+                messages=messages_for_ai, max_tokens=4000,
+                temperature=0.1
+            ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+                
+            answer = response.choices[0].message.content
+            
+            # إضافة تنبيه عن الصفحات المفقودة إن وجدت
+            if missing:
+                answer += f"\n\n(ملاحظة: الصفحات {missing} لم يتم العثور عليها)"
+        
+        
+        except asyncio.TimeoutError:
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+             answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+        except Exception as e:
+            answer = f"خطأ في التوليد: {str(e)}"
+        
+        # تجهيز المراجع
+        refs = [f"ص {p.get('رقم_الصفحة')}" for p in found_pages]
+        return {"answer": answer, "references": refs, "session_active": False}
+
+    # ==========================
+    # ب. الشرح عن طريق البرومت (بحث نصي) - نفس منطق الفيزياء
+    # ==========================
+    elif req.input_type == "برومت":
+        # البحث في النصوص باستخدام الدالة المحسنة
+        results, idxs = await enhanced_qa_search(target_data, req.content, top_k=5)
+        
+        # ✅ حتى لو ما فيه نتائج، ما نرد مباشرة - نرسل السياق للـ AI
+        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        system_prompt = system_prompt_strict_explain(SUBJECT)
+        
+        try:
+            messages_for_ai = [{"role": "system", "content": system_prompt}]
+            
+            # ✅ إضافة السياق (chat_history) أولاً
+            if req.chat_history:
+                valid_history = [msg for msg in req.chat_history 
+                                if msg.get('role') in ['user', 'assistant']]
+                messages_for_ai.extend(valid_history[-6:])
+            
+            # ✅ نفس البرومبت الذكي حق الفيزياء
+            messages_for_ai.append({
+                "role": "user",
+                "content": f"""المعلومات المستخرجة من الكتاب:
+{context_text}
+
+رسالة الطالب: {req.content}
+
+تعليمات صارمة للرد:
+1. إذا كانت رسالة الطالب مجرد تحية (مثل: السلام عليكم، مرحبا، كيفك) أو شكر، رُد عليه كمعلم أحياء لطيف ومرحب، واسأله كيف يمكنك مساعدته في المادة، وتجاهل المعلومات المستخرجة.
+2.إذا كانت رسالته سؤالاً أو طلباً لشرح بيولوجي، يجب أن تعتمد بنسبة 100% على (المعلومات المستخرجة من الكتاب) فقط  
+3. إذا طلب شرحاً بيولوجياً وكانت (المعلومات المستخرجة) تقول 'لا توجد نصوص مطابقة', جاوب من خارج الكتاب مع اخبار الطالب بان المعلومه من خارج الكتاب
+"""
+            })
+            
+            response = await asyncio.wait_for(
+                gemini_client.chat.completions.create(
+                model="gemini-3.1-flash-lite",
+                messages=messages_for_ai, max_tokens=4000,
+                temperature=0.1
+            ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+            answer = response.choices[0].message.content
+        
+        
+        except asyncio.TimeoutError:
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+             answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+                 
+        except Exception as e:
+            answer = f"خطأ: {str(e)}"
+        
+        # استخراج المراجع
+        _, metas = extract_all_texts_and_metas(target_data)
+        refs = [f"{metas[i]['unit']} - ص{metas[i]['page']}" for i in idxs if i < len(metas)]
+        
+        return {"answer": answer, "references": refs, "session_active": False}
+
+    return {"answer": "نوع الإدخال غير معروف"}
+
+# =====================
+# 2. وضع التلخيص
+# =====================
+async def handle_biology_summary(req: AskRequest, gemini_client):
+    book_data = get_biology_data()
+    if not book_data: return {"answer": "المادة غير متوفرة"}
+
+    if req.unit_name and req.unit_name != "الكل":
+        target_data = [u for u in book_data if u.get("اسم_الوحدة") == req.unit_name]
+    else:
+        target_data = book_data
+
+    # تلخيص الصفحات
+    if req.input_type == "صفحة":
+        numbers = re.findall(r'\d+', req.content)
+        page_nums = [int(n) for n in numbers] if numbers else []
+        found_pages, _ = fetch_pages_by_numbers(target_data, page_nums)
+        
+        if not found_pages: return {"answer": "الصفحات غير موجودة."}
+
+        context_text = pages_with_headers(found_pages)
+        system_prompt = system_prompt_strict_summary(SUBJECT, req.summary_level)
+        
+        try:
+            response = await asyncio.wait_for(
+                gemini_client.chat.completions.create(
+                model="gemini-3.1-flash-lite",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"نص الكتاب:\n{context_text}\n\nالمطلوب: لخص المحتوى."}
+                ],
+                temperature=0.15
+            ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+            
+            
+            answer = response.choices[0].message.content
+            
+        except asyncio.TimeoutError:
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+             answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."    
+
+        except Exception as e:
+            answer = f"خطأ: {str(e)}"
+        
+        return {"answer": answer, "references": [f"ص {p['رقم_الصفحة']}" for p in found_pages], "session_active": False}
+
+    # تلخيص البرومت
+    elif req.input_type == "برومت":
+        texts, metas = extract_all_texts_and_metas(target_data)
+        results, idxs = await faiss_search(texts, req.content, top_k=QA_TOP_K)
+        
+        if not results: return {"answer": "لا توجد مقاطع صلة."}
+        
+        context_text = "\n".join(results)
+        system_prompt = system_prompt_strict_summary(SUBJECT, req.summary_level)
+        
+        try:
+           response = await asyncio.wait_for( 
+                gemini_client.chat.completions.create(
+                model="gemini-3.1-flash-lite",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"نص الكتاب:\n{context_text}\n\nالمطلوب: لخص الموضوع '{req.content}'."}
+                ],
+                temperature=0.15
+            ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+           answer = response.choices[0].message.content
+           
+           
+        except asyncio.TimeoutError:
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+             answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."    
+        except Exception as e:
+            answer = f"خطأ: {str(e)}"
+            
+        refs = [f"ص {metas[i]['page']}" for i in idxs if i < len(metas)]
+        return {"answer": answer, "references": refs, "session_active": False}
+
+
+# =====================
+# 3. وضع السؤال
+# =====================
+async def handle_biology_question(req: AskRequest, gemini_client):
+    book_data = get_biology_data()
+    if not book_data: return {"answer": "المادة غير متوفرة"}
+
+    if req.unit_name and req.unit_name != "الكل":
+        target_data = [u for u in book_data if u.get("اسم_الوحدة") == req.unit_name]
+    else:
+        target_data = book_data
+
+    results, idxs = await enhanced_qa_search(target_data, req.content, top_k=5)
+    
+    if not results: return {"answer": "عذراً، لم أجد إجابة دقيقة في الكتاب."}
+    
+    context_text = "\n".join(results)
+    system_prompt = system_prompt_strict_qa(SUBJECT)
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        if req.chat_history:
+            valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
+            messages_for_ai.extend(valid_history[-6:])
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"نص الكتاب:\n{context_text}\n\nالسؤال: {req.content}"
+        })
+        
+        response = await asyncio.wait_for( 
+            gemini_client.chat.completions.create(
+            model="gemini-3.1-flash-lite",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.1
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+        answer = response.choices[0].message.content
+        
+        
+        
+    except asyncio.TimeoutError:
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+         answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+         
+    except Exception as e:
+        answer = f"خطأ: {str(e)}"
+    
+    _, metas = extract_all_texts_and_metas(target_data)
+    refs = list(set([f"ص {metas[i]['page']}" for i in idxs if i < len(metas)]))
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+
+# =====================
+# 4. وضع الوزاري
+# =====================
+# =====================
+# 4. وضع الوزاري (نفس اللوجيك القديم بالضبط)
+# =====================
+async def handle_biology_exams(req: AskRequest, sessions: Dict, gemini_client):
+    """
+    وضع الوزاري - أحياء (متوافق مع الفرونت إند)
+    يستلم النص بصيغة: "السنة,الموضوع" مباشرة من التطبيق
+    """
+    _biology_session_timestamps[req.user_id] = time.time()
+    cleanup_subject_sessions(sessions, _biology_session_timestamps)
+    
+    user_id = req.user_id
+    content = req.content.strip()
+    
+    # ==========================================
+    # 1. أوامر التحكم (إيقاف الجلسة)
+    # ==========================================
+    # ملاحظة: الفرونت إند قد يرسل "2019,وقف" لأن السنة مدمجة دائماً
+    # لذلك نبحث عن كلمة "وقف" في أي مكان في النص
+    if any(x in content for x in ["وقف", "خلاص", "شكرا", "إلغاء", "stop"]):
+        sessions.pop(user_id, None)
+        return {"answer": "✅ تم إنهاء جلسة الأسئلة الوزارية.", "session_active": False}
+    
+    # ==========================================
+    # 2. المتابعة (كمل)
+    # ==========================================
+    # نفس الشيء، قد يصل النص "2019,كمل"
+    if any(x in content for x in ["كمل", "متابعة", "استمر", "next"]):
+        sess = sessions.get(user_id)
+        
+        if sess and sess.get("mode") == "وزاري" and sess.get("pending_exams"):
+            pending = sess["pending_exams"]
+            
+            # أخذ دفعة جديدة
+            batch = pending[:EXAMS_BATCH_SIZE]
+            sess["pending_exams"] = pending[EXAMS_BATCH_SIZE:]
+            
+            text = "📄 **تابع الأسئلة الوزارية:**\n\n"
+            for i, q in enumerate(batch, 1):
+                text += f"**{i}.** {q.get('النص')} *(سنة {q.get('سنة')})*\n\n"
+            
+            if sess["pending_exams"]:
+                text += f"\n💡 **المتبقي:** {len(sess['pending_exams'])} سؤال. اضغط **'كمل'** للمزيد."
+            else:
+                text += "\n✅ **انتهت جميع الأسئلة.**"
+                sessions.pop(user_id, None)
+            
+            sessions[user_id] = sess
+            return {"answer": text, "session_active": bool(sess.get("pending_exams"))}
+        else:
+             # إذا كتب كمل ومافي جلسة، نعتبرها بحث جديد
+             pass 
+
+    # ==========================================
+    # 3. معالجة البحث (السنة + الموضوع)
+    # ==========================================
+    # الفرونت إند يرسل دائماً: "السنة,النص"
+    # مثال: "2019,الغدد" أو "الكل,الخلية"
+    
+    parts = content.split(",")
+    
+    if len(parts) >= 2:
+        year_token = parts[0].strip()
+        # ندمج الباقي في حال كان الموضوع يحتوي على فواصل
+        search_topic = ",".join(parts[1:]).strip()
+    else:
+        # حالة احتياطية لو وصل النص بدون سنة (نعتبره الكل)
+        year_token = "الكل"
+        search_topic = content.strip()
+
+    # إذا كان الموضوع فارغاً (الطالب اختار سنة بس ما كتب شي)
+    if not search_topic:
+        return {"answer": "⚠️ الرجاء كتابة موضوع للبحث عنه (مثال: الخلية، الوراثة...)."}
+
+    # 1. تجميع الأسئلة حسب السنة
+    years = [year_token] if year_token != "الكل" else ["الكل"]
+    all_questions = collect_exam_questions_by_years(SUBJECT, years)
+    
+    if not all_questions:
+        return {"answer": f"❌ لا توجد أسئلة وزارية مخزنة لسنة {year_token}."}
+    
+    # 2. الفلترة بالموضوع (الكلمة المفتاحية)
+    # نستخدم الدالة الجاهزة التي ترتب النتائج حسب قوة التطابق
+    matched_exams = filter_and_rank_exams(all_questions, search_topic)
+    
+    if not matched_exams:
+        return {"answer": f"❌ لم أجد أسئلة في سنة **{year_token}** تحتوي على كلمة **'{search_topic}'**."}
+    
+    # 3. تقسيم النتائج (Pagination)
+    total = len(matched_exams)
+    first_batch = matched_exams[:EXAMS_BATCH_SIZE]
+    remaining = matched_exams[EXAMS_BATCH_SIZE:]
+    
+    # 4. حفظ الجلسة
+    if remaining:
+        sessions[user_id] = {
+            "pending_exams": remaining,
+            "mode": "وزاري",
+            "subject": SUBJECT
+        }
+    
+    # 5. بناء الرد
+    text = f"✅ وجدت **{total}** سؤال عن **'{search_topic}'** ({year_token}):\n\n"
+    for i, q in enumerate(first_batch, 1):
+        q_text = q.get('النص', '').replace('\n', ' ')
+        text += f"**{i}.** {q_text} *(سنة {q.get('سنة')})*\n\n"
+    
+    if remaining:
+        text += f"\n💡 **متبقي {len(remaining)} سؤال.** اضغط **'كمل'** لعرضها."
+    
+    return {"answer": text, "session_active": bool(remaining)}
+
+# =====================
+# الدالة الموجهة (Router)
+# =====================
+async def handle_biology_request(req: AskRequest, gemini_client):
+    """توجيه الطلب للدالة المناسبة"""
+    
+    if req.mode == "شرح":
+        return await handle_biology_explain(req, gemini_client)
+    
+    elif req.mode == "تلخيص":
+        return await handle_biology_summary(req, gemini_client)
+    
+    elif req.mode == "سؤال":
+        return await handle_biology_question(req, gemini_client)
+    
+    elif req.mode == "وزاري":
+        return await handle_biology_exams(req, sessions_biology, gemini_client)
+    
+    return {"answer": "وضع غير معروف"}
+
+
+# --- FILE: chemistry.py ---
+# subjects/chemistry.py
+"""
+قسم الكيمياء - يعتمد على ذاكرة التطبيق (الجوال) فقط - Stateless
+مع دعم المحادثة الطبيعية (الترحيب) والدقة الصارمة في المنهج
+نفس لوجيك الفيزياء تماماً لكن باسم الكيمياء
+"""
+
+from .common import (
+    subject_book_path, load_json_safe, extract_all_texts_and_metas_physics,
+    enhanced_search_physics, system_prompt_strict_explain,
+    system_prompt_strict_summary, system_prompt_strict_qa,
+    filter_and_rank_exams, collect_exam_questions_by_years,
+    parse_exams_input, extract_keywords, faiss_search, format_arabic_math
+)
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE
+from models import AskRequest
+from typing import Dict, List, Optional
+import json
+import re
+import asyncio
+import time
+
+SUBJECT = "كيمياء"
+sessions_chemistry = {}
+
+_chemistry_session_timestamps = {}
+
+
+
+
+_book_cache = None
+
+def get_book_data():
+    global _book_cache
+    if _book_cache is not None:
+        return _book_cache
+    book = load_json_safe(subject_book_path(SUBJECT))
+    if not book:
+        return {}
+    _book_cache = book
+    return _book_cache
+
+
+
+# =====================
+# دوال مساعدة
+# =====================
+
+
+_subject_session_timestamps = {}
+
+
+
+def cleanup_subject_sessions(sessions_dict: dict, session_timestamps: dict):
+    """تنظيف الجلسات المنتهية لأي مادة"""
+    now = time.time()
+    expired = [
+        uid for uid, ts in session_timestamps.items()
+        if now - ts > 1800  # 30 دقيقة
+    ]
+    for uid in expired:
+        sessions_dict.pop(uid, None)
+        session_timestamps.pop(uid, None)
+        
+        
+        
+
+def extract_lesson_only(book_data, lesson_name):
+    """استخراج درس واحد فقط من الوحدات"""
+    for unit in book_data:
+        for lesson in unit.get("الدروس", []):
+            if lesson.get("اسم_الدرس") == lesson_name:
+                return [{
+                    "اسم_الوحدة": unit.get("اسم_الوحدة"),
+                    "الدروس": [lesson]
+                }]
+    return []
+
+
+async def enhanced_search_with_context(book_data, query, chat_history, top_k=5):
+    """بحث ذكي مع دعم السياق من المحادثة"""
+    last_ai_response = ""
+    if chat_history:
+        for msg in reversed(chat_history):
+            if msg.get('role') == 'assistant':
+                last_ai_response = msg.get('content', '')
+                break
+    
+    texts, metas = extract_all_texts_and_metas_physics(book_data)
+    if not texts: return [], []
+    
+    combined_query = query
+    if len(query.split()) < 5 and last_ai_response:
+        combined_query = last_ai_response[:150] + " " + query
+    
+    sem_results, idxs = await faiss_search(texts, combined_query, top_k=top_k)
+    keywords = extract_keywords(query)
+    direct_hits = []
+    direct_idxs = []
+    
+    for i, txt in enumerate(texts):
+        if any(k in txt for k in keywords):
+            direct_hits.append(txt)
+            direct_idxs.append(i)
+    
+    final_texts = []
+    final_idxs = []
+    
+    for t, i in zip(direct_hits, direct_idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    
+    for t, i in zip(sem_results, idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    
+    return final_texts[:top_k], final_idxs[:top_k]
+
+
+# =====================
+# الدوال الرئيسية
+# =====================
+
+async def handle_chemistry_explain(req: AskRequest, openai_client):
+    """وضع الشرح - الكيمياء"""
+    
+    book = get_book_data()
+    if not book: return {"answer": "❌ المادة غير متوفرة"}
+    
+    context_text = ""
+    refs = []
+
+    if req.lesson_name:
+        target_data = extract_lesson_only(book.get("الوحدات", []), req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        lesson_parts = target_data[0]['الدروس'][0].get('الأجزاء', [])
+        for part in lesson_parts:
+            context_text += f"[{part.get('اسم_الجزء', '')}]\n"
+            content = part.get('المحتوى', [])
+            if isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict):
+                        # ✅ التعديل الذكي: يقرأ كل المفاتيح (صيغة، رموز، اسم الرسم، الخ)
+                        dict_values = [f"{k}: {v}" for k, v in item.items()]
+                        context_text += f"- {' | '.join(dict_values)}\n"
+                    else:
+                        context_text += f"- {item}\n"
+            else:
+                context_text += f"{content}\n"
+            context_text += "\n"
+            
+        refs.append(req.lesson_name)
+        
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in book.get("الوحدات", []) if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = book.get("الوحدات", [])
+            
+        results, idxs = await enhanced_search_physics(target_data, req.content, top_k=5)
+        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        
+        _, metas = extract_all_texts_and_metas_physics(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref = f"{metas[i].get('lesson', 'درس')}"
+                    if ref not in refs: refs.append(ref)
+
+    system_prompt = system_prompt_strict_explain(SUBJECT)
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        
+        if req.chat_history:
+            valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
+            messages_for_ai.extend(valid_history[-6:])
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"""
+المعلومات المستخرجة من الكتاب:
+{context_text}
+
+رسالة الطالب: {req.content}
+
+تعليمات صارمة للرد:
+1. ⚠️ تنبيه هام جداً: إذا كانت رسالة الطالب هي "اشرح لي الدرس" أو "اشرح" أو أي طلب شرح عام، **يجب عليك فوراً** البدء في شرح (المعلومات المستخرجة من الكتاب) بالتفصيل، ويُمنع منعاً باتاً الرد برسالة ترحيب!
+2. إذا كانت رسالته سؤالاً أو طلباً لشرح كيميائي، يجب أن تعتمد بنسبة 100% على (المعلومات المستخرجة من الكتاب) فقط.
+3🧪 القواعد الكيميائية: اكتب المعادلات الكيميائية بنص عادي وواضح ومطابق حرفياً لما هو موجود في سياق الدرس (استخدم الأسهم العادية مثل -> أو =). اجعل كل معادلة في سطر مستقل لسهولة القراءة، ويُمنع منعاً باتاً تأليف معادلات خارجية أو استخدام أكواد LaTeX المعقدة.
+4. إذا طلب شرحاً كيميائياً وكانت (المعلومات المستخرجة) تقول 'لا توجد نصوص مطابقة'، اعتذر بلطف وأخبره أن هذا الموضوع غير موجود في المنهج الحالي.
+"""
+        })
+        
+        response = await asyncio.wait_for(
+            openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.2
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+        
+        raw_answer = response.choices[0].message.content
+        clean_answer = format_arabic_math(raw_answer)
+        
+        # ✅ فلتر التنظيف الجذري لإزالة أكواد LaTeX والشرطة السفلية
+        clean_answer = re.sub(r'\\[a-zA-Z]+', '', clean_answer)
+        clean_answer = clean_answer.replace('_', ' ')
+        answer = clean_answer
+    except asyncio.TimeoutError:
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+        
+    except Exception as e:
+        answer = f"خطأ في التوليد: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+async def handle_chemistry_summary(req: AskRequest, openai_client):
+    """وضع التلخيص - الكيمياء"""
+    
+    book = get_book_data()
+    if not book: return {"answer": "❌ المادة غير متوفرة"}
+    
+    context_text = ""
+    refs = []
+
+    if req.lesson_name:
+        target_data = extract_lesson_only(book.get("الوحدات", []), req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        lesson_parts = target_data[0]['الدروس'][0].get('الأجزاء', [])
+        for part in lesson_parts:
+            context_text += f"[{part.get('اسم_الجزء', '')}]\n"
+            content = part.get('المحتوى', [])
+            if isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict):
+                        # ✅ التعديل الذكي
+                        dict_values = [f"{k}: {v}" for k, v in item.items()]
+                        context_text += f"- {' | '.join(dict_values)}\n"
+                    else:
+                        context_text += f"- {item}\n"
+            else:
+                context_text += f"{content}\n"
+            context_text += "\n"
+            
+        refs.append(req.lesson_name)
+        
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in book.get("الوحدات", []) if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = book.get("الوحدات", [])
+            
+        results, idxs = await enhanced_search_physics(target_data, req.content, top_k=QA_TOP_K)
+        
+        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        
+        _, metas = extract_all_texts_and_metas_physics(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref = f"{metas[i].get('lesson', 'درس')}"
+                    if ref not in refs: refs.append(ref)
+                    
+    system_prompt = system_prompt_strict_summary(SUBJECT, req.summary_level)
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        
+        if req.chat_history:
+            valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
+            messages_for_ai.extend(valid_history[-6:])
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"""
+المعلومات المستخرجة من الكتاب:
+{context_text}
+
+رسالة/موضوع الطالب: {req.content}
+
+التعليمات:
+1. إذا كانت رسالة الطالب ترحيب أو شكر، رد بلطف وتجاهل التلخيص.
+2. إذا طلب التلخيص، استخدم فقط المعلومات المستخرجة أعلاه لعمل التلخيص. إذا لم تكن هناك معلومات، أخبره أن الموضوع غير متوفر في المنهج.
+3🧪 القواعد الكيميائية: اكتب المعادلات الكيميائية بنص عادي وواضح ومطابق حرفياً لما هو موجود في سياق الدرس (استخدم الأسهم العادية مثل -> أو =). اجعل كل معادلة في سطر مستقل لسهولة القراءة، ويُمنع منعاً باتاً تأليف معادلات خارجية أو استخدام أكواد LaTeX المعقدة.
+"""
+        })
+        
+        response = await asyncio.wait_for(
+            openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.15
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+        raw_answer = response.choices[0].message.content
+        clean_answer = format_arabic_math(raw_answer)
+        
+        # ✅ فلتر التنظيف الجذري
+        clean_answer = re.sub(r'\\[a-zA-Z]+', '', clean_answer)
+        clean_answer = clean_answer.replace('_', ' ')
+        answer = clean_answer
+    except asyncio.TimeoutError:    
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+            
+    except Exception as e:
+        answer = f"خطأ: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+
+async def handle_chemistry_question(req: AskRequest, openai_client):
+    """وضع السؤال - الكيمياء"""
+    
+    book = get_book_data()
+    if not book: return {"answer": "❌ المادة غير متوفرة"}
+    
+    chat_history_from_app = req.chat_history or []
+    valid_history = [msg for msg in chat_history_from_app if msg.get('role') in ['user', 'assistant']]
+    recent_history = valid_history[-6:] if valid_history else []
+
+    context_text = ""
+    refs = []
+
+    if req.lesson_name:
+        target_data = extract_lesson_only(book.get("الوحدات", []), req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        lesson_parts = target_data[0]['الدروس'][0].get('الأجزاء', [])
+        for part in lesson_parts:
+            context_text += f"[{part.get('اسم_الجزء', '')}]\n"
+            content = part.get('المحتوى', [])
+            if isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict):
+                        # ✅ التعديل الذكي
+                        dict_values = [f"{k}: {v}" for k, v in item.items()]
+                        context_text += f"- {' | '.join(dict_values)}\n"
+                    else:
+                        context_text += f"- {item}\n"
+            else:
+                context_text += f"{content}\n"
+            context_text += "\n"
+            
+        refs.append(req.lesson_name)
+        
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in book.get("الوحدات", []) if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = book.get("الوحدات", [])
+            
+        results, idxs = await enhanced_search_with_context(
+            target_data, 
+            req.content, 
+            recent_history, 
+            top_k=5
+        )
+        
+        context_text = "\n".join(results) if results else "لا توجد إجابة في الكتاب لهذا السؤال."
+        
+        _, metas = extract_all_texts_and_metas_physics(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref_str = f"{metas[i].get('lesson', 'درس')}"
+                    if ref_str not in refs: refs.append(ref_str)
+                    
+    system_prompt = system_prompt_strict_qa(SUBJECT)
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        messages_for_ai.extend(recent_history)
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"""
+المعلومات المستخرجة من المنهج:
+{context_text}
+
+سؤال/رسالة الطالب: {req.content}
+
+التعليمات:
+1. إذا كان الطالب يقول "مرحبا"، "كيفك"، "شكراً"، رد بلطف وبشكل طبيعي كمعلم.
+2. إذا كان سؤالاً في المادة، استخدم المعلومات المستخرجة للإجابة. إذا لم تكن الإجابة موجودة في المعلومات المستخرجة، لا تخمن! قل: "عذراً، هذه المعلومة غير متوفرة في المنهج المرفق".
+3🧪 القواعد الكيميائية: اكتب المعادلات الكيميائية بنص عادي وواضح ومطابق حرفياً لما هو موجود في سياق الدرس (استخدم الأسهم العادية مثل -> أو =). اجعل كل معادلة في سطر مستقل لسهولة القراءة، ويُمنع منعاً باتاً تأليف معادلات خارجية أو استخدام أكواد LaTeX المعقدة.
+"""
+        })
+        
+        response = await asyncio.wait_for(
+            openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.1
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+        
+        raw_answer = response.choices[0].message.content
+        clean_answer = format_arabic_math(raw_answer)
+        
+        # ✅ فلتر التنظيف الجذري
+        clean_answer = re.sub(r'\\[a-zA-Z]+', '', clean_answer)
+        clean_answer = clean_answer.replace('_', ' ')
+        answer = clean_answer
+    except asyncio.TimeoutError:    
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية." 
+            
+    except Exception as e:
+        answer = f"حدث خطأ: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+
+async def handle_chemistry_exams(req: AskRequest, sessions: Dict, openai_client):
+    """وضع الوزاري - الكيمياء"""
+    
+    _chemistry_session_timestamps[req.user_id] = time.time()
+    cleanup_subject_sessions(sessions, _chemistry_session_timestamps)
+    
+    
+    user_id = req.user_id
+    content = req.content.strip()
+    
+    if content in ["وقف", "خلاص", "شكرا", "إلغاء"]:
+        sessions.pop(user_id, None)
+        return {"answer": "✅ تم إنهاء جلسة الأسئلة", "session_active": False}
+    
+    if content in ["كمل", "متابعة", "استمر"]:
+        sess = sessions.get(user_id)
+        if sess and sess.get("mode") == "وزاري" and sess.get("pending_exams"):
+            pending = sess["pending_exams"]
+            batch = pending[:EXAMS_BATCH_SIZE]
+            sess["pending_exams"] = pending[EXAMS_BATCH_SIZE:]
+            
+            text = ""
+            for i, q in enumerate(batch, 1):
+                text += f"{i}. {q.get('النص', '')} (سنة {q.get('سنة', '')})\n"
+            
+            if sess["pending_exams"]:
+                text += f"\n💡 المتبقي: {len(sess['pending_exams'])} سؤال."
+            else:
+                text += "\n✅ انتهت جميع الأسئلة."
+                sessions.pop(user_id, None)
+            
+            return {"answer": text, "session_active": bool(sess.get("pending_exams"))}
+    
+    year_token, rest = parse_exams_input(content)
+    if not year_token or not rest: return {"answer": "اكتب الصيغة هكذا:\nمثال: 2019,الموضوع"}
+    
+    years = [year_token] if year_token != "الكل" else ["الكل"]
+    all_questions = collect_exam_questions_by_years(SUBJECT, years)
+    if not all_questions: return {"answer": "لا توجد أسئلة لهذه السنة."}
+    
+    keyword = ",".join(rest).strip()
+    matched = filter_and_rank_exams(all_questions, keyword)
+    if not matched: return {"answer": f"لم أجد أسئلة تحتوي على '{keyword}'."}
+    
+    total = len(matched)
+    first_batch = matched[:EXAMS_BATCH_SIZE]
+    remaining = matched[EXAMS_BATCH_SIZE:]
+    
+    if remaining:
+        sessions[user_id] = {"pending_exams": remaining, "mode": "وزاري", "subject": SUBJECT}
+    
+    text = f"✅ وجدت {total} سؤالاً يحتوي على '{keyword}':\n\n"
+    for i, q in enumerate(first_batch, 1):
+        text += f"{i}. {q.get('النص', '')} (سنة {q.get('سنة', '')})\n"
+    
+    if remaining: text += f"\n💡 تبقى {len(remaining)} سؤالاً. اكتب 'كمل' للمتابعة."
+    
+    return {"answer": text, "session_active": bool(remaining)}
+
+
+async def handle_chemistry_request(req: AskRequest, openai_client):
+    """معالج الطلب الرئيسي للكيمياء"""
+    mode = req.mode.strip()
+    if mode == "شرح": return await handle_chemistry_explain(req, openai_client)
+    elif mode == "تلخيص": return await handle_chemistry_summary(req, openai_client)
+    elif mode == "سؤال": return await handle_chemistry_question(req, openai_client)
+    elif mode == "وزاري": return await handle_chemistry_exams(req, sessions_chemistry, openai_client)
+    
+    return {"answer": "وضع غير معروف"}
+
+
+# --- FILE: common.py ---
+import os
+import json
+import re
+from typing import List, Dict, Any, Tuple
+import numpy as np
+import faiss
+from sentence_transformers import SentenceTransformer
+import asyncio
+import hashlib
+import time
+# من config
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE
+
+# المتغيرات
+embed_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+
+
+MAX_PAGES_EXPLAIN_SUMMARY = 3      # أقصى صفحات لشرح/تلخيص عند الإدخال
+MAX_PAGES_EXAMS = 5                # أقصى صفحات لبحث الوزاري عبر الصفحات
+EXAMS_BATCH_SIZE = 10              # دفعة عرض أسئلة وزاري
+UNIT_BATCH_PAGES = 3               # عدد صفحات في كل دفعة عند شرح/تلخيص الوحدة
+QA_TOP_K = 3                       # عدد نتائج FAISS للسؤال
+
+
+
+USAGE_HELP = {
+    "صفحة": (
+        "أنت في وضع الصفحات. اكتب أرقام الصفحات مفصولة بفواصل.\n"
+        f"مثال: 45 أو 45,47\n"
+        f"ملاحظة: الحد الأقصى للصفحات هنا هو {MAX_PAGES_EXPLAIN_SUMMARY} صفحات للشرح/تلخيص."
+    ),
+    "وحدة": (
+        "أنت في وضع الوحدة. اكتب اسم الوحدة أو رقمها كما هو مكتوب في محتوى الكتاب.\n"
+        f"سيتم شرح {UNIT_BATCH_PAGES} صفحة في كل مرة. اكتب 'كمل' للاستمرار أو 'وقف' لإنهاء الجلسة."
+    ),
+    "برومت": (
+        "أنت في وضع البرومت. اكتب موضوعًا أو سؤالاً نصياً. يمكنك تحديد وحدة معينة لتسريع البحث ودقته."
+    ),
+    "سؤال": (
+        "أنت في وضع السؤال. اكتب سؤالاً نصياً مفهوماً. يفضل تحديد الوحدة المختصة بالسؤال لنتائج أدق."
+    ),
+    "وزاري": (
+        "أنت في وضع الأسئلة الوزارية.\n"
+        "الصيغ المقبولة:\n"
+        "- بحث بالوحدة: <سنة>,<اسم الوحدة>  مثال: 2018,الغدد الصماء\n"
+        f"- بحث بالصفحات: <سنة>,<صفحة1>,<صفحة2>  (الحد الأقصى للصفحات هنا {MAX_PAGES_EXAMS})\n"
+        "- بحث بالبرومت: <سنة>,<موضوع>  مثال: 2019,التنفس\n"
+        "يمكنك كتابة 'الكل' بدلاً من السنة للبحث عبر كل السنوات."
+    )
+}
+
+
+
+
+
+_subject_session_timestamps = {}
+
+def cleanup_subject_sessions(sessions_dict: dict, session_timestamps: dict):
+    """تنظيف الجلسات المنتهية لأي مادة"""
+    now = time.time()
+    expired = [
+        uid for uid, ts in session_timestamps.items()
+        if now - ts > 1800  # 30 دقيقة
+    ]
+    for uid in expired:
+        sessions_dict.pop(uid, None)
+        session_timestamps.pop(uid, None)
+        
+        
+        
+
+
+
+def help_for_mode(mode: str, input_type: str = None) -> str:
+    if mode == "شرح":
+        if input_type == "صفحة": return USAGE_HELP["صفحة"]
+        if input_type == "وحدة": return USAGE_HELP["وحدة"]
+        return USAGE_HELP["برومت"]
+    if mode == "تلخيص":
+        return USAGE_HELP["برومت"] + "\nاختر درجة التلخيص من 1 إلى 5."
+    if mode == "سؤال": return USAGE_HELP["سؤال"]
+    if mode == "وزاري": return USAGE_HELP["وزاري"]
+    return "استخدم التطبيق لشرح أو تلخيص أو سؤال أو أسئلة وزارية."
+
+
+
+
+
+def subject_book_path(subject: str) -> str:
+    return os.path.join(BASE_SUBJECTS_DIR, subject, f"{subject}.json")
+
+def subject_exams_dir(subject: str) -> str:
+    return os.path.join(BASE_SUBJECTS_DIR, subject, "exams")
+
+def load_json_safe(path: str):
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+def find_unit(book_data: List[dict], query: str):
+    """البحث عن الوحدة بالاسم أو بالرقم (مطابقة جزئية)"""
+    q = query.strip()
+    for unit in book_data:
+        if q == unit.get("اسم_الوحدة") or q == str(unit.get("رقم_الوحدة")):
+            return unit
+    # محاولة مطابقة جزئية
+    for unit in book_data:
+        if q in unit.get("اسم_الوحدة", ""):
+            return unit
+    return None
+
+def fetch_pages_by_numbers(book_data: List[dict], page_nums: List[int]):
+    found = []
+    missing = []
+    for p in page_nums:
+        found_flag = False
+        for unit in book_data:
+            for page in unit.get("الصفحات", []):
+                if page.get("رقم_الصفحة") == p:
+                    found.append(page)
+                    found_flag = True
+                    break
+            if found_flag:
+                break
+        if not found_flag:
+            missing.append(p)
+    return found, missing
+
+
+
+
+def extract_relevant_book_texts(book_data, query, top_k=5):
+    """
+    تبحث في الكتاب أولاً (FAISS + كلمات)
+    وترجع نصوص الصفحات المرتبطة فعلياً بالموضوع
+    """
+    texts, metas = extract_all_texts_and_metas(book_data)
+
+    # بحث دلالي
+    sem_results, _ = faiss_search(texts, query, top_k=top_k)
+
+    # بحث مباشر بالكلمات
+    keywords = re.findall(r'[\u0600-\u06FF]{3,}', query)
+    direct_hits = []
+
+    for txt in texts:
+        if any(k in txt for k in keywords):
+            direct_hits.append(txt)
+
+    # دمج بدون تكرار
+    final_texts = []
+    for t in direct_hits + sem_results:
+        if t not in final_texts:
+            final_texts.append(t)
+
+    return final_texts[:top_k]
+
+def extract_all_texts_and_metas(book_data: List[dict]):
+    texts = []
+    metas = []
+    for unit in book_data:
+        for page in unit.get("الصفحات", []):
+            texts.append(page.get("نص_الصفحة", ""))
+            metas.append({
+                "unit": unit.get("اسم_الوحدة"),
+                "page": page.get("رقم_الصفحة")
+            })
+    return texts, metas
+
+import threading
+_faiss_index_cache = {}
+_faiss_lock = threading.Lock()
+_build_semaphore = None
+
+def get_build_semaphore():
+    global _build_semaphore
+    if _build_semaphore is None:
+        _build_semaphore = asyncio.Semaphore(2)
+    return _build_semaphore
+
+
+def _normalize_for_search(text: str) -> str:
+    """توحيد النص العربي للبحث فقط"""
+    if not text:
+        return text
+    text = re.sub(r'[أإآٱ]', 'ا', text)        # توحيد الألفات
+    text = re.sub(r'ة', 'ه', text)              # ة → ه
+    text = re.sub(r'ى', 'ي', text)              # ى → ي
+    text = re.sub(r'[\u064B-\u065F]', '', text) # إزالة التشكيل
+    return text
+
+
+async def faiss_search(texts: List[str], query: str, top_k: int = QA_TOP_K):
+    if not texts:
+        return [], []
+    
+    try:
+        # ✅ بصمة أقوى: طول + أول نص + آخر نص
+        fingerprint_data = f"{len(texts)}_{texts[0][:80]}_{texts[-1][:80]}"
+        fingerprint = hashlib.md5(fingerprint_data.encode('utf-8')).hexdigest()[:16]
+
+        if fingerprint not in _faiss_index_cache:
+            async with get_build_semaphore():
+                if fingerprint not in _faiss_index_cache:
+                    def _build_index():
+                        emb = embed_model.encode(
+                            texts,
+                            convert_to_numpy=True,
+                            batch_size=32,
+                            show_progress_bar=False
+                        )
+                        faiss.normalize_L2(emb)
+                        index = faiss.IndexFlatIP(emb.shape[1])
+                        index.add(emb)
+                        return index
+                    
+                    built = await asyncio.wait_for(
+                        asyncio.to_thread(_build_index),
+                        timeout=40.0
+                    )
+                    with _faiss_lock:
+                        _faiss_index_cache[fingerprint] = built
+
+        index = _faiss_index_cache[fingerprint]
+
+        def _search_only():
+            q_emb = embed_model.encode(
+                [query],
+                convert_to_numpy=True,
+                show_progress_bar=False
+            )
+            faiss.normalize_L2(q_emb)
+            D, I = index.search(q_emb, k=min(top_k, index.ntotal))
+            return I[0]
+
+        I_indices = await asyncio.wait_for(
+            asyncio.to_thread(_search_only),
+            timeout=15.0
+        )
+
+        results = []
+        idxs = []
+        for i in I_indices:
+            if 0 <= i < len(texts):
+                results.append(texts[i])
+                idxs.append(int(i))
+        return results, idxs
+
+    except asyncio.TimeoutError:
+        print("⚠️ FAISS timeout")
+        return [], []
+    except Exception as e:
+        print(f"⚠️ FAISS error: {e}")
+        return [], []
+
+
+async def enhanced_qa_search(book_data, query, top_k=5):
+    texts, metas = extract_all_texts_and_metas(book_data)
+    
+    # البحث الدلالي
+    sem_results, sem_idxs = await faiss_search(texts, query, top_k=top_k)
+    
+    # البحث المباشر مع توحيد الحروف
+    norm_query = _normalize_for_search(query)
+    keywords = re.findall(r'[\u0600-\u06FF\w]{3,}', norm_query)
+    
+    direct_hits = []
+    direct_idxs = []
+    
+    if keywords:
+        for i, txt in enumerate(texts):
+            norm_txt = _normalize_for_search(txt)
+            if any(k in norm_txt for k in keywords):
+                direct_hits.append(txt)  # النص الأصلي للموديل
+                direct_idxs.append(i)
+    
+    # الدمج: المباشر أولاً لأنه أدق، ثم FAISS
+    final_texts = []
+    final_idxs = []
+    
+    for t, i in zip(direct_hits, direct_idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    
+    for t, i in zip(sem_results, sem_idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    
+    return final_texts[:top_k], final_idxs[:top_k]
+
+
+
+
+
+def normalize_arabic(text: str) -> str:
+    if not text:
+        return ""
+
+    text = text.lower()
+
+    # إزالة التشكيل
+    text = re.sub(r'[ًٌٍَُِّْـ]', '', text)
+
+    # توحيد الحروف
+    replacements = {
+        "أ": "ا",
+        "إ": "ا",
+        "آ": "ا",
+        "ى": "ي",
+        "ة": "ه",
+        "ؤ": "و",
+        "ئ": "ي",
+    }
+
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+
+    # إزالة أل التعريف
+    text = re.sub(r'\bال', '', text)
+
+    # إزالة أي شيء غير حروف عربية
+    text = re.sub(r'[^\u0600-\u06FF\s]', ' ', text)
+
+    # إزالة المسافات الزائدة
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
+def extract_keywords(query: str):
+    normalized = normalize_arabic(query)
+    words = normalized.split()
+
+    # تجاهل الكلمات القصيرة جداً
+    return [w for w in words if len(w) >= 3]
+
+def normalize_text_match(text: str) -> str:
+    """
+    دالة تنظيف قوية لضمان تطابق أسماء الدروس
+    تزيل: المسافات، الهمزات، التشكيل
+    """
+    if not text:
+        return ""
+    text = text.lower().strip()
+    # إزالة التشكيل
+    text = re.sub(r'[ًٌٍَُِّْـ]', '', text)
+    # توحيد الألف والياء والتاء
+    text = re.sub(r'[أإآ]', 'ا', text)
+    text = text.replace('ة', 'ه').replace('ى', 'ي')
+    # إزالة المسافات تماماً لضمان التطابق حتى لو فيه مسافة زائدة
+    text = re.sub(r'\s+', '', text)
+    return text
+
+def normalize_lesson_name(text: str) -> str:
+    """
+    تطبيع اسم الدرس للمقارنة
+    - إزالة المسافات والـ _
+    - توحيد الحروف العربية
+    - تحويل لأحرف صغيرة
+    """
+    if not text:
+        return ""
+    
+    # تحويل لأحرف صغيرة
+    text = text.lower()
+    
+    # إزالة التشكيل
+    import re
+    text = re.sub(r'[ًٌٍَُِّْـ]', '', text)
+    
+    # توحيد الحروف العربية
+    replacements = {
+        "أ": "ا",
+        "إ": "ا",
+        "آ": "ا",
+        "ى": "ي",
+        "ة": "ه",
+        "ؤ": "و",
+        "ئ": "ي",
+    }
+    
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    
+    # إزالة المسافات والـ _
+    text = text.replace(" ", "").replace("_", "")
+    
+    # إزالة أي شيء غير حروف عربية وأرقام
+    text = re.sub(r'[^\u0600-\u06FF\d]', '', text)
+    
+    return text
+
+
+
+
+
+
+def parse_exams_input(content: str):
+    parts = [p.strip() for p in content.split(",") if p.strip() != ""]
+    if not parts:
+        return None, None
+    year = parts[0]
+    rest = parts[1:]
+    return year, rest
+
+def restrict_book_to_unit(book_data: List[dict], unit_name: str):
+    """
+    تحصر الكتاب داخل وحدة واحدة فقط
+    """
+    for unit in book_data:
+        if unit_name == unit.get("اسم_الوحدة") or unit_name == str(unit.get("رقم_الوحدة")):
+            return [unit]
+        if unit_name in unit.get("اسم_الوحدة", ""):
+            return [unit]
+    return None
+
+def collect_exam_questions_by_years(subject: str, years: List[str]):
+    exams_dir = subject_exams_dir(subject)
+    found = []
+    if not os.path.isdir(exams_dir):
+        return found
+    for f in os.listdir(exams_dir):
+        if not f.lower().endswith(".json"):
+            continue
+        file_year = os.path.splitext(f)[0].strip()
+        if "الكل" not in years and file_year not in [str(y) for y in years]:
+            continue
+        data = load_json_safe(os.path.join(exams_dir, f))
+        if not data:
+            continue
+        for block in data:
+            questions = block.get("الاسئلة", [])
+            for q in questions:
+                found.append({
+                    "سنة": block.get("سنة_الامتحان", file_year),
+                    "الجزء": block.get("الجزء", ""),
+                    "النوع": block.get("نوع_السؤال", ""),
+                    "النص": q
+                })
+    return found
+
+def filter_exams_by_keyword(questions: list, keyword: str):
+    """
+    ترجع كل الأسئلة الوزارية التي تحتوي على الكلمة أو العبارة المطلوبة
+    """
+    keyword = keyword.strip()
+    if not keyword:
+        return []
+
+    matched = []
+    for q in questions:
+        text = q.get("النص", "")
+        if keyword in text:
+            matched.append(q)
+
+    return matched
+
+def filter_and_rank_exams(questions: list, user_text: str):
+    """
+    - أي سؤال يحتوي على كلمة واحدة على الأقل يطلع
+    - يتم ترتيب الأسئلة حسب عدد الكلمات المتطابقة (الأكثر أولاً)
+    """
+    user_keywords = extract_keywords(user_text)
+    if not user_keywords:
+        return []
+
+    scored_questions = []
+
+    for q in questions:
+        q_text = normalize_arabic(q.get("النص", ""))
+        score = 0
+
+        for kw in user_keywords:
+            if kw in q_text:
+                score += 1
+
+        if score > 0:
+            scored_questions.append((score, q))
+
+    # ترتيب: الأعلى تطابقاً أولاً
+    scored_questions.sort(key=lambda x: x[0], reverse=True)
+
+    return [q for score, q in scored_questions]
+
+def normalize_arabic(text: str) -> str:
+    if not text:
+        return ""
+
+    text = text.lower()
+
+    # إزالة التشكيل
+    text = re.sub(r'[ًٌٍَُِّْـ]', '', text)
+
+    # توحيد الحروف
+    replacements = {
+        "أ": "ا",
+        "إ": "ا",
+        "آ": "ا",
+        "ى": "ي",
+        "ة": "ه",
+        "ؤ": "و",
+        "ئ": "ي",
+    }
+
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+
+    # إزالة أل التعريف
+    text = re.sub(r'\bال', '', text)
+
+    # إزالة أي شيء غير حروف عربية
+    text = re.sub(r'[^\u0600-\u06FF\s]', ' ', text)
+
+    # إزالة المسافات الزائدة
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
+
+
+
+def filter_exams_smart(questions: list, query: str, min_hits: int = 2):
+    """
+    ترجع الأسئلة التي تطابق الموضوع بعدد كافٍ من الكلمات
+    """
+    keywords = extract_keywords(query)
+    if not keywords:
+        return []
+
+    matched = []
+
+    for q in questions:
+        q_text = normalize_arabic(q.get("النص", ""))
+        hits = 0
+
+        for w in keywords:
+            if w in q_text:
+                hits += 1
+
+        if hits >= min_hits:
+            matched.append(q)
+
+    return matched
+
+
+
+
+
+
+def get_math_exam_years(branch: str):
+    """يجلب السنوات المتاحة لفرع معين"""
+    exams_dir = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", "exams", branch)
+    
+    if not os.path.isdir(exams_dir):
+        return []
+    
+    years = []
+    for f in os.listdir(exams_dir):
+        if f.endswith(".json"):
+            year = os.path.splitext(f)[0]
+            years.append(year)
+    
+    years.sort(reverse=True)
+    return years
+
+
+def get_math_exam_lessons(branch: str, year: str):
+    """يجلب أسماء الدروس من ملف السنة"""
+    exam_file = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", "exams", branch, f"{year}.json")
+    
+    if not os.path.isfile(exam_file):
+        return []
+    
+    data = load_json_safe(exam_file)
+    if not data:
+        return []
+    
+    # استخراج أسماء الدروس الفريدة
+    lessons = list(set([item.get("الدرس", "") for item in data if item.get("الدرس")]))
+    return lessons
+
+
+def get_math_exam_questions(branch: str, year: str, lesson_name: str, count: int):
+    exam_file = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", "exams", branch, f"{year}.json")
+    if not os.path.isfile(exam_file):
+        return {"questions": [], "total": 0, "has_more": False}
+    
+    data = load_json_safe(exam_file)
+    if not data:
+        return {"questions": [], "total": 0, "has_more": False}
+    
+    # 🔥 المطابقة الذكية باستخدام الدالة الجديدة
+    target_norm = normalize_text_match(lesson_name)
+    all_questions = []
+    
+    for item in data:
+        # نقارن الاسم بعد التنظيف
+        current_lesson_norm = normalize_text_match(item.get("الدرس", ""))
+        
+        if current_lesson_norm == target_norm:
+            questions = item.get("الاسئلة", [])
+            for q in questions:
+                all_questions.append({
+                    "نص_السؤال": q.get("نص_السؤال", ""),
+                    "الحل": q.get("الحل", "")
+                })
+    
+    total = len(all_questions)
+    batch = all_questions[:count] if count < total else all_questions
+    has_more = count < total
+    
+    return {
+        "questions": batch,
+        "total": total,
+        "has_more": has_more,
+        "remaining": total - len(batch)
+    }
+
+def load_math_lesson(branch: str, lesson_name: str):
+    """
+    branch: تفاضل / تكامل / هندسة / جبر
+    lesson_name: اسم الدرس
+    """
+    base = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", branch)
+    if not os.path.isdir(base):
+        return None
+
+    # ✅ تطبيع اسم الدرس المطلوب
+    normalized_lesson = normalize_lesson_name(lesson_name)
+
+    for f in os.listdir(base):
+        if not f.endswith(".json"):
+            continue
+        
+        # ✅ تطبيع اسم الملف
+        file_name = os.path.splitext(f)[0]
+        normalized_file = normalize_lesson_name(file_name)
+        
+        # ✅ مقارنة بعد التطبيع
+        if normalized_lesson == normalized_file:
+            return load_json_safe(os.path.join(base, f))
+
+    return None
+
+
+
+
+def system_prompt_strict_explain(subject: str):
+    return (
+       f"أنت الآن في وضع مدرس داخل الصف لمادة {subject}. "
+        "تتعامل مع الطالب وكأنك تشرح له أثناء الحصة الدراسية.\n\n"
+        """ 📌 آلية التفكير:
+- اقرأ السؤال جيداً.
+- افهم المقصود الحقيقي منه.
+- حدد المفهوم الأساسي وراء السؤال.
+- ابدأ بشرح الفكرة من الداخل (التعريف، الفكرة الجوهرية,من الدرس).
+- اشرح بالاعتماد على النص من ناحية الامثلة وطريقة الشرح .
+- ثم وسّع الشرح من الخارج (السياق العام، لماذا نستخدمه، أين يطبق، علاقته بالمفاهيم الأخرى).
+
+📌 ذكاء المحادثة:
+- إذا كان السؤال مرتبطاً بسؤال سابق (مثل: وضح أكثر، ما الفرق، أعطني مثال):
+  → أكمل من حيث توقفت.
+- إذا كان سؤالاً جديداً:
+  → ابدأ شرحاً جديداً من الصفر.
+- احكم بذكاء على طبيعة السؤال.
+
+📌 أسلوب الشرح:
+1) اشرح باللغة العربية الفصحى السهلة.
+2) لا تكتب كلمات إنجليزية داخل الشرح.
+3) اشرح وكأنك داخل الصف فعلياً.
+4) قسم الشرح إلى خطوات مرتبة عند الحاجة.
+5) إذا وجدت معادلات، اشرحها بنفس الرموز الموجودة دون تغيير الصيغة.
+6) لا تكتفِ بالتعريف، بل وضّح لماذا وكيف.
+
+📌 مهم جداً:
+- لا تكن جامداً.
+- لا تكرر السؤال فقط.
+- الهدف هو الفهم العميق.
+- استخدم أمثلة تعليمية مبسطة عند الحاجة.
+- اربط بين المفاهيم حتى تتكوّن صورة كاملة عند الطالب.
+
+🎯 هدفك:
+أن يفهم الطالب الفكرة بعمق ويستطيع إعادة شرحها بنفسه."""
+        "القواعد الأساسية (مهم الالتزام بها بدقة):\n"
+          "1) اشرح باللغة العربية فقط ولاتضيف اي كلمات من لغة اخرى اجنبية.\n"
+          "2) اكتب المعادلات بشكل نصي نظيف ومقروء باللغة العربية و الارقام العربيه  والصيغه من اليمين لليسار في الحساب ، واستبدل علامات الشرطة السفلية (_) بمسافات عادية، وتجنب تماماً استخدام أي أكواد أو رموز برمجية مثل (\quad) أو (LaTeX)..\n"
+        "3) مصدر الإجابة الوحيد هو الكتاب المعطى لك فقط، ولا يُسمح باستخدام أي معلومات من خارج الكتاب.\n"
+        "4) لا تضف معرفة عامة، ولا أمثلة خارجية، ولا اجتهاد شخصي.\n"
+        "5) جميع الإجابات يجب أن تكون إما نقلًا مباشرًا من نص الكتاب أو شرحًا مبسطًا لمعنى موجود صراحة في الكتاب.\n\n"
+       
+    )
+    
+    
+def system_prompt_strict_summary(subject: str, level: int):
+    levels = {1: "مفصل جداً", 2: "شامل", 3: "متوسط", 4: "مختصر", 5: "مختصر جداً في نقاط"}
+    return (
+        f"أنت ملخّص ماهر لمادة {subject}. التزم بالنص المقدم فقط. لخص بمستوى: {levels.get(level,'متوسط')}. "
+        "تكلم باللغة العربية فقط ولاتضيف اي كلمات من لغة اخرى اجنبية.\n"
+        " اكتب المعادلات بشكل نصي نظيف ومقروء باللغة العربية و الارقام العربيه  والصيغه من اليمين لليسار في الحساب ، واستبدل علامات الشرطة السفلية (_) بمسافات عادية، وتجنب تماماً استخدام أي أكواد أو رموز برمجية مثل (\quad) أو (LaTeX)..\n"
+        "لا تضف معلومات خارج النص. التنسيق يكون واضحًا ونقاط عند الحاجة."
+    )
+
+def system_prompt_strict_qa(subject: str):
+    return (
+        f"أنت مدرس يجيب مباشرة من نص كتاب مادة {subject}. أجب بجملة أو جملتين مقتبستين أو مستخلصة من النص فقط. "
+         "📌 ذكاء المحادثة:\n"
+         "تكلم باللغة العربية فقط ولاتضيف اي كلمات من لغة اخرى اجنبية.\n"
+        "- قد تكون هناك محادثة سابقة مع الطالب.\n"
+        "- إذا كان سؤاله متصلاً بالمحادثة السابقة → استخدم السياق.\n"
+        "- إذا كان سؤالاً مستقلاً تماماً → تجاهل السياق.\n\n"
+        "إن لم تجد الإجابة داخل النص قل: 'عذراً، هذه المعلومة غير متوفرة في الكتاب'."
+        " اكتب المعادلات بشكل نصي نظيف ومقروء باللغة العربية و الارقام العربيه  والصيغه من اليمين لليسار في الحساب ، واستبدل علامات الشرطة السفلية (_) بمسافات عادية، وتجنب تماماً استخدام أي أكواد أو رموز برمجية مثل (\quad) أو (LaTeX)..\n"
+    )
+    
+    
+    
+def system_prompt_strict_qa_improved(subject: str):
+    """برومبت محسّن للإجابة على السؤال بدقة"""
+    return (
+        f"أنت مدرس {subject} محترف.\n\n"
+        
+        "🎯 مهمتك: الإجابة على سؤال الطالب بدقة وفقط على ما يطلبه.\n\n"
+        
+        "📌 القواعد الصارمة:\n"
+        "1️⃣ اقرأ السؤال بعناية شديدة\n"
+        "2️⃣ أجب فقط على ما يطلبه الطالب\n"
+        "3️⃣ لا تضف معلومات إضافية لم يطلبها\n"
+        "4️⃣ الجواب يجب أن يكون مختصراً وواضحاً\n\n"
+        
+        "📚 أمثلة:\n"
+        "السؤال: 'ما هي المعادلات المهمة؟'\n"
+        "الإجابة: (اكتب المعادلات فقط، بدون شرح أو مقدمة)\n\n"
+        
+        "السؤال: 'اشرح النقطة X من الدرس'\n"
+        "الإجابة: (اشرح تلك النقطة فقط من النص)\n\n"
+        
+        "السؤال: 'ما الفرق بين A و B؟'\n"
+        "الإجابة: (الفروقات فقط، بدون معلومات إضافية)\n\n"
+        
+        "⚠️ تحذير: لا تعطِ الدرس كاملاً! أجب على السؤال فقط."
+    )
+
+def system_prompt_strict_exams(subject: str):
+    return (
+        f"أنت مساعد للأمتحانات لشهادة الثانوية في مادة {subject}. استخرج الأسئلة المطابقة من ملفات الأسئلة وفق معايير المستخدم. "
+        "لا تضف أسئلة أو تغير في نصوص الأسئلة، فقط اعرض النصوص كما هي مع ذكر السنة والجزء ونوع السؤال."
+    )
+    
+def system_prompt_math_explain():
+    return (
+        "أنت مدرس رياضيات تشرح من ملخص الطالب فقط.\n"
+        # ⬅️ ذكاء السياق للرياضيات
+        "📌 ذكاء المحادثة:\n"
+        "- قد تكون شرحت درساً سابقاً للطالب.\n"
+        "- إذا سألك عن نقطة في الشرح السابق → استخدم السياق وأجب بناءً عليه.\n"
+        "- إذا طلب شرح موضوع جديد → ابدأ شرحاً جديداً.\n\n"
+        "القواعد:\n"
+        "1) الشرح يكون بنفس أسلوب الملخص.\n"
+        "2) لا تضف قوانين غير موجودة.\n"
+        "3) الشرح يكون تدريجي وبسيط.\n"
+        "4) عند الأمثلة: اشرح خطوة خطوة كما هي.\n"
+         "5) أشرح باللغة العربية فقط.ذى"
+    )
+    
+    
+    
+    
+def pages_with_headers(pages):
+    blocks = []
+    for p in pages:
+        blocks.append(f"📄 الصفحة {p['رقم_الصفحة']}:\n{p['نص_الصفحة']}")
+    return "\n\n".join(blocks)
+
+
+
+def fetch_pages_by_numbers(book_data: List[dict], page_nums: List[int]):
+    """جلب صفحات محددة برقمها"""
+    found = []
+    missing = []
+    for p in page_nums:
+        found_flag = False
+        for unit in book_data:
+            for page in unit.get("الصفحات", []):
+                if page.get("رقم_الصفحة") == p:
+                    found.append(page)
+                    found_flag = True
+                    break
+            if found_flag:
+                break
+        if not found_flag:
+            missing.append(p)
+    return found, missing
+
+
+
+def extract_all_texts_and_metas_physics(book_data: List[dict]):
+    """استخراج جميع النصوص من بيانات الفيزياء بذكاء لدعم المعادلات والمسائل"""
+    texts = []
+    metas = []
+    
+    for unit in book_data:
+        unit_name = unit.get("اسم_الوحدة", "")
+        
+        for lesson in unit.get("الدروس", []):
+            lesson_name = lesson.get("اسم_الدرس", "")
+            
+            for part in lesson.get("الأجزاء", []):
+                part_type = part.get("نوع", "")
+                part_name = part.get("اسم_الجزء", "")
+                
+                content = part.get("المحتوى", [])
+                
+                if isinstance(content, list):
+                    for item in content:
+                        # ✅ التعديل السحري هنا: قراءة كل المفاتيح بذكاء
+                        if isinstance(item, dict):
+                            text_parts = []
+                            # 1. إذا كان تعريف
+                            if "المصطلح" in item:
+                                text_parts.append(f"{item.get('المصطلح')}: {item.get('التعريف', '')}")
+                            
+                            # 2. إذا كانت معادلة أو مسألة حسابية (هنا كان الخلل)
+                            if "الصيغة" in item:
+                                text_parts.append(f"السؤال أو القانون: {item.get('الصيغة')}")
+                            if "الاستخدام" in item:
+                                text_parts.append(f"طريقة الحل: {item.get('الاستخدام')}")
+                            if "مثال_رقمي" in item:
+                                text_parts.append(f"الحل بالخطوات: {item.get('مثال_رقمي')}")
+                                
+                            # 3. احتياط لأي مفاتيح جديدة في المستقبل
+                            if not text_parts:
+                                for k, v in item.items():
+                                    text_parts.append(f"{k}: {v}")
+                            
+                            text = " | ".join(text_parts)
+                            
+                        # إذا كان نص عادي (نقاط)
+                        else:
+                            text = str(item)
+                        
+                        if text.strip():
+                            texts.append(text)
+                            metas.append({
+                                "unit": unit_name,
+                                "lesson": lesson_name,
+                                "part_type": part_type,
+                                "part_name": part_name
+                            })
+                else:
+                    # محتوى نصي مباشر
+                    if content:
+                        texts.append(str(content))
+                        metas.append({
+                            "unit": unit_name,
+                            "lesson": lesson_name,
+                            "part_type": part_type,
+                            "part_name": part_name
+                        })
+    
+    return texts, metas
+
+
+async def enhanced_search_physics(book_data, query, top_k=5):
+    texts, metas = extract_all_texts_and_metas_physics(book_data)
+    if not texts:
+        return [], []
+    # أضفنا await هنا
+    sem_results, idxs = await faiss_search(texts, query, top_k=top_k)
+    keywords = extract_keywords(query)
+    direct_hits = []
+    direct_idxs = []
+    for i, txt in enumerate(texts):
+        if any(k in txt for k in keywords):
+            direct_hits.append(txt)
+            direct_idxs.append(i)
+    final_texts = []
+    final_idxs = []
+    for t, i in zip(direct_hits, direct_idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    for t, i in zip(sem_results, idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    return final_texts[:top_k], final_idxs[:top_k]
+
+
+
+def format_arabic_math(text: str) -> str:
+    """
+    فلتر سحري يحول معادلات LaTeX المعقدة إلى نصوص عربية مقروءة بوضوح
+    ويحافظ على تنسيق الأسطر (النزول للسطر).
+    """
+    if not text:
+        return ""
+    
+    # 1. إزالة أقواس LaTeX المزعجة
+    text = re.sub(r'\\\[|\\\]', '', text)
+    text = re.sub(r'\\\(|\\\)', '', text)
+    text = text.replace('$', '')
+    
+    # 2. استخراج الكلمات العربية من داخل \text{} و \mathrm{}
+    text = re.sub(r'\\text\{([^}]+)\}', r'\1', text)
+    text = re.sub(r'\\mathrm\{([^}]+)\}', r'\1', text)
+    
+    # 3. تحويل الكسور ( \frac{A}{B} ) إلى شكل مقروء ( A / B )
+    while r'\frac' in text:
+        text = re.sub(r'\\frac\{([^}]+)\}\{([^}]+)\}', r' (\1 / \2) ', text)
+        
+    # 4. استبدال الرموز الرياضية اللاتينية برموز عادية
+    replacements = {
+        r'\times': '×',
+        r'\div': '÷',
+        r'\cdot': '·',
+        r'\approx': '≈',
+        r'\neq': '≠',
+        r'\leq': '≤',
+        r'\geq': '≥',
+        r'\pm': '±',
+        r'\sqrt': '√',
+        r'^{2}': '²',
+        r'^2': '²',
+        r'^{3}': '³',
+        r'^3': '³',
+        r'\infty': '∞',
+        r'\pi': 'π',
+        r'\theta': 'θ',
+        r'\lambda': 'λ',
+        r'\Delta': 'Δ',
+        r'\Omega': 'Ω',
+        r'\alpha': 'α',
+        r'\beta': 'β',
+        r'\gamma': 'γ',
+        r'\mu': 'μ',
+        r'\\': '\n', # تحويل النزول للسطر في اللاتيك إلى نزول سطر عادي
+    }
+    
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+        
+    # 5. التعديل هنا: استخدام [ \t]+ بدلاً من \s+ عشان ما نمسح النزول للسطر (\n)
+    text = re.sub(r'[ \t]+', ' ', text).strip()
+    
+    return text
+
+
+# --- FILE: english.py ---
+# subjects/english.py
+"""
+قسم اللغة الإنجليزية - مخصص لدعم النصوص الإنجليزية والعربية
+يعالج المصطلحات (Vocabulary) والقواعد (Grammar) بشكل سليم.
+"""
+
+from .common import (
+    subject_book_path, load_json_safe,
+    system_prompt_strict_explain, system_prompt_strict_summary, system_prompt_strict_qa,
+    collect_exam_questions_by_years, parse_exams_input, faiss_search, format_arabic_math
+)
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE
+from models import AskRequest
+from typing import Dict, List, Optional
+import json
+import re
+import os
+import random
+import asyncio
+
+SUBJECT = "انجليزي"
+sessions_english = {}
+
+_english_session_timestamps = {}
+
+
+
+# نظام التخزين المؤقت للإنجليزي لسرعة البرق
+_english_book_cache = None
+_english_exams_cache = None
+
+def get_english_data():
+    global _english_book_cache
+    if _english_book_cache is not None: return _english_book_cache
+    book = load_json_safe(subject_book_path(SUBJECT))
+    if not book: return []
+    _english_book_cache = book.get("الوحدات", []) if isinstance(book, dict) else book
+    return _english_book_cache
+
+def get_english_exams():
+    global _english_exams_cache
+    if _english_exams_cache is not None: return _english_exams_cache
+    
+    all_data = []
+    exams_dir = os.path.join(BASE_SUBJECTS_DIR, SUBJECT, "exams")
+    if os.path.exists(exams_dir):
+        for filename in os.listdir(exams_dir):
+            if filename.endswith(".json"):
+                data = load_json_safe(os.path.join(exams_dir, filename))
+                if isinstance(data, list): all_data.extend(data)
+                elif isinstance(data, dict): all_data.append(data)
+    _english_exams_cache = all_data
+    return all_data
+
+# ==========================================
+# 🛠️ دوال مساعدة خاصة بالإنجليزي (تدعم الإنجليزية!)
+# ==========================================
+
+
+import time
+
+_subject_session_timestamps = {}
+
+def cleanup_subject_sessions(sessions_dict: dict, session_timestamps: dict):
+    """تنظيف الجلسات المنتهية لأي مادة"""
+    now = time.time()
+    expired = [
+        uid for uid, ts in session_timestamps.items()
+        if now - ts > 1800  # 30 دقيقة
+    ]
+    for uid in expired:
+        sessions_dict.pop(uid, None)
+        session_timestamps.pop(uid, None)
+        
+        
+        
+
+def system_prompt_English_explain(subject: str):
+    return (
+       f"أنت الآن في وضع مدرس داخل الصف لمادة {subject}. "
+        "تتعامل مع الطالب وكأنك تشرح له أثناء الحصة الدراسية.\n\n"
+         "📌 ذكاء المحادثة:\n"
+        "- قد يكون لديك سياق محادثة سابقة مع الطالب.\n"
+        "- إذا كان سؤاله الجديد مرتبطاً بالمحادثة السابقة (مثل: 'وضح أكثر'، 'ما الفرق؟'، 'أعطني مثال'):\n"
+        "  → استخدم السياق وأجب بناءً على ما شرحته سابقاً.\n"
+        "- إذا كان سؤالاً جديداً تماماً عن موضوع مختلف:\n"
+        "  → تجاهل السياق السابق وابدأ شرحاً جديداً من الصفر.\n"
+        "- احكم أنت بذكاء على طبيعة السؤال.\n\n"
+        "القواعد الأساسية (مهم الالتزام بها بدقة):\n"
+          "1) اشرح الكلام الانجليزي والقواعد باللغة العربية  .\n"
+        "5) جميع الإجابات يجب أن تكون  شرحًا مبسطًا لمعنى موجود صراحة في الكتاب.\n\n"
+        "أسلوب الشرح:\n"
+        "- الأسلوب تعليمي، مرتب، وكأنك داخل الصف.\n"
+        "- بإمكانك اضافة معلومات خارجية تدعم الشرح .\n"
+        "- يمكن تقسيم الشرح إلى نقاط أو خطوات عند الحاجة.\n\n"
+
+    )
+
+
+
+def extract_english_keywords(query: str):
+    """استخراج الكلمات للبحث: يدعم الحروف الإنجليزية والعربية"""
+    if not query: return set()
+    # نحافظ على الكلمات الإنجليزية والعربية والأرقام
+    words = re.findall(r'[a-zA-Z\u0600-\u06FF0-9]{2,}', query)
+    return set(w.lower() for w in words)
+
+def filter_and_rank_exams_english(questions: list, query: str):
+    """فلترة الأسئلة الوزارية وتدعم البحث بكلمات إنجليزية مثل grammar و vocabulary"""
+    user_keywords = extract_english_keywords(query)
+    if not user_keywords: return []
+
+    scored_questions = []
+    for q in questions:
+        q_text = q.get("النص", "").lower()
+        score = sum(1 for kw in user_keywords if kw in q_text)
+        
+        if score > 0:
+            scored_questions.append((score, q))
+
+    scored_questions.sort(key=lambda x: x[0], reverse=True)
+    return [q for score, q in scored_questions]
+
+def extract_lesson_only(units_list, lesson_name):
+    """استخراج درس واحد فقط من الوحدات (تطابق ذكي يتجاهل المسافات وحالة الأحرف)"""
+    if not lesson_name: return []
+    target_name = str(lesson_name).strip().lower()
+    
+    for unit in units_list:
+        if isinstance(unit, dict):
+            for lesson in unit.get("الدروس", []):
+                if isinstance(lesson, dict):
+                    current_name = str(lesson.get("اسم_الدرس", "")).strip().lower()
+                    if current_name == target_name:
+                        return [{"اسم_الوحدة": unit.get("اسم_الوحدة"), "الدروس": [lesson]}]
+    return []
+
+def extract_english_texts_flattened(units_list):
+    """
+    تحويل هيكلة الإنجليزي إلى نصوص مسطحة
+    (تدعم الصيغة القديمة والصيغة الجديدة بمرونة تامة)
+    """
+    texts = []
+    metas = []
+    
+    for unit in units_list:
+        if not isinstance(unit, dict): continue
+        unit_name = unit.get("اسم_الوحدة", "")
+        
+        for lesson in unit.get("الدروس", []):
+            if not isinstance(lesson, dict): continue
+            lesson_name = lesson.get("اسم_الدرس", "")
+            meta = {"unit": unit_name, "lesson": lesson_name}
+            
+            lesson_parts = []
+            lesson_parts.append(f"عنوان الدرس: {lesson_name}")
+            
+            # 1. استخراج المحتوى العام
+            content = lesson.get("المحتوى", "")
+            if content:
+                lesson_parts.append(f"المحتوى العام: {content}")
+                
+            # 2. استخراج المصطلحات (Vocabulary) - مدعوم في الصيغتين
+            terms = lesson.get("المصطلحات", [])
+            if terms:
+                vocab_str = "المصطلحات والتعريفات:\n"
+                for term in terms:
+                    if isinstance(term, dict):
+                        word = term.get("الكلمة", "")
+                        definition = term.get("التعريف", "")
+                        translation = term.get("الترجمة", "")
+                        term_details = [x for x in [word, definition, translation] if x]
+                        vocab_str += " - " + " | ".join(term_details) + "\n"
+                lesson_parts.append(vocab_str.strip())
+            
+            # ==========================================
+            # 3. 🌟 دعم الصيغة الجديدة (Grammar Rules Array) 🌟
+            # ==========================================
+            grammar_rules = lesson.get("القواعد", [])
+            if grammar_rules:
+                rule_str = "القواعد النحوية وطريقة الحل:\n"
+                for rule in grammar_rules:
+                    if isinstance(rule, dict):
+                        r_name = rule.get("اسم_القاعدة", "")
+                        r_form = rule.get("الصيغة", "")
+                        rule_str += f"\n🔸 القاعدة: {r_name}\n📌 الصيغة/المفتاح: {r_form}\n"
+                        
+                        examples = rule.get("أمثلة", [])
+                        if examples:
+                            for ex in examples:
+                                if isinstance(ex, dict):
+                                    pos = ex.get("الفعل_الإيجابي", "")
+                                    neg = ex.get("الفعل_السلبي", "")
+                                    exp = ex.get("الشرح", "")
+                                    if pos: rule_str += f"  • مثال 1: {pos}\n"
+                                    if neg: rule_str += f"  • مثال 2: {neg}\n"
+                                    if exp: rule_str += f"  💡 توضيح: {exp}\n"
+                lesson_parts.append(rule_str.strip())
+                
+            # ==========================================
+            # 4. 🌟 دعم الصيغة القديمة (للحفاظ على الدروس السابقة) 🌟
+            # ==========================================
+            explanation = lesson.get("الشرح_والاستخدام", "")
+            if explanation:
+                lesson_parts.append(f"الشرح والاستخدام: {explanation}")
+                
+            rule = lesson.get("القاعدة_والتكوين", "")
+            if rule:
+                lesson_parts.append(f"القاعدة والتكوين: {rule}")
+                
+            keywords = lesson.get("الكلمات_الدالة", "")
+            if keywords:
+                lesson_parts.append(f"الكلمات الدالة: {keywords}")
+                
+            examples_old = lesson.get("الامثلة", [])
+            if examples_old:
+                ex_str = "الأمثلة:\n"
+                for ex in examples_old:
+                    if isinstance(ex, dict):
+                        en = ex.get("انجليزي", "")
+                        ar = ex.get("عربي", "")
+                        ex_str += f"• {en} ({ar})\n"
+                lesson_parts.append(ex_str.strip())
+                
+            exams = lesson.get("صيغة_الاسئلة_في_الامتحان", [])
+            if exams:
+                exam_str = "صيغة أسئلة الامتحان وطريقة الحل:\n"
+                for exm in exams:
+                    if isinstance(exm, dict):
+                        q = exm.get("السؤال", "")
+                        a = exm.get("الاجابة_الصحيحة", "")
+                        r = exm.get("السبب", "")
+                        exam_str += f"س: {q}\nج: {a}\nالسبب: {r}\n"
+                lesson_parts.append(exam_str.strip())
+
+            # ==========================================
+            # دمج كل أجزاء الدرس في نص واحد
+            # ==========================================
+            if len(lesson_parts) > 1:
+                full_lesson_text = "\n\n".join(lesson_parts)
+                texts.append(full_lesson_text)
+                metas.append(meta)
+
+    return texts, metas
+
+async def enhanced_search_english(book_data, query, top_k=5, chat_history=None):
+    texts, metas = extract_english_texts_flattened(book_data)
+    if not texts: return [], []
+    combined_query = query
+    if chat_history:
+        last_ai = next((m.get('content', '') for m in reversed(chat_history) if m.get('role') == 'assistant'), "")
+        if len(query.split()) < 5 and last_ai:
+            combined_query = last_ai[:100] + " " + query
+            
+    # أضفنا await هنا
+    sem_results, idxs = await faiss_search(texts, combined_query, top_k=top_k)
+    keywords = extract_english_keywords(query)
+    direct_hits = []
+    direct_idxs = []
+    for i, txt in enumerate(texts):
+        txt_lower = txt.lower()
+        if any(k in txt_lower for k in keywords):
+            direct_hits.append(txt)
+            direct_idxs.append(i)
+            
+    final_texts = []
+    final_idxs = []
+    for t, i in zip(direct_hits, direct_idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    for t, i in zip(sem_results, idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    return final_texts[:top_k], final_idxs[:top_k]
+
+# ==========================================
+# 1. وضع الشرح
+# ==========================================
+# ==========================================
+# 1. وضع الشرح
+# ==========================================
+async def handle_english_explain(req: AskRequest, gemini_client):
+    units_list = get_english_data() # جلب من الذاكرة فوراً
+    if not units_list: return {"answer": "❌ عذراً، بيانات المادة غير جاهزة حالياً."}
+    
+    context_text = ""
+    refs = []
+
+    # 1. التعديل: إذا الطالب حدد درس معين، نمرر الدرس كامل باستخدام دالة التجميع
+    if req.lesson_name:
+        target_data = extract_lesson_only(units_list, req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        # استخراج الدرس كامل بنص واحد (مصطلحات، قواعد، أمثلة، الخ)
+        extracted_texts, _ = extract_english_texts_flattened(target_data)
+        context_text = "\n\n".join(extracted_texts) if extracted_texts else "محتوى الدرس فارغ."
+        refs.append(req.lesson_name)
+        
+    # 2. إذا لم يحدد درس، نستخدم البحث الذكي
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in units_list if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = units_list
+            
+        results, idxs = await enhanced_search_english(target_data, req.content, top_k=5)
+        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        
+        # استخراج المراجع للبحث
+        _, metas = extract_english_texts_flattened(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref = f"{metas[i].get('lesson', 'درس')}"
+                    if ref not in refs: refs.append(ref)
+    
+    system_prompt = system_prompt_English_explain(SUBJECT)
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        
+        if req.chat_history:
+            valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
+            messages_for_ai.extend(valid_history[-6:])
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"""المعلومات المستخرجة من الكتاب:
+{context_text}
+
+رسالة الطالب: {req.content}
+
+تعليمات:
+- إذا كانت الرسالة تحية (Hi, Hello)، رد بود واسأله كيف تساعده.
+- إذا طلب شرحاً، اعتمد بنسبة 100% على (المعلومات المستخرجة) واشرحها بالعربية بأسلوب جميل.
+- إذا كانت المعلومات تقول 'لا توجد نصوص'، اعتذر بلطف وأخبره أن هذا غير متوفر بالمنهج."""
+        })
+        
+        response = await asyncio.wait_for(
+            gemini_client.chat.completions.create(
+            model="gemini-3.1-flash-lite",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.2
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
+        answer = format_arabic_math(response.choices[0].message.content)
+    except asyncio.TimeoutError:
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+            
+    except Exception as e:
+        answer = f"خطأ في التوليد: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+# ==========================================
+# 2. وضع التلخيص
+# ==========================================
+# ==========================================
+# 2. وضع التلخيص
+# ==========================================
+async def handle_english_summary(req: AskRequest, gemini_client):
+    units_list = get_english_data() # جلب من الذاكرة فوراً
+    if not units_list: return {"answer": "❌ عذراً، بيانات المادة غير جاهزة حالياً."}
+    
+    context_text = ""
+    refs = []
+
+    # 1. التعديل: تمرير الدرس كاملاً للتلخيص
+    if req.lesson_name:
+        target_data = extract_lesson_only(units_list, req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        extracted_texts, _ = extract_english_texts_flattened(target_data)
+        context_text = "\n\n".join(extracted_texts) if extracted_texts else "محتوى الدرس فارغ."
+        refs.append(req.lesson_name)
+        
+    # 2. البحث العادي
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in units_list if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = units_list
+            
+        results, idxs = await enhanced_search_english(target_data, req.content, top_k=6)
+        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        
+        _, metas = extract_english_texts_flattened(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref = f"{metas[i].get('lesson', 'درس')}"
+                    if ref not in refs: refs.append(ref)
+    
+    system_prompt = f"""أنت معلم إنجليزي متخصص في التلخيص والتبسيط.
+لخص المحتوى بالعربية بناءً على المستوى المطلوب ({req.summary_level}/5)."""
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"المعلومات المستخرجة:\n{context_text}\n\nما يريده الطالب: تلخيص '{req.content}'\n(اكتب التلخيص بالعربية)"
+        })
+        
+        response = await asyncio.wait_for(
+            gemini_client.chat.completions.create(
+            model="gemini-3.1-flash-lite",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.15
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
+        answer = format_arabic_math(response.choices[0].message.content)
+    except asyncio.TimeoutError:
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+            
+    except Exception as e:
+        answer = f"خطأ: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+# ==========================================
+# 3. وضع السؤال
+# ==========================================
+# ==========================================
+# 3. وضع السؤال
+# ==========================================
+async def handle_english_question(req: AskRequest, gemini_client):
+    units_list = get_english_data() # جلب من الذاكرة فوراً
+    if not units_list: return {"answer": "❌ عذراً، بيانات المادة غير جاهزة حالياً."}
+    
+    chat_history_from_app = req.chat_history or []
+    recent_history = [m for m in chat_history_from_app if m.get('role') in ['user', 'assistant']][-6:]
+
+    context_text = ""
+    refs = []
+
+    # 1. التعديل: تمرير الدرس كاملاً إذا كان الطالب يسأل من داخل الدرس
+    if req.lesson_name:
+        target_data = extract_lesson_only(units_list, req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        extracted_texts, _ = extract_english_texts_flattened(target_data)
+        context_text = "\n\n".join(extracted_texts) if extracted_texts else "محتوى الدرس فارغ."
+        refs.append(req.lesson_name)
+        
+    # 2. البحث الذكي للأسئلة العامة
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in units_list if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = units_list
+            
+        results, idxs = await enhanced_search_english(target_data, req.content, top_k=4, chat_history=recent_history)
+        context_text = "\n".join(results) if results else "لا توجد إجابة في الكتاب لهذا السؤال."
+        
+        _, metas = extract_english_texts_flattened(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref = f"{metas[i].get('lesson', 'درس')}"
+                    if ref not in refs: refs.append(ref)
+    
+    system_prompt = """أنت معلم إنجليزي تجيب على الأسئلة بوضوح واختصار. اشرح الإجابات بالعربية مع الحفاظ على الكلمات الإنجليزية كما هي عند الحاجة."""
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        messages_for_ai.extend(recent_history)
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"المعلومات المستخرجة:\n{context_text}\n\nسؤال الطالب: {req.content}\n\n(أجب مباشرة على قدر السؤال)"
+        })
+        
+        response = await asyncio.wait_for(
+            gemini_client.chat.completions.create(
+            model="gemini-3.1-flash-lite",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.1
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
+        answer = format_arabic_math(response.choices[0].message.content)
+    
+    except asyncio.TimeoutError:
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+            
+    except Exception as e:
+        answer = f"حدث خطأ: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+# ==========================================
+# 4. وضع الوزاري
+# ==========================================
+async def handle_english_exams(req: AskRequest, sessions: Dict, gemini_client):
+    """وضع الوزاري - إنجليزي (مع المطابقة الذكية لعناوين الأسئلة)"""
+    content = req.content.strip()
+    _english_session_timestamps[req.user_id] = time.time()
+    cleanup_subject_sessions(sessions, _english_session_timestamps)
+
+    parts = content.split("|")
+    if len(parts) < 3:
+        return {"answer": "❌ خطأ في صيغة الطلب. يرجى المحاولة من التطبيق.", "session_active": False}
+
+    year = parts[0].strip()
+    question_type = parts[1].strip() 
+    
+    count = 5
+    if len(parts) > 2 and parts[2].isdigit():
+        count = int(parts[2])
+
+    # جلب كل الاختبارات من الذاكرة (الـ Cache) فوراً
+    all_exams_data = get_english_exams() 
+    if not all_exams_data:
+        return {"answer": "⚠️ لا توجد اختبارات متاحة حالياً في المكتبة.", "session_active": False}
+
+    target_passages = [] 
+    target_general_qs = [] 
+    
+    # 💡 التحديث السحري: استخراج أول 3 كلمات من اسم السؤال للبحث عنها (تطابق ذكي)
+    req_words = question_type.lower().split()
+    smart_keyword = " ".join(req_words[:3]) # مثال: "spot the mistakes"
+
+    # تجميع الأسئلة
+    for exam in all_exams_data:
+        exam_year_str = str(exam.get("سنة_الاختبار", ""))
+        
+        if year == "الكل" or year in exam_year_str:
+            for sec in exam.get("أقسام_الأسئلة", []):
+                actual_type = sec.get("نوع_السؤال", "").lower()
+                
+                # 🔴 التطابق الذكي: هل الكلمات الـ 3 الأولى موجودة داخل عنوان السؤال في الجيسون؟
+                if smart_keyword in actual_type:
+                    if sec.get("النص_المرجعي"):
+                        target_passages.append(sec)
+                    else:
+                        target_general_qs.extend(sec.get("الأسئلة", []))
+
+    if not target_passages and not target_general_qs:
+        return {"answer": f"❌ لم أجد أسئلة من نوع '{question_type}' لسنة '{year}'.", "session_active": False}
+
+    text = f"✅ **Practice: {question_type} - {year if year != 'الكل' else 'All Years'}**\n\n"
+
+    # طريقة العرض تعتمد على هل هو قطعة أم أسئلة مفردة
+    if target_passages:
+        selected_passages = random.sample(target_passages, min(count, len(target_passages)))
+        for p in selected_passages:
+            text += f"📜 **Passage:**\n{p.get('النص_المرجعي', '')}\n\n"
+            text += "📝 **Questions:**\n"
+            for idx, q in enumerate(p.get("الأسئلة", []), 1):
+                text += f"**Q{idx}:** {q.get('السؤال')}\n"
+                text += f"💡 **Answer:** {q.get('الإجابة_النموذجية')}\n\n"
+            text += "---\n"
+    
+    elif target_general_qs:
+        selected_qs = random.sample(target_general_qs, min(count, len(target_general_qs)))
+        text += f"📝 **Questions (Count: {len(selected_qs)}):**\n\n"
+        for idx, q in enumerate(selected_qs, 1):
+            text += f"**Q{idx}:** {q.get('السؤال')}\n"
+            text += f"💡 **Answer:** {q.get('الإجابة_النموذجية')}\n\n"
+
+    return {"answer": text, "session_active": False}
+
+async def handle_english_request(req: AskRequest, gemini_client):
+    """الموجه الرئيسي للغة الإنجليزية"""
+    mode = req.mode.strip()
+    if mode == "شرح": return await handle_english_explain(req, gemini_client)
+    elif mode == "تلخيص": return await handle_english_summary(req, gemini_client)
+    elif mode == "سؤال": return await handle_english_question(req, gemini_client)
+    elif mode == "وزاري": return await handle_english_exams(req, sessions_english, gemini_client)
+    
+    return {"answer": "وضع غير معروف"}
+
+
+# --- FILE: math.py ---
+# subjects/math.py
+"""
+قسم الرياضيات - بدون أخطاء
+"""
+
+from .common import (
+    subject_book_path, load_json_safe, extract_all_texts_and_metas,
+    enhanced_qa_search, faiss_search, filter_and_rank_exams,
+    collect_exam_questions_by_years, normalize_text_match,
+    normalize_lesson_name, get_math_exam_years, get_math_exam_lessons,
+    get_math_exam_questions, load_math_lesson,format_arabic_math
+)
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE
+from models import AskRequest
+from typing import Dict, Any, List, Optional
+import json
+import os
+import re
+import asyncio
+import time
+
+
+
+
+
+# =====================
+# ثوابت المادة
+# =====================
+SUBJECT = "رياضيات"
+sessions_math = {}
+
+
+_session_timestamps = {}
+
+def cleanup_old_sessions():
+    now = time.time()
+    expired = [
+        uid for uid, ts in _session_timestamps.items()
+        if now - ts > 1800
+    ]
+    for uid in expired:
+        sessions_math.pop(uid, None)
+        _session_timestamps.pop(uid, None)
+    if expired:
+        print(f"🧹 حذفت {len(expired)} session منتهية")
+        
+        
+        
+# =====================
+# برومبتات خاصة بالرياضيات
+# =====================
+def format_lesson_safely(data, level=0):
+    """
+    هذه الدالة تفكك أي درس مهما كان معقداً إلى نص عربي نقي 
+    بدون ضياع أي معلومة، مما يخفف التوكنز بنسبة 40% ويسرع الموديل.
+    """
+    text = ""
+    indent = "  " * level
+    if isinstance(data, dict):
+        for k, v in data.items():
+            if isinstance(v, (dict, list)):
+                text += f"{indent}▪️ {k}:\n" + format_lesson_safely(v, level + 1)
+            else:
+                text += f"{indent}▪️ {k}: {v}\n"
+    elif isinstance(data, list):
+        for item in data:
+            if isinstance(item, (dict, list)):
+                text += format_lesson_safely(item, level + 1) + "\n"
+            else:
+                text += f"{indent}- {item}\n"
+    else:
+        text += f"{indent}{data}\n"
+    return text.strip()
+
+
+def system_prompt_math_explain():
+    """برومبت شرح الرياضيات"""
+    return (
+        "أنت مدرس رياضيات تشرح من ملخص الطالب فقط.\n"
+        "📌 ذكاء المحادثة:\n"
+        "- قد تكون شرحت درساً سابقاً للطالب.\n"
+        "- إذا سألك عن نقطة في الشرح السابق → استخدم السياق وأجب بناءً عليه.\n"
+        "- إذا طلب شرح موضوع جديد → ابدأ شرحاً جديداً.\n\n"
+        "القواعد:\n"
+        "1) الشرح يكون بنفس أسلوب الملخص.\n"
+        "2) تأكد من صحة القوانين وبعدها اشرح.\n"
+        "3) الشرح يكون تدريجي وبسيط.\n"
+        "4) عند الأمثلة: اشرح خطوة خطوة كما هي.\n"
+        "5) اشرح باللغة العربية فقط.\n\n"
+        "الرموز:\n"
+        "- استخدم (جا، جتا، ظا) و (س، ص)\n"
+        "- او اي صيغ اخرى  LaTeX او int اكتب الرموز والمعادلات باللغة العربية بالرموز و الطرق المكتوبة بالدرس لاتستخدم\n"
+        "- اكتب المعادلات كنص عادي: ص = 2س² + 1"
+    )
+
+# =====================
+# دوال مساعدة
+# =====================
+
+async def explain_math_lesson(lesson: dict, groq_client,deepseek_client):
+    """شرح درس رياضيات"""
+    content = format_lesson_safely(lesson)
+    
+    prompt = f"""
+هذا ملخص درس رياضيات:
+
+{content}
+
+المطلوب:
+اشرح هذا الدرس شرحًا تعليميًا واضحًا للطالب.
+- اكتب باللغة العربية فقط
+- استخدم الرموز العربية مثل (جا، جتا، ظا) و (س، ص،أ،ب،ج وغيرها )
+- لا تستخدم LaTeX أو \text أو \frac
+- اكتب المعادلات كنص عادي
+مثال: ص = 2س² + 1
+"""
+    
+    try:
+        # 1. الطلب محمي بتايمر 50 ثانية
+        response = await asyncio.wait_for(
+            deepseek_client.chat.completions.create(
+                model="deepseek-chat",
+                temperature=0.2,
+                max_tokens=4000,
+                messages=[
+                    {"role": "system", "content": system_prompt_math_explain()},
+                    {"role": "user", "content": prompt}
+                ]
+            ), 
+            timeout=50.0  # <== التايمر هنا
+        )
+        
+        raw_answer = response.choices[0].message.content
+        clean_answer = format_arabic_math(raw_answer)
+        return clean_answer  # 👈 نرجع النص النظيف الخالي من المربعات
+
+    # 2. اصطياد خطأ الوقت (التايم آوت)
+    except asyncio.TimeoutError:
+        return "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+
+        
+    # 3. اصطياد أي خطأ برمجي آخر
+    except Exception as e:
+        return f"⚠️ عذراً، حدث خطأ أثناء تجهيز الشرح: {str(e)}"
+
+# =====================
+# الدوال الرئيسية
+# =====================
+
+async def handle_math_request(req: AskRequest, deepseek_client, groq_client):
+    """معالج الطلب الرئيسي للرياضيات"""
+    
+    cleanup_old_sessions()
+    _session_timestamps[req.user_id] = time.time()
+    
+    user_id = req.user_id
+    mode = req.mode.strip()
+    branch = req.unit_name  # الفرع: تفاضل، تكامل، إلخ
+    user_text = req.content.strip()
+    lesson_name = req.lesson_name
+    
+    # =====================
+    # 1️⃣ علمني
+    # =====================
+    if user_text == "علمني":
+        return {
+           "answer": (
+                "📘 أنت في قسم الرياضيات:\n\n"
+                "🟢 شرح الدرس:\n"
+                "- اختر الفرع\n"
+                "- اختر الدرس\n"
+                "- اضغط (شرح الدرس)\n"
+                "- بعد الشرح يمكنك السؤال عن أي نقطة في الشرح\n\n"
+                "🔵 سؤال:\n"
+                "- اختر الدرس\n"
+                "- اكتب المسألة\n"
+                "- سيحلها الذكاء الاصطناعي بنفس أسلوب الملخص\n"
+            ),
+            "session_active": False
+        }
+    
+    # =====================
+    # تحقق من الفرع
+    # =====================
+    if not branch:
+        return {"answer": "⚠️ اختر فرع الرياضيات أولاً."}
+    
+    # =====================
+    # 2️⃣ وضع الوزاري
+    # =====================
+    if mode == "وزاري":
+        return await handle_math_exams(req, sessions_math, deepseek_client, groq_client)
+    
+    # =====================
+    # 3️⃣ وضع الشرح
+    # =====================
+    elif mode == "شرح":
+        return await handle_math_explain(req, sessions_math, deepseek_client, groq_client)
+    
+    # =====================
+    # 4️⃣ وضع السؤال
+    # =====================
+    elif mode == "سؤال":
+        return await handle_math_question(req, sessions_math, deepseek_client)
+    
+    return {"answer": "وضع غير معروف"}
+
+
+async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, groq_client):
+    """شرح درس رياضيات - النسخة الصحيحة"""
+    
+    user_id = req.user_id
+    branch = req.unit_name
+    lesson_name = req.lesson_name
+    user_text = req.content.strip()
+    
+    if not lesson_name:
+        return {"answer": "⚠️ يجب اختيار الدرس أولاً."}
+    
+    sess = sessions.get(user_id)
+    norm_lesson_name = normalize_text_match(lesson_name)
+    sess_lesson_name = normalize_text_match(sess.get("lesson_name", "")) if sess else ""
+    
+    # ============================================
+    # ✅ الحالة 1: الطالب ضغط "شرح الدرس" (content فارغ)
+    # ============================================
+    if user_text == "" or user_text.startswith("شرح درس:"):
+        # إذا فيه جلسة نشطة للدرس نفسه → رجع الشرح السابق
+        if sess and sess_lesson_name == norm_lesson_name:
+            return {
+                "answer": sess.get("last_explanation", ""),
+                "session_active": False
+            }
+        
+        # إذا درس جديد → اشرح الدرس
+        sessions.pop(user_id, None)
+        lesson = load_math_lesson(branch, lesson_name)
+        if not lesson: 
+            return {"answer": f"❌ لم أجد درس '{lesson_name}'."}
+        
+        explanation = await explain_math_lesson(lesson, groq_client,deepseek_client)
+        
+        sessions[user_id] = {
+            "subject": "رياضيات",
+            "mode": "math_explain",
+            "lesson": lesson,
+            "lesson_name": lesson_name,
+            "last_explanation": explanation
+        }
+        _session_timestamps[user_id] = time.time()  # ← أضف هذا
+        return {"answer": explanation, "session_active": False}
+    
+    # ============================================
+    # ✅ الحالة 2: الطالب كتب سؤال عن الشرح
+    # ============================================
+    # تحقق إذا فيه جلسة شرح نشطة للدرس الحالي
+    if sess and sess.get("mode") == "math_explain" and sess_lesson_name == norm_lesson_name:
+        lesson = sess["lesson"]
+        last_explanation = sess["last_explanation"]
+        
+        messages_for_ai = [
+            {"role": "system", "content": system_prompt_math_explain()}
+        ]
+        
+        messages_for_ai.append({
+            "role": "assistant",
+            "content": f"هذا شرح الدرس الذي نتحدث عنه:\n{last_explanation}"
+        })
+        
+        if req.chat_history:
+            valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
+            messages_for_ai.extend(valid_history[-6:])
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"سؤال الطالب حول الشرح: {user_text}\n(  المطلوب )\n"
+            """- أجب على السؤال بالاعتماد على نفس الدرس فقط.
+لاتكتب اي كلمة انجليزية او كلمة غير عربية اثناء الشرح
+- وضّح الفكرة بأسلوب تعليمي مرتبط بالشرح السابق.
+- اكتب الشرح باللغة العربية فقط
+- لا تستخدم LaTeX
+- لا تستخدم \text أو \frac
+- اكتب المعادلات كنص عادي
+مثال: ص = 2س² + 1"""
+        })
+        
+        try:
+            response = await asyncio.wait_for(
+                deepseek_client.chat.completions.create(
+                model="deepseek-chat",
+                temperature=0.2,
+                messages=messages_for_ai,
+                max_tokens=4000
+            ), timeout=60)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
+            
+            
+            raw_answer = response.choices[0].message.content
+            clean_answer = format_arabic_math(raw_answer)
+            full_answer = clean_answer # نمرر الإجابة النظيفة للتطبيق
+            clean_answer = re.sub(r'<think>.*?</think>', '', full_answer, flags=re.DOTALL | re.IGNORECASE).strip()
+            
+            return {"answer": clean_answer, "session_active": False}
+        
+        except asyncio.TimeoutError:
+            return {"answer": "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية.", "session_active": False}
+        
+        
+        except Exception as e:
+            return {"answer": f"خطأ: {str(e)}", "session_active": False}
+    
+    # ============================================
+    # ✅ الحالة 3: درس جديد → اشرح من الصفر
+    # ============================================
+    sessions.pop(user_id, None)
+    lesson = load_math_lesson(branch, lesson_name)
+    if not lesson: 
+        return {"answer": f"❌ لم أجد درس '{lesson_name}'."}
+    
+    explanation = await explain_math_lesson(lesson, groq_client,deepseek_client)
+    
+    sessions[user_id] = {
+        "subject": "رياضيات",
+        "mode": "math_explain",
+        "lesson": lesson,
+        "lesson_name": lesson_name,
+        "last_explanation": explanation
+    }
+    _session_timestamps[user_id] = time.time()  # ← أضف هذا
+    return {"answer": explanation, "session_active": False}
+
+async def handle_math_question(req: AskRequest, sessions: Dict, deepseek_client):
+    """حل مسألة رياضيات"""
+    
+    user_id = req.user_id
+    branch = req.unit_name
+    lesson_name = req.lesson_name
+    user_text = req.content.strip()
+    
+    if not lesson_name:
+        return {"answer": "⚠️ اختر الدرس أولاً."}
+    
+    lesson = load_math_lesson(branch, lesson_name)
+    if not lesson:
+        return {"answer": f"⚠️ لم أجد ملف الدرس: {lesson_name}"}
+    
+    lesson_text = format_lesson_safely(lesson)
+    
+    system_prompt = (
+        "أنت مدرس رياضيات محترف في تطبيق \"مسار\". التزم بالقواعد التالية:\n\n"
+              "📌 ذكاء المحادثة:\n"
+            "- قد تكون شرحت درساً سابقاً للطالب.\n"
+            "- إذا سأل عن نقطة من الشرح السابق → استخدم السياق وأجب بناءً عليه.\n"
+            "- إذا طلب موضوعاً جديداً → ابدأ شرحاً جديداً من البداية.\n\n"
+             "📖 التعامل مع الأسئلة:\n"
+             "- اشرح الدرس أو السؤال كما لو كنت تشرحه للطلاب في الفصل.\n"
+            "- استخدم طريقة تعليمية مبسطة وواضحة.\n"
+            "- حل المسائل خطوة بخطوة حتى يفهم الطالب كل مرحلة.\n"
+            "- ابحث أولاً في أمثلة الدرس الموجودة.\n"
+            "- إذا كان السؤال مطابقاً لمثال → اعرض الحل النموذجي.\n"
+            "- إذا كان مشابهاً (اختلاف أرقام أو رموز) → حلّه بنفس الخطوات والمنهج تماماً.\n\n"
+            "- في نهاية الحل، اذكر القوانين المستخدمة.\n\n"
+            "📝 اللغة:\n"
+            "- استخدم العربية الفصحى فقط.\n"
+            "- يمنع استخدام الإنجليزية أو أي لغة أخرى.\n\n"
+            "🔢 الرموز الرياضية:\n"
+            "- استخدم فقط: (جا، جتا، ظا) و (س، ص)\n\n"
+            "-  لا تستخدم \\text أو \\frac او اي رموز اخرى مشابه لها , اكتب بنفس الصيغه الموجودة في الدرس \n\n"
+            "✏️ مثال للكتابة الصحيحة:\nص = 2س² + 1\n\n"
+            "⚠️ مهم جداً: اكتب الحل مرة واحدة فقط، بدون تكرار."
+    )
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        
+        if req.chat_history:
+            valid_history = [msg for msg in req.chat_history 
+                            if msg.get('role') in ['user', 'assistant']]
+            messages_for_ai.extend(valid_history[-6:])  # آخر 6 رسائل
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"سياق الدرس:\n{lesson_text}\n\nسؤال الطالب: {user_text}"
+        })
+        
+        response = await asyncio.wait_for(
+            deepseek_client.chat.completions.create(
+            model="deepseek-chat",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.2
+        ), timeout=60)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
+        
+        
+        raw_answer = response.choices[0].message.content
+        clean_answer = format_arabic_math(raw_answer)
+        full_answer = clean_answer # نمرر الإجابة النظيفة للتطبيق
+        
+        # تنظيف النص
+        clean_answer = re.sub(r'<think>.*?</think>', '', full_answer, flags=re.DOTALL).strip()
+        clean_answer = clean_answer.replace("sin", "جا").replace("cos", "جتا").replace("tan", "ظا")
+        clean_answer = clean_answer.replace("x", "س").replace("y", "ص")
+        
+        return {"answer": clean_answer, "session_active": False}
+    except asyncio.TimeoutError:
+        return {"answer": "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية.", "session_active": False}
+        
+    except Exception as e:
+        return {"answer": f"عذراً، حدث خطأ: {str(e)}", "session_active": False}
+
+
+async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, groq_client):
+    """وضع الوزاري للرياضيات"""
+    
+    user_id = req.user_id
+    branch = req.unit_name
+    user_text = req.content.strip()
+    
+    # =====================
+    # 1️⃣ أوامر التحكم (وقف)
+    # =====================
+    if user_text in ["وقف", "خلاص", "شكرا", "إلغاء"]:
+        sess = sessions.get(user_id)
+        if sess:
+            sess["pending_exams"] = []
+            sess["has_more"] = False  # 🔥 التعديل: إغلاق ظهور الأزرار نهائياً في الجلسة
+            sessions[user_id] = sess
+        
+        return {
+            "answer": "✅ تم إيقاف عرض المزيد.",
+            "session_active": False
+        }
+    
+    # =====================
+    # 2️⃣ كمل (متابعة)
+    # =====================
+    if user_text in ["كمل", "نعم", "متابعة"]:
+        sess = sessions.get(user_id)
+        if sess and sess.get("mode") == "وزاري":
+            year = sess.get("year")
+            lesson = sess.get("lesson")
+            shown_count = sess.get("shown_count", 0)
+            
+            result = get_math_exam_questions(branch, year, lesson, shown_count + 10)
+            new_questions = result["questions"][shown_count:]
+            
+            # ✅ إذا ما فيه أسئلة إضافية
+            if not new_questions:
+                sess["has_more"] = False
+                sessions[user_id] = sess
+                return {
+                    "answer": "✅ انتهت جميع الأسئلة.",
+                    "session_active": False
+                }
+            
+            text = f"📋 الأسئلة الإضافية:\n\n"
+            
+            for i, q in enumerate(new_questions, shown_count + 1):
+                q_text = q['نص_السؤال'].replace('\n', '\n\n')
+                text += f"\n📌 السؤال {i}:\n{q_text}\n"
+                
+                if q.get('الحل'):
+                    sol_text = q['الحل'].replace('\n', '\n\n')
+                    text += f"💡 الإجابة:\n{sol_text}\n"
+                
+                text += "━━━━━━━━━━━━━━━\n"
+            
+            if len(new_questions) < result.get("remaining", 0):
+                text += f"\n💡 تبقى {result['remaining']} سؤال. اكتب 'كمل' للمزيد."
+            
+            # حفظ الأسئلة الجديدة
+            all_displayed = sess.get("displayed_questions", []) + new_questions
+            
+            sessions[user_id] = {
+                "subject": "رياضيات",
+                "mode": "وزاري",
+                "branch": branch,
+                "year": year,
+                "lesson": lesson,
+                "shown_count": shown_count + len(new_questions),
+                "displayed_questions": all_displayed,
+                "pending_exams": [],
+                "has_more": result.get("has_more", False)  # 🔥 التعديل: حفظ حالة الأزرار
+            }
+            _session_timestamps[user_id] = time.time()  # ← أضف هذا
+            
+            return {"answer": text, "session_active": result.get("has_more", False)}
+        else:
+            return {
+                "answer": "⚠️ لا توجد جلسة وزاري نشطة.",
+                "session_active": False
+            }
+    
+    # =====================
+    # 3️⃣ جلب أسئلة جديدة (صيغة: السنة|الدرس|العدد)
+    # =====================
+    parts = user_text.split("|")
+    
+    if len(parts) == 3:
+        year = parts[0].strip()
+        lesson = parts[1].strip()
+        try:
+            count = int(parts[2].strip())
+        except:
+            count = 10
+        
+        result = get_math_exam_questions(branch, year, lesson, count)
+        
+        if not result["questions"]:
+            return {"answer": f"❌ لم أجد أسئلة في '{lesson}' لسنة {year}"}
+        
+        total = result["total"]
+        shown = len(result["questions"])
+        
+        text = f"✅ وجدت {total} سؤالاً في '{lesson}' - سنة {year}\n"
+        text += f"📋 عرض {shown} سؤال:\n\n"
+        text += "━━━━━━━━━━━━━━━\n"
+        
+        for i, q in enumerate(result["questions"], 1):
+            q_text = q['نص_السؤال'].replace('\n', '\n\n')
+            text += f"\n📌 السؤال {i}:\n{q_text}\n"
+            
+            if q.get('الحل'):
+                sol_text = q['الحل'].replace('\n', '\n\n')
+                text += f"💡 الإجابة:\n{sol_text}\n"
+            
+            text += "━━━━━━━━━━━━━━━\n"
+        
+        if result["has_more"]:
+            text += f"\n💬 يوجد {result['remaining']} سؤالاً إضافياً.\n"
+            text += "هل تريد عرضها؟ (اكتب 'كمل')\n"
+        
+        sessions[user_id] = {
+            "subject": "رياضيات",
+            "mode": "وزاري",
+            "branch": branch,
+            "year": year,
+            "lesson": lesson,
+            "shown_count": shown,
+            "displayed_questions": result["questions"],  
+            "pending_exams": [],
+            "has_more": result["has_more"]  # 🔥 التعديل: حفظ الحالة من البداية
+        }
+        _session_timestamps[user_id] = time.time()  # ← أضف هذا
+        
+        return {"answer": text, "session_active": result["has_more"]}
+    
+    # =====================
+    # 4️⃣ 🔥 سؤال عن الأسئلة الوزارية المعروضة 🔥
+    # =====================
+    sess = sessions.get(user_id)
+    
+    if sess and sess.get("mode") == "وزاري":
+        displayed_questions = sess.get("displayed_questions", [])
+        branch_current = sess.get("branch")
+        year_current = sess.get("year")
+        lesson_current = sess.get("lesson")
+        
+        if not displayed_questions:
+            return {
+                "answer": "⚠️ لا توجد أسئلة معروضة.",
+                "session_active": False
+            }
+        
+        # ✅ تحميل الدرس للسياق
+        lesson_data = load_math_lesson(branch_current, lesson_current)
+        lesson_text = format_lesson_safely(lesson_data) if lesson_data else ""
+        
+        # ✅ بناء نص الأسئلة المعروضة
+        questions_context = f"📚 الأسئلة الوزارية المعروضة (سنة {year_current}, درس: {lesson_current}):\n\n"
+        for i, q in enumerate(displayed_questions, 1):
+            q_text = q.get('نص_السؤال', '').replace('\n', '\n  ')
+            sol_text = q.get('الحل', '').replace('\n', '\n  ')
+            
+            questions_context += f"📌 السؤال {i}:\n{q_text}\n\n"
+            if sol_text:
+                questions_context += f"💡 الحل:\n{sol_text}\n\n"
+            questions_context += "━━━━━━━━━━━━━━━\n\n"
+        
+        # ✅ برومبت خاص بالإجابة على الأسئلة الوزارية
+        system_prompt = (
+           "أنت مدرس رياضيات محترف.\n"
+                "المطلوب: الإجابة على سؤال الطالب بناءً على الأسئلة الوزارية المعروضة.\n\n"
+                "📌 السياق المهم:\n"
+                "- الطالب يسأل عن أسئلة وزارية معروضة أمامه\n"
+                "- قد يسأل: 'وضح السؤال 3'، 'كيف حلينا الثاني'، 'ما فهمت قيمة س'\n"
+                "- أنت تفهم سؤاله وتجيب بناءً على الأسئلة المعروضة\n\n"
+                "القواعد:\n"
+            "- استخدم العربية الفصحى فقط.\n"
+            "- يمنع استخدام الإنجليزية أو أي لغة أخرى.\n\n"
+            "يمنع استخدام اي رموز غير عربية .\n\n"
+            "- استخدم فقط: (جا، جتا، ظا) و (س، ص)\n\n"
+            "- لا تستخدم \\text أو \\frac\n\n"
+            "✏️ مثال للكتابة الصحيحة:\nص = 2س² + 1\n\n"
+                "- اشرح الحل خطوة بخطوة\n"
+                "- اذكر القوانين المستخدمة\n"
+                "- إذا ذكر رقم سؤال، ارجع للسؤال المطابق من القائمة المعروضة\n"
+                "- إذا كان سؤالاً عاماً، استخدم الأسئلة المعروضة للتوضيح\n"
+        )
+        
+        try:
+            # ✅ بناء الرسائل
+            messages_for_ai = [{"role": "system", "content": system_prompt}]
+            
+            # ✅ إضافة السياق: الأسئلة المعروضة
+            messages_for_ai.append({
+                "role": "assistant",
+                "content": f"هذه الأسئلة الوزارية المعروضة أمامك:\n\n{questions_context}"
+            })
+            
+            # ✅ إضافة التاريخ (إن وجد)
+            if req.chat_history:
+                valid_history = [msg for msg in req.chat_history 
+                                if msg.get('role') in ['user', 'assistant']]
+                messages_for_ai.extend(valid_history[-6:])  # آخر 4 رسائل
+            
+            # ✅ سؤال الطالب الجديد
+            messages_for_ai.append({
+                "role": "user",
+                "content": (
+                    f"بيانات الدرس (للمرجعية):\n{lesson_text}\n\n"
+                    f"سؤال الطالب: {user_text}"
+                )
+            })
+            
+            # ✅ استدعاء الـ AI
+            response = await asyncio.wait_for(
+                deepseek_client.chat.completions.create(
+                model="deepseek-chat",
+                messages=messages_for_ai, max_tokens=4000,
+                temperature=0.2
+            ), timeout=60)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
+            
+            raw_answer = response.choices[0].message.content
+            clean_answer = format_arabic_math(raw_answer)
+            full_answer = clean_answer # نمرر الإجابة النظيفة للتطبيق
+            
+            # ✅ تنظيف النص
+            clean_answer = re.sub(r'<think>.*?</think>', '', full_answer, flags=re.DOTALL).strip()
+            clean_answer = clean_answer.replace("sin", "جا").replace("cos", "جتا").replace("tan", "ظا")
+            clean_answer = clean_answer.replace("x", "س").replace("y", "ص")
+            
+            # إزالة أي كود LaTeX متبقي
+            clean_answer = re.sub(r'\$.*?\$', '', clean_answer)
+            clean_answer = re.sub(r'\\[a-z]+', '', clean_answer)
+            
+            return {
+                "answer": clean_answer,
+                "session_active": sess.get("has_more", False)  # 🔥 التعديل الجوهري: الاعتماد على الجلسة وليس True
+            }
+        except asyncio.TimeoutError:
+            return {
+                "answer": "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية.",
+                "session_active": sess.get("has_more", False)  # 🔥 لضمان بقاء الأزرار مخفية في حال التأخير
+            }
+        except Exception as e:
+            return {
+                "answer": f"❌ خطأ: {str(e)}",
+                "session_active": sess.get("has_more", False)  # 🔥 لضمان بقاء الأزرار مخفية في حال الخطأ
+            }
+    
+    # =====================
+    # ❌ لا يوجد جلسة وزاري نشطة
+    # =====================
+    return {
+        "answer": (
+          "⚠️ يرجى جلب الأسئلة الوزارية أولاً!\n\n"
+            "📝 الخطوات:\n"
+            "1. اختر السنة من القائمة أعلاه\n"
+            "2. اختر الدرس\n"
+            "3. حدد عدد الأسئلة\n"
+            "4. اضغط 'جلب الأسئلة'\n\n"
+            "✨ بعدها يمكنك السؤال عن أي سؤال مباشرة!"
+        ),
+        "session_active": False
+    }
+
+
+# --- FILE: physics.py ---
+# subjects/physics.py
+"""
+قسم الفيزياء - يعتمد على ذاكرة التطبيق (الجوال) فقط - Stateless
+مع دعم المحادثة الطبيعية (ترحيب) والدقة الصارمة في المنهج
+"""
+
+from .common import (
+    subject_book_path, load_json_safe, extract_all_texts_and_metas_physics,
+    enhanced_search_physics, system_prompt_strict_explain,
+    system_prompt_strict_summary, system_prompt_strict_qa,
+    filter_and_rank_exams, collect_exam_questions_by_years,
+    parse_exams_input, extract_keywords, faiss_search,format_arabic_math   # 👈 أضفنا هذي
+)
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE
+from models import AskRequest
+from typing import Dict, List, Optional
+import json
+import re
+import asyncio
+import time
+
+SUBJECT = "فيزياء"
+sessions_physics = {}
+
+
+_physics_session_timestamps = {}
+
+_book_cache = None
+
+def get_book_data():
+    global _book_cache
+    if _book_cache is not None:
+        return _book_cache
+    book = load_json_safe(subject_book_path(SUBJECT))
+    if not book:
+        return {}
+    _book_cache = book
+    return _book_cache
+
+
+
+# =====================
+# دوال مساعدة جديدة
+# =====================
+
+
+_subject_session_timestamps = {}
+
+def cleanup_subject_sessions(sessions_dict: dict, session_timestamps: dict):
+    """تنظيف الجلسات المنتهية لأي مادة"""
+    now = time.time()
+    expired = [
+        uid for uid, ts in session_timestamps.items()
+        if now - ts > 1800  # 30 دقيقة
+    ]
+    for uid in expired:
+        sessions_dict.pop(uid, None)
+        session_timestamps.pop(uid, None)
+        
+        
+        
+def extract_lesson_only(book_data, lesson_name):
+    """استخراج درس واحد فقط من الوحدات"""
+    for unit in book_data:
+        for lesson in unit.get("الدروس", []):
+            if lesson.get("اسم_الدرس") == lesson_name:
+                return [{
+                    "اسم_الوحدة": unit.get("اسم_الوحدة"),
+                    "الدروس": [lesson]
+                }]
+    return []
+
+
+async def enhanced_search_with_context(book_data, query, chat_history, top_k=5):
+    """بحث ذكي مع دعم السياق من المحادثة (المرسلة من الجوال)"""
+    last_ai_response = ""
+    if chat_history:
+        for msg in reversed(chat_history):
+            if msg.get('role') == 'assistant':
+                last_ai_response = msg.get('content', '')
+                break
+    
+    texts, metas = extract_all_texts_and_metas_physics(book_data)
+    if not texts: return [], []
+    
+    combined_query = query
+    if len(query.split()) < 5 and last_ai_response:
+        combined_query = last_ai_response[:150] + " " + query
+    
+    sem_results, idxs = await faiss_search(texts, combined_query, top_k=top_k)
+    keywords = extract_keywords(query)
+    direct_hits = []
+    direct_idxs = []
+    
+    for i, txt in enumerate(texts):
+        if any(k in txt for k in keywords):
+            direct_hits.append(txt)
+            direct_idxs.append(i)
+    
+    final_texts = []
+    final_idxs = []
+    
+    for t, i in zip(direct_hits, direct_idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    
+    for t, i in zip(sem_results, idxs):
+        if i not in final_idxs:
+            final_texts.append(t)
+            final_idxs.append(i)
+    
+    return final_texts[:top_k], final_idxs[:top_k]
+
+
+# =====================
+# الدوال الرئيسية
+# =====================
+
+async def handle_physics_explain(req: AskRequest, openai_client):
+    """وضع الشرح - الفيزياء"""
+    
+    book = get_book_data()
+    if not book: return {"answer": "❌ المادة غير متوفرة"}
+    
+    context_text = ""
+    refs = []
+
+    if req.lesson_name:
+        target_data = extract_lesson_only(book.get("الوحدات", []), req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        lesson_parts = target_data[0]['الدروس'][0].get('الأجزاء', [])
+        for part in lesson_parts:
+            context_text += f"[{part.get('اسم_الجزء', '')}]\n"
+            content = part.get('المحتوى', [])
+            if isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict):
+                        # ✅ التعديل الذكي: يقرأ كل المفاتيح (صيغة، استخدام، ملاحظة، مصطلح...)
+                        dict_values = [f"{k}: {v}" for k, v in item.items()]
+                        context_text += f"- {' | '.join(dict_values)}\n"
+                    else:
+                        context_text += f"- {item}\n"
+            else:
+                context_text += f"{content}\n"
+            context_text += "\n"
+            
+        refs.append(req.lesson_name)
+        
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in book.get("الوحدات", []) if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = book.get("الوحدات", [])
+            
+        results, idxs = await enhanced_search_physics(target_data, req.content, top_k=5)
+        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        
+        _, metas = extract_all_texts_and_metas_physics(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref = f"{metas[i].get('lesson', 'درس')}"
+                    if ref not in refs: refs.append(ref)
+
+    system_prompt = system_prompt_strict_explain(SUBJECT)
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        if req.chat_history:
+            valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
+            messages_for_ai.extend(valid_history[-6:])
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"""المعلومات المستخرجة من الكتاب:
+{context_text}
+
+رسالة الطالب: {req.content}
+
+تعليمات صارمة للرد:
+1. ⚠️ تنبيه هام جداً: إذا كانت رسالة الطالب هي "اشرح لي الدرس" أو "اشرح" أو أي طلب شرح عام، **يجب عليك فوراً** البدء في شرح (المعلومات المستخرجة من الكتاب) بالتفصيل، ويُمنع منعاً باتاً الرد برسالة ترحيب!
+2. إذا كانت رسالته سؤالاً أو طلباً لشرح فيزيائي، يجب أن تعتمد بنسبة 100% على (المعلومات المستخرجة من الكتاب) فقط.
+3. إذا طلب شرحاً فيزيائياً وكانت (المعلومات المستخرجة) تقول 'لا توجد نصوص مطابقة'، اعتذر بلطف وأخبره أن هذا الموضوع غير موجود في المنهج الحالي.
+"""
+        })
+        
+        response = await asyncio.wait_for(
+            openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.2
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+        
+        raw_answer = response.choices[0].message.content
+        clean_answer = format_arabic_math(raw_answer)
+        
+        # 1. مسح أي كود LaTeX يبدأ بـ \ (مثل \bigl, \bigr, \quad, \frac)
+        clean_answer = re.sub(r'\\[a-zA-Z]+', '', clean_answer)
+        
+        # 2. استبدال الشرطة السفلية بمسافة عشان تطلع (م حث) بدل (م_حث)
+        clean_answer = clean_answer.replace('_', ' ')
+        
+        answer = clean_answer
+    
+    except asyncio.TimeoutError:
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+    
+    except Exception as e:
+        answer = f"خطأ في التوليد: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+async def handle_physics_summary(req: AskRequest, openai_client):
+    """وضع التلخيص - الفيزياء"""
+    book = get_book_data()
+    if not book: return {"answer": "❌ المادة غير متوفرة"}
+    
+    context_text = ""
+    refs = []
+
+    if req.lesson_name:
+        target_data = extract_lesson_only(book.get("الوحدات", []), req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        lesson_parts = target_data[0]['الدروس'][0].get('الأجزاء', [])
+        for part in lesson_parts:
+            context_text += f"[{part.get('اسم_الجزء', '')}]\n"
+            content = part.get('المحتوى', [])
+            if isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict):
+                        # ✅ التعديل الذكي
+                        dict_values = [f"{k}: {v}" for k, v in item.items()]
+                        context_text += f"- {' | '.join(dict_values)}\n"
+                    else:
+                        context_text += f"- {item}\n"
+            else:
+                context_text += f"{content}\n"
+            context_text += "\n"
+            
+        refs.append(req.lesson_name)
+        
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in book.get("الوحدات", []) if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = book.get("الوحدات", [])
+            
+        results, idxs = await enhanced_search_physics(target_data, req.content, top_k=QA_TOP_K)
+        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        
+        _, metas = extract_all_texts_and_metas_physics(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref = f"{metas[i].get('lesson', 'درس')}"
+                    if ref not in refs: refs.append(ref)
+    
+    system_prompt = system_prompt_strict_summary(SUBJECT, req.summary_level)
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        if req.chat_history:
+            valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
+            messages_for_ai.extend(valid_history[-6:])
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"""المعلومات المستخرجة من الكتاب:
+{context_text}
+
+رسالة/موضوع الطالب: {req.content}
+
+التعليمات:
+1. إذا كانت رسالة الطالب ترحيب أو شكر، رد بلطف وتجاهل التلخيص.
+2. إذا طلب التلخيص، استخدم فقط المعلومات المستخرجة أعلاه لعمل التلخيص. إذا لم تكن هناك معلومات، أخبره أن الموضوع غير متوفر في المنهج.
+"""
+        })
+        
+        response = await asyncio.wait_for(
+            openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.15
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+        
+        raw_answer = response.choices[0].message.content
+        clean_answer = format_arabic_math(raw_answer)
+        
+        # 1. مسح أي كود LaTeX يبدأ بـ \ (مثل \bigl, \bigr, \quad, \frac)
+        clean_answer = re.sub(r'\\[a-zA-Z]+', '', clean_answer)
+        
+        # 2. استبدال الشرطة السفلية بمسافة عشان تطلع (م حث) بدل (م_حث)
+        clean_answer = clean_answer.replace('_', ' ')
+        
+        answer = clean_answer
+    except asyncio.TimeoutError:    
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."    
+    except Exception as e:
+        answer = f"خطأ: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+
+async def handle_physics_question(req: AskRequest, openai_client):
+    """وضع السؤال - الفيزياء"""
+    book = get_book_data()
+    if not book: return {"answer": "❌ المادة غير متوفرة"}
+    
+    chat_history_from_app = req.chat_history or []
+    valid_history = [msg for msg in chat_history_from_app if msg.get('role') in ['user', 'assistant']]
+    recent_history = valid_history[-6:] if valid_history else []
+
+    context_text = ""
+    refs = []
+
+    if req.lesson_name:
+        target_data = extract_lesson_only(book.get("الوحدات", []), req.lesson_name)
+        if not target_data: return {"answer": f"❌ لم أجد درس '{req.lesson_name}'"}
+        
+        lesson_parts = target_data[0]['الدروس'][0].get('الأجزاء', [])
+        for part in lesson_parts:
+            context_text += f"[{part.get('اسم_الجزء', '')}]\n"
+            content = part.get('المحتوى', [])
+            if isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict):
+                        # ✅ التعديل الذكي
+                        dict_values = [f"{k}: {v}" for k, v in item.items()]
+                        context_text += f"- {' | '.join(dict_values)}\n"
+                    else:
+                        context_text += f"- {item}\n"
+            else:
+                context_text += f"{content}\n"
+            context_text += "\n"
+            
+        refs.append(req.lesson_name)
+        
+    else:
+        if req.unit_name and req.unit_name != "الكل":
+            target_data = [u for u in book.get("الوحدات", []) if u.get("اسم_الوحدة") == req.unit_name]
+            if not target_data: return {"answer": f"❌ لم أجد الوحدة '{req.unit_name}'"}
+        else:
+            target_data = book.get("الوحدات", [])
+            
+        results, idxs = await enhanced_search_with_context(
+            target_data, 
+            req.content, 
+            recent_history, 
+            top_k=5
+        )
+        context_text = "\n".join(results) if results else "لا توجد إجابة في الكتاب لهذا السؤال."
+        
+        _, metas = extract_all_texts_and_metas_physics(target_data)
+        if results:
+            for i in idxs:
+                if i < len(metas):
+                    ref_str = f"{metas[i].get('lesson', 'درس')}"
+                    if ref_str not in refs: refs.append(ref_str)
+    
+    system_prompt = system_prompt_strict_qa(SUBJECT)
+    
+    try:
+        messages_for_ai = [{"role": "system", "content": system_prompt}]
+        messages_for_ai.extend(recent_history)
+        
+        messages_for_ai.append({
+            "role": "user",
+            "content": f"""المعلومات المستخرجة من المنهج:
+{context_text}
+
+سؤال/رسالة الطالب: {req.content}
+
+التعليمات:
+1. إذا كان الطالب يقول "مرحبا"، "كيفك"، "شكراً"، رد بلطف وبشكل طبيعي كمعلم.
+2. إذا كان سؤالاً في المادة، استخدم المعلومات المستخرجة للإجابة. إذا لم تكن الإجابة موجودة في المعلومات المستخرجة، لا تخمن! قل: "عذراً، هذه المعلومة غير متوفرة في المنهج المرفق".
+"""
+        })
+        
+        response = await asyncio.wait_for(
+            openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages_for_ai, max_tokens=4000,
+            temperature=0.1
+        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+        
+        raw_answer = response.choices[0].message.content
+        clean_answer = format_arabic_math(raw_answer)
+        
+        # 1. مسح أي كود LaTeX يبدأ بـ \ (مثل \bigl, \bigr, \quad, \frac)
+        clean_answer = re.sub(r'\\[a-zA-Z]+', '', clean_answer)
+        
+        # 2. استبدال الشرطة السفلية بمسافة عشان تطلع (م حث) بدل (م_حث)
+        clean_answer = clean_answer.replace('_', ' ')
+        
+        answer = clean_answer
+    except asyncio.TimeoutError:    
+        # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
+        answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
+        
+    except Exception as e:
+        answer = f"حدث خطأ: {str(e)}"
+    
+    return {"answer": answer, "references": refs, "session_active": False}
+
+async def handle_physics_exams(req: AskRequest, sessions: Dict, openai_client):
+    """وضع الوزاري - الفيزياء"""
+    
+    _physics_session_timestamps[req.user_id] = time.time()
+    cleanup_subject_sessions(sessions, _physics_session_timestamps)
+    user_id = req.user_id
+    content = req.content.strip()
+    
+    if content in ["وقف", "خلاص", "شكرا", "إلغاء"]:
+        sessions.pop(user_id, None)
+        return {"answer": "✅ تم إنهاء جلسة الأسئلة", "session_active": False}
+    
+    if content in ["كمل", "متابعة", "استمر"]:
+        sess = sessions.get(user_id)
+        if sess and sess.get("mode") == "وزاري" and sess.get("pending_exams"):
+            pending = sess["pending_exams"]
+            batch = pending[:EXAMS_BATCH_SIZE]
+            sess["pending_exams"] = pending[EXAMS_BATCH_SIZE:]
+            
+            text = ""
+            for i, q in enumerate(batch, 1):
+                text += f"{i}. {q.get('النص', '')} (سنة {q.get('سنة', '')})\n"
+            
+            if sess["pending_exams"]:
+                text += f"\n💡 المتبقي: {len(sess['pending_exams'])} سؤال."
+            else:
+                text += "\n✅ انتهت جميع الأسئلة."
+                sessions.pop(user_id, None)
+            
+            return {"answer": text, "session_active": bool(sess.get("pending_exams"))}
+    
+    year_token, rest = parse_exams_input(content)
+    if not year_token or not rest: return {"answer": "اكتب الصيغة هكذا:\nمثال: 2019,الموضوع"}
+    
+    years = [year_token] if year_token != "الكل" else ["الكل"]
+    all_questions = collect_exam_questions_by_years(SUBJECT, years)
+    if not all_questions: return {"answer": "لا توجد أسئلة لهذه السنة."}
+    
+    keyword = ",".join(rest).strip()
+    matched = filter_and_rank_exams(all_questions, keyword)
+    if not matched: return {"answer": f"لم أجد أسئلة تحتوي على '{keyword}'."}
+    
+    total = len(matched)
+    first_batch = matched[:EXAMS_BATCH_SIZE]
+    remaining = matched[EXAMS_BATCH_SIZE:]
+    
+    if remaining:
+        sessions[user_id] = {"pending_exams": remaining, "mode": "وزاري", "subject": SUBJECT}
+    
+    text = f"✅ وجدت {total} سؤالاً يحتوي على '{keyword}':\n\n"
+    for i, q in enumerate(first_batch, 1):
+        text += f"{i}. {q.get('النص', '')} (سنة {q.get('سنة', '')})\n"
+    
+    if remaining: text += f"\n💡 تبقى {len(remaining)} سؤالاً. اكتب 'كمل' للمتابعة."
+    
+    return {"answer": text, "session_active": bool(remaining)}
+
+
+async def handle_physics_request(req: AskRequest, openai_client):
+    """معالج الطلب الرئيسي للفيزياء"""
+    mode = req.mode.strip()
+    if mode == "شرح": return await handle_physics_explain(req, openai_client)
+    elif mode == "تلخيص": return await handle_physics_summary(req, openai_client)
+    elif mode == "سؤال": return await handle_physics_question(req, openai_client)
+    elif mode == "وزاري": return await handle_physics_exams(req, sessions_physics, openai_client)
+    
+    return {"answer": "وضع غير معروف"}
+
+
+# --- FILE: __init__.py ---
+
+
+

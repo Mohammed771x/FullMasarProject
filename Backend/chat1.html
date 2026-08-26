@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Student AI Tutor</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.chat-box {
+    width: 420px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.15);
+    overflow: hidden;
+}
+
+.header {
+    background: #3f51b5;
+    color: white;
+    padding: 12px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.messages {
+    padding: 10px;
+    height: 260px;
+    overflow-y: auto;
+    font-size: 14px;
+}
+
+.user {
+    color: #1a73e8;
+    margin-bottom: 6px;
+}
+
+.ai {
+    color: #222;
+    margin-bottom: 10px;
+}
+
+.error {
+    color: red;
+}
+
+.input-box {
+    display: flex;
+    border-top: 1px solid #ddd;
+}
+
+input {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    outline: none;
+}
+
+button {
+    padding: 10px 16px;
+    background: #3f51b5;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="chat-box">
+    <div class="header">Student AI Tutor</div>
+
+    <div id="messages" class="messages"></div>
+
+    <div class="input-box">
+        <input id="question" placeholder="Ask your question..." />
+        <button onclick="send()">Send</button>
+    </div>
+</div>
+
+<script>
+async function send() {
+    const q = document.getElementById("question").value.trim();
+    if (!q) return;
+
+    const messages = document.getElementById("messages");
+
+    messages.innerHTML += `<div class="user"><b>You:</b> ${q}</div>`;
+    messages.innerHTML += `<div class="ai">Thinking...</div>`;
+    messages.scrollTop = messages.scrollHeight;
+
+    document.getElementById("question").value = "";
+
+    try {
+        const res = await fetch("http://127.0.0.1:8000/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                page: 1,
+                question: q
+            })
+        });
+
+        const data = await res.json();
+
+        // إزالة "Thinking..."
+        messages.lastElementChild.remove();
+
+        if (data.answer) {
+            messages.innerHTML += `<div class="ai"><b>AI:</b> ${data.answer}</div>`;
+        } else {
+            messages.innerHTML += `<div class="error">Error: ${JSON.stringify(data)}</div>`;
+        }
+
+    } catch (e) {
+        messages.lastElementChild.remove();
+        messages.innerHTML += `<div class="error">Error connecting to server</div>`;
+    }
+
+    messages.scrollTop = messages.scrollHeight;
+}
+</script>
+
+</body>
+</html>

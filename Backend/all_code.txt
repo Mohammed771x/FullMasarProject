@@ -1,0 +1,737 @@
+# --- FILE: api.py ---
+# main.py
+"""
+الملف الرئيسي - نقطة الدخول الأساسية
+استدعاءات فقط - بدون logic
+"""
+
+from fastapi import FastAPI, Response, Request, BackgroundTasks
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+import json
+import os
+from typing import Dict, Any
+import asyncio
+import concurrent.futures
+
+# =====================
+# الاستيرادات
+# =====================
+
+# من الإعدادات والنماذج
+from config import GROQ_API_KEY, BASE_SUBJECTS_DIR, SUBJECT_NAMES, DEEPSEEK_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY
+from models import AskRequest, VerificationRequest
+from auth import load_codes, save_codes, verify_code
+
+# من المواد
+from subjects.biology import handle_biology_request
+from subjects.chemistry import handle_chemistry_request
+from subjects.physics import handle_physics_request
+from subjects.math import handle_math_request
+from subjects.chemistry import handle_chemistry_request
+from subjects.arabic import handle_arabic_request
+from subjects.english import handle_english_request
+# من common (للـ helper functions)
+from subjects.common import (
+    subject_book_path, load_json_safe,
+    get_math_exam_years, get_math_exam_lessons
+)
+from subjects.math import handle_math_request, cleanup_old_sessions
+
+# من المكتبات الخارجية
+from openai import AsyncOpenAI  # التعديل هنا مهم جداً
+from groq import AsyncGroq      # التعديل هنا مهم جداً
+from dotenv import load_dotenv
+
+# =====================
+# تحميل الإعدادات
+# =====================
+load_dotenv(override=True)
+
+
+
+
+
+
+# =====================
+# زيادة مسارات المعالجة (Threads) لمنع التجمد
+# =====================
+executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=8,
+    thread_name_prefix="worker"
+)
+loop = asyncio.get_event_loop()
+loop.set_default_executor(executor)
+
+
+
+# =====================
+# إنشاء التطبيق
+# =====================
+app = FastAPI(title="YE - Pro Student Tutor v2")
+
+@app.api_route("/", methods=["GET", "HEAD"])
+async def root():
+    return {"status": "ok", "message": "Masar Server is alive and running!"}
+
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# =====================
+# إعداد Clients
+# =====================
+
+
+groq_client = AsyncGroq(api_key=GROQ_API_KEY)
+
+# 👇 أضف عميل ديب سيك هنا
+deepseek_client = AsyncOpenAI(
+    base_url="https://api.deepseek.com",
+    api_key=DEEPSEEK_API_KEY,
+    timeout=60.0
+)
+
+
+gemini_client = AsyncOpenAI(
+    api_key=GEMINI_API_KEY,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    timeout=60.0
+)
+
+openai_client = AsyncOpenAI(
+    api_key=OPENAI_API_KEY,
+    timeout=60.0
+)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    هذا الدرع يضمن أنه مهما حدث خطأ برمجي أو انهيار في أي ملف،
+    السيرفر لن يرسل HTML للتطبيق، بل سيرسل JSON نظيف ومحترم.
+    """
+    # هنا يمكنك إضافة مكتبة Sentry لاحقاً لتسجيل الأخطاء لك كمدير
+    print(f"🔥 FATAL ERROR: {exc}") 
+    return JSONResponse(
+        status_code=500,
+        content={
+            "answer": "⚠️ عذراً، حدث ضغط مفاجئ أو خطأ في خوادم الذكاء الاصطناعي. جاري العمل على حل المشكلة، حاول مجدداً بعد قليل.",
+            "session_active": False
+        }
+    )
+    
+    
+# =====================
+# API Endpoints - التحقق والأمان
+# =====================
+
+@app.post("/verify-access")
+async def verify_access(req: VerificationRequest):
+    """
+    التحقق من صحة الكود والجهاز
+    """
+    result = verify_code(req.code, req.device_id)
+    
+    if result["status"] == "error":
+        return Response(
+            content=json.dumps(result),
+            status_code=401,
+            media_type="application/json"
+        )
+    
+    return result
+
+# =====================
+# API Endpoints - جلب البيانات
+# =====================
+
+@app.get("/subjects/units")
+async def get_subject_units(subject: str):
+    """
+    جلب الوحدات بشكل ذكي وموحد يدعم جميع صيغ ملفات JSON
+    بدون أخطاء AttributeError
+    """
+    units = []  
+    
+    # 📐 الرياضيات (حالة خاصة لأن وحداتها ثابتة)
+    if subject == "رياضيات":
+        return ["تفاضل", "تكامل", "جبر", "هندسة", "احتمالات"]
+
+    # تحميل الكتاب لباقي المواد
+    book = load_json_safe(subject_book_path(subject))
+    if not book:
+        return units
+
+    # ==========================================
+    # 🧠 المنطق الذكي لاستخراج الوحدات لجميع المواد
+    # ==========================================
+    
+    # 1. تحديد مكان قائمة الوحدات بناءً على صيغة الملف
+    units_list = []
+    if isinstance(book, list):
+        # صيغة الأحياء (قائمة مباشرة)
+        units_list = book
+    elif isinstance(book, dict):
+        # صيغة الإنجليزي والفيزياء والكيمياء (قاموس يحتوي على مفتاح "الوحدات")
+        units_list = book.get("الوحدات", [])
+
+    # 2. المرور على الوحدات واستخراج الأسماء بأمان تام
+    if isinstance(units_list, list):
+        for unit in units_list:
+            # ✅ الفلتر الأهم: التأكد أن العنصر قاموس (dict) وليس نصاً (str)
+            # هذا السطر هو الذي يمنع ظهور خطأ AttributeError تماماً
+            if isinstance(unit, dict):
+                unit_name = unit.get("اسم_الوحدة", "").strip()
+                if unit_name and unit_name not in units:
+                    units.append(unit_name)
+
+    return units
+
+@app.get("/subjects/lessons")
+async def get_subject_lessons(subject: str, unit: str):
+    """
+    🎯 جلب قائمة الدروس من وحدة معينة لجميع المواد
+    متوافقة تماماً مع كافة هياكل JSON
+    """
+    
+    # 1. استثناء الرياضيات (لأن لها Endpoint خاص بها /math/lessons)
+    if subject == "رياضيات":
+        return []
+
+    book = load_json_safe(subject_book_path(subject))
+    if not book:
+        return []
+    
+    # 2. توحيد الهيكلة (استخراج قائمة الوحدات بأمان)
+    units_list = []
+    if isinstance(book, list):
+        units_list = book
+    elif isinstance(book, dict):
+        units_list = book.get("الوحدات", [])
+    
+    # تنظيف اسم الوحدة المطلوب البحث عنها من المسافات الزائدة
+    clean_target_unit = unit.strip()
+
+    # 3. البحث عن الوحدة المطلوبة واستخراج الدروس
+    for u in units_list:
+        if isinstance(u, dict):
+            # تنظيف اسم الوحدة في الجيسون قبل المقارنة
+            current_unit_name = u.get("اسم_الوحدة", "").strip()
+            
+            if current_unit_name == clean_target_unit:
+                lessons = []
+                # إذا كانت المادة ليس لها دروس (مثل الأحياء)، ستتجاوز هذا اللوب بأمان
+                for lesson in u.get("الدروس", []):
+                    if isinstance(lesson, dict):
+                        lesson_name = lesson.get("اسم_الدرس", "").strip()
+                        if lesson_name and lesson_name not in lessons:
+                            lessons.append(lesson_name)
+                return lessons
+                
+    return []
+
+@app.get("/exams/years")
+async def get_exam_years(subject: str):
+    """
+    🎯 جلب قائمة السنوات الوزارية المتاحة
+    
+    مثال: /exams/years?subject=احياء
+    """
+    
+    exams_dir = os.path.join(BASE_SUBJECTS_DIR, subject, "exams")
+    
+    if not os.path.isdir(exams_dir):
+        return []
+    
+    years = []
+    for f in os.listdir(exams_dir):
+        if f.lower().endswith(".json"):
+            year = os.path.splitext(f)[0].strip()
+            if year and year not in years:
+                years.append(year)
+    
+    years.sort(reverse=True)
+    return years
+
+
+# =====================
+# API Endpoints - الرياضيات
+# =====================
+
+@app.get("/math/lessons")
+async def get_math_lessons(branch: str):
+    """
+    🎯 جلب قائمة الدروس من فرع رياضيات معين
+    
+    مثال: /math/lessons?branch=تفاضل
+    """
+    
+    math_root = os.path.join(BASE_SUBJECTS_DIR, "رياضيات")
+    branch_path = os.path.join(math_root, branch)
+    
+    if not os.path.isdir(branch_path):
+        return []
+    
+    lessons = []
+    for fname in os.listdir(branch_path):
+        if not fname.endswith(".json"):
+            continue
+        
+        lesson_name = os.path.splitext(fname)[0]
+        lessons.append(lesson_name)
+    
+    return lessons
+
+
+@app.get("/math/exams/years")
+async def get_math_exam_years_api(branch: str):
+    """
+    🎯 جلب السنوات الوزارية للرياضيات
+    
+    مثال: /math/exams/years?branch=تفاضل
+    """
+    return get_math_exam_years(branch)
+
+
+@app.get("/math/exams/lessons")
+async def get_math_exam_lessons_api(branch: str, year: str):
+    """
+    🎯 جلب الدروس الوزارية للرياضيات
+    
+    مثال: /math/exams/lessons?branch=تفاضل&year=2023
+    """
+    return get_math_exam_lessons(branch, year)
+
+
+# =====================
+# API Endpoint الرئيسي - المعالجة
+# =====================
+
+@app.post("/ask")
+async def ask(req: AskRequest, background_tasks: BackgroundTasks):
+    background_tasks.add_task(cleanup_old_sessions)
+    """
+    🔥 الـ Endpoint الرئيسي
+    
+    استقبال طلب المستخدم ومعالجته حسب المادة والوضع
+    """
+    
+    # =====================
+    # 1️⃣ التحقق من الأكواد والأمان
+    # =====================
+    codes_data = load_codes()
+    active_codes = codes_data.get("active_codes", {})
+    
+    if req.code not in active_codes:
+        return Response(
+            content=json.dumps({"answer": "⛔ كود التفعيل غير صالح."}),
+            status_code=401,
+            media_type="application/json"
+        )
+    
+    # الجديد - يستخدم verify_code الموجود في auth.py مباشرة
+    device_check = verify_code(req.code, req.device_id or "")
+
+    if device_check["status"] == "error":
+      return Response(
+        content=json.dumps({"answer": device_check["message"]}),
+        status_code=401,
+        media_type="application/json"
+    )
+    
+    # =====================
+    # 2️⃣ معالجة الطلب حسب المادة
+    # =====================
+    subject = req.subject.strip()
+    
+    # 🧬 الأحياء
+    if subject == "احياء":
+        return await handle_biology_request(req, gemini_client)
+    
+    # 🔬 الفيزياء
+    elif subject == "فيزياء":
+        return await handle_physics_request(req, openai_client)
+    
+    # 🇬🇧 الإنجليزي
+    elif subject == "انجليزي":
+        return await handle_english_request(req, gemini_client)
+    
+    # ⚛️ الكيمياء
+    elif subject == "كيمياء":
+        return await handle_chemistry_request(req, openai_client)
+    # 📚 العربي
+    elif subject == "عربي":
+        return await handle_arabic_request(req, gemini_client)
+    
+    # 📐 الرياضيات
+    elif subject == "رياضيات":
+        return await handle_math_request(req, deepseek_client, groq_client)
+    
+    # ❌ مادة غير معروفة
+    else:
+        return Response(
+            content=json.dumps({"answer": "❌ مادة غير معروفة"}),
+            status_code=400,
+            media_type="application/json"
+        )
+
+
+# =====================
+# تشغيل التطبيق
+# =====================
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+# --- FILE: auth.py ---
+import os
+import json
+import tempfile
+import threading
+from pathlib import Path
+
+ORIGINAL_CODES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "codes.json")
+WRITABLE_CODES_FILE = "/tmp/active_codes.json"
+
+_codes_lock = threading.Lock()
+
+def load_codes():
+    target_file = WRITABLE_CODES_FILE if os.path.exists(WRITABLE_CODES_FILE) else ORIGINAL_CODES_FILE
+    if not os.path.exists(target_file):
+        return {"active_codes": {}}
+    try:
+        with open(target_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        print("⚠️ ملف الأكواد قيد الكتابة مؤقتاً")
+        return {"active_codes": {}}
+    except Exception as e:
+        print(f"Error loading codes: {e}")
+        return {"active_codes": {}}
+
+def save_codes(data):
+    temp_path = ""
+    try:
+        fd, temp_path = tempfile.mkstemp(dir="/tmp")
+        with os.fdopen(fd, 'w', encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+        os.replace(temp_path, WRITABLE_CODES_FILE)
+    except Exception as e:
+        print(f"Error saving codes: {e}")
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
+
+def verify_code(code: str, device_id: str):
+    with _codes_lock:  # ← lock واحد يغطي كل العملية
+        data = load_codes()
+        codes_db = data.get("active_codes", {})
+        input_code = code.strip()
+
+        if input_code not in codes_db:
+            return {"status": "error", "message": "❌ كود التفعيل غير صحيح."}
+
+        code_info = codes_db[input_code]
+        code_type = code_info.get("type", "single")
+        saved_device = code_info.get("device_id")
+
+        if code_type == "master":
+            return {"status": "success", "message": "✅ مرحباً بك (دخول مشرف)."}
+
+        if code_type == "single":
+            if saved_device is None:
+                code_info["device_id"] = device_id
+                codes_db[input_code] = code_info
+                data["active_codes"] = codes_db
+                save_codes(data)
+                return {"status": "success", "message": "✅ تم تفعيل الكود على هذا الجهاز."}
+            elif saved_device == device_id:
+                return {"status": "success", "message": "✅ مرحباً بك مجدداً."}
+            else:
+                return {"status": "error", "message": "⛔ هذا الكود مستخدم بالفعل على جهاز آخر!"}
+
+        return {"status": "error", "message": "حدث خطأ غير متوقع."}
+
+
+# --- FILE: config.py ---
+# config.py
+"""
+إعدادات عامة للتطبيق
+"""
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+# =====================
+# API Keys
+# =====================
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY") # 👈 السطر الجديد
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") # 👈 السطر الجديد
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") # 👈 السطر الجديد
+
+# تأكد إنك تضيف شرط التحقق عشان ما يضرب عليك الكود لو نسيته
+if not DEEPSEEK_API_KEY:
+    print("⚠️ تحذير: مفتاح DeepSeek غير موجود في ملف .env")
+
+
+
+# =====================
+# المسارات
+# =====================
+BASE_SUBJECTS_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 
+    "data", "subjects"
+)
+
+# =====================
+# حدود وسياسات
+# =====================
+MAX_PAGES_EXPLAIN_SUMMARY = 3      # أقصى صفحات للشرح/التلخيص
+MAX_PAGES_EXAMS = 5                 # أقصى صفحات للوزاري
+EXAMS_BATCH_SIZE = 10              # عدد الأسئلة في كل دفعة
+UNIT_BATCH_PAGES = 3               # صفحات في كل دفعة للوحدة
+QA_TOP_K = 3                       # عدد نتائج البحث
+
+# =====================
+# ثوابت المواد والفروع
+# =====================
+SUBJECT_NAMES = ["احياء", "فيزياء", "كيمياء", "رياضيات"]
+MATH_BRANCHES = ["تفاضل", "تكامل", "جبر", "هندسة", "احتمالات"]
+
+
+# --- FILE: models.py ---
+# models.py
+"""
+Pydantic Models للتحقق من البيانات
+"""
+
+from pydantic import BaseModel
+from typing import List, Optional, Dict
+
+class AskRequest(BaseModel):
+    """نموذج طلب المستخدم الرئيسي"""
+    user_id: str
+    code: str
+    subject: str
+    device_id: Optional[str] = None
+    logic_type: int = 1
+    mode: str                           # شرح، تلخيص، سؤال، وزاري
+    input_type: str                     # صفحة، وحدة، برومت (للأحياء فقط)
+    content: str
+    summary_level: int = 3              # 1-5 (للتلخيص)
+    unit_name: Optional[str] = None     # الوحدة
+    lesson_name: Optional[str] = None   # الدرس (الرياضيات)
+    chat_history: Optional[List[Dict[str, str]]] = None
+
+class VerificationRequest(BaseModel):
+    """نموذج التحقق من الكود"""
+    code: str
+    device_id: str
+
+class ChatMessage(BaseModel):
+    """رسالة في الشات"""
+    role: str
+    text: str
+    refs: List[str] = []
+
+class ChatConversation(BaseModel):
+    """محادثة كاملة"""
+    id: str
+    title: str
+    subject: str
+    mode: str
+    messages: List[ChatMessage]
+
+
+# --- FILE: models_config.py ---
+# ==================================================
+# 📦 Models Configuration - إدارة الموديلات والتحقق من التوافق
+# ==================================================
+
+AVAILABLE_MODELS = {
+    "groq": {
+        "default": "llama-groq",
+        "models": [
+            {
+                "id": "llama-groq",
+                "name": "لاما 3.1 - سريع وخفيف",
+                "api": "groq",
+                "model_name": "llama-3.1-8b-instant",
+                "description": "موديل سريع من Groq",
+                "speed": "سريع جداً",
+                "quality": "جيد",
+                "cost": "مجاني",
+                "compatible_subjects": ["رياضيات", "فيزياء"],
+                "incompatible_subjects": ["احياء"]
+            }
+        ]
+    },
+    "openrouter": {
+        "default": "nemotron-nano",
+        "models": [
+            {
+                "id": "nemotron-nano",
+                "name": "نيمترون نانو",
+                "api": "openrouter",
+                "model_name": "nvidia/nemotron-3-nano-30b-a3b:free",
+                "description": "موديل متوازن - سريع وجودة عالية",
+                "speed": "سريع",
+                "quality": "ممتاز",
+                "cost": "مجاني",
+                "compatible_subjects": ["احياء", "كيمياء", "فيزياء", "رياضيات"],
+                "incompatible_subjects": []
+            },
+            {
+                "id": "deepseek-rt2",
+                "name": "ديب سيك R1 T2",
+                "api": "openrouter",
+                "model_name": "tngtech/deepseek-r1t2-chimera:free",
+                "description": "موديل متقدم للحسابات المعقدة",
+                "speed": "متوسط",
+                "quality": "ممتاز جداً",
+                "cost": "مجاني",
+                "compatible_subjects": ["رياضيات", "فيزياء", "كيمياء"],
+                "incompatible_subjects": []
+            }
+        ]
+    }
+}
+
+def get_model_details(model_id: str) -> dict:
+    """
+    جلب تفاصيل موديل معين
+    """
+    for api_type in AVAILABLE_MODELS.values():
+        for model in api_type.get("models", []):
+            if model["id"] == model_id:
+                return model
+    # إرجاع الموديل الافتراضي إذا لم يُوجد
+    return AVAILABLE_MODELS["openrouter"]["models"][0]
+
+def get_all_models_list() -> list:
+    """
+    جلب قائمة بجميع الموديلات المتاحة
+    """
+    all_models = []
+    for api_type in AVAILABLE_MODELS.values():
+        all_models.extend(api_type.get("models", []))
+    return all_models
+
+def get_api_for_model(model_id: str) -> str:
+    """
+    جلب API نوع الموديل
+    """
+    model = get_model_details(model_id)
+    return model.get("api", "openrouter")
+
+def is_model_compatible_with_subject(model_id: str, subject: str) -> bool:
+    """
+    ✅ التحقق من توافق الموديل مع المادة
+    
+    مثال:
+    - لاما يعمل مع الرياضيات فقط
+    - نيمترون يعمل مع جميع المواد
+    """
+    model = get_model_details(model_id)
+    
+    # إذا كانت المادة في قائمة المتوافقة
+    if subject in model.get("compatible_subjects", []):
+        return True
+    
+    # إذا كانت المادة في قائمة غير المتوافقة
+    if subject in model.get("incompatible_subjects", []):
+        return False
+    
+    # افتراضياً: إذا لم تكن محددة، افترض أنها متوافقة
+    return True
+
+def get_compatible_models_for_subject(subject: str) -> list:
+    """
+    🔍 جلب جميع الموديلات المتوافقة مع مادة معينة
+    """
+    compatible = []
+    for model in get_all_models_list():
+        if is_model_compatible_with_subject(model["id"], subject):
+            compatible.append(model)
+    return compatible
+
+def get_safe_model_for_subject(model_id: str, subject: str) -> str:
+    """
+    🛡️ جلب موديل آمن بديل إذا كان الموديل المختار غير متوافق
+    
+    المنطق:
+    - إذا كان الموديل متوافق → استخدمه
+    - إذا لم يكن متوافق → أرجع أول موديل متوافق
+    """
+    if is_model_compatible_with_subject(model_id, subject):
+        return model_id
+    
+    # جلب أول موديل متوافق
+    compatible = get_compatible_models_for_subject(subject)
+    if compatible:
+        return compatible[0]["id"]
+    
+    # fallback: استخدم النيمترون (الأكثر أماناً)
+    return "nemotron-nano"
+
+def get_default_model_for_subject(subject: str) -> str:
+    """
+    📌 جلب الموديل الافتراضي الأمثل لكل مادة
+    """
+    defaults = {
+        "رياضيات": "deepseek-rt2",  # للرياضيات: deepseek أفضل
+        "احياء": "nemotron-nano",     # للأحياء: نيمترون (لاما يسبب مشاكل)
+        "فيزياء": "nemotron-nano",
+        "كيمياء": "nemotron-nano",
+    }
+    return defaults.get(subject, "nemotron-nano")
+
+def get_default_model_for_math_mode(mode: str) -> str:
+    """
+    📌 اختيار الموديل المثالي حسب وضع الرياضيات
+    
+    - شرح: استخدم deepseek (أفضل للشرح المفصل)
+    - سؤال: استخدم nemotron (أسرع للإجابات المباشرة)
+    - وزاري: استخدم deepseek (للحسابات المعقدة)
+    """
+    if mode in ["شرح", "وزاري"]:
+        return "deepseek-rt2"
+    elif mode == "سؤال":
+        return "nemotron-nano"
+    else:
+        return "nemotron-nano"
+
+# ====== دالة مساعدة للتحقق السريع ======
+def validate_model_selection(model_id: str, subject: str) -> dict:
+    """
+    ✅ فحص شامل لاختيار الموديل
+    يرجع:
+    - is_valid: هل الموديل متوافق
+    - safe_model: الموديل البديل الآمن إذا لم يكن متوافق
+    - warning: رسالة تحذير إذا لزم الأمر
+    """
+    is_compatible = is_model_compatible_with_subject(model_id, subject)
+    safe_model = get_safe_model_for_subject(model_id, subject)
+    
+    warning = None
+    if not is_compatible:
+        warning = f"⚠️ الموديل '{model_id}' قد لا يعمل بشكل جيد مع مادة '{subject}'. تم التبديل إلى: {safe_model}"
+    
+    return {
+        "is_valid": is_compatible,
+        "safe_model": safe_model,
+        "warning": warning,
+        "original_model": model_id
+    }
+
+

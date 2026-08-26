@@ -1,0 +1,827 @@
+[
+  {
+    "سنة_الاختبار": "عدن 2025",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, then answer any five of the following six questions :",
+        "النص_المرجعي": "Science is the systematic study of the natural world through observation, experimentation and analysis. Scientists investigate natural events to understand how things work. They carry out experiments in many different environments, such as controlled laboratories, field sites and even space. By carefully observing and recording data, scientists develop hypothesis, test them and draw conclusions. This process helps us understand the universe, develop new technologies and solve practical problems.\nThe study of science is necessary because it provides evidence-based knowledge and advancement that benefits society. Different branches of science, such as physics, chemistry, biology and earth science, each is focusing on different aspects of the natural world. Each branch plays a specific role in expanding our overall knowledge and drives progress in its own way.",
+        "الأسئلة": [
+          { "السؤال": "1- What is science ?", "الإجابة_النموذجية": "It's the systematic study of the natural world through observation, experimentation and analysis." },
+          { "السؤال": "2- Where do scientists carry out experiments ?", "الإجابة_النموذجية": "They carry out experiments in many different environments, such as laboratories, field sites and even space." },
+          { "السؤال": "3- How do scientists develop hypothesis, test them and draw conclusions ?", "الإجابة_النموذجية": "By carefully observing and recording data." },
+          { "السؤال": "4- Does science help us understand the universe and develop new technologies ?", "الإجابة_النموذجية": "Yes, it does." },
+          { "السؤال": "5- Which branches of science are mentioned ?", "الإجابة_النموذجية": "physics, chemistry, biology and earth science." },
+          { "السؤال": "6- What do the underlined words refer back to?\na) They ( line 3 ) : .......... \nb) them ( line 5 ) : ..........", "الإجابة_النموذجية": "a) Scientists\nb) hypothesis" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Write a paragraph using the information given in the table.",
+        "النص_المرجعي": "Device name: thermometer | Material: made of glass | Size: small | Usually used: by doctors and nurses | Function: measure temperature",
+        "الأسئلة": [
+          { "السؤال": "اكتب فقرة بناءً على الجدول المعطى:", "الإجابة_النموذجية": "A thermometer is a small device that made of glass. It is usually used by doctors and nurses. It is used to measure temperature." }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Choose the word that best completes each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- You all should prepare .......... for the exam. ( themselves , yourselves , yourself )", "الإجابة_النموذجية": "yourselves" },
+          { "السؤال": "2- I am looking forward .......... getting a new job. ( at , in , to )", "الإجابة_النموذجية": "to" },
+          { "السؤال": "3- This is the teacher .......... teaches us English. ( whose , who , whom )", "الإجابة_النموذجية": "who" },
+          { "السؤال": "4- We decided to go for .......... drive in the countryside. ( the , a , - )", "الإجابة_النموذجية": "a" },
+          { "السؤال": "5- You have to eat .......... sugar. ( many , fewer , less )", "الإجابة_النموذجية": "less" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) What part of speech are the underlined words? ( noun , verb , adverb , etc. ...)",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1- He is a (train) engineer.", "الإجابة_النموذجية": "Adjective" },
+          { "السؤال": "2- You need to (train) hard.", "الإجابة_النموذجية": "Verb" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- My little sister cannot say the alphabet correctly.", "الإجابة_النموذجية": "The alphabet cannot be said correctly." },
+          { "السؤال": "2- The gardener is planting trees in the park now.", "الإجابة_النموذجية": "Trees are being planted in the park now." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the odd word out in the following:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. patient / president / diligent / polite", "الإجابة_النموذجية": "president" },
+          { "السؤال": "2. crush / grate / pears / grind", "الإجابة_النموذجية": "pears" },
+          { "السؤال": "3. dressmaker / firefighter / newsreader / newsflash", "الإجابة_النموذجية": "newsflash" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Put the verbs in brackets in the correct forms .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- We .......... ( organize ) the office, that's why it looks tidy.", "الإجابة_النموذجية": "have been organizing" },
+          { "السؤال": "2- Muna .......... ( meet ) her primary school teacher two days ago.", "الإجابة_النموذجية": "met" },
+          { "السؤال": "3- If the weather .......... ( be ) good, I will go for a walk.", "الإجابة_النموذجية": "is" },
+          { "السؤال": "4- He went to bed after he .......... ( brush ) his teeth.", "الإجابة_النموذجية": "had brushed" },
+          { "السؤال": "5- She looked at him while he .......... ( talk ).", "الإجابة_النموذجية": "was talking" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Match to make compound words .",
+        "النص_المرجعي": "(A): 1- week, 2- time\n(B): a- chair, b- table, c- end, d- land",
+        "الأسئلة": [
+          { "السؤال": "1- week", "الإجابة_النموذجية": "weekend" },
+          { "السؤال": "2- time", "الإجابة_النموذجية": "timetable" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the definitions with words from the box .",
+        "النص_المرجعي": "[ liquid / litmus / volume / gas / lenses / radiation ]",
+        "الأسئلة": [
+          { "السؤال": "1. Specially-shaped pieces of glass that refract light are called .......... .", "الإجابة_النموذجية": "lenses" },
+          { "السؤال": "2. The loudness of sound which is measured in decibel is .......... .", "الإجابة_النموذجية": "volume" },
+          { "السؤال": "3. Rays which are given out from metal uranium are called .......... .", "الإجابة_النموذجية": "radiation" },
+          { "السؤال": "4. A vegetable dye that is used to test acidity of solution is .......... .", "الإجابة_النموذجية": "litmus" },
+          { "السؤال": "5. A state of matter in which particles are far apart and moving fast is called .......... .", "الإجابة_النموذجية": "gas" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Make questions that match the underlined words .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. I have lost my gold ring .", "الإجابة_النموذجية": "What have you lost ?" },
+          { "السؤال": "2. Yes, I can drive a truck .", "الإجابة_النموذجية": "Can you drive a truck ?" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Match the word to its meaning by putting the correct letter in brackets .",
+        "النص_المرجعي": "1. saw / 2. remove / 3. commence / 4. misty / 5. administration\na- unfilled job / b- office work / c- foggy / d- start / e- sighted / f- take out",
+        "الأسئلة": [
+          { "السؤال": "1. saw", "الإجابة_النموذجية": "( e ) a- sighted" },
+          { "السؤال": "2. remove", "الإجابة_النموذجية": "( f ) f- take out" },
+          { "السؤال": "3. commence", "الإجابة_النموذجية": "( d ) d- start" },
+          { "السؤال": "4. misty", "الإجابة_النموذجية": "( c ) c- foggy" },
+          { "السؤال": "5. administration", "الإجابة_النموذجية": "( b ) b- office work" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Use the suitable linking words to complete the sentences below .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- .......... my mother prefers city life, my father doesn't.", "الإجابة_النموذجية": "Whereas" },
+          { "السؤال": "2- .......... he is rich, he is unhappy.", "الإجابة_النموذجية": "Although" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Rewrite the sentences correctly. There is one mistake in each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- The higher we climb, the coldest it gets.", "الإجابة_النموذجية": "The higher we climb, the colder it gets." },
+          { "السؤال": "2- You were happy in the party, clap all the time.", "الإجابة_النموذجية": "You were happy in the party, clapping all the time." },
+          { "السؤال": "3- I wish I have a plane.", "الإجابة_النموذجية": "I wish I had a plane." },
+          { "السؤال": "4- There was a big wooden white table in the room.", "الإجابة_النموذجية": "there was a big white wooden table in the room." },
+          { "السؤال": "5- People felt the ground shaked beneath their feet.", "الإجابة_النموذجية": "People felt the ground shake / shaking beneath their feet." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the words with suffixes.",
+        "النص_المرجعي": "painful / unsure / sunrise / brightness / misplace",
+        "الأسئلة": [
+          { "السؤال": "حدد الكلمات التي تحتوي على بوادئ (Prefixes) من القائمة:", "الإجابة_النموذجية": "unsure / misplace" }
+        ]
+      }
+    ]
+  },
+
+  {
+    "سنة_الاختبار": "عدن 2025",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, and then answer any five of the following six questions :",
+        "النص_المرجعي": "Water is made up of tiny units called molecules. Each molecule consists of 2 hydrogen atoms and one oxygen atom, represented by the formula H₂O. Those molecules are held together by strong bonds.\nWater is special because it can exist in 3 forms; solid ( ice ), liquid and gas (water vapour). This ability to change forms is important for the environment and all living things. Water molecules are also polar, which means that they have a positive end and a negative end. This property helps water dissolve many substances including salts, sugars, acids, bases and gases, making it essential for life. Additionally, water has a high surface tension, allowing small objects to float.\nUnderstanding water molecules help us appreciate how important water is for nature and daily lives.",
+        "الأسئلة": [
+          { "السؤال": "1- What is the chemical formula of water ?", "الإجابة_النموذجية": "The chemical formula of water is H₂O." },
+          { "السؤال": "2- What are the three forms in which water can exist ?", "الإجابة_النموذجية": "The three states are solid (ice), liquid and gas (water vapour)." },
+          { "السؤال": "3- Why does water help dissolve many substances ?", "الإجابة_النموذجية": "Because its molecules are polar, which means that they have a positive end and a negative end." },
+          { "السؤال": "4- What is surface tension in water ?", "الإجابة_النموذجية": "It is what allows small objects to float." },
+          { "السؤال": "5- Is water made up of molecules ?", "الإجابة_النموذجية": "Yes, it is." },
+          { "السؤال": "6- What do the underlined words refer back to?\na) they ( line 6 ) : .......... \nb) it ( line 8 ) : ..........", "الإجابة_النموذجية": "a) water molecules\nb) water" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Write a paragraph using the information given in the table .",
+        "النص_المرجعي": "Device name: a telescope | Date of invention: 1608 | Uses: to observe distant objects in space | Made of: aluminum or steel | Main types: 2 main types: reflecting and refracting",
+        "الأسئلة": [
+          { "السؤال": "اكتب فقرة بناءً على الجدول المعطى:", "الإجابة_النموذجية": "A telescope was invented in 1608. It is used to observe distant objects in space. It is made of aluminium or steel. There are 2 main types of telescopes: reflecting and refracting." }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Choose the word that best completes each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- .......... hour of exercise daily keeps you healthy. ( A , An , The )", "الإجابة_النموذجية": "An" },
+          { "السؤال": "2- There aren't .......... letters for you today. ( any , some , few )", "الإجابة_النموذجية": "any" },
+          { "السؤال": "3- Samar bought the things .......... are needed. ( who , which , where )", "الإجابة_النموذجية": "which" },
+          { "السؤال": "4- The boys keep .......... ready for any mission. ( themselves , himself , ourselves )", "الإجابة_النموذجية": "themselves" },
+          { "السؤال": "5- He talked about his experience .......... learning a new language. ( of , in , to )", "الإجابة_النموذجية": "of" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) What part of speech are the underlined words? ( noun , verb , adverb , etc. ...)",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1. Can you (point) to the answer ?", "الإجابة_النموذجية": "verb" },
+          { "السؤال": "2. She made a good (point) in the discussion.", "الإجابة_النموذجية": "noun" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- The farmer waters the plants in the evening.", "الإجابة_النموذجية": "The plants are watered in the evening." },
+          { "السؤال": "2- The students should follow the school's rules.", "الإجابة_النموذجية": "The school's rules should be followed." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the odd word out in the following:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. pitch / molecules / light / vibration", "الإجابة_النموذجية": "light" },
+          { "السؤال": "2. feathers / prism / skin / scales", "الإجابة_النموذجية": "prism" },
+          { "السؤال": "3. awful / bad / scary / brilliant", "الإجابة_النموذجية": "brilliant" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Put the verbs in brackets in the correct forms .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- If I .......... ( be ) a bird, I would fly.", "الإجابة_النموذجية": "was / were" },
+          { "السؤال": "2- He felt tired because he .......... ( work ) late last night.", "الإجابة_النموذجية": "had worked" },
+          { "السؤال": "3- They .......... ( take ) a lot of picture during the trip last summer.", "الإجابة_النموذجية": "took" },
+          { "السؤال": "4- My teacher usually .......... ( walk ) to school.", "الإجابة_النموذجية": "walks" },
+          { "السؤال": "5- Amina .......... ( finish ) half of her work so far.", "الإجابة_النموذجية": "has finished" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Match to make compound words .",
+        "النص_المرجعي": "(A): 1- wind, 2- news\n(B): a- flash, b- chair, c- storm, d- ground",
+        "الأسئلة": [
+          { "السؤال": "1- wind", "الإجابة_النموذجية": "storm (windstorm)" },
+          { "السؤال": "2- news", "الإجابة_النموذجية": "flash (newsflash)" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the definitions with words from the box .",
+        "النص_المرجعي": "[ sound / solid / nucleus / distilled / light / liquid ]",
+        "الأسئلة": [
+          { "السؤال": "1. Water which has neutral pH scale is called .......... .", "الإجابة_النموذجية": "distilled" },
+          { "السؤال": "2. The type of waves that require a medium to travel through is .......... .", "الإجابة_النموذجية": "sound" },
+          { "السؤال": "3. A form of energy that helps us see things around us is .......... .", "الإجابة_النموذجية": "light" },
+          { "السؤال": "4. The centre part of an atom, holding protons and neutrons is .......... .", "الإجابة_النموذجية": "nucleus" },
+          { "السؤال": "5. A state of matter that can only be picked in a container is .......... .", "الإجابة_النموذجية": "liquid" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Make questions that match the underlined words .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. Coffee is the most important crop in Yemen.", "الإجابة_النموذجية": "What is the most important crop in Yemen." },
+          { "السؤال": "2. The first world cup was held in 1930.", "الإجابة_النموذجية": "When was the first world cup held" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Match the word to its meaning by putting the correct letter in brackets .",
+        "النص_المرجعي": "1. river / 2. mystery / 3. harvest / 4. first-aid / 5. recover\na- get back to normal health / b- a natural stream of water. / c- fall down. / d- something difficult to explain. / e- an immediate help for injuries / f- take crops from trees.",
+        "الأسئلة": [
+          { "السؤال": "1. river", "الإجابة_النموذجية": "( b ) b- a natural stream of water." },
+          { "السؤال": "2. mystery", "الإجابة_النموذجية": "( d ) d- something difficult to explain." },
+          { "السؤال": "3. harvest", "الإجابة_النموذجية": "( f ) f- take crops from trees." },
+          { "السؤال": "4. first-aid", "الإجابة_النموذجية": "( e ) e- an immediate help for injuries" },
+          { "السؤال": "5. recover", "الإجابة_النموذجية": "( a ) a- get back to normal health." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Use the suitable linking words to complete the sentences below .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- They cancelled the trip .......... the weather was bad.", "الإجابة_النموذجية": "because" },
+          { "السؤال": "2- .......... the journey was long, it was interesting.", "الإجابة_النموذجية": "Although" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Rewrite the sentences correctly. There is one mistake in each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- The higher the mountain, the steepest the climb.", "الإجابة_النموذجية": "The higher the mountain, the steeper the climb." },
+          { "السؤال": "2- My neighbor has a wonderful green small garden.", "الإجابة_النموذجية": "My neighbor has a wonderful small green garden." },
+          { "السؤال": "3- I wish I take that job opportunity.", "الإجابة_النموذجية": "I wish I took that job opportunity." },
+          { "السؤال": "4- Canned peas are not as freshness as frozen peas.", "الإجابة_النموذجية": "Canned peas are not as fresh as frozen peas. OR: ... the same freshness as frozen peas." },
+          { "السؤال": "5- Get the farmer plough the field.", "الإجابة_النموذجية": "Get/Ask the farmer to plough the field. OR: Have the farmer plough the field." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the words with suffixes.",
+        "النص_المرجعي": "submarine / shady / checked / incomplete / upload",
+        "الأسئلة": [
+          { "السؤال": "حدد الكلمات التي تحتوي على لواحق (Suffixes) من القائمة:", "الإجابة_النموذجية": "shady / checked" }
+        ]
+      }
+    ]
+  },
+
+
+  {
+    "سنة_الاختبار": "عدن 2025",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, and then answer any five of the following six questions :",
+        "النص_المرجعي": "Pollution is the introduction of harmful substances into the environment, causing negative effects on air, water and soil quality. It arises from various sources including industrial activities, vehicle emissions, agricultural practices and waste disposal. Air pollution, primarily caused by factories and cars, can lead to serious health problems, such as respiratory diseases and heart conditions. Water pollution occurs when toxic chemicals, plastics or wastes are released into rivers, lakes and oceans harming sea life and making water unsafe for human consumption. Soil pollution results from the use of pesticides and improper water disposal, affecting food safety and ecosystems.\nFighting pollution requires collective efforts, including renewable energy use and public awareness campaigns. By reducing pollution, we can protect our health, preserve natural resources and ensure a cleaner and healthier planet for future generations.",
+        "الأسئلة": [
+          { "السؤال": "1- What is pollution ?", "الإجابة_النموذجية": "Pollution is the introduction of harmful substances into the environment, causing negative effects on air, water and soil quality." },
+          { "السؤال": "2- What are some sources of pollution ?", "الإجابة_النموذجية": "Industrial activities, vehicle emissions, agricultural practices and waste disposal." },
+          { "السؤال": "3- How does air pollution affect human health ?", "الإجابة_النموذجية": "It can lead to serious health problems, such as respiratory diseases and heart conditions." },
+          { "السؤال": "4- Why is it important to fight pollution ?", "الإجابة_النموذجية": "To protect our health, preserve natural resources and ensure a cleaner and healthier planet for future generations." },
+          { "السؤال": "5- Does improper water disposal cause water pollution ?", "الإجابة_النموذجية": "No, it doesn't. It causes soil pollution." },
+          { "السؤال": "6- What do the underlined words refer back to?\na) It ( line 2 ) : .......... \nb) we ( line 10 ) : ..........", "الإجابة_النموذجية": "a) Pollution\nb) humans / people" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Write a paragraph using the information given in the table.",
+        "النص_المرجعي": "Inventor's name: Alexander Graham Bell | Nationality: Canadian scientist | Invention: the telephone | Invention date: 1876 | Uses: enable voice transmission through wired or wireless connections",
+        "الأسئلة": [
+          { "السؤال": "اكتب فقرة بناءً على الجدول المعطى:", "الإجابة_النموذجية": "Alexander Graham Bell was a Canadian scientist. He invented the telephone in 1876. The telephone is used to enable voice transmission through wired or wireless connections." }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Choose the word that best completes each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- We should be proud of .......... for completing the task. ( ourselves , themselves , himself )", "الإجابة_النموذجية": "ourselves" },
+          { "السؤال": "2- The team has the chance .......... wining the football match. ( in , of , at )", "الإجابة_النموذجية": "of" },
+          { "السؤال": "3- Did you find the book .......... you were looking for ? ( who , which , where )", "الإجابة_النموذجية": "which" },
+          { "السؤال": "4- How .......... people are attending the meeting ? ( much , few , many )", "الإجابة_النموذجية": "many" },
+          { "السؤال": "5- I found .......... useful tool while I was shopping. ( a , an , the )", "الإجابة_النموذجية": "a" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) What part of speech are the underlined words? ( noun , verb , adverb , etc. ...)",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1. You are (late) to the meeting.", "الإجابة_النموذجية": "adjective" },
+          { "السؤال": "2. He often works (late) at night.", "الإجابة_النموذجية": "adverb" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- The police sent the criminals to prison.", "الإجابة_النموذجية": "The criminals were sent to prison (by the police)." },
+          { "السؤال": "2- Dina hasn't finished the work yet.", "الإجابة_النموذجية": "The work hasn't been finished yet. (by Dina)" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the odd word out in the following:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. volume / frequency / solid / ultrasound", "الإجابة_النموذجية": "solid" },
+          { "السؤال": "2. wool / hair / fur / shape", "الإجابة_النموذجية": "shape" },
+          { "السؤال": "3. flood / famine / starve / hunger", "الإجابة_النموذجية": "flood" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Put the verb in brackets in the correct form.",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- She usually .......... ( eat ) healthy food.", "الإجابة_النموذجية": "eats" },
+          { "السؤال": "2- I .......... ( feel ) relaxed after I had hugged my mother.", "الإجابة_النموذجية": "felt" },
+          { "السؤال": "3- While the mixture is boiling, you .......... ( add ) the spices.", "الإجابة_النموذجية": "add" },
+          { "السؤال": "4- They .......... ( discuss ) the project for 3 hours non-stop.", "الإجابة_النموذجية": "have been discussing" },
+          { "السؤال": "5- She .......... ( borrow ) the book from the library a week ago.", "الإجابة_النموذجية": "borrowed" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Match to make compound words .",
+        "النص_المرجعي": "(A): 1- pain, 2- hand\n(B): a- bag, b- date, c- killer, d- dinner",
+        "الأسئلة": [
+          { "السؤال": "1- pain", "الإجابة_النموذجية": "killer (painkiller)" },
+          { "السؤال": "2- hand", "الإجابة_النموذجية": "bag (handbag)" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the definitions with words from the box .",
+        "النص_المرجعي": "[ lenses / radioactivity / liquid / solid / acids / hertz ]",
+        "الأسئلة": [
+          { "السؤال": "1. A state of matter that has no special shape is .......... .", "الإجابة_النموذجية": "a liquid" },
+          { "السؤال": "2. A unit that measures the frequency of sound waves is .......... .", "الإجابة_النموذجية": "hertz" },
+          { "السؤال": "3. Specially-shaped pieces of glass that refract light are .......... .", "الإجابة_النموذجية": "lenses" },
+          { "السؤال": "4. Substances that taste sour and can react with bases to form salts are .......... .", "الإجابة_النموذجية": "acids" },
+          { "السؤال": "5. A process that describes the changes that take place in the nucleus is called .......... .", "الإجابة_النموذجية": "radioactivity" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Make questions that match the underlined words .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. No, I can't peel sorghum.", "الإجابة_النموذجية": "Can you peel sorghum" },
+          { "السؤال": "2. The crust is the hard rock surface of the earth.", "الإجابة_النموذجية": "What is the crust" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Match the word to its meaning by putting the correct letter in brackets .",
+        "النص_المرجعي": "1. grazing / 2. kicking / 3. simmering / 4. harvesting / 5. measuring\na- boiling gently / b- eating grass / c- finding the size of something / d- hitting by foot / e- taking charge / f- gathering in crops",
+        "الأسئلة": [
+          { "السؤال": "1. grazing", "الإجابة_النموذجية": "( b ) b- eating grass" },
+          { "السؤال": "2. kicking", "الإجابة_النموذجية": "( d ) d- hitting by foot" },
+          { "السؤال": "3. simmering", "الإجابة_النموذجية": "( a ) a- boiling gently" },
+          { "السؤال": "4. harvesting", "الإجابة_النموذجية": "( f ) f- gathering in crops" },
+          { "السؤال": "5. measuring", "الإجابة_النموذجية": "( c ) c- finding the size of something" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Use the suitable linking words to complete the sentences below .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- .......... my mother, I like listening to radio programmes.", "الإجابة_النموذجية": "Like / Unlike" },
+          { "السؤال": "2- He walks to work .......... he has two cars.", "الإجابة_النموذجية": "although" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Rewrite the sentences correctly. There is one mistake in each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- The less powerful the engine is, the slow the car is.", "الإجابة_النموذجية": "The less powerful the engine is, the slower the car is." },
+          { "السؤال": "2- Asmaa would prefer study at home than in the library.", "الإجابة_النموذجية": "Asmaa would prefer to study at home than in the library." },
+          { "السؤال": "3- Saif is a 35-years-old Syrian famous doctor.", "الإجابة_النموذجية": "Saif is a famous 35-years-old Syrian doctor." },
+          { "السؤال": "4- I watched the kids flew their kites.", "الإجابة_النموذجية": "I watched the kids flying / fly their kites." },
+          { "السؤال": "5- Sound does not travel as faster as light.", "الإجابة_النموذجية": "Sound does not travel as fast as light." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the words with suffixes.",
+        "النص_المرجعي": "normal / suddenly / dislike / darkness / character",
+        "الأسئلة": [
+          { "السؤال": "حدد الكلمات التي تحتوي على لواحق (Suffixes) من القائمة:", "الإجابة_النموذجية": "suddenly / darkness" }
+        ]
+      }
+    ]
+  },
+
+
+  {
+    "سنة_الاختبار": "عدن 2025",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, and then answer any five of the following six questions :",
+        "النص_المرجعي": "Computers have changed the way we live and work. They are electronic devices that process data, perform calculations and store information. The main components of a computer include the central processing unit ( CPU ), memory and storage. Computers can be classified into various types, such as desktops, laptops, tablets and servers.\nThe internet, a global network of computers, allows people to communicate and access information from anywhere in the world. Additionally, software applications enable users to perform specific tasks such as writing documents, creating spreadsheets or designing graphics. As technology advances, computers become faster and more powerful, leading to new innovations in fields like artificial intelligence, virtual reality and data analysis.\nUnderstanding how to use computers is essential in today's digital age as they play a critical role in education, business and entertainment.",
+        "الأسئلة": [
+          { "السؤال": "1- What are computers ?", "الإجابة_النموذجية": "They are electronic devices that process data, perform calculations and store information." },
+          { "السؤال": "2- What types of computers are mentioned ?", "الإجابة_النموذجية": "Desktops, laptops, tablets and servers." },
+          { "السؤال": "3- How does the internet benefit users ?", "الإجابة_النموذجية": "It allows people to communicate and access information from anywhere in the world." },
+          { "السؤال": "4- Are software applications helpful to users ?", "الإجابة_النموذجية": "Yes, they are." },
+          { "السؤال": "5- Why is understanding computers important today ?", "الإجابة_النموذجية": "Because they play a critical role in education, business and entertainment." },
+          { "السؤال": "6- What do the underlined words refer back to?\na) we ( line 1 ) : .......... \nb) they ( line 11 ) : ..........", "الإجابة_النموذجية": "a) humans / people\nb) computers" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Write a paragraph using the information given in the table.",
+        "النص_المرجعي": "Name of inventor: Charles Richter | Nationality: American scientist | Invention: the Richter scale | Invention date: 1935 | Uses: to measure the strength of earthquakes",
+        "الأسئلة": [
+          { "السؤال": "اكتب فقرة بناءً على الجدول المعطى:", "الإجابة_النموذجية": "Charles Richter is an American scientist. He invented the Richter scale in 1935. The scale is used to measure the strength of earthquakes." }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Choose the word that best completes each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- I am very grateful .......... your hospitality. ( on , for , of )", "الإجابة_النموذجية": "for" },
+          { "السؤال": "2- Marwan didn't get .......... sleep last night. ( many , more , much )", "الإجابة_النموذجية": "much" },
+          { "السؤال": "3- Can you remember .......... you left your phone ? ( who , which , where )", "الإجابة_النموذجية": "where" },
+          { "السؤال": "4- The engine can repair .......... automatically. ( herself , itself , himself )", "الإجابة_النموذجية": "itself" },
+          { "السؤال": "5- That's .......... interesting place to visit. ( a , an , the )", "الإجابة_النموذجية": "an" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) What part of speech are the underlined words? ( noun , verb , adverb , etc. ...)",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1. I bought a nice (watch) for my sister.", "الإجابة_النموذجية": "noun" },
+          { "السؤال": "2. I like to (watch) football matches on TV.", "الإجابة_النموذجية": "verb" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- He opens the bakery at 6 every morning.", "الإجابة_النموذجية": "The bakery is opened at 6 every morning." },
+          { "السؤال": "2- You must finish this task by tomorrow.", "الإجابة_النموذجية": "This task must be finished by tomorrow." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the odd word out in the following:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. disaster / damage / experience / rescue", "الإجابة_النموذجية": "experience" },
+          { "السؤال": "2. storm / crust / wind / hurricane", "الإجابة_النموذجية": "crust" },
+          { "السؤال": "3. mast / bus / oar / net", "الإجابة_النموذجية": "bus" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Put the verb in brackets in the correct form.",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- He .......... ( spend ) most Saturdays driving along the coast road.", "الإجابة_النموذجية": "spends" },
+          { "السؤال": "2- You .......... ( fix ) the car. That's why there are tools everywhere.", "الإجابة_النموذجية": "have been fixing" },
+          { "السؤال": "3- If she .......... ( have ) more time, she will join the gym.", "الإجابة_النموذجية": "has" },
+          { "السؤال": "4- He .......... ( visit ) his relatives before he travelled.", "الإجابة_النموذجية": "had visited" },
+          { "السؤال": "5- The plane .......... ( take off ) five hours ago.", "الإجابة_النموذجية": "took off" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Match to make compound words .",
+        "النص_المرجعي": "(A): 1- door, 2- head\n(B): a- ache, b- book, c- bag, d- bell",
+        "الأسئلة": [
+          { "السؤال": "1- door", "الإجابة_النموذجية": "bell (doorbell)" },
+          { "السؤال": "2- head", "الإجابة_النموذجية": "ache (headache)" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the definitions with words from the box .",
+        "النص_المرجعي": "[ sound / acids / matter / prism / alkalis / radioactivity ]",
+        "الأسئلة": [
+          { "السؤال": "1. Basses that dissolve in water are called .......... .", "الإجابة_النموذجية": "alkalis" },
+          { "السؤال": "2. The waves that are created when an object vibrates is .......... .", "الإجابة_النموذجية": "sound" },
+          { "السؤال": "3. A transparent glass that refracts light into spectrum is a .......... .", "الإجابة_النموذجية": "prism" },
+          { "السؤال": "4. The word that describes the changes that take place in the centre of certain materials is .......... .", "الإجابة_النموذجية": "radioactivity" },
+          { "السؤال": "5. Anything that has mass and occupies space is .......... .", "الإجابة_النموذجية": "matter" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Make questions that match the underlined words .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. A forest is a very large wood.", "الإجابة_النموذجية": "What is a forest" },
+          { "السؤال": "2. Yes, the hard rock surface is called the crust.", "الإجابة_النموذجية": "Is the hard rock surface called the crust" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Match the word to its meaning by putting the correct letter in brackets .",
+        "النص_المرجعي": "1. drifting / 2. ploughing / 3. marketing / 4. measuring / 5. removing\na- finding the size of something / b- the science of selling / c- sailing uncontrolled / d- turning over the soil / e- away from each other / f- act of taking out",
+        "الأسئلة": [
+          { "السؤال": "1. drifting", "الإجابة_النموذجية": "( c ) c- sailing uncontrolled" },
+          { "السؤال": "2. ploughing", "الإجابة_النموذجية": "( d ) d- turning over the soil" },
+          { "السؤال": "3. marketing", "الإجابة_النموذجية": "( b ) b- the science of selling" },
+          { "السؤال": "4. measuring", "الإجابة_النموذجية": "( a ) a- finding the size of something" },
+          { "السؤال": "5. removing", "الإجابة_النموذجية": "( f ) f- act of taking out" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Use the suitable linking words to complete the sentences below .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- That boy ate 2 sandwiches and 3 pieces of pizza .......... .", "الإجابة_النموذجية": "as well / also" },
+          { "السؤال": "2- He was punished .......... he lied.", "الإجابة_النموذجية": "because" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Rewrite the sentences correctly. There is one mistake in each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- I prefer walk in the evening rather than in the morning.", "الإجابة_النموذجية": "I prefer to walk / walking in the evening rather than in the morning." },
+          { "السؤال": "2- They wish they are more organized.", "الإجابة_النموذجية": "They wish they were more organized." },
+          { "السؤال": "3- The more you listen, the good you understand.", "الإجابة_النموذجية": "The more you listen, the better you understand." },
+          { "السؤال": "4- That small wooden old boat is not suitable for fishing.", "الإجابة_النموذجية": "That small old wooden boat is not suitable for fishing." },
+          { "السؤال": "5- I asked the waiter bringing me a cup of coffee.", "الإجابة_النموذجية": "I asked / get the waiter to bring me ... or I had the waiter bring me ..." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the words with suffixes.",
+        "النص_المرجعي": "generally / irregular / disaster / dangerous / disagree",
+        "الأسئلة": [
+          { "السؤال": "حدد الكلمات التي تحتوي على لواحق (Suffixes) من القائمة:", "الإجابة_النموذجية": "generally / dangerous" }
+        ]
+      }
+    ]
+  },
+
+
+  {
+    "سنة_الاختبار": "عدن 2025",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, and then answer any five of the following six questions :",
+        "النص_المرجعي": "Light is a form of energy that travels in waves and can be seen by the human eye. It is essential for life on Earth, enabling photosynthesis in plants, which produces oxygen and food. Light travels at an incredible speed of about 299,792 km per second in a vacuum. It can be reflected, refracted or absorbed when it encounters different materials.\nThe visible spectrum of light includes various colours, from red to violet, each with different wave length.\nLight plays an important role in our daily lives, influencing our sleep patterns, mood and overall health. Artificial sources of light, like bulbs, have transformed how we live, allowing us to extend our activities into the night.\nUnderstanding light is fundamental in fields like physics, art and even medicine.",
+        "الأسئلة": [
+          { "السؤال": "1- What is light ?", "الإجابة_النموذجية": "Light is a form of energy that travels in waves and can be seen by the human eye." },
+          { "السؤال": "2- How fast does light travel in the vacuum ?", "الإجابة_النموذجية": "It travels at an incredible speed of about 299,792 km per second in the vacuum." },
+          { "السؤال": "3- How has artificial light changed our daily lives ?", "الإجابة_النموذجية": "It has changed how we live, allowing us to extend our activities into the night." },
+          { "السؤال": "4- When can light be reflected or refracted ?", "الإجابة_النموذجية": "It can be reflected or refracted when it encounters different materials." },
+          { "السؤال": "5- Do all the colours included the spectrum of light have the same length ?", "الإجابة_النموذجية": "No, they do not." },
+          { "السؤال": "6- What do the underlined words refer back to?\na) that ( line 1 ) : .......... \nb) It ( line 4 ) : ..........", "الإجابة_النموذجية": "a) a form of energy\nb) Light" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Write a paragraph using the information given in the table.",
+        "النص_المرجعي": "Object name: knife | Size: different sizes according to its task. | Made of: metal and wood | Mostly found: in kitchens | Used for: cutting food, peeling and chopping",
+        "الأسئلة": [
+          { "السؤال": "اكتب فقرة بناءً على الجدول المعطى:", "الإجابة_النموذجية": "A knife comes in different sizes according to its task. It is made of metal and wood. It is mostly founded in kitchens. It is used for cutting food, peeling and chopping." }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Choose the word that best completes each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Safaa is interested .......... reading Arabic novels. ( in , on , at )", "الإجابة_النموذجية": "in" },
+          { "السؤال": "2- Would you like to travel around .......... world ? ( a , an , the )", "الإجابة_النموذجية": "the" },
+          { "السؤال": "3- My friend and I found .......... lost in the city.( himself , themselves , ourselves )", "الإجابة_النموذجية": "ourselves" },
+          { "السؤال": "4- .......... students were absent from the class today. ( A lot , A few , Little )", "الإجابة_النموذجية": "A few" },
+          { "السؤال": "5- That is the grocery store .......... I usually shop. ( who , which , where )", "الإجابة_النموذجية": "where" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) What part of speech are the underlined words? ( noun , verb , adverb , etc. ...)",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1. She wore a (colored) dress to the party.", "الإجابة_النموذجية": "adjective" },
+          { "السؤال": "2. He (colored) the picture beautifully.", "الإجابة_النموذجية": "verb" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Many people are using modern technology to improve work.", "الإجابة_النموذجية": "Modern technology is being used to improve work." },
+          { "السؤال": "2- Newton discovered gravity in the 17th century.", "الإجابة_النموذجية": "Gravity was discovered in the 17th century." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the odd word out in the following:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. misty / newly / rainy / windy", "الإجابة_النموذجية": "newly" },
+          { "السؤال": "2. apples / grapes / oranges / sorghum", "الإجابة_النموذجية": "sorghum" },
+          { "السؤال": "3. pitch / loudness / prism / volume", "الإجابة_النموذجية": "prism" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Put the verb in brackets in the correct form.",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Yemen .......... ( have ) a lot of social problems recently.", "الإجابة_النموذجية": "has had" },
+          { "السؤال": "2- While he is setting the table, you .......... ( cook ) lunch.", "الإجابة_النموذجية": "cook" },
+          { "السؤال": "3- I became happy when I .......... ( find ) my lost key.", "الإجابة_النموذجية": "had found" },
+          { "السؤال": "4- If she doesn't hurry, she .......... ( miss ) the bus.", "الإجابة_النموذجية": "will miss" },
+          { "السؤال": "5- Noor often .......... ( go ) to the gym three times a week.", "الإجابة_النموذجية": "goes" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Match to make compound words .",
+        "النص_المرجعي": "(A): 1- ring, 2- police\n(B): a- hive, b- station, c- road, d- yard",
+        "الأسئلة": [
+          { "السؤال": "1- ring", "الإجابة_النموذجية": "road (ringroad)" },
+          { "السؤال": "2- police", "الإجابة_النموذجية": "station (police station)" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the definitions with words from the box .",
+        "النص_المرجعي": "[ Sound / Gas / Refraction / Litmus / Reflection / Nucleus ]",
+        "الأسئلة": [
+          { "السؤال": "1. .......... is a vegetable dye that is used to test the acidity of solutions.", "الإجابة_النموذجية": "Litmus" },
+          { "السؤال": "2. .......... is the centre part of an atom, holding protons and neutrons.", "الإجابة_النموذجية": "Nucleus" },
+          { "السؤال": "3. .......... is a state of matter that can only be picked in closed containers.", "الإجابة_النموذجية": "Gas" },
+          { "السؤال": "4. .......... is the bouncing back of light when it hits a surface.", "الإجابة_النموذجية": "Reflection" },
+          { "السؤال": "5. .......... is a type of wave that is created when an object vibrates.", "الإجابة_النموذجية": "Sound" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Make questions that match the underlined words .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. No, he didn't answer all the questions.", "الإجابة_النموذجية": "Did he answer all the questions" },
+          { "السؤال": "2. A volcano is a mountain with a hole in the top.", "الإجابة_النموذجية": "What is a mountain with a hole in the top called" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Match the word to its meaning by putting the correct letter in brackets .",
+        "النص_المرجعي": "1. peak / 2. licence / 3. childhood / 4. soak / 5. pace\na- put in liquid for a long period of time / b- the highest part of a mountain / c- a written permission to drive / d- the early part of one's life / e- to have a good look at / f- to walk with slow and regular steps",
+        "الأسئلة": [
+          { "السؤال": "1. peak", "الإجابة_النموذجية": "( b ) b- the highest part of a mountain" },
+          { "السؤال": "2. licence", "الإجابة_النموذجية": "( c ) c- a written permission to drive" },
+          { "السؤال": "3. childhood", "الإجابة_النموذجية": "( d ) d- the early part of one's life" },
+          { "السؤال": "4. soak", "الإجابة_النموذجية": "( a ) a- put in liquid for a long period of time" },
+          { "السؤال": "5. pace", "الإجابة_النموذجية": "( f ) f- to walk with slow and regular steps" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Use the suitable linking words to complete the sentences below .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- .......... she prepared the food, she didn't eat it.", "الإجابة_النموذجية": "Although" },
+          { "السؤال": "2- I am studying biology .......... physics.", "الإجابة_النموذجية": "as well as / and" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Rewrite the sentences correctly. There is one mistake in each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- They began work on the project last week.", "الإجابة_النموذجية": "They began to work / working on the project last week." },
+          { "السؤال": "2- The harder you work, the successful you will get.", "الإجابة_النموذجية": "The harder you work, the more successful you will get." },
+          { "السؤال": "3- She wishes she has more friends.", "الإجابة_النموذجية": "She wishes she had more friends." },
+          { "السؤال": "4- He must be your brother. I'm not sure.", "الإجابة_النموذجية": "He may be your brother. I'm not sure. OR: He can't be your brother. I'm ... (Crossed out 'must be' and corrected to 'may be')" },
+          { "السؤال": "5- Maria is a lovely Yemeni seven-year-old child.", "الإجابة_النموذجية": "Maria is a lovely seven-year-old Yemeni child." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the words with prefixes.",
+        "النص_المرجعي": "armchair / impossible / rename / employed / necessity",
+        "الأسئلة": [
+          { "السؤال": "حدد الكلمات التي تحتوي على بوادئ (Prefixes) من القائمة:", "الإجابة_النموذجية": "impossible / rename" }
+        ]
+      }
+    ]
+  },
+
+
+  {
+    "سنة_الاختبار": "عدن 2025",
+    "الفرع": "القسم العلمي",
+    "أقسام_الأسئلة": [
+      {
+        "نوع_السؤال": "Read the passage, and then answer any five of the following six questions :",
+        "النص_المرجعي": "Oxygen (O₂) is a colorless, odorless gas essential for life. It makes up about 21% of Earth's atmosphere. It was discovered independently by Joseph Priestly and Carl Scheele in the 18th century. Its symbol is O , and its atomic number is 8. It is found in air, water and many minerals. It is highly reactive forming compounds like water H₂O and carbon dioxide CO₂ .\nOxygen is important for breathing in animals, making food in plants and supporting burning processes. It is widely used in medical treatments, such as oxygen therapy which helps patients with breathing problems. The flexible nature of oxygen makes it important in many fields including healthcare, aerospace and manufacturing.\nUnderstanding the properties and roles of oxygen can help us recognize its importance for keeping life going and improving technology.",
+        "الأسئلة": [
+          { "السؤال": "1- Who discovered oxygen ?", "الإجابة_النموذجية": "It was discovered by Joseph Priestly and Carl Scheele ." },
+          { "السؤال": "2- Where is Oxygen found ?", "الإجابة_النموذجية": "It is found in air, water and many minerals ." },
+          { "السؤال": "3- Does Oxygen have a smell ?", "الإجابة_النموذجية": "No, it does not ." },
+          { "السؤال": "4- Give examples of compounds that are formed when Oxygen reacts.", "الإجابة_النموذجية": "Water H₂O and carbon dioxide CO₂" },
+          { "السؤال": "5- Why is Oxygen widely used in medical treatment ?", "الإجابة_النموذجية": "To help patients with breathing problems ." },
+          { "السؤال": "6- What do the underlined words refer back to?\na) It ( line 2 ) : .......... \nb) which ( line 7 ) : ..........", "الإجابة_النموذجية": "a) Oxygen\nb) oxygen therapy" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Write a paragraph using the information given in the table .",
+        "النص_المرجعي": "Device name: Smartphone | Fact: a mobile phone that can do many things. | First introduced: in 1992 | Found: stores or online | Main usages: calling, messaging, taking pictures.",
+        "الأسئلة": [
+          { "السؤال": "اكتب فقرة بناءً على الجدول المعطى:", "الإجابة_النموذجية": "A smartphone is a mobile phone that can do many things. It was first introduced in 1992. It can be found in stores or online. It is mainly used for calling, messaging and taking pictures." }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Choose the word that best completes each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- I have lived in this city .......... 2012. ( for , since , on )", "الإجابة_النموذجية": "since" },
+          { "السؤال": "2- Sarah taught .......... how to cook. ( herself , himself , ourselves )", "الإجابة_النموذجية": "herself" },
+          { "السؤال": "3- She bought .......... expensive dresses for the wedding. ( a , an , / )", "الإجابة_النموذجية": "/" },
+          { "السؤال": "4- Do you have any experience .......... the first aid ? ( on , at , in )", "الإجابة_النموذجية": "in" },
+          { "السؤال": "5- The doctor .......... I trust the most is Dr.Salah. ( where , whose , whom )", "الإجابة_النموذجية": "whom" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) What part of speech are the underlined words? ( noun , verb , adverb , etc. ...)",
+        "النص_المرجعي": "( noun - verb - adjective - adverb )",
+        "الأسئلة": [
+          { "السؤال": "1. Turn on the (light), please.", "الإجابة_النموذجية": "noun" },
+          { "السؤال": "2. These 2 boxes are (light).", "الإجابة_النموذجية": "adjective" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Make the following sentences passive:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Radiation affects the life of animals and plants.", "الإجابة_النموذجية": "The life of animals and plants is affected by radiation ." },
+          { "السؤال": "2- The farmers are turning over the soil now.", "الإجابة_النموذجية": "The soil is being turned over now by the farmers ." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the odd word out in the following:",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. mule / liger / llama / cama", "الإجابة_النموذجية": "llama" },
+          { "السؤال": "2. sail / road / tanker / stern", "الإجابة_النموذجية": "road" },
+          { "السؤال": "3. mountains / woods / trees / forest", "الإجابة_النموذجية": "mountains" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Put the verbs in brackets in the correct forms .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- Last summer, the storm .......... ( damage ) many trees.", "الإجابة_النموذجية": "damaged" },
+          { "السؤال": "2- The doctor .......... ( exam ) the patient when I called him.", "الإجابة_النموذجية": "was examining" },
+          { "السؤال": "3- My mom .......... ( give ) me a warm hug before I left.", "الإجابة_النموذجية": "had given" },
+          { "السؤال": "4- Mazen .......... ( look ) for a new job for several weeks.", "الإجابة_النموذجية": "has looked / has been looking" },
+          { "السؤال": "5- Many people .......... ( use ) modern technology to improve their lives.", "الإجابة_النموذجية": "use" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Match to make compound words .",
+        "النص_المرجعي": "(A): 1- farm, 2- rain\n(B): a- rise, b- coat, c- bag, d- house",
+        "الأسئلة": [
+          { "السؤال": "1- farm", "الإجابة_النموذجية": "house (farmhouse)" },
+          { "السؤال": "2- rain", "الإجابة_النموذجية": "coat (raincoat)" }
+        ]
+      },
+      {
+        "نوع_السؤال": "Complete the definitions with words from the box .",
+        "النص_المرجعي": "[ radiation / evaporation / sound / acid / refraction / reflection ]",
+        "الأسئلة": [
+          { "السؤال": "1. A substance that has a sour taste and corrodes metals and rocks is .......... .", "الإجابة_النموذجية": "acid" },
+          { "السؤال": "2. A form of energy that emits especially from nuclear reactions is .......... .", "الإجابة_النموذجية": "radiation" },
+          { "السؤال": "3. The waves that are created when an object vibrates is .......... .", "الإجابة_النموذجية": "sound" },
+          { "السؤال": "4. The process of a liquid when it turns into a gas is .......... .", "الإجابة_النموذجية": "evaporation" },
+          { "السؤال": "5. The bending of light when it passes through different mediums is .......... .", "الإجابة_النموذجية": "refraction" }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Make questions that match the underlined words .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1. Yes, Nada is a helpful girl.", "الإجابة_النموذجية": "Is Nada a helpful girl" },
+          { "السؤال": "2. The stars shine in the sky brightly.", "الإجابة_النموذجية": "How do the stars shine in the sky" }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Match the word to its meaning by putting the correct letter in brackets .",
+        "النص_المرجعي": "1. main / 2. adult / 3. word set / 4. landslide / 5. pack\na- earth slipping down a mountain. / b- put in tightly. / c- a land planted with trees. / d- most important or biggest. / e- a fully-grown person. / f- a group of connected words.",
+        "الأسئلة": [
+          { "السؤال": "1. main", "الإجابة_النموذجية": "( d ) d- most important or biggest." },
+          { "السؤال": "2. adult", "الإجابة_النموذجية": "( e ) e- a fully-grown person." },
+          { "السؤال": "3. word set", "الإجابة_النموذجية": "( f ) f- a group of connected words." },
+          { "السؤال": "4. landslide", "الإجابة_النموذجية": "( a ) a- earth slipping down a mountain." },
+          { "السؤال": "5. pack", "الإجابة_النموذجية": "( b ) b- put in tightly." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Use the suitable linking words to complete the sentences below .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- .......... the restaurant was crowded, they found a table.", "الإجابة_النموذجية": "Although" },
+          { "السؤال": "2- Omar is diligent and polite. .......... he is patient.", "الإجابة_النموذجية": "Furthermore , / In Addition ," }
+        ]
+      },
+      {
+        "نوع_السؤال": "A) Rewrite the sentences correctly. There is one mistake in each sentence .",
+        "النص_المرجعي": "",
+        "الأسئلة": [
+          { "السؤال": "1- My laptop is not as lighter as yours.", "الإجابة_النموذجية": "My laptop is not as light as yours. / is not the same weight as yours." },
+          { "السؤال": "2- The more challenges you face, the strongest you will grow.", "الإجابة_النموذجية": "The more challenges you face, the stronger you will grow." },
+          { "السؤال": "3- We wish you can fix our car before the sunset.", "الإجابة_النموذجية": "We wish you could fix our car before sunset ." },
+          { "السؤال": "4- They began dig new wells for water.", "الإجابة_النموذجية": "They began to dig / digging new wells for water." },
+          { "السؤال": "5- It started to rain heavy.", "الإجابة_النموذجية": "It started to rain heavily." }
+        ]
+      },
+      {
+        "نوع_السؤال": "B) Circle the words with prefixes.",
+        "النص_المرجعي": "production / irregular / dangerous / unhealthy / cloudy",
+        "الأسئلة": [
+          { "السؤال": "حدد الكلمات التي تحتوي على بوادئ (Prefixes) من القائمة:", "الإجابة_النموذجية": "irregular / unhealthy" }
+        ]
+      }
+    ]
+  }
+]

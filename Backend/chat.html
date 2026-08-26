@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student AI Tutor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .chat-box {
+            width: 380px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #2f55d4;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .messages {
+            height: 260px;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+
+        .user {
+            color: #2f55d4;
+            margin-bottom: 6px;
+        }
+
+        .bot {
+            color: #000;
+            margin-bottom: 10px;
+        }
+
+        .error {
+            color: red;
+            margin-bottom: 10px;
+        }
+
+        .input-area {
+            display: flex;
+            border-top: 1px solid #ddd;
+        }
+
+        input {
+            flex: 1;
+            border: none;
+            padding: 10px;
+            outline: none;
+        }
+
+        button {
+            background: #2f55d4;
+            color: white;
+            border: none;
+            padding: 0 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-box">
+    <div class="header">📘 Student AI Tutor</div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="input-area">
+        <input id="question" placeholder="Ask your question..." />
+        <button onclick="send()">Send</button>
+    </div>
+</div>
+
+<script>
+async function send() {
+    const input = document.getElementById("question");
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const messages = document.getElementById("messages");
+
+    messages.innerHTML += `<div class="user"><b>You:</b> ${msg}</div>`;
+    messages.innerHTML += `<div class="bot">Thinking...</div>`;
+    messages.scrollTop = messages.scrollHeight;
+
+    input.value = "";
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/ask", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                page: 1,
+                question: msg
+            })
+        });
+
+        const data = await response.json();
+
+        messages.innerHTML += `<div class="bot"><b>AI:</b><br>${data.answer}</div>`;
+    } catch (e) {
+        messages.innerHTML += `<div class="error">❌ Error connecting to server</div>`;
+    }
+
+    messages.scrollTop = messages.scrollHeight;
+}
+</script>
+
+</body>
+</html>
