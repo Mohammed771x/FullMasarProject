@@ -9,7 +9,7 @@ from .common import (
     system_prompt_strict_explain, system_prompt_strict_summary, system_prompt_strict_qa,
     collect_exam_questions_by_years, parse_exams_input, faiss_search, format_arabic_math
 )
-from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
 from typing import Dict, List, Optional
 import json
@@ -34,7 +34,9 @@ _english_exams_mtime = 0  # 👈 تتبع وقت التعديل بدلاً من 
 def get_english_data():
     global _english_book_cache
     if _english_book_cache is not None: return _english_book_cache
-    book = load_json_safe(subject_book_path(SUBJECT))
+    # 📖 هذا المعالج يتوقّع **قاموس وحدات ودروس** — نطلبه صراحةً
+    #    كي لا يتغيّر تحته الشكل يوم يُضاف للمادة ملف صفحات.
+    book = load_json_safe(subject_book_path(SUBJECT, prefer='lessons_mode'))
     if not book: return []
     _english_book_cache = book.get("الوحدات", []) if isinstance(book, dict) else book
     return _english_book_cache
@@ -338,7 +340,7 @@ async def handle_english_explain(req: AskRequest, gemini_client):
         
         if req.chat_history:
             valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
-            messages_for_ai.extend(valid_history[-6:])
+            messages_for_ai.extend(valid_history[-HISTORY_LAST_N:])
         
         messages_for_ai.append({
             "role": "user",
@@ -446,7 +448,7 @@ async def handle_english_question(req: AskRequest, gemini_client):
     if not units_list: return {"answer": "❌ عذراً، بيانات المادة غير جاهزة حالياً."}
     
     chat_history_from_app = req.chat_history or []
-    recent_history = [m for m in chat_history_from_app if m.get('role') in ['user', 'assistant']][-6:]
+    recent_history = [m for m in chat_history_from_app if m.get('role') in ['user', 'assistant']][-HISTORY_LAST_N:]
 
     context_text = ""
     refs = []

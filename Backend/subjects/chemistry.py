@@ -12,7 +12,7 @@ from .common import (
     filter_and_rank_exams, collect_exam_questions_by_years,
     parse_exams_input, extract_keywords, faiss_search, format_arabic_math
 )
-from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
 from typing import Dict, List, Optional
 import json
@@ -34,7 +34,9 @@ def get_book_data():
     global _book_cache
     if _book_cache is not None:
         return _book_cache
-    book = load_json_safe(subject_book_path(SUBJECT))
+    # 📖 هذا المعالج يتوقّع **قاموس وحدات ودروس** — نطلبه صراحةً
+    #    كي لا يتغيّر تحته الشكل يوم يُضاف للمادة ملف صفحات.
+    book = load_json_safe(subject_book_path(SUBJECT, prefer='lessons_mode'))
     if not book:
         return {}
     _book_cache = book
@@ -161,7 +163,7 @@ async def handle_chemistry_explain(req: AskRequest, openai_client):
         else:
             target_data = book.get("الوحدات", [])
             
-        results, idxs = await enhanced_search_physics(target_data, req.content, top_k=5)
+        results, idxs = await enhanced_search_physics(target_data, req.search_query, top_k=5)
         context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
         
         _, metas = extract_all_texts_and_metas_physics(target_data)
@@ -178,7 +180,7 @@ async def handle_chemistry_explain(req: AskRequest, openai_client):
         
         if req.chat_history:
             valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
-            messages_for_ai.extend(valid_history[-6:])
+            messages_for_ai.extend(valid_history[-HISTORY_LAST_N:])
         
         messages_for_ai.append({
             "role": "user",
@@ -191,8 +193,34 @@ async def handle_chemistry_explain(req: AskRequest, openai_client):
 تعليمات صارمة للرد:
 1. ⚠️ تنبيه هام جداً: إذا كانت رسالة الطالب هي "اشرح لي الدرس" أو "اشرح" أو أي طلب شرح عام، **يجب عليك فوراً** البدء في شرح (المعلومات المستخرجة من الكتاب) بالتفصيل، ويُمنع منعاً باتاً الرد برسالة ترحيب!
 2. إذا كانت رسالته سؤالاً أو طلباً لشرح كيميائي، يجب أن تعتمد بنسبة 100% على (المعلومات المستخرجة من الكتاب) فقط.
-3🧪 القواعد الكيميائية: اكتب المعادلات الكيميائية بنص عادي وواضح ومطابق حرفياً لما هو موجود في سياق الدرس (استخدم الأسهم العادية مثل -> أو =). اجعل كل معادلة في سطر مستقل لسهولة القراءة، ويُمنع منعاً باتاً تأليف معادلات خارجية أو استخدام أكواد LaTeX المعقدة.
+3🧪 القواعد الكيميائية: اكتب المعادلات الكيميائية بنص عادي وواضح ومطابق حرفياً لما هو موجود في سياق الدرس (استخدم الأسهم العادية مثل -> أو =). اجعل كل معادلة في سطر مستقل لسهولة القراءة، ويُمنع منعاً باتاً تأليف معادلات خارجية أو استخدام أكواد LaTeX المعقدة — عدا **الكسور** فهي مطلوبة بصيغتها: كل بسط ومقام يُكتب \\frac{{البسط}}{{المقام}} ولا يُكتب بـ«/» ولا «÷».
+
+════════════════════════════════════════════════════
+⚗️ **الصيغ البنائية والحلقات — قاعدة مُلزِمة تسبق كل ما عداها**
+════════════════════════════════════════════════════
+🚫 **يُمنع منعاً باتاً رسم أي شكل بالرموز أو الشرطات أو داخل ```** —
+   ولا تقل «لا أستطيع الرسم». أنت **تكتب ترميزاً** والتطبيق **يرسمه** للطالب.
+
+📌 السلسلة المفتوحة ⇐ \\chem{{...}}
+   • المجموعات موصولةً بشرطة: \\chem{{CH3-CH2-CH2-NH2}}
+   • الفرع بين قوسين بعد أصله مباشرةً: \\chem{{CH3-CH(CH3)-CH3}}
+   • الرابطة الثنائية = والثلاثية #: \\chem{{CH3-CH=O}} · \\chem{{CH3-C#N}}
+
+📌 الحلقة ⇐ \\ring{{...}} — الأجزاء يفصلها | :
+   • العدد أولاً: \\ring{{3}} مثلث · \\ring{{4}} مربع · \\ring{{6}} سداسي
+   • ar للعطرية: \\ring{{6|ar}} بنزين
+   • رمز الذرّة داخل الحلقة: \\ring{{6|ar|N}} بيريدين · \\ring{{6|NH}} بيبيريدين
+   • +المجموعة المعلّقة: \\ring{{6|ar|+NH2}} أنيلين · \\ring{{3|+NH2}} أمينو سيكلوبروبان
+
+⚠️ **هذه القاعدة أقوى من قاعدة «انقل بلغة الدرس حرفياً»**: إن كتب الكتاب
+   الصيغة سطراً مسطّحاً فحوّلها أنت إلى \\chem أو \\ring. وكلّما ذكرتَ مركّباً
+   عضوياً بالاسم (بروبان · سيكلوهيكسان · أنيلين …) أرفِق ترميزه بعده.
+
+✅ مطلوب: «المركب \\chem{{CH3-NH-CH3}} يسمى ثنائي ميثيل أمين.»
+❌ مرفوض: رسمٌ بالشرطات والخطوط داخل كتلة برمجية.
+
 4. إذا طلب شرحاً كيميائياً وكانت (المعلومات المستخرجة) تقول 'لا توجد نصوص مطابقة'، اعتذر بلطف وأخبره أن هذا الموضوع غير موجود في المنهج الحالي.
+4. 🧮 **الكسور**: كل كسر يُكتب \\frac{{البسط}}{{المقام}} — لا بـ«/» ولا «÷» ولا بكلمة «على»، حتى لو كتبه الكتاب هكذا. مثال: ك = \\frac{{الوزن}}{{تسارع الجاذبية}}. ⚠️ ووحدات القياس ليست كسوراً وتبقى كما هي: م/ث · كجم.م/ث · كم/ساعة.
 """
         })
         
@@ -207,7 +235,8 @@ async def handle_chemistry_explain(req: AskRequest, openai_client):
         clean_answer = format_arabic_math(raw_answer)
         
         # ✅ فلتر التنظيف الجذري لإزالة أكواد LaTeX والشرطة السفلية
-        clean_answer = re.sub(r'\\[a-zA-Z]+', '', clean_answer)
+        # ⚠️ `\frac` مستثناة — ترميز الكسر الذي يرسمه التطبيق.
+        clean_answer = re.sub(r'\\(?!frac\b|chem\b|ring\b)[a-zA-Z]+', '', clean_answer)
         clean_answer = clean_answer.replace('_', ' ')
         answer = clean_answer
     except asyncio.TimeoutError:
@@ -257,7 +286,7 @@ async def handle_chemistry_summary(req: AskRequest, openai_client):
         else:
             target_data = book.get("الوحدات", [])
             
-        results, idxs = await enhanced_search_physics(target_data, req.content, top_k=QA_TOP_K)
+        results, idxs = await enhanced_search_physics(target_data, req.search_query, top_k=QA_TOP_K)
         
         context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
         
@@ -275,7 +304,7 @@ async def handle_chemistry_summary(req: AskRequest, openai_client):
         
         if req.chat_history:
             valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
-            messages_for_ai.extend(valid_history[-6:])
+            messages_for_ai.extend(valid_history[-HISTORY_LAST_N:])
         
         messages_for_ai.append({
             "role": "user",
@@ -288,7 +317,32 @@ async def handle_chemistry_summary(req: AskRequest, openai_client):
 التعليمات:
 1. إذا كانت رسالة الطالب ترحيب أو شكر، رد بلطف وتجاهل التلخيص.
 2. إذا طلب التلخيص، استخدم فقط المعلومات المستخرجة أعلاه لعمل التلخيص. إذا لم تكن هناك معلومات، أخبره أن الموضوع غير متوفر في المنهج.
-3🧪 القواعد الكيميائية: اكتب المعادلات الكيميائية بنص عادي وواضح ومطابق حرفياً لما هو موجود في سياق الدرس (استخدم الأسهم العادية مثل -> أو =). اجعل كل معادلة في سطر مستقل لسهولة القراءة، ويُمنع منعاً باتاً تأليف معادلات خارجية أو استخدام أكواد LaTeX المعقدة.
+3🧪 القواعد الكيميائية: اكتب المعادلات الكيميائية بنص عادي وواضح ومطابق حرفياً لما هو موجود في سياق الدرس (استخدم الأسهم العادية مثل -> أو =). اجعل كل معادلة في سطر مستقل لسهولة القراءة، ويُمنع منعاً باتاً تأليف معادلات خارجية أو استخدام أكواد LaTeX المعقدة — عدا **الكسور** فهي مطلوبة بصيغتها: كل بسط ومقام يُكتب \\frac{{البسط}}{{المقام}} ولا يُكتب بـ«/» ولا «÷».
+
+════════════════════════════════════════════════════
+⚗️ **الصيغ البنائية والحلقات — قاعدة مُلزِمة تسبق كل ما عداها**
+════════════════════════════════════════════════════
+🚫 **يُمنع منعاً باتاً رسم أي شكل بالرموز أو الشرطات أو داخل ```** —
+   ولا تقل «لا أستطيع الرسم». أنت **تكتب ترميزاً** والتطبيق **يرسمه** للطالب.
+
+📌 السلسلة المفتوحة ⇐ \\chem{{...}}
+   • المجموعات موصولةً بشرطة: \\chem{{CH3-CH2-CH2-NH2}}
+   • الفرع بين قوسين بعد أصله مباشرةً: \\chem{{CH3-CH(CH3)-CH3}}
+   • الرابطة الثنائية = والثلاثية #: \\chem{{CH3-CH=O}} · \\chem{{CH3-C#N}}
+
+📌 الحلقة ⇐ \\ring{{...}} — الأجزاء يفصلها | :
+   • العدد أولاً: \\ring{{3}} مثلث · \\ring{{4}} مربع · \\ring{{6}} سداسي
+   • ar للعطرية: \\ring{{6|ar}} بنزين
+   • رمز الذرّة داخل الحلقة: \\ring{{6|ar|N}} بيريدين · \\ring{{6|NH}} بيبيريدين
+   • +المجموعة المعلّقة: \\ring{{6|ar|+NH2}} أنيلين · \\ring{{3|+NH2}} أمينو سيكلوبروبان
+
+⚠️ **هذه القاعدة أقوى من قاعدة «انقل بلغة الدرس حرفياً»**: إن كتب الكتاب
+   الصيغة سطراً مسطّحاً فحوّلها أنت إلى \\chem أو \\ring. وكلّما ذكرتَ مركّباً
+   عضوياً بالاسم (بروبان · سيكلوهيكسان · أنيلين …) أرفِق ترميزه بعده.
+
+✅ مطلوب: «المركب \\chem{{CH3-NH-CH3}} يسمى ثنائي ميثيل أمين.»
+❌ مرفوض: رسمٌ بالشرطات والخطوط داخل كتلة برمجية.
+
 """
         })
         
@@ -302,7 +356,8 @@ async def handle_chemistry_summary(req: AskRequest, openai_client):
         clean_answer = format_arabic_math(raw_answer)
         
         # ✅ فلتر التنظيف الجذري
-        clean_answer = re.sub(r'\\[a-zA-Z]+', '', clean_answer)
+        # ⚠️ `\frac` مستثناة — ترميز الكسر الذي يرسمه التطبيق.
+        clean_answer = re.sub(r'\\(?!frac\b|chem\b|ring\b)[a-zA-Z]+', '', clean_answer)
         clean_answer = clean_answer.replace('_', ' ')
         answer = clean_answer
     except asyncio.TimeoutError:    
@@ -323,7 +378,7 @@ async def handle_chemistry_question(req: AskRequest, openai_client):
     
     chat_history_from_app = req.chat_history or []
     valid_history = [msg for msg in chat_history_from_app if msg.get('role') in ['user', 'assistant']]
-    recent_history = valid_history[-6:] if valid_history else []
+    recent_history = valid_history[-HISTORY_LAST_N:] if valid_history else []
 
     context_text = ""
     refs = []
@@ -389,8 +444,33 @@ async def handle_chemistry_question(req: AskRequest, openai_client):
 
 التعليمات:
 1. إذا كان الطالب يقول "مرحبا"، "كيفك"، "شكراً"، رد بلطف وبشكل طبيعي كمعلم.
-2. إذا كان سؤالاً في المادة، استخدم المعلومات المستخرجة للإجابة. إذا لم تكن الإجابة موجودة في المعلومات المستخرجة، لا تخمن! قل: "عذراً، هذه المعلومة غير متوفرة في المنهج المرفق".
-3🧪 القواعد الكيميائية: اكتب المعادلات الكيميائية بنص عادي وواضح ومطابق حرفياً لما هو موجود في سياق الدرس (استخدم الأسهم العادية مثل -> أو =). اجعل كل معادلة في سطر مستقل لسهولة القراءة، ويُمنع منعاً باتاً تأليف معادلات خارجية أو استخدام أكواد LaTeX المعقدة.
+2. إذا كان سؤالاً في المادة، استخدم المعلومات المستخرجة للإجابة. وإن كان الموضوع موجوداً في المعلومات المستخرجة لكن بصياغة مختلفة أو موزّعاً على أكثر من موضع، فاجمعه وأجب منه — هذا استخدامٌ للنص لا تخمين. أما إذا كان الموضوع نفسه غير موجود في المعلومات المستخرجة، فلا تخمن! قل: "عذراً، هذه المعلومة غير متوفرة في المنهج المرفق".
+3🧪 القواعد الكيميائية: اكتب المعادلات الكيميائية بنص عادي وواضح ومطابق حرفياً لما هو موجود في سياق الدرس (استخدم الأسهم العادية مثل -> أو =). اجعل كل معادلة في سطر مستقل لسهولة القراءة، ويُمنع منعاً باتاً تأليف معادلات خارجية أو استخدام أكواد LaTeX المعقدة — عدا **الكسور** فهي مطلوبة بصيغتها: كل بسط ومقام يُكتب \\frac{{البسط}}{{المقام}} ولا يُكتب بـ«/» ولا «÷».
+
+════════════════════════════════════════════════════
+⚗️ **الصيغ البنائية والحلقات — قاعدة مُلزِمة تسبق كل ما عداها**
+════════════════════════════════════════════════════
+🚫 **يُمنع منعاً باتاً رسم أي شكل بالرموز أو الشرطات أو داخل ```** —
+   ولا تقل «لا أستطيع الرسم». أنت **تكتب ترميزاً** والتطبيق **يرسمه** للطالب.
+
+📌 السلسلة المفتوحة ⇐ \\chem{{...}}
+   • المجموعات موصولةً بشرطة: \\chem{{CH3-CH2-CH2-NH2}}
+   • الفرع بين قوسين بعد أصله مباشرةً: \\chem{{CH3-CH(CH3)-CH3}}
+   • الرابطة الثنائية = والثلاثية #: \\chem{{CH3-CH=O}} · \\chem{{CH3-C#N}}
+
+📌 الحلقة ⇐ \\ring{{...}} — الأجزاء يفصلها | :
+   • العدد أولاً: \\ring{{3}} مثلث · \\ring{{4}} مربع · \\ring{{6}} سداسي
+   • ar للعطرية: \\ring{{6|ar}} بنزين
+   • رمز الذرّة داخل الحلقة: \\ring{{6|ar|N}} بيريدين · \\ring{{6|NH}} بيبيريدين
+   • +المجموعة المعلّقة: \\ring{{6|ar|+NH2}} أنيلين · \\ring{{3|+NH2}} أمينو سيكلوبروبان
+
+⚠️ **هذه القاعدة أقوى من قاعدة «انقل بلغة الدرس حرفياً»**: إن كتب الكتاب
+   الصيغة سطراً مسطّحاً فحوّلها أنت إلى \\chem أو \\ring. وكلّما ذكرتَ مركّباً
+   عضوياً بالاسم (بروبان · سيكلوهيكسان · أنيلين …) أرفِق ترميزه بعده.
+
+✅ مطلوب: «المركب \\chem{{CH3-NH-CH3}} يسمى ثنائي ميثيل أمين.»
+❌ مرفوض: رسمٌ بالشرطات والخطوط داخل كتلة برمجية.
+
 """
         })
         
@@ -405,7 +485,8 @@ async def handle_chemistry_question(req: AskRequest, openai_client):
         clean_answer = format_arabic_math(raw_answer)
         
         # ✅ فلتر التنظيف الجذري
-        clean_answer = re.sub(r'\\[a-zA-Z]+', '', clean_answer)
+        # ⚠️ `\frac` مستثناة — ترميز الكسر الذي يرسمه التطبيق.
+        clean_answer = re.sub(r'\\(?!frac\b|chem\b|ring\b)[a-zA-Z]+', '', clean_answer)
         clean_answer = clean_answer.replace('_', ' ')
         answer = clean_answer
     except asyncio.TimeoutError:    

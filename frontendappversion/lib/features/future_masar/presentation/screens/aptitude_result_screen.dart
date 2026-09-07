@@ -5,8 +5,10 @@ import '../../../../core/widgets/fade_in_slide.dart';
 import '../../data/demo_data.dart';
 import '../../data/demo_state.dart';
 import '../widgets/demo_widgets.dart';
-import '../widgets/robot_widget.dart';
-import 'scholarship_detail_screen.dart';
+import '../../../../core/widgets/robot_widget.dart';
+import '../../../scholarships/data/models/scholarship.dart';
+import '../../../scholarships/data/scholarship_repository.dart';
+import '../../../scholarships/presentation/scholarship_detail_screen.dart';
 
 // ==========================================
 // 🧭 تقرير اختبار الميول
@@ -23,12 +25,36 @@ class _AptitudeResultScreenState extends State<AptitudeResultScreen> {
   late final AptDim _top;
   late final List<MapEntry<AptDim, int>> _sorted;
 
+  /// 🎓 منح حقيقية من الكاش/الخادم — لا قائمة ثابتة.
+  List<Scholarship> _suggested = const [];
+
   @override
   void initState() {
     super.initState();
     _sorted = widget.tally.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     _top = _sorted.first.key;
     DemoState.I.addResult({"type": "aptitude", "field": aptDimNames[_top], "score": _sorted.first.value, "total": 15});
+    _loadScholarships();
+  }
+
+  /// «منح تناسب مجالك»: نطابق حقل `fields` الذي يضبطه الأدمن لكل منحة مع
+  /// مجال الطالب. وإن لم يضبطه أحد بعد، نعرض المفتوحة الممولة بالكامل —
+  /// اقتراحٌ نافع خيرٌ من قسمٍ فارغ. والمغلقة لا تُقترح إطلاقاً.
+  Future<void> _loadScholarships() async {
+    final field = aptDimNames[_top] ?? "";
+    try {
+      final result = await ScholarshipRepository().fetch();
+      final open = result.items.where((s) => s.status != SchStatus.closed).toList();
+      final matched = open
+          .where((s) => s.fields.any((f) => f.contains(field) || field.contains(f)))
+          .toList();
+      final picks = matched.isNotEmpty
+          ? matched
+          : open.where((s) => s.isFullyFunded).toList();
+      if (mounted) setState(() => _suggested = picks.take(3).toList());
+    } catch (_) {
+      // بلا إنترنت ⇒ القسم يختفي بهدوء بدل رسالة خطأ في شاشة نتيجة.
+    }
   }
 
   String get _report =>
@@ -40,7 +66,7 @@ class _AptitudeResultScreenState extends State<AptitudeResultScreen> {
   @override
   Widget build(BuildContext context) {
     final majors = aptSuggestedMajors[_top] ?? const [];
-    final suggested = demoScholarships.where((s) => s.fundingType == "full").take(3).toList();
+    final suggested = _suggested;
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       body: Stack(
@@ -62,7 +88,7 @@ class _AptitudeResultScreenState extends State<AptitudeResultScreen> {
                     ),
                     child: Column(
                       children: [
-                        const RobotWidget(size: 90, state: RobotState.wave),
+                        RobotWidget(size: 90, state: RobotState.wave),
                         const SizedBox(height: 8),
                         const Text("مجالك الأقرب 🎯", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 6),
@@ -112,7 +138,7 @@ class _AptitudeResultScreenState extends State<AptitudeResultScreen> {
                 ),
                 const SizedBox(height: 22),
 
-                const SectionHeader("منح تناسب مجالك 🎓"),
+                if (suggested.isNotEmpty) const SectionHeader("منح تناسب مجالك 🎓"),
                 ...suggested.map((s) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: InkWell(
@@ -121,7 +147,7 @@ class _AptitudeResultScreenState extends State<AptitudeResultScreen> {
                         child: SoftCard(
                           padding: const EdgeInsets.all(12),
                           child: Row(children: [
-                            Container(width: 44, height: 44, decoration: BoxDecoration(gradient: LinearGradient(colors: s.gradient), borderRadius: BorderRadius.circular(12)), child: Center(child: Text(s.flag, style: const TextStyle(fontSize: 22)))),
+                            Container(width: 44, height: 44, decoration: BoxDecoration(gradient: LinearGradient(colors: s.colors), borderRadius: BorderRadius.circular(12)), child: Center(child: Text(s.badge, style: const TextStyle(fontSize: 22)))),
                             const SizedBox(width: 12),
                             Expanded(child: Text(s.name, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: AppColors.textPrimary))),
                             Icon(Icons.chevron_left_rounded, color: AppColors.textSecondary),

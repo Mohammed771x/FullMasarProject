@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/config/curriculum.dart';
+import '../../../../core/config/resources.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/chat_model.dart';
 import '../controllers/chat_controller.dart';
@@ -12,7 +14,15 @@ class ChatDialogs {
   ChatDialogs._();
 
   // ===== مركز الموارد =====
-  static void showResources(BuildContext context) {
+  // 📚 يتبع الصف والمسار: مواده = مواد الصف نفسها، وروابطه من
+  //    `core/config/resources.dart`. مادة بلا روابط → شارة «قريباً».
+  static void showResources(BuildContext context, {required int grade, required Track track}) {
+    final t = Curriculum.normalizeTrack(grade, track);
+    final subjects = Curriculum.subjectsFor(grade, t);
+    final scopeLabel = Curriculum.hasTracks(grade)
+        ? "${Curriculum.gradeLabel(grade)} · ${t.label}"
+        : Curriculum.gradeLabel(grade);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -25,7 +35,19 @@ class ChatDialogs {
             child: Icon(Icons.folder_special_rounded, color: AppColors.primary),
           ),
           const SizedBox(width: 15),
-          Text("مركز الموارد", style: TextStyle(fontWeight: FontWeight.w800)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("مركز الموارد", style: TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                // 🏷️ شارة النطاق: يعرف الطالب أن هذه موارد صفه هو
+                Text(scopeLabel,
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.primary)),
+              ],
+            ),
+          ),
         ]),
         content: SizedBox(
           width: double.maxFinite,
@@ -33,34 +55,16 @@ class ChatDialogs {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _resourceCard(context, "📐 الرياضيات", [
-                  {"name": "ملخص التفاضل", "url": "https://drive.google.com/drive/folders/1hIojvkK09LT7IcqaK5aGoEV_vrrVZjLs"},
-                  {"name": "ملخص الجبر", "url": "https://drive.google.com/drive/folders/1m8QVLyM6tbG5buQNDdGwNCRbV_28bsxA"},
-                  {"name": "ملخص التكامل", "url": "https://drive.google.com/drive/u/1/folders/1ao83kRRVKk40VOAsgnLcjDeOodIyHNri"},
-                  {"name": "ملخص الهندسة", "url": "https://drive.google.com/drive/u/1/folders/1TWxdgszrwzxCQW2uRSXkv7VZrIKIGvGV"},
-                  {"name": "ملخص الاحتمالات", "url": "https://drive.google.com/drive/u/1/folders/1Sx-ZJqwjORzFwQR5EDVrVd32mkjkI_lh"},
-                  {"name": "الأسئلة الوزارية", "url": "https://drive.google.com/drive/u/1/folders/1xaM6g_dtYTsKvomLK7uQcBbhKwaS0a6b"},
-                ]),
-                _resourceCard(context, "🧬 الأحياء", [
-                  {"name": "ملخصات الأحياء", "url": "https://drive.google.com/drive/u/1/folders/1LLzIsWFKiZOkrr6DUaagm9RVmBdKKDQn"},
-                  {"name": "الأسئلة الوزارية", "url": "https://drive.google.com/drive/u/1/folders/1xaM6g_dtYTsKvomLK7uQcBbhKwaS0a6b"},
-                ]),
-                _resourceCard(context, "⚛️ الكيمياء", [
-                  {"name": "ملخصات الكيمياء", "url": "https://drive.google.com/drive/u/1/folders/1_9YpbhSvG4-qcVihLU10o8muFFPh0Gqt"},
-                  {"name": "الأسئلة الوزارية", "url": "https://drive.google.com/drive/u/1/folders/1xaM6g_dtYTsKvomLK7uQcBbhKwaS0a6b"},
-                ]),
-                _resourceCard(context, "🔬 الفيزياء", [
-                  {"name": "ملخص الفيزياء", "url": "https://drive.google.com/drive/folders/1ATQPwJNXYf-yidgXjhkW7E7AaqYev2vc"},
-                  {"name": "الأسئلة الوزارية", "url": "https://drive.google.com/drive/u/1/folders/1xaM6g_dtYTsKvomLK7uQcBbhKwaS0a6b"},
-                ]),
-                _resourceCard(context, "📜 اللغة العربية", [
-                  {"name": "ملخص النحو", "url": "https://drive.google.com/drive/u/1/folders/13Ec4BtxzxvJTOrR9_BriUGfr1HszU3M1"},
-                  {"name": "الأسئلة الوزارية", "url": "https://drive.google.com/drive/u/1/folders/1xaM6g_dtYTsKvomLK7uQcBbhKwaS0a6b"},
-                ]),
-                _resourceCard(context, "🔤 اللغة الإنجليزية", [
-                  {"name": "ملخصات الانجليزي", "url": "https://drive.google.com/drive/u/1/folders/1hEE0h4iBkgNRDsoy9OOVfL1eNFzYeiHU"},
-                  {"name": "الأسئلة الوزارية", "url": "https://drive.google.com/drive/u/1/folders/1xaM6g_dtYTsKvomLK7uQcBbhKwaS0a6b"},
-                ]),
+                if (!Resources.hasAny(grade, t))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: Text(
+                      "🚧 موارد $scopeLabel قيد التجهيز — المواد أدناه جاهزة وستُضاف روابطها قريباً.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12.5, height: 1.6, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                    ),
+                  ),
+                ...subjects.map((s) => _resourceCard(context, s, Resources.forSubject(grade, t, s))),
               ],
             ),
           ),
@@ -75,31 +79,57 @@ class ChatDialogs {
     );
   }
 
-  static Widget _resourceCard(BuildContext context, String title, List<Map<String, String>> items) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: AppColors.softSurface, borderRadius: BorderRadius.circular(20)),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-          children: items
-              .map((item) => ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                    leading: Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 20),
-                    title: Text(item['name']!, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                    trailing: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-                      child: Icon(Icons.download_rounded, color: AppColors.primary, size: 16),
-                    ),
-                    onTap: () async {
-                      if (await canLaunchUrl(Uri.parse(item['url']!))) {
-                        await launchUrl(Uri.parse(item['url']!), mode: LaunchMode.externalApplication);
-                      }
-                    },
-                  ))
-              .toList(),
+  static Widget _resourceCard(BuildContext context, String subject, List<ResourceLink> items) {
+    final empty = items.isEmpty;
+    // 🐛 Material لا Container: ListTile يرسم خلفيته وتموّجه على أقرب Material،
+    //    فلو لوّنّا Container فوقه لأخفى التموّج — وFlutter يرمي تأكيداً بذلك.
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: AppColors.softSurface,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            enabled: !empty,
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(Resources.displayName(subject),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: empty ? AppColors.textSecondary : AppColors.textPrimary)),
+                ),
+                if (empty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: AppColors.surfaceWhite, borderRadius: BorderRadius.circular(8)),
+                    child: Text("قريباً",
+                        style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: AppColors.textSecondary)),
+                  ),
+              ],
+            ),
+            trailing: empty ? const SizedBox.shrink() : null,
+            children: items
+                .map((item) => ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                      leading: Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 20),
+                      title: Text(item.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                      trailing: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(color: AppColors.surfaceWhite, borderRadius: BorderRadius.circular(10)),
+                        child: Icon(Icons.download_rounded, color: AppColors.primary, size: 16),
+                      ),
+                      onTap: () async {
+                        final uri = Uri.parse(item.url);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                    ))
+                .toList(),
+          ),
         ),
       ),
     );

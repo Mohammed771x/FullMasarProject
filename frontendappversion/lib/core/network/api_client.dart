@@ -24,6 +24,13 @@ class ApiClient {
     "ngrok-skip-browser-warning": "true",
   };
 
+  /// ترويسات مع توكن Firebase — بوابة الباك اند الجديدة ([27§5 شريحة أ]).
+  /// غياب التوكن مسموح مؤقتاً: الخادم يقبل الكود القديم حتى ينتقل الجميع.
+  static Map<String, String> authHeaders(String? idToken) => {
+        ...jsonHeaders,
+        if (idToken != null && idToken.isNotEmpty) "Authorization": "Bearer $idToken",
+      };
+
   // GET يرجع الـ Response خام (مع الهيدر والمهلة الموحّدة)
   Future<http.Response> getRaw(String url, {Duration? timeout}) {
     return _client

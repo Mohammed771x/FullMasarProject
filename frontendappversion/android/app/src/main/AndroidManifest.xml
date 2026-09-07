@@ -1,5 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 🎤 التسجيل الصوتي (تحويل الكلام لنص على الجهاز) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- 📷 التقاط صورة السؤال -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- 🔔 إشعارات الدفع — إذنٌ **إلزامي** منذ أندرويد ١٣ (API 33).
+         بدونه لا يظهر إشعارٌ واحد على الأجهزة الحديثة ولا خطأ يُنبّه:
+         يُسجَّل الرمز ويُدفع بنجاح ولا يرى الطالب شيئاً. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
+    </queries>
 <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
@@ -51,6 +64,17 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- 🔔 قناة الإشعارات الافتراضية — يجب أن تطابق `channel_id` في
+             `Backend/core/push.py` حرفياً. اختلافُهما يعني إشعاراً يصل
+             الجهاز فيضعه أندرويد في قناةٍ مجهولة بلا صوتٍ ولا ظهور. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="masar_general" />
+        <!-- ✂️ نشاط القص (image_cropper) -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

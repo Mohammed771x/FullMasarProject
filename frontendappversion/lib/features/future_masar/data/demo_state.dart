@@ -1,13 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-// رسالة في محادثة مساعد المعلم (محفوظة بالذاكرة عبر التنقّل)
-class TeacherMsg {
-  final String role; // user | ai
-  final String text;
-  bool animate;
-  TeacherMsg(this.role, this.text, {this.animate = false});
-}
-
 // ==========================================
 // 🧠 حالة الديمو (محاكاة Firebase Auth + Firestore + Hive بالذاكرة)
 // ==========================================
@@ -16,22 +8,8 @@ class DemoState extends ChangeNotifier {
   DemoState._();
   static final DemoState I = DemoState._();
 
-  // ===== محادثات مساعد المعلم (كل ميزة لها سجلّها المستقل والمستمر) =====
-  final Map<String, List<TeacherMsg>> teacherChats = {
-    "plan": [],
-    "simplify": [],
-    "homework": [],
-    "chat": [
-      TeacherMsg("ai", "أهلاً أستاذ 👋 أنا مساعد المعلم من مسار.\nأساعدك في التخطيط للدروس، تبسيط المفاهيم، إعداد الواجبات، وأي سؤال تربوي. كيف أخدمك اليوم؟"),
-      TeacherMsg("user", "كيف أجعل حصة الرياضيات أكثر تفاعلاً؟"),
-      TeacherMsg("ai", "🤖 **(عرض تجريبي)** أفكار سريعة لزيادة التفاعل:\n\n- ابدأ بلغز رياضي قصير يشد الانتباه.\n- استخدم أمثلة من حياة الطالب (تسوّق، رياضة).\n- قسّم الطلاب لمجموعات صغيرة بمسابقة سريعة.\n- اختم بسؤال تحدٍّ للحصة القادمة.\n\nتريد خطة درس جاهزة على هذا الأساس؟"),
-    ],
-  };
-
-  void addTeacherMsg(String key, TeacherMsg m) {
-    teacherChats[key]!.add(m);
-    notifyListeners();
-  }
+  // 🔻 حُذفت محادثات مساعد المعلم الوهمية: القسم صار حقيقياً في
+  //    `features/teacher/` ومحادثاته تُحفظ في Hive وتُزامَن كمحادثات الطالب.
 
   // ===== الحساب (محاكاة Firebase Auth) =====
   bool loggedIn = false;

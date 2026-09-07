@@ -21,13 +21,16 @@ class ChatMessageAdapter extends TypeAdapter<ChatMessage> {
       text: fields[1] as String,
       refs: (fields[2] as List).cast<String>(),
       timestamp: fields[3] as DateTime?,
+      imagePath: fields[4] == null ? '' : fields[4] as String,
+      imagePaths: fields[5] == null ? [] : (fields[5] as List).cast<String>(),
+      imageText: fields[6] == null ? '' : fields[6] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, ChatMessage obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.role)
       ..writeByte(1)
@@ -35,7 +38,13 @@ class ChatMessageAdapter extends TypeAdapter<ChatMessage> {
       ..writeByte(2)
       ..write(obj.refs)
       ..writeByte(3)
-      ..write(obj.timestamp);
+      ..write(obj.timestamp)
+      ..writeByte(4)
+      ..write(obj.imagePath)
+      ..writeByte(5)
+      ..write(obj.imagePaths)
+      ..writeByte(6)
+      ..write(obj.imageText);
   }
 
   @override
@@ -67,13 +76,17 @@ class ChatConversationAdapter extends TypeAdapter<ChatConversation> {
       messages: (fields[4] as List).cast<ChatMessage>(),
       createdAt: fields[5] as DateTime?,
       lastUpdated: fields[6] as DateTime?,
+      grade: fields[7] == null ? 3 : fields[7] as int,
+      track: fields[8] == null ? 'علمي' : fields[8] as String,
+      branch: fields[9] == null ? '' : fields[9] as String,
+      ownerUid: fields[10] == null ? '' : fields[10] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, ChatConversation obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -87,7 +100,15 @@ class ChatConversationAdapter extends TypeAdapter<ChatConversation> {
       ..writeByte(5)
       ..write(obj.createdAt)
       ..writeByte(6)
-      ..write(obj.lastUpdated);
+      ..write(obj.lastUpdated)
+      ..writeByte(7)
+      ..write(obj.grade)
+      ..writeByte(8)
+      ..write(obj.track)
+      ..writeByte(9)
+      ..write(obj.branch)
+      ..writeByte(10)
+      ..write(obj.ownerUid);
   }
 
   @override

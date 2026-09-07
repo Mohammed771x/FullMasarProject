@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/chat_controller.dart';
+import '../../../teacher/data/teacher_tool.dart';
 
 // ==========================================
 // 🪟 الشريط العلوي الزجاجي + بوصلة المسار
@@ -56,7 +57,18 @@ class ChatGlassAppBar extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text("مسار الطالب", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: 0.5)),
+                    // 👨‍🏫 العنوان يقول للمعلّم **في أي أداة هو** — فالشاشة
+                    //    واحدة للأدوات الأربع ولا يميّزها غير هذا السطر.
+                    Flexible(
+                      child: Text(
+                        controller.isTeacher
+                            ? "${controller.teacherTool!.emoji} ${controller.teacherTool!.label}"
+                            : "مسار الطالب",
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: 0.5),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
                     if (isLoadingMsg) ...[
                       const SizedBox(width: 8),
                       SizedBox(

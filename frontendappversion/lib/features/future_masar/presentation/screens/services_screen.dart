@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../banners/data/banner_model.dart';
+import '../../../banners/presentation/banner_carousel.dart';
 import '../../../../core/widgets/fade_in_slide.dart';
 import '../../data/demo_data.dart';
 import '../widgets/demo_widgets.dart';
-import '../widgets/robot_assistant.dart';
+import '../../../../core/widgets/screen_tip.dart';
 
 // ==========================================
 // 🤝 قسم الخدمات
@@ -26,6 +28,13 @@ class ServicesScreen extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
                   children: [
+                    // 🎏 بانر القسم — يُدار من لوحة التحكم.
+                    BannerCarousel(
+                      section: BannerSection.services,
+                      onAction: (a, v) => _onBannerAction(context, a, v),
+                      height: 120,
+                    ),
+                    const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -53,7 +62,7 @@ class ServicesScreen extends StatelessWidget {
               ),
             ],
           ),
-          const RobotAssistant(screenId: "services"),
+          const ScreenTip(screenId: "services", text: "قسم الخدمات 🛠️ فريق مسار يساعدك في سيرتك الذاتية وخطاب الدافع وملف التقديم."),
         ],
       ),
     );
@@ -129,4 +138,11 @@ class ServicesScreen extends StatelessWidget {
       ),
     );
   }
+  /// 🎏 وجهة النقر على بانر هذا القسم. البانر هنا داخليّ غالباً، فالوجهات
+  /// الخارجة عن القسم تُترك للشاشة الرئيسية بدل فتح شاشات متداخلة بلا نهاية.
+  void _onBannerAction(BuildContext context, String action, String value) {
+    if (action == "url" || action == "none") return;
+    Navigator.pop(context);
+  }
+
 }

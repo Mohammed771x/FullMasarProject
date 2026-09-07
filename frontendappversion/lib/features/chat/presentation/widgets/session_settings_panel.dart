@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/curriculum.dart';
+import '../../../quiz/presentation/quiz_setup_screen.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/modern_dropdown.dart';
 import '../controllers/chat_controller.dart';
+import '../../../teacher/presentation/widgets/teacher_settings_panel.dart';
 
 // ==========================================
 // ⚙️ لوحة إعدادات الجلسة (المنبثقة) وكل عناصر الاختيار
@@ -16,6 +19,10 @@ class SessionSettingsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 👨‍🏫 **الفرق الأول والوحيد في الشاشة** بين قسم المعلم وقسم التعليم:
+    //    لوحة إعدادات أخرى. وما عداها — الشات كله — هو نفسه بالبناء لا بالنقل.
+    if (c.isTeacher) return TeacherSettingsPanel(controller: c);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -40,7 +47,7 @@ class SessionSettingsPanel extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            _modeSelector(),
+            _modeSelector(context),
             if (c.selectedSubject == "رياضيات") ...[
               const SizedBox(height: 16), _mathBranchSelector(),
               if (c.mathMode == "وزاري" && c.selectedMathBranch.isNotEmpty) _mathExamSelector(),
@@ -56,9 +63,19 @@ class SessionSettingsPanel extends StatelessWidget {
               ],
               if (c.selectedMathBranch.isNotEmpty) const SizedBox(height: 12), _mathModeSelector(),
             ],
-            if (c.selectedSubject != "رياضيات") _unitFilterArea(),
+            // 🆕 مصدر المحتوى (وضع الدروس / وضع الوحدات) — لكل المواد عدا الرياضيات والوزاري
+            if (c.usesContentModes) ...[
+              const SizedBox(height: 16),
+              _contentModeSelector(),
+            ],
+            // وضع الدروس: وحدة ← درس (من /content/capabilities)
+            if (c.usesContentModes && c.contentMode == "lessons") _lessonsModeArea(),
+            // وضع الوحدات/الصفحات: الواجهة القديمة نفسها + الوزاري كما هو
+            if (c.selectedSubject != "رياضيات" &&
+                (!c.usesContentModes || c.contentMode == "pages")) _unitFilterArea(),
             if (c.selectedMode == "تلخيص" && c.selectedSubject != "رياضيات") _summarySlider(),
-            if (c.selectedSubject != "رياضيات" && c.selectedMode != "سؤال" && c.selectedMode != "وزاري") _inputTypeSelector(),
+            if (c.selectedSubject != "رياضيات" && c.selectedMode != "سؤال" && c.selectedMode != "وزاري" &&
+                (!c.usesContentModes || c.contentMode == "pages")) _inputTypeSelector(),
           ],
         ),
       ),
@@ -66,7 +83,7 @@ class SessionSettingsPanel extends StatelessWidget {
   }
 
   // ===== محدّد الوضع (العام) =====
-  Widget _modeSelector() {
+  Widget _modeSelector(BuildContext context) {
     if (c.selectedSubject == "رياضيات") return const SizedBox.shrink();
     Map<String, IconData> modeIcons = {
       "شرح": Icons.auto_stories_rounded,
@@ -77,7 +94,13 @@ class SessionSettingsPanel extends StatelessWidget {
     return Wrap(
       spacing: 10,
       runSpacing: 10,
-      children: ["شرح", "تلخيص", "سؤال", "وزاري"].map((m) => AnimatedContainer(
+      // 📚 مصدر واحد للأوضاع: `Curriculum.modesFor` — كانت القائمة مكتوبة
+      //    هنا يدوياً، فتغييرها في المنهج لا يظهر في الواجهة.
+      children: Curriculum.modesFor(
+        c.selectedSubject,
+        grade: c.grade,                       // ★ الثالث يحتفظ بالوزاري دائماً
+        examsAvailable: c.caps?.examsAvailable ?? true,
+      ).map((m) => AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         child: ChoiceChip(
           label: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -92,20 +115,33 @@ class SessionSettingsPanel extends StatelessWidget {
           backgroundColor: AppColors.softSurface,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
-          onSelected: (_) => c.switchContext(() {
+          onSelected: (_) {
+            // 🧠 «اختبارات» ليست وضع محادثة — تفتح شاشة الاختبار مباشرةً
+            //    بالمادة والصف المحدَّدين مسبقاً ([31§4]).
+            if (m == Curriculum.quizMode) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => QuizSetupScreen(
+                    initialSubject: c.selectedSubject,
+                    initialGrade: c.grade,
+                    initialTrack: c.track.key,
+                  ),
+                ),
+              );
+              return;
+            }
+            c.switchContext(() {
             c.selectedMode = m;
             c.mathWazariQuestionsLoaded = false;
-            if (c.selectedSubject == "فيزياء") {
-              c.selectedPhysicsLesson = "";
-              c.physicsLessons = [];
-            }
             if (m == "وزاري") {
               c.selectedExamYear = "";
               c.loadAvailableYears();
             } else {
               c.loadAvailableUnits();
             }
-          }),
+            });
+          },
         ),
       )).toList(),
     );
@@ -113,7 +149,10 @@ class SessionSettingsPanel extends StatelessWidget {
 
   // ===== محدّد نوع الإدخال (صفحة/برومت) =====
   Widget _inputTypeSelector() {
-    if (c.selectedSubject == "فيزياء" || c.selectedSubject == "كيمياء" || c.selectedSubject == "عربي" || c.selectedSubject == "انجليزي" || c.selectedMode == "وزاري" || c.selectedMode == "سؤال") {
+    // ⛔ الوزاري والسؤال وحدهما بلا اختيار (السؤال بحثٌ دلالي دائماً).
+    //    وما عداهما: **كل المواد سواء** — كان الشرط يذكر أسماء مواد بعينها،
+    //    فتظهر «صفحة/برومت» للأحياء وحدها ويبقى وضع الوحدات نصفَ واجهة.
+    if (c.selectedMode == "وزاري" || c.selectedMode == "سؤال") {
       return const SizedBox.shrink();
     }
     return Padding(
@@ -178,7 +217,9 @@ class SessionSettingsPanel extends StatelessWidget {
           backgroundColor: AppColors.softSurface,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
-          onSelected: (_) => c.update(() {
+          // ★ switchContext (وليس update): وضع الرياضيات جزء من نطاق المحادثات،
+          //   فتبديله يجب أن يبدّل سجلّ المحادثات أيضاً.
+          onSelected: (_) => c.switchContext(() {
             c.mathMode = mode;
             c.selectedMode = mode;
             c.inputType = "برومت";
@@ -289,11 +330,120 @@ class SessionSettingsPanel extends StatelessWidget {
   }
 
   // ===== منطقة فلترة الوحدات/الوزاري لكل مادة =====
+  // ===== 🆕 محدد مصدر المحتوى =====
+  Widget _contentModeSelector() {
+    Widget chip(String mode, String label, IconData icon, bool available) {
+      final sel = c.contentMode == mode;
+      return Expanded(
+        child: Opacity(
+          opacity: available ? 1 : 0.5,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => c.setContentMode(mode),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              decoration: BoxDecoration(
+                gradient: sel ? AppColors.mainGradient : null,
+                color: sel ? null : AppColors.softSurface,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(children: [
+                Icon(icon, size: 19, color: sel ? Colors.white : AppColors.textSecondary),
+                const SizedBox(height: 3),
+                Text(label, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold,
+                    color: sel ? Colors.white : AppColors.textSecondary)),
+                if (!available)
+                  Text("قيد الإضافة", style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900,
+                      color: sel ? Colors.white70 : AppColors.textSecondary.withValues(alpha: 0.7))),
+              ]),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final lessonsOk = c.caps?.lessonsAvailable ?? false;
+    final pagesOk = c.caps?.pagesAvailable ?? false;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text("مصدر المحتوى", style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+      const SizedBox(height: 8),
+      Row(children: [
+        chip("lessons", "📖 وضع الدروس", Icons.menu_book_rounded, lessonsOk),
+        const SizedBox(width: 10),
+        chip("pages", "📄 وضع الوحدات", Icons.auto_stories_rounded, pagesOk),
+      ]),
+    ]);
+  }
+
+  // ===== 🆕 منتقيا وضع الدروس (وحدة ← درس) =====
+  Widget _lessonsModeArea() {
+    if (c.capsLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 18),
+        child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4))),
+      );
+    }
+    final units = c.v3LessonsUnits;
+    if (units.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 14),
+        child: Text("📁 محتوى وضع الدروس لهذه المادة قيد الإضافة 🚧",
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+      );
+    }
+    return Column(children: [
+      const SizedBox(height: 14),
+      ModernDropdown(
+        hint: "اختر الوحدة",
+        value: c.selectedV3Unit.isEmpty ? null : c.selectedV3Unit,
+        items: units,
+        onChanged: (v) => c.setV3Unit(v ?? ""),
+        icon: Icons.folder_rounded,
+      ),
+      const SizedBox(height: 12),
+      ModernDropdown(
+        hint: "اختر الدرس",
+        value: c.selectedV3Lesson.isEmpty ? null : c.selectedV3Lesson,
+        items: c.v3LessonsInSelectedUnit,
+        onChanged: (v) => c.setV3Lesson(v ?? ""),
+        icon: Icons.menu_book_rounded,
+      ),
+      if (c.selectedV3Lesson.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text("✅ اضغط إرسال مباشرة لشرح الدرس كاملاً، أو اكتب سؤالك فيه",
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary)),
+        ),
+      ],
+    ]);
+  }
+
   Widget _unitFilterArea() {
     // 🔴 وضع الوزاري
     if (c.selectedMode == "وزاري") {
       if (c.selectedSubject == "رياضيات") {
         return const SizedBox.shrink();
+      }
+
+      // 🚧 بنك الوزاري مخزَّن لكل صف على حدة — إن كان صف الطالب بلا بنك
+      //    نقولها صراحةً بدل قوائم فارغة بلا تفسير.
+      if (c.yearsLoading) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 18),
+          child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4))),
+        );
+      }
+      if (c.availableYears.isEmpty) {
+        return Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Text(
+            "📁 الأسئلة الوزارية لـ«${c.selectedSubject}» في ${c.gradeLabel}"
+            "${Curriculum.hasTracks(c.grade) ? ' ${c.trackLabel}' : ''} لم تُضف بعد 🚧",
+            style: TextStyle(fontSize: 12.5, height: 1.6, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+          ),
+        );
       }
 
       // 👇 العربي حصراً
@@ -360,8 +510,8 @@ class SessionSettingsPanel extends StatelessWidget {
               height: 50,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isArabicReady ? AppColors.primary : Colors.grey.shade300,
-                  foregroundColor: isArabicReady ? Colors.white : Colors.grey,
+                  backgroundColor: isArabicReady ? AppColors.primary : AppColors.softSurface,
+                  foregroundColor: isArabicReady ? Colors.white : AppColors.textSecondary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   elevation: isArabicReady ? 4 : 0,
                 ),
@@ -466,100 +616,37 @@ class SessionSettingsPanel extends StatelessWidget {
       );
     }
 
-    // 🟡 الأحياء فقط - نظام الصفحات والوحدات
-    if (c.selectedSubject == "احياء") {
-      return Column(
-        children: [
-          const SizedBox(height: 16),
-          ModernDropdown(
-            hint: "اختر الوحدة",
-            value: c.selectedUnit.isEmpty ? null : c.selectedUnit,
-            items: c.availableUnits.toSet().toList(),
-            onChanged: (v) => c.update(() {
-              c.selectedUnit = v ?? "الكل";
-              c.selectedUnitName = c.selectedUnit;
-            }),
-            icon: Icons.library_books_rounded,
-          ),
-        ],
+    // ══ وضع الوحدات: وحدة ← (صفحة/برومت) — لكل المواد بالبناء نفسه ══
+    // 📄 **لا اسم مادة هنا.** الوحدات تأتي من `/content/capabilities`
+    //    (`pages.units`)، فأي مادة يُضاف لها ملف في `unit_mode` تظهر وحداتها
+    //    تلقائياً. وهنا كان العطل: الشاشة تسأل عن **اسم المادة** لا عن
+    //    المحتوى، فالكيمياء تُعبَّأ بياناتها ولا تنال ما نالته الأحياء —
+    //    وتُعرض لها بدلها قائمةُ دروسٍ من المسار القديم يتجاهلها الخادم أصلاً.
+    if (c.capsLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 18),
+        child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4))),
       );
     }
-
-    // 🔵 الفيزياء والكيمياء والعربي والإنجليزي
-    if (c.selectedSubject == "فيزياء" || c.selectedSubject == "كيمياء" || c.selectedSubject == "عربي" || c.selectedSubject == "انجليزي") {
-      return Column(
-        children: [
-          const SizedBox(height: 16),
-          ModernDropdown(
-            hint: "اختر الوحدة",
-            value: c.selectedUnit.isEmpty ? null : c.selectedUnit,
-            items: c.availableUnits.toSet().toList(),
-            onChanged: (v) => c.update(() {
-              c.selectedUnit = v ?? "الكل";
-              c.selectedUnitName = c.selectedUnit;
-              if (c.selectedSubject == "فيزياء" && c.selectedUnit != "الكل") {
-                c.loadPhysicsLessons(c.selectedUnit);
-              }
-              if (c.selectedSubject == "كيمياء" && c.selectedUnit != "الكل") {
-                c.loadChemistryLessons(c.selectedUnit);
-              }
-              if (c.selectedSubject == "عربي" && c.selectedUnit != "الكل") {
-                c.loadArabicLessons(c.selectedUnit);
-              }
-              if (c.selectedSubject == "انجليزي" && c.selectedUnit != "الكل") {
-                c.loadEnglishLessons(c.selectedUnit);
-              }
-            }),
-            icon: Icons.library_books_rounded,
-          ),
-          // الدروس للفيزياء
-          if (c.selectedSubject == "فيزياء" && c.physicsLessons.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            ModernDropdown(
-              hint: "اختر الدرس",
-              value: c.selectedPhysicsLesson.isEmpty ? null : c.selectedPhysicsLesson,
-              items: c.physicsLessons,
-              onChanged: (v) => c.update(() => c.selectedPhysicsLesson = v ?? ""),
-              icon: Icons.science_rounded,
-            ),
-          ],
-          // الدروس للكيمياء
-          if (c.selectedSubject == "كيمياء" && c.chemistryLessons.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            ModernDropdown(
-              hint: "اختر الدرس",
-              value: c.selectedChemistryLesson.isEmpty ? null : c.selectedChemistryLesson,
-              items: c.chemistryLessons,
-              onChanged: (v) => c.update(() => c.selectedChemistryLesson = v ?? ""),
-              icon: Icons.science_rounded,
-            ),
-          ],
-          // الدروس للعربي
-          if (c.selectedSubject == "عربي" && c.arabicLessons.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            ModernDropdown(
-              hint: "اختر الدرس",
-              value: c.selectedArabicLesson.isEmpty ? null : c.selectedArabicLesson,
-              items: c.arabicLessons,
-              onChanged: (v) => c.update(() => c.selectedArabicLesson = v ?? ""),
-              icon: Icons.language_rounded,
-            ),
-          ],
-          // 🟢 الدروس للإنجليزي
-          if (c.selectedSubject == "انجليزي" && c.englishLessons.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            ModernDropdown(
-              hint: "اختر الدرس",
-              value: c.selectedEnglishLesson.isEmpty ? null : c.selectedEnglishLesson,
-              items: c.englishLessons,
-              onChanged: (v) => c.update(() => c.selectedEnglishLesson = v ?? ""),
-              icon: Icons.language_rounded,
-            ),
-          ],
-        ],
+    if (c.availableUnits.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 14),
+        child: Text("📄 محتوى وضع الوحدات لهذه المادة قيد الإضافة 🚧",
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
       );
     }
-
-    return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: ModernDropdown(
+        hint: "اختر الوحدة",
+        value: c.availableUnits.contains(c.selectedUnit) ? c.selectedUnit : null,
+        items: c.availableUnits.toSet().toList(),
+        onChanged: (v) => c.update(() {
+          c.selectedUnit = v ?? "الكل";
+          c.selectedUnitName = c.selectedUnit;
+        }),
+        icon: Icons.library_books_rounded,
+      ),
+    );
   }
 }

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/fade_in_slide.dart';
 import '../widgets/demo_widgets.dart';
-import '../widgets/robot_widget.dart';
+import '../../../../core/widgets/robot_widget.dart';
 
 // ==========================================
 // 🎉 نتيجة اختبار المراجعة — بطاقة نجاح
@@ -30,7 +30,7 @@ class ReviewResultScreen extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const RobotWidget(size: 120, state: RobotState.wave),
+                      RobotWidget(size: 120, state: RobotState.wave),
                       const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.all(26),

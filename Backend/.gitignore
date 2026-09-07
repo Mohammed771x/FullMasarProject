@@ -46,3 +46,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+indexes/
+
+# 🐍 بيئة بايثون المحلية — لا تُرفع (٨٣٣ ميجا)
+.venv/
+
+# 🧪 مخزن التطوير المحلي (tools/dev_local_store.py) — بيانات فحص لا تُرفع
+.dev_store.json
+
+# 📥 مخرجات أداة الإدخال (نص خام ونسخ احتياطية) — محلية لا تُرفع
+data/_ingest/

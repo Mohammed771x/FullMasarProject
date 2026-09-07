@@ -3,23 +3,144 @@
 Pydantic Models للتحقق من البيانات
 """
 
-from pydantic import BaseModel
-from typing import List, Optional, Dict
+from pydantic import BaseModel, Field, field_validator
+from typing import List, Optional, Dict, Any
+
+from config import HISTORY_MAX_MESSAGES, HISTORY_MAX_CHARS
+
+# 📷 أقصى عدد صور في الطلب الواحد (قرار المالك)
+MAX_IMAGES = 2
+
+# 🧠 أقصى عدد دروس في اختبار واحد (قرار المالك)
+MAX_QUIZ_LESSONS = 3
 
 class AskRequest(BaseModel):
     """نموذج طلب المستخدم الرئيسي"""
-    user_id: str
-    code: str
-    subject: str
-    device_id: Optional[str] = None
+    user_id: str = Field(max_length=128)
+    code: str = Field(max_length=64)
+    subject: str = Field(max_length=64)
+    device_id: Optional[str] = Field(default=None, max_length=128)
     logic_type: int = 1
-    mode: str                           # شرح، تلخيص، سؤال، وزاري
-    input_type: str                     # صفحة، وحدة، برومت (للأحياء فقط)
-    content: str
+    mode: str = Field(max_length=32)    # شرح، تلخيص، سؤال، وزاري
+    input_type: str = Field(max_length=32)  # صفحة، وحدة، برومت
+    content: str = Field(max_length=8000)   # ⛑️ سقف حجم الإدخال
     summary_level: int = 3              # 1-5 (للتلخيص)
-    unit_name: Optional[str] = None     # الوحدة
-    lesson_name: Optional[str] = None   # الدرس (الرياضيات)
+    unit_name: Optional[str] = Field(default=None, max_length=256)
+    lesson_name: Optional[str] = Field(default=None, max_length=256)
     chat_history: Optional[List[Dict[str, str]]] = None
+
+    # ── حقول النسخة الثالثة (اختيارية — العملاء القدامى لا يرسلونها) ──
+    grade: int = 3                      # 1 | 2 | 3
+    track: str = Field(default="علمي", max_length=16)   # عام | علمي | أدبي
+    content_mode: Optional[str] = Field(default=None, max_length=16)  # lessons | pages
+
+    # ── حقول يملؤها الخادم بعد قراءة الصور (لا تُقرأ من العميل) ──
+    # `content` بعد الدمج يحمل ترويسة درع الحقن — ممتازة **للموديل**، لكنها
+    # ضوضاء في **البحث الدلالي**. لذلك نفصل:
+    #   search_text  = النص النظيف للبحث (سؤال الطالب + نص الصور بلا ترويسة)
+    #   student_text = ما كتبه الطالب فقط (لاستخراج أرقام الصفحات)
+    search_text: Optional[str] = None
+    student_text: Optional[str] = None
+
+    # 📷 صور اختيارية (base64) — حتى صورتين. Gemini يحوّلها نصاً ثم يمضي النص
+    #    لموديل المادة المعتاد — فتعمل حتى مع DeepSeek الذي لا يدعم الرؤية.
+    #    السقوف هنا حدّ أعلى خام؛ image_guard يتحقق بدقة (حجم + بصمة سحرية).
+    images_base64: Optional[List[str]] = None
+    # حقل مفرد للتوافق مع نسخ التطبيق الأقدم
+    image_base64: Optional[str] = Field(default=None, max_length=2_100_000)
+
+    @field_validator("images_base64")
+    @classmethod
+    def _cap_images(cls, v):
+        if not v:
+            return v
+        # ⛑️ سقف صارم: صورتان كحد أقصى، وكل واحدة ضمن الحد الخام
+        return [img for img in v[:MAX_IMAGES] if img and len(img) <= 2_100_000]
+
+    @property
+    def search_query(self) -> str:
+        """ما يُرسل لمحرك البحث الدلالي — نظيفاً من ترويسة الصور."""
+        return (self.search_text or self.content or "").strip()
+
+    @property
+    def page_source(self) -> str:
+        """ما تُستخرج منه أرقام الصفحات — كتابة الطالب وحدها.
+        وإلا التُقطت أرقام من داخل الصورة (120 · 8 · 100) كأنها صفحات."""
+        return (self.student_text if self.student_text is not None else self.content) or ""
+
+    def all_images(self) -> List[str]:
+        """يوحّد الحقلين: القائمة الجديدة + الحقل المفرد القديم."""
+        out = list(self.images_base64 or [])
+        if self.image_base64:
+            out.append(self.image_base64)
+        return out[:MAX_IMAGES]
+
+    @field_validator("summary_level")
+    @classmethod
+    def _clamp_level(cls, v):
+        return min(5, max(1, v))        # قصّ بدل رفض — لا نكسر عميلاً قديماً
+
+    @field_validator("grade")
+    @classmethod
+    def _clamp_grade(cls, v):
+        return v if v in (1, 2, 3) else 3
+
+    @field_validator("content_mode")
+    @classmethod
+    def _check_cmode(cls, v):
+        return v if v in (None, "lessons", "pages") else None
+
+    @field_validator("chat_history")
+    @classmethod
+    def _cap_history(cls, v):
+        if not v:
+            return v
+        # ⛑️ سقف دفاعي على ما يصل من العميل (المعالجات تأخذ آخر HISTORY_LAST_N).
+        #    أوسع قليلاً من سقف الفرونت كي لا يُكسر عميل قديم — راجع config.py.
+        trimmed = []
+        for m in v[-HISTORY_MAX_MESSAGES:]:
+            role = str(m.get("role", ""))[:16]
+            text = str(m.get("content", m.get("text", "")))[:HISTORY_MAX_CHARS]
+            trimmed.append({"role": role, "content": text})
+        return trimmed
+
+class QuizRequest(BaseModel):
+    """🧠 طلب توليد اختبار — من دروس الطالب وحدها ([31])."""
+    user_id: str = Field(default="", max_length=128)
+    code: str = Field(default="", max_length=64)
+    device_id: Optional[str] = Field(default=None, max_length=128)
+    subject: str = Field(max_length=64)
+    grade: int = 3
+    track: str = Field(default="علمي", max_length=16)
+    unit: str = Field(default="", max_length=256)
+    lessons: List[str] = Field(default_factory=list)
+    count: int = 10
+
+    @field_validator("grade")
+    @classmethod
+    def _clamp_grade_quiz(cls, v):
+        return v if v in (1, 2, 3) else 3
+
+    @field_validator("lessons")
+    @classmethod
+    def _cap_lessons(cls, v):
+        # سقف المالك: ثلاثة دروس. القصّ بدل الرفض كي لا يُكسر عميل قديم.
+        return [str(x)[:256] for x in (v or [])][:MAX_QUIZ_LESSONS]
+
+    @field_validator("count")
+    @classmethod
+    def _check_count(cls, v):
+        return v if v in (5, 10, 15) else 10
+
+
+class VoiceCleanRequest(BaseModel):
+    """🎤 طلب تنظيف نص صوتي — نص قصير فقط، بلا تاريخ محادثة."""
+    user_id: str = Field(max_length=128)
+    code: str = Field(max_length=64)
+    device_id: Optional[str] = Field(default=None, max_length=128)
+    text: str = Field(max_length=1600)   # أعلى قليلاً من سقف المعالجة (1200) ليُقص هناك
+    # 📚 المادة قرينةٌ ترجّح المصطلح عند الالتباس الصوتي («الخميرة» ⇒ «النخامية»).
+    subject: str = Field(default="", max_length=64)
 
 class VerificationRequest(BaseModel):
     """نموذج التحقق من الكود"""
@@ -39,3 +160,314 @@ class ChatConversation(BaseModel):
     subject: str
     mode: str
     messages: List[ChatMessage]
+
+# ══════════════ لوحة التحكم ══════════════
+
+class AdminBanRequest(BaseModel):
+    """حظر مستخدم أو رفع حظره."""
+    banned: bool
+
+
+class AdminQuotaRequest(BaseModel):
+    """حدّ يومي خاص بمستخدم — `None` يعيده للحدّ العام."""
+    limit: Optional[int] = Field(default=None, ge=0, le=100000)
+
+
+# ══════════════ 🎓 المنح ══════════════
+
+class ScholarshipAskRequest(BaseModel):
+    """💬 سؤال لمساعد منحة.
+
+    📷 الصور مدعومة بنفس مسار `/ask`: Gemini يستخرج النص ثم يُدمج مع السؤال،
+       والصورة لا تُحفظ ولا تُسجَّل — تبقى على جوال الطالب وحده ([27§3]).
+       والاستعمال الحقيقي هنا: لقطة من موقع المنحة، أو كشف درجات، أو وثيقة.
+    """
+    user_id: str = Field(default="", max_length=128)
+    code: str = Field(default="", max_length=64)
+    device_id: Optional[str] = Field(default=None, max_length=128)
+    scholarship_id: str = Field(max_length=64)
+    question: str = Field(default="", max_length=1200)
+    chat_history: Optional[List[Dict[str, str]]] = None
+
+    # 📷 حتى صورتين — نفس سقف `/ask` وحارسه (`image_guard`).
+    images_base64: Optional[List[str]] = None
+    image_base64: Optional[str] = Field(default=None, max_length=2_100_000)
+
+    @field_validator("images_base64")
+    @classmethod
+    def _cap_sch_images(cls, v):
+        if not v:
+            return v
+        return [img for img in v[:MAX_IMAGES] if img and len(img) <= 2_100_000]
+
+    def all_images(self) -> List[str]:
+        """يوحّد الحقلين — كما في AskRequest تماماً."""
+        out = list(self.images_base64 or [])
+        if self.image_base64:
+            out.append(self.image_base64)
+        return out[:MAX_IMAGES]
+
+    @field_validator("chat_history")
+    @classmethod
+    def _cap_sch_history(cls, v):
+        # نفس سقف /ask الدفاعي — مصدر الرقم واحد في config.py.
+        if not v:
+            return v
+        trimmed = []
+        for m in v[-HISTORY_MAX_MESSAGES:]:
+            role = str(m.get("role", ""))[:16]
+            text = str(m.get("content", m.get("text", "")))[:HISTORY_MAX_CHARS]
+            trimmed.append({"role": role, "content": text})
+        return trimmed
+
+
+class ScholarshipUpsertRequest(BaseModel):
+    """نموذج اللوحة: إنشاء/تحديث منحة.
+
+    ⚠️ التحقق التفصيلي في `core/scholarships.validate` لا هنا — كي تكون
+       الرسالة عربية موجّهة للأدمن بدل خطأ 422 الخام من Pydantic.
+    """
+    id: Optional[str] = Field(default=None, max_length=64)
+    name: str = Field(default="", max_length=200)
+    country: str = Field(default="", max_length=100)
+    flag: str = Field(default="", max_length=8)
+    cover_url: str = Field(default="", max_length=500)
+    logo_url: str = Field(default="", max_length=500)
+    website: str = Field(default="", max_length=500)
+    short_desc: str = Field(default="", max_length=300)
+    about: str = Field(default="", max_length=8000)
+    requirements: List[str] = Field(default_factory=list)
+    how_to_apply: List[str] = Field(default_factory=list)
+    benefits: List[str] = Field(default_factory=list)
+    documents: List[str] = Field(default_factory=list)
+    fields: List[str] = Field(default_factory=list)
+    degree_levels: List[str] = Field(default_factory=list)
+    open_date: str = Field(default="", max_length=10)
+    close_date: str = Field(default="", max_length=10)
+    funding_type: str = Field(default="full", max_length=16)
+    gradient: List[str] = Field(default_factory=list)
+    enabled: bool = True
+    order: int = 0
+    assistant_prompt: Optional[str] = Field(default=None, max_length=8000)
+
+    @field_validator("requirements", "how_to_apply", "benefits",
+                     "documents", "fields", "degree_levels", mode="before")
+    @classmethod
+    def _split_text_block(cls, v):
+        """اللوحة تحرّر هذه القوائم في مربّع نص (سطر لكل عنصر).
+
+        فنقبل النصّ كما نقبل المصفوفة: أداةُ أدمن ترسل نصاً خاماً لا يجوز
+        أن ترتدّ بخطأ 422 غامض بدل رسالة عربية.
+        """
+        return v.splitlines() if isinstance(v, str) else v
+
+
+class ScholarshipEnabledRequest(BaseModel):
+    """مفتاح الإظهار/الإخفاء الفوري."""
+    enabled: bool
+
+
+class ScholarshipReorderRequest(BaseModel):
+    """ترتيب العرض — أول معرّف أعلى القائمة."""
+    ids: List[str] = Field(default_factory=list)
+
+
+class ScholarshipPromptRequest(BaseModel):
+    """🔒 برومبت مساعد المنحة — يُحفظ في مجموعة موازية لا في مستند المنحة."""
+    assistant_prompt: str = Field(default="", max_length=8000)
+
+
+class ScholarshipTryRequest(BaseModel):
+    """🧪 «جرّب البرومبت» من اللوحة — قبل النشر، بلا حصة ولا حساب طالب."""
+    question: str = Field(default="", max_length=1200)
+    assistant_prompt: Optional[str] = Field(default=None, max_length=8000)
+    chat_history: Optional[List[Dict[str, str]]] = None
+
+
+class ScholarshipCoverRequest(BaseModel):
+    """🖼️ غلاف المنحة — يصل مقصوصاً ومضغوطاً من اللوحة. الفراغ يحذفه."""
+    image_base64: str = Field(default="", max_length=800_000)
+
+
+class BannerRequest(BaseModel):
+    """🎏 بانر قسم — كل حقوله تُطبَّع وتُتحقَّق في `core/banners.validate`."""
+    section: str = Field(default="home", max_length=32)
+    # 🎯 الفئة المستهدفة — تُتحقَّق مقابل [audience.ACCESS_SEGMENTS] في الوحدة.
+    segment: str = Field(default="all", max_length=24)
+    title: str = Field(default="", max_length=80)
+    subtitle: str = Field(default="", max_length=120)
+    icon: str = Field(default="star", max_length=32)
+    colors: List[str] = Field(default_factory=list, max_length=4)
+    action: str = Field(default="none", max_length=32)
+    action_value: str = Field(default="", max_length=500)
+    enabled: bool = True
+    order: int = Field(default=0, ge=0, le=999)
+    start_date: str = Field(default="", max_length=10)
+    end_date: str = Field(default="", max_length=10)
+
+
+class BannerTemplatesRequest(BaseModel):
+    """🤖 قوالب البانر التلقائي — قاموس {مفتاح القالب: حقوله}."""
+    templates: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+
+
+class AvatarRequest(BaseModel):
+    """👤 صورة الحساب — تصل من التطبيق مقصوصةً مربّعةً ومضغوطة. الفراغ يحذفها.
+
+    ⚠️ الهويّة **لا تُقرأ من الجسم**: `uid` يُستخرج من توكن Firebase في
+       `_authenticate`، وإلا استطاع أيُّ أحد استبدال صورة أيِّ حساب. الحقول
+       أدناه للمسار القديم (كود التفعيل) وحده.
+    """
+    image_base64: str = Field(default="", max_length=400_000)
+    user_id: str = Field(default="", max_length=128)
+    code: str = Field(default="", max_length=64)
+    device_id: Optional[str] = Field(default=None, max_length=128)
+
+
+class AdminSettingsRequest(BaseModel):
+    """⚙️ الإعدادات العامة القابلة للتحرير من اللوحة."""
+    quota_ask: Optional[int] = Field(default=None, ge=1, le=1000)
+    quota_guest: Optional[int] = Field(default=None, ge=0, le=100)
+
+
+# ══════════════════════════════════════════════════
+# 👨‍🏫 مساعد المعلم
+# ══════════════════════════════════════════════════
+
+class TeacherAskRequest(BaseModel):
+    """👨‍🏫 طلب مساعد المعلم — **الدروس وحدها** لا الوحدات ولا الصفحات.
+
+    الحقول متعمَّدة القرب من `AskRequest`: التطبيق يستعمل **نفس شاشة الشات
+    ونفس المتحكّم**، ولا يختلف إلا في الوجهة والإعدادات ([33]).
+
+    `generate=True` ⇒ ضغط زر الأداة (خطة/تبسيط/واجب) فيُستعمل برومبت التوليد.
+    `generate=False` ⇒ رسالة متابعة عادية فيُستعمل برومبت المحادثة.
+    """
+    user_id: str = Field(default="", max_length=128)
+    code: str = Field(default="", max_length=64)
+    device_id: Optional[str] = Field(default=None, max_length=128)
+
+    tool: str = Field(default="ask", max_length=32)      # plan|simplify|homework|ask
+    generate: bool = False
+
+    subject: str = Field(default="", max_length=64)
+    grade: int = 3
+    track: str = Field(default="علمي", max_length=16)
+    unit_name: Optional[str] = Field(default=None, max_length=256)
+    lesson_name: Optional[str] = Field(default=None, max_length=256)
+
+    content: str = Field(default="", max_length=8000)    # رسالة المعلّم
+    concept: str = Field(default="", max_length=200)     # لأداة التبسيط
+    difficulty: str = Field(default="متوسط", max_length=16)
+    count: int = 10
+
+    chat_history: Optional[List[Dict[str, str]]] = None
+
+    # 📷 حتى صورتين — نفس مسار `/ask` وحارسه حرفياً.
+    images_base64: Optional[List[str]] = None
+    image_base64: Optional[str] = Field(default=None, max_length=2_100_000)
+
+    @field_validator("images_base64")
+    @classmethod
+    def _cap_teacher_images(cls, v):
+        if not v:
+            return v
+        return [img for img in v[:MAX_IMAGES] if img and len(img) <= 2_100_000]
+
+    def all_images(self) -> List[str]:
+        out = list(self.images_base64 or [])
+        if self.image_base64:
+            out.append(self.image_base64)
+        return out[:MAX_IMAGES]
+
+    @field_validator("grade")
+    @classmethod
+    def _clamp_teacher_grade(cls, v):
+        return v if v in (1, 2, 3) else 3
+
+    @field_validator("chat_history")
+    @classmethod
+    def _cap_teacher_history(cls, v):
+        # نفس السقف الدفاعي في /ask و/scholarship/ask — مصدر الرقم config.py.
+        if not v:
+            return v
+        trimmed = []
+        for m in v[-HISTORY_MAX_MESSAGES:]:
+            role = str(m.get("role", ""))[:16]
+            text = str(m.get("content", m.get("text", "")))[:HISTORY_MAX_CHARS]
+            trimmed.append({"role": role, "content": text})
+        return trimmed
+
+
+class TeacherPromptRequest(BaseModel):
+    """💬 حفظ برومبت أداة من اللوحة. الفراغ = العودة لبرومبت الكود."""
+    kind: str = Field(default="chat", max_length=16)      # generate | chat
+    prompt: str = Field(default="", max_length=12000)
+
+
+class TeacherTryRequest(BaseModel):
+    """🧪 «جرّب البرومبت» — يجرّب المسودّة غير المحفوظة داخل اللوحة."""
+    kind: str = Field(default="chat", max_length=16)
+    prompt: Optional[str] = Field(default=None, max_length=12000)
+    question: str = Field(default="", max_length=2000)
+    subject: str = Field(default="", max_length=64)
+    grade: int = 3
+    track: str = Field(default="علمي", max_length=16)
+    unit_name: str = Field(default="", max_length=256)
+    lesson_name: str = Field(default="", max_length=256)
+
+
+# ══════════════ 📈 التحليلات · 🔐 الوصول · 🔔 الإشعارات ══════════════
+# ⚠️ كلها مسارات إدارية: التحقق هنا **طبقةٌ ثانية** فوق تحقق الوحدات نفسها،
+#    لا بديلٌ عنه. الواجهة قد تُتجاوَز، والوحدة هي آخر من يرى المدخل.
+
+class AccessSectionRequest(BaseModel):
+    """الوضع العام لقسم: مفتوح · قريباً · مُخفى."""
+    mode: str = Field(default="on", max_length=8)
+    message: str = Field(default="", max_length=160)
+
+
+class AccessRuleItem(BaseModel):
+    """قاعدة شريحة واحدة داخل قسم."""
+    segment: str = Field(max_length=24)
+    mode: str = Field(default="off", max_length=8)
+    message: str = Field(default="", max_length=160)
+
+
+class AccessRulesRequest(BaseModel):
+    """قواعد قسمٍ كاملةً — تُستبدل ولا تُدمج ([access§set_rules])."""
+    rules: List[AccessRuleItem] = Field(default_factory=list, max_length=12)
+
+
+class NotificationPreviewRequest(BaseModel):
+    """👁️ ملخّص الجمهور قبل الإرسال — لا يكتب شيئاً.
+
+    ⚠️ `link` جزءٌ من الجمهور لا زينة: مفتاحُ «إشعارات المنح» في التطبيق
+       يُقصي صاحبه من إشعار المنح وحده — فمعاينةٌ بلا `link` تعرض عدداً
+       يخالف من يصله فعلاً.
+    """
+    segment: str = Field(default="all", max_length=24)
+    notifications_only: bool = True
+    link: str = Field(default="none", max_length=24)
+    uids: Optional[List[str]] = Field(default=None, max_length=500)
+
+
+class NotificationCreateRequest(BaseModel):
+    """إنشاء إشعار مستهدَف."""
+    title: str = Field(default="", max_length=80)
+    body: str = Field(default="", max_length=300)
+    segment: str = Field(default="all", max_length=24)
+    link: str = Field(default="none", max_length=24)
+    notifications_only: bool = True
+    uids: Optional[List[str]] = Field(default=None, max_length=500)
+
+
+
+class DeviceTokenRequest(BaseModel):
+    """📲 رمز جهاز للإشعارات — يُسجَّل عند الإقلاع ويُفصَل عند الخروج.
+
+    ⚠️ الهويّة **لا تُقرأ من الجسم**: `uid` من توكن Firebase حصراً، وإلا
+       ربط أيُّ أحدٍ جهازَه بحساب غيره فوصلته إشعاراتُه.
+    """
+    token: str = Field(default="", max_length=4096)
+    platform: str = Field(default="", max_length=16)

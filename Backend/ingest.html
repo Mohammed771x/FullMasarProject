@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مسار · أداة إدخال الدروس</title>
+<style>
+  :root{
+    --bg:#0f1218; --card:#171b23; --line:#262c38; --ink:#e7ecf3; --dim:#9aa6b8;
+    --brand:#4f9cf9; --ok:#31c48d; --warn:#f0b429; --bad:#f26d6d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.7 "Segoe UI",Tahoma,system-ui,sans-serif}
+  header{padding:18px 22px;border-bottom:1px solid var(--line);
+         display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  h1{font-size:19px;margin:0;font-weight:700}
+  .muted{color:var(--dim);font-size:13px}
+  main{max-width:1180px;margin:0 auto;padding:22px;display:grid;gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  label{display:block;font-size:13px;color:var(--dim);margin-bottom:5px}
+  input,select,textarea,button{font:inherit;color:var(--ink);background:#10141b;
+       border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+  input[type=file]{padding:7px}
+  button{background:var(--brand);border-color:var(--brand);color:#05121f;
+         font-weight:700;cursor:pointer}
+  button.ghost{background:transparent;color:var(--ink);border-color:var(--line);font-weight:500}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .grow{flex:1;min-width:180px}
+  .hide{display:none!important}
+  pre{background:#0b0e14;border:1px solid var(--line);border-radius:8px;padding:12px;
+      max-height:420px;overflow:auto;white-space:pre-wrap;font-size:13px;
+      font-family:ui-monospace,"SF Mono",Menlo,monospace}
+  pre[dir=rtl]{font-family:inherit}
+  .stat{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px}
+  .stat div{background:#10141b;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+  .stat b{display:block;font-size:18px}
+  .issue{border-right:3px solid var(--warn);background:#10141b;border-radius:8px;
+         padding:10px 12px;margin-bottom:9px}
+  .issue.high{border-right-color:var(--bad)}
+  .issue .k{font-weight:700;font-size:13px}
+  .issue .l{margin-top:5px;font-size:13px}
+  .issue .l span{color:var(--dim);display:inline-block;min-width:62px}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .tabs button{background:transparent;border-color:var(--line);color:var(--dim);font-weight:500}
+  .tabs button.on{background:var(--brand);border-color:var(--brand);color:#05121f;font-weight:700}
+  #msg{padding:10px 14px;border-radius:8px;font-size:14px}
+  #thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  #thumbs figure{margin:0;width:84px;text-align:center}
+  #thumbs img{width:84px;height:104px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+  #thumbs figcaption{font-size:11px;color:var(--dim)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📥 أداة إدخال الدروس</h1>
+  <span class="muted">صور الدرس ← نص خام ← JSON بالقالب ← فحص</span>
+  <span class="grow"></span>
+  <input id="adminKey" type="password" placeholder="مفتاح الإدارة" style="width:200px">
+  <button class="ghost" onclick="saveKey()">حفظ المفتاح</button>
+</header>
+
+<main>
+
+<div id="msg" class="hide"></div>
+
+<!-- ── الوجهة ── -->
+<section class="card">
+  <div class="row">
+    <div><label>الصف</label>
+      <select id="grade" onchange="loadTargets()">
+        <option value="1">الأول</option><option value="2">الثاني</option>
+        <option value="3" selected>الثالث</option>
+      </select></div>
+    <div><label>المسار</label>
+      <select id="track" onchange="loadTargets()">
+        <option>علمي</option><option>أدبي</option><option>عام</option>
+      </select></div>
+    <div class="grow"><label>المادة</label>
+      <select id="subject" onchange="onSubject()"></select></div>
+    <div><label>الوضع</label>
+      <select id="mode" onchange="onSubject()">
+        <option value="lessons_mode">دروس</option>
+        <option value="unit_mode">وحدات/صفحات</option>
+      </select></div>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <div class="grow"><label>الوحدة (اختر أو اكتب جديدة)</label>
+      <input id="unit" list="unitList" placeholder="مثال: جبر">
+      <datalist id="unitList"></datalist></div>
+    <div class="grow"><label>اسم الدرس</label>
+      <input id="lesson" placeholder="مثال: نظرية ذات الحدين"></div>
+  </div>
+  <p class="muted" id="destLine" style="margin:12px 0 0"></p>
+</section>
+
+<!-- ── الصور والتشغيل ── -->
+<section class="card">
+  <div class="row">
+    <div class="grow"><label>صور الدرس (بالترتيب — الترتيب يحدّد أرقام الصفحات)</label>
+      <input id="files" type="file" accept="image/*" multiple onchange="preview()"></div>
+    <div><label>موديل الرؤية</label>
+      <select id="visionModel" style="min-width:190px"></select></div>
+    <div><label>تدقيق الرياضيات</label>
+      <select id="mathAudit">
+        <option value="">تلقائي حسب المادة</option>
+        <option value="1">نعم</option><option value="0">لا</option>
+      </select></div>
+    <div><button id="runBtn" onclick="run()">🚀 حوّل</button></div>
+  </div>
+  <div id="thumbs"></div>
+</section>
+
+<!-- ── النتيجة ── -->
+<section class="card hide" id="result">
+  <div class="stat" id="stats"></div>
+  <div class="tabs">
+    <button class="on" onclick="tab('checkPane',this)">🔍 الفحص</button>
+    <button onclick="tab('jsonPane',this)">📄 الـ JSON</button>
+    <button onclick="tab('rawPane',this)">📝 النص الخام</button>
+  </div>
+  <div id="checkPane"></div>
+  <div id="jsonPane" class="hide">
+    <p class="muted">عدّل هنا مباشرةً قبل الحفظ إن لزم.</p>
+    <textarea id="jsonBox" style="width:100%;height:420px" dir="ltr"></textarea>
+  </div>
+  <div id="rawPane" class="hide"><pre dir="rtl" id="rawBox"></pre></div>
+  <div class="row" style="margin-top:14px">
+    <button id="saveBtn" onclick="save()">💾 احفظ في مكانه</button>
+    <span class="muted" id="savedLine"></span>
+  </div>
+</section>
+
+</main>
+
+<script>
+const KEY_STORE = 'masar_admin_key';
+let TARGETS = null, RESULT = null;
+
+const $ = id => document.getElementById(id);
+const key = () => sessionStorage.getItem(KEY_STORE) || '';
+
+function saveKey(){
+  sessionStorage.setItem(KEY_STORE, $('adminKey').value.trim());
+  msg('تم حفظ المفتاح لهذه الجلسة.', 'ok');
+  loadTargets(); loadModels();
+}
+
+function msg(text, kind){
+  const el = $('msg');
+  el.textContent = text;
+  el.className = '';
+  el.style.background = kind==='bad' ? '#3a1c1c' : kind==='ok' ? '#12301f' : '#2b2416';
+  el.style.color = kind==='bad' ? '#ffb4b4' : kind==='ok' ? '#8ff0c2' : '#f5d68a';
+}
+function clearMsg(){ $('msg').className = 'hide'; }
+
+async function api(path, opts){
+  const o = Object.assign({headers:{'X-Admin-Key': key()}}, opts||{});
+  if(o.body && typeof o.body === 'string') o.headers['Content-Type'] = 'application/json';
+  let res;
+  try{ res = await fetch(path, o); }
+  catch(e){ throw new Error('📡 تعذّر الوصول إلى الخادم — تأكّد أنه يعمل.'); }
+  let data = {};
+  try{ data = await res.json(); }catch(e){}
+  if(!res.ok) throw new Error(data.error || ('خطأ ' + res.status));
+  return data;
+}
+
+async function loadTargets(){
+  if(!key()) return;
+  try{
+    TARGETS = await api(`/ingest/targets?grade=${$('grade').value}&track=${encodeURIComponent($('track').value)}`);
+  }catch(e){ return msg(e.message, 'bad'); }
+  $('subject').innerHTML = TARGETS.subjects
+    .map(s => `<option value="${s.name}">${s.name}${s.hard ? ' ⚠️' : ''}</option>`).join('');
+  onSubject();
+}
+
+async function loadModels(){
+  if(!key()) return;
+  try{
+    const d = await api('/ingest/models');
+    const pick = d.models.find(m => m === d.default_vision)
+              || d.models.find(m => /pro/.test(m)) || d.models[0];
+    $('visionModel').innerHTML = d.models
+      .map(m => `<option${m===pick?' selected':''}>${m}</option>`).join('');
+  }catch(e){
+    // سرد الموديلات كماليّ — تعذّره لا يمنع التشغيل بالافتراضي.
+    $('visionModel').innerHTML = '<option value="">(الافتراضي)</option>';
+  }
+}
+
+function onSubject(){
+  if(!TARGETS) return;
+  const s = TARGETS.subjects.find(x => x.name === $('subject').value);
+  const isUnit = $('mode').value === 'unit_mode';
+  const units = !s ? [] : (isUnit ? s.unit_units : s.lessons_units);
+  $('unitList').innerHTML = units.map(u => `<option value="${u}">`).join('');
+  $('lesson').parentElement.style.display = isUnit ? 'none' : '';
+  $('destLine').textContent = s && s.hard
+    ? '⚠️ مادة رموز وخط يد — صورتان في كل نداء، وتدقيق رياضي تلقائي.'
+    : 'مادة نصية — خمس صور في كل نداء.';
+}
+
+function preview(){
+  const files = [...$('files').files];
+  $('thumbs').innerHTML = files.map((f,i) =>
+    `<figure><img src="${URL.createObjectURL(f)}"><figcaption>صفحة ${i+1}</figcaption></figure>`
+  ).join('');
+}
+
+function tab(pane, btn){
+  ['checkPane','jsonPane','rawPane'].forEach(p => $(p).classList.toggle('hide', p !== pane));
+  [...btn.parentElement.children].forEach(b => b.classList.toggle('on', b === btn));
+}
+
+async function run(){
+  const files = [...$('files').files];
+  if(!files.length) return msg('اختر صور الدرس أولاً.', 'bad');
+  if($('mode').value === 'lessons_mode' && !$('lesson').value.trim())
+    return msg('اكتب اسم الدرس.', 'bad');
+
+  const fd = new FormData();
+  files.forEach(f => fd.append('images', f));
+  fd.append('grade', $('grade').value);
+  fd.append('track', $('track').value);
+  fd.append('subject', $('subject').value);
+  fd.append('mode', $('mode').value);
+  fd.append('unit', $('unit').value.trim());
+  fd.append('lesson_name', $('lesson').value.trim());
+  fd.append('vision_model', $('visionModel').value);
+  fd.append('struct_model', $('visionModel').value);
+  fd.append('math_audit', $('mathAudit').value);
+
+  $('runBtn').disabled = true;
+  $('runBtn').textContent = '⏳ يشتغل…';
+  msg('جارٍ النقل ثم الهيكلة ثم الفحص — قد يستغرق دقيقة أو أكثر.', 'warn');
+  try{
+    RESULT = await api('/ingest/run', {method:'POST', body: fd});
+    render();
+    clearMsg();
+  }catch(e){ msg(e.message, 'bad'); }
+  finally{
+    $('runBtn').disabled = false;
+    $('runBtn').textContent = '🚀 حوّل';
+  }
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function render(){
+  const r = RESULT, c = r.check, m = r.math || {أخطاء:[]};
+  const mathErrs = m['أخطاء'] || [];
+  const high = c.issues.filter(i => i.level === 'high').length;
+
+  $('stats').innerHTML = `
+    <div><span class="muted">صفحات</span><b>${r.pages}</b></div>
+    <div><span class="muted">كتل مفحوصة</span><b>${c.checked}</b></div>
+    <div><span class="muted">مطابِقة تماماً</span><b class="ok">${c.exact}</b></div>
+    <div><span class="muted">تحتاج نظرة</span><b class="${high?'bad':'ok'}">${c.issues.length}</b></div>
+    <div><span class="muted">أخطاء رياضية</span><b class="${mathErrs.length?'bad':'ok'}">${mathErrs.length}</b></div>
+    <div><span class="muted">غير واضح</span><b class="${r.unclear?'warn':'ok'}">${r.unclear}</b></div>
+    <div><span class="muted">توكنات</span><b>${(r.usage.in+r.usage.out).toLocaleString('en')}</b></div>
+    <div><span class="muted">الزمن</span><b>${r.seconds}ث</b></div>`;
+
+  let html = '';
+  if(r.math_error) html += `<p class="warn">⚠️ ${esc(r.math_error)}</p>`;
+
+  html += '<h3 style="margin:6px 0 10px">مقارنة الكتل بالنص الخام</h3>';
+  html += c.issues.length ? c.issues.map(i => `
+    <div class="issue ${i.level}">
+      <div class="k">${i.level==='high'?'❌':'⚠️'} ${esc(i.kind)} — صفحة ${i.page||'؟'}
+        <span class="muted">(${esc(i.path)} · تطابق ${Math.round(i.ratio*100)}%)</span></div>
+      ${i.expected ? `<div class="l"><span>الأصل:</span> ${esc(i.expected)}</div>` : ''}
+      <div class="l"><span>الموجود:</span> ${esc(i.found)}</div>
+    </div>`).join('')
+    : '<p class="ok">✅ كل الكتل المحمية مطابِقة للنص الخام حرفياً.</p>';
+
+  html += '<h3 style="margin:18px 0 10px">تدقيق الصحة الرياضية</h3>';
+  html += mathErrs.length ? mathErrs.map(e => `
+    <div class="issue high">
+      <div class="k">❌ ${esc(e['الخطأ'] || 'خطأ رياضي')}</div>
+      <div class="l"><span>البند:</span> ${esc(e['البند'])}</div>
+      <div class="l"><span>الصواب:</span> ${esc(e['الصواب'])}</div>
+    </div>`).join('')
+    : `<p class="ok">✅ لا أخطاء رياضية (فُحص ${m['فُحص']||0} بنداً).</p>`;
+
+  $('checkPane').innerHTML = html;
+  $('jsonBox').value = JSON.stringify(r.json, null, 2);
+  $('rawBox').textContent = r.raw_text;
+  $('savedLine').textContent = 'الوجهة: ' + r.dest.path;
+  $('result').classList.remove('hide');
+  $('result').scrollIntoView({behavior:'smooth'});
+}
+
+async function save(){
+  let parsed;
+  try{ parsed = JSON.parse($('jsonBox').value); }
+  catch(e){ return msg('الـ JSON في المحرّر غير صالح: ' + e.message, 'bad'); }
+
+  $('saveBtn').disabled = true;
+  try{
+    const out = await api('/ingest/save', {method:'POST', body: JSON.stringify({
+      grade: +$('grade').value, track: $('track').value, subject: $('subject').value,
+      mode: $('mode').value, unit: $('unit').value.trim(),
+      lesson_name: $('lesson').value.trim(), json: parsed,
+    })});
+    msg(`✅ ${out.note} → ${out.path}`, 'ok');
+    $('savedLine').textContent = out.backup ? 'نسخة احتياطية: ' + out.backup : '';
+  }catch(e){ msg(e.message, 'bad'); }
+  finally{ $('saveBtn').disabled = false; }
+}
+
+$('adminKey').value = key();
+if(key()){ loadTargets(); loadModels(); }
+</script>
+</body>
+</html>

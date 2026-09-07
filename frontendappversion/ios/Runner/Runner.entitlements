@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 🔔 إشعارات الدفع.
+	     `development` للتجربة على الجهاز عبر Xcode، ويصير `production`
+	     تلقائياً في أرشيف المتجر (Xcode يبدّلها عند التوقيع للتوزيع).
+	     ⚠️ بلا هذا الملف مضافاً في Xcode لا يصدر رمز APNs إطلاقاً،
+	        فيعود `getAPNSToken()` فارغاً ولا يُسجَّل الجهاز — بلا خطأ. -->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

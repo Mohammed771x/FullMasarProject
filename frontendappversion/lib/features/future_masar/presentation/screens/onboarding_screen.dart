@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/bootstrap.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/fade_in_slide.dart';
 import '../../../../core/widgets/typewriter_text.dart';
-import '../widgets/masar_logo.dart';
-import '../widgets/robot_widget.dart';
+import '../../../../core/widgets/masar_brand.dart';
+import '../../../../core/widgets/robot_widget.dart';
 import 'auth_screen.dart';
 
 // ==========================================
@@ -28,10 +30,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _Ob("أنا معك في كل شاشة!", "اسألني متى شئت، وابدأ رحلتك الآن 🚀", RobotState.point),
   ];
 
-  void _next() {
+  Future<void> _next() async {
     if (_page < _pages.length - 1) {
       _pc.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
     } else {
+      await AppBootstrap.markOnboardingDone();
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
@@ -51,11 +55,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F7FD),
+    // 🌗 يُعاد البناء عند تبدّل الوضع — وإلا بقيت الخلفية على لون سابق.
+    return ThemeScope(builder: (context) => Scaffold(
+      // 🌗 خلفية الصفحة تتبع الوضع — كانت ثابتةً فاتحة، فيصير الوضع
+      //    الداكن بطاقاتٍ داكنة تطفو على صفحةٍ بيضاء.
+      backgroundColor: AppColors.bgLight,
       body: Stack(
         children: [
-          const Positioned.fill(child: SoftWaveBackground()),
+          Positioned.fill(child: SoftWaveBackground()),
           SafeArea(
             child: Column(
               children: [
@@ -80,7 +87,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildPage(_Ob ob) {
@@ -100,11 +107,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 color: AppColors.surfaceWhite,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: AppColors.softShadow,
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.08)),
+                // ✏️ الخطّ الشعري هو ما يفصل البطاقة في الوضع الداكن بعد
+                //    أن عجز الظلّ — و٨٪ من لون الهوية لا يُرى هناك.
+                border: Border.all(color: AppColors.border),
               ),
               child: Column(
                 children: [
-                  Text(ob.title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kNavy)),
+                  // 🖋️ حبرٌ يتبع الوضع: `kNavy` كان يختفي على البطاقة الداكنة.
+                  Text(ob.title, textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.brandInk)),
                   const SizedBox(height: 12),
                   TypewriterText(key: ValueKey("t${ob.title}"), text: ob.desc, isCentered: true),
                 ],
@@ -119,7 +129,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _bottomBar() {
     final last = _page == _pages.length - 1;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 10, 30, 40),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -128,25 +138,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Opacity(
               opacity: _page > 0 ? 1 : 0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 15),
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
                 decoration: BoxDecoration(color: AppColors.surfaceWhite, borderRadius: BorderRadius.circular(28), boxShadow: AppColors.softShadow),
                 child: Text("رجوع", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
               ),
             ),
           ),
-          Row(
-            children: List.generate(_pages.length, (i) => AnimatedContainer(
-              duration: const Duration(milliseconds: 400),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: _page == i ? 30 : 9,
-              height: 9,
-              decoration: BoxDecoration(color: _page == i ? AppColors.primary : AppColors.primary.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(10)),
-            )),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_pages.length, (i) => AnimatedContainer(
+                duration: const Duration(milliseconds: 400),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: _page == i ? 26 : 8,
+                height: 8,
+                decoration: BoxDecoration(color: _page == i ? AppColors.primary : AppColors.primary.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(10)),
+              )),
+            ),
           ),
           GestureDetector(
             onTap: _next,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
               decoration: BoxDecoration(gradient: AppColors.mainGradient, borderRadius: BorderRadius.circular(28), boxShadow: AppColors.softShadow),
               child: Text(last ? "أنشئ حسابك 🚀" : "التالي", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),

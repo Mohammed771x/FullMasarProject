@@ -12,7 +12,7 @@ from .common import (
     system_prompt_strict_qa, normalize_arabic, extract_keywords,
     parse_exams_input, fetch_pages_by_numbers
 )
-from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, MAX_PAGES_EXPLAIN_SUMMARY
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, MAX_PAGES_EXPLAIN_SUMMARY, HISTORY_LAST_N
 from models import AskRequest
 from typing import Dict, Any, List, Optional
 import json
@@ -84,7 +84,7 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
     # ==========================
     if req.input_type == "صفحة":
         # استخراج الأرقام من النص
-        numbers = re.findall(r'\d+', req.content)
+        numbers = re.findall(r'\d+', req.page_source)
         if not numbers:
             return {"answer": "صيغة غير صحيحة. الرجاء كتابة أرقام الصفحات."}
         
@@ -111,7 +111,7 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
             if req.chat_history:
                 valid_history = [msg for msg in req.chat_history 
                                 if msg.get('role') in ['user', 'assistant']]
-                messages_for_ai.extend(valid_history[-6:])
+                messages_for_ai.extend(valid_history[-HISTORY_LAST_N:])
             
             # الرسالة الحالية
             messages_for_ai.append({
@@ -148,7 +148,7 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
     # ==========================
     elif req.input_type == "برومت":
         # البحث في النصوص باستخدام الدالة المحسنة
-        results, idxs = await enhanced_qa_search(target_data, req.content, top_k=5)
+        results, idxs = await enhanced_qa_search(target_data, req.search_query, top_k=5)
         
         # ✅ حتى لو ما فيه نتائج، ما نرد مباشرة - نرسل السياق للـ AI
         context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
@@ -161,7 +161,7 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
             if req.chat_history:
                 valid_history = [msg for msg in req.chat_history 
                                 if msg.get('role') in ['user', 'assistant']]
-                messages_for_ai.extend(valid_history[-6:])
+                messages_for_ai.extend(valid_history[-HISTORY_LAST_N:])
             
             # ✅ نفس البرومبت الذكي حق الفيزياء
             messages_for_ai.append({
@@ -175,6 +175,7 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
 1. إذا كانت رسالة الطالب مجرد تحية (مثل: السلام عليكم، مرحبا، كيفك) أو شكر، رُد عليه كمعلم أحياء لطيف ومرحب، واسأله كيف يمكنك مساعدته في المادة، وتجاهل المعلومات المستخرجة.
 2.إذا كانت رسالته سؤالاً أو طلباً لشرح بيولوجي، يجب أن تعتمد بنسبة 100% على (المعلومات المستخرجة من الكتاب) فقط  
 3. إذا طلب شرحاً بيولوجياً وكانت (المعلومات المستخرجة) تقول 'لا توجد نصوص مطابقة', جاوب من خارج الكتاب مع اخبار الطالب بان المعلومه من خارج الكتاب
+4. 🧮 **الكسور**: كل كسر يُكتب \\frac{{البسط}}{{المقام}} — لا بـ«/» ولا «÷» ولا بكلمة «على»، حتى لو كتبه الكتاب هكذا. مثال: ك = \\frac{{الوزن}}{{تسارع الجاذبية}}. ⚠️ ووحدات القياس ليست كسوراً وتبقى كما هي: م/ث · كجم.م/ث · كم/ساعة.
 """
             })
             
@@ -216,7 +217,7 @@ async def handle_biology_summary(req: AskRequest, gemini_client):
 
     # تلخيص الصفحات
     if req.input_type == "صفحة":
-        numbers = re.findall(r'\d+', req.content)
+        numbers = re.findall(r'\d+', req.page_source)
         page_nums = [int(n) for n in numbers] if numbers else []
         found_pages, _ = fetch_pages_by_numbers(target_data, page_nums)
         
@@ -251,7 +252,7 @@ async def handle_biology_summary(req: AskRequest, gemini_client):
     # تلخيص البرومت
     elif req.input_type == "برومت":
         texts, metas = extract_all_texts_and_metas(target_data)
-        results, idxs = await faiss_search(texts, req.content, top_k=QA_TOP_K)
+        results, idxs = await faiss_search(texts, req.search_query, top_k=QA_TOP_K)
         
         if not results: return {"answer": "لا توجد مقاطع صلة."}
         
@@ -293,7 +294,7 @@ async def handle_biology_question(req: AskRequest, gemini_client):
     else:
         target_data = book_data
 
-    results, idxs = await enhanced_qa_search(target_data, req.content, top_k=5)
+    results, idxs = await enhanced_qa_search(target_data, req.search_query, top_k=5)
     
     if not results: return {"answer": "عذراً، لم أجد إجابة دقيقة في الكتاب."}
     
@@ -304,7 +305,7 @@ async def handle_biology_question(req: AskRequest, gemini_client):
         messages_for_ai = [{"role": "system", "content": system_prompt}]
         if req.chat_history:
             valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
-            messages_for_ai.extend(valid_history[-6:])
+            messages_for_ai.extend(valid_history[-HISTORY_LAST_N:])
         
         messages_for_ai.append({
             "role": "user",

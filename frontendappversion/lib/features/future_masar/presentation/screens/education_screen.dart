@@ -5,7 +5,7 @@ import '../../data/demo_data.dart';
 import '../../data/demo_state.dart';
 import '../widgets/demo_chat.dart';
 import '../widgets/demo_widgets.dart';
-import '../widgets/robot_assistant.dart';
+import '../../../../core/widgets/screen_tip.dart';
 
 // ==========================================
 // 🎓 قسم التعليم = واجهة المدرّس (صف + مادة + وضع + شات ذكي)
@@ -153,7 +153,7 @@ class _EducationScreenState extends State<EducationScreen> {
               ),
             ],
           ),
-          const RobotAssistant(screenId: "education"),
+          const ScreenTip(screenId: "education", text: "هنا قسم التعليم 📚 اختر المادة والوضع من الإعدادات، ثم اكتب سؤالك أو اطلب شرح درس."),
         ],
       ),
     );

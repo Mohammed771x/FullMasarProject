@@ -1,0 +1,35 @@
+{
+  "dim": 384,
+  "total_vectors": 2074,
+  "total_bytes": 3185664,
+  "rows": [
+    {
+      "subject": "احياء",
+      "vectors": 162,
+      "ram_bytes": 248832,
+      "disk_bytes": 248877,
+      "chars": 212615
+    },
+    {
+      "subject": "فيزياء",
+      "vectors": 777,
+      "ram_bytes": 1193472,
+      "disk_bytes": 1193517,
+      "chars": 72969
+    },
+    {
+      "subject": "كيمياء",
+      "vectors": 936,
+      "ram_bytes": 1437696,
+      "disk_bytes": 1437741,
+      "chars": 83882
+    },
+    {
+      "subject": "عربي",
+      "vectors": 199,
+      "ram_bytes": 305664,
+      "disk_bytes": 305709,
+      "chars": 15856
+    }
+  ]
+}

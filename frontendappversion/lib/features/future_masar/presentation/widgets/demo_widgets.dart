@@ -79,7 +79,7 @@ class GlassBar extends StatelessWidget {
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, bottom: 16, left: 18, right: 18),
       decoration: BoxDecoration(
         color: AppColors.surfaceWhite.withValues(alpha: 0.96),
-        border: Border(bottom: BorderSide(color: AppColors.textPrimary.withValues(alpha: 0.05))),
+        border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
       child: Row(
         children: [
@@ -255,7 +255,9 @@ class SoftCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.06)),
+        // 🌙 الحدّ لا الظلّ: على خلفية داكنة الظلّ غير مرئي، فبدونه
+        //    تفقد البطاقة حدَّها وتذوب الشاشة في لوحٍ واحد.
+        border: AppColors.cardBorder,
         boxShadow: AppColors.bubbleShadow,
       ),
       child: child,

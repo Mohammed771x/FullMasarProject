@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+
+import 'masar_markdown.dart';
 import '../theme/app_colors.dart';
+import '../settings/app_settings.dart';
 
 // ==========================================
 // ⌨️ كلاس الكتابة المتسلسلة (Premium Typewriter)
@@ -114,12 +117,14 @@ class _TypewriterTextState extends State<TypewriterText> {
       textToRender += " ▌";
     }
 
-    return MarkdownBody(
+    // 🧮 يرسم الكسور بسطاً فوق مقام، ويسلّم الباقي لـMarkdownBody كما كان.
+    return MasarMarkdown(
       data: textToRender,
       styleSheet: MarkdownStyleSheet(
         textAlign: widget.isCentered ? WrapAlignment.center : WrapAlignment.start,
         p: TextStyle(
-          fontSize: 16,
+          // ⚙️ حجم خط الإجابة كما ضبطه الطالب — لا رقم ثابت.
+          fontSize: AppSettings.I.answerFontSize,
           color: AppColors.textPrimary,
           height: 1.6,
           fontWeight: FontWeight.w500,

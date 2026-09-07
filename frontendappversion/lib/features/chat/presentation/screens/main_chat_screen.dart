@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/curriculum.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/screen_tip.dart';
+import '../../../future_masar/presentation/screens/auth_screen.dart';
 import '../../../instructions/presentation/instructions_dialog.dart';
 import '../controllers/chat_controller.dart';
 import '../widgets/chat_app_bar.dart';
@@ -8,13 +11,38 @@ import '../widgets/chat_drawer.dart';
 import '../widgets/chat_input_area.dart';
 import '../widgets/chat_list_view.dart';
 import '../widgets/session_settings_panel.dart';
+import '../../../teacher/data/teacher_tool.dart';
+import '../../../teacher/presentation/widgets/teacher_suggestion_chips.dart';
 
 // ==========================================
 // 🌌 الشاشة الرئيسية (شات بوت مسار)
 // ==========================================
 class MainChatScreen extends StatefulWidget {
   final bool showDrawerHelp;
-  const MainChatScreen({super.key, this.showDrawerHelp = false});
+
+  // 🔁 الحلقة الذهبية ([31§7]): من نتيجة اختبار إلى **شرح الدرس الضعيف نفسه**.
+  //    تُفتح الشاشة على المادة والوحدة والدرس مباشرةً بلا بحث يدوي من الطالب.
+  final String? openSubject;
+  final String? openUnit;
+  final String? openLesson;
+  final String? openMode;
+
+  /// 👨‍🏫 أداة المعلم — `null` يعني **قسم التعليم كما هو تماماً**.
+  ///
+  /// ⭐ شاشةٌ واحدة للقسمين عن قصد: طلب المالك أن يكون قسم المعلم «مطابقاً
+  ///    تماماً» في المحادثة. وشاشةٌ ثانية منسوخة تعني ميزةً تُصلَح في إحداهما
+  ///    وتبقى مكسورة في الأخرى — فالمطابقة هنا بالبناء لا بالنسخ.
+  final TeacherTool? teacherTool;
+
+  const MainChatScreen({
+    super.key,
+    this.showDrawerHelp = false,
+    this.openSubject,
+    this.openUnit,
+    this.openLesson,
+    this.openMode,
+    this.teacherTool,
+  });
   @override
   State<MainChatScreen> createState() => _MainChatScreenState();
 }
@@ -35,24 +63,78 @@ class _MainChatScreenState extends State<MainChatScreen> with TickerProviderStat
     _c.onShowDataError = _showDataErrorSnackBar;
     _c.onShowStopConfirmation = _showStopConfirmation;
     _c.onShowBusyWarning = _showBusyWarning;
+    _c.onVoiceNotice = (msg) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg, style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+    };
+    // 🎟️ انتهت الحصة: للزائر دعوة تسجيل بزر مباشر، وللطالب موعد التجديد.
+    _c.onQuotaExceeded = (isGuest) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+          isGuest ? "🎁 انتهت أسئلتك التجريبية — سجّل مجاناً وتابع." : "🎟️ حدّك اليومي انتهى — يتجدّد بعد منتصف الليل.",
+          style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: isGuest ? AppColors.primary : Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        action: isGuest
+            ? SnackBarAction(
+                label: "سجّل الآن",
+                textColor: Colors.white,
+                onPressed: () => Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  (r) => false,
+                ),
+              )
+            : null,
+      ));
+    };
     _c.onFadeReplay = () {
       _fadeController.reset();
       _fadeController.forward();
     };
     _c.onRequestInstructions = (subject) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        InstructionsDialog.showIfNeeded(context, subject);
+      // تأخير قصير: يمنع تصادم النافذة مع أنيميشن إغلاق القائمة الجانبية.
+      Future.delayed(const Duration(milliseconds: 320), () {
+        if (!mounted) return;
+        _showInstructions();
       });
     };
 
-    _c.init();
+    _c.init(
+      openSubject: widget.openSubject,
+      openUnit: widget.openUnit,
+      openLesson: widget.openLesson,
+      openMode: widget.openMode,
+      teacher: widget.teacherTool,
+    );
 
     // ✅ إظهار التعليمات مرة واحدة فقط في أول فتح
     if (widget.showDrawerHelp) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        InstructionsDialog.showIfNeeded(context, _c.selectedSubject);
-      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showInstructions());
     }
+  }
+
+  /// 💡 التعليمات — وهنا **فرقٌ مقصود** عن قسم التعليم (طلب المالك):
+  ///    تعليمات المعلم مربوطة بـ**الأداة** لا بالمادة، فتظهر في كل المواد
+  ///    بلا استثناء. (في قسم التعليم لكل مادة تعليماتها، ومادةٌ بلا تعليمات
+  ///    تعرض رسالة «قيد الإعداد».)
+  void _showInstructions({bool force = false}) {
+    final tool = widget.teacherTool;
+    if (tool != null) {
+      InstructionsDialog.showTeacher(context, tool.id, forceShow: force);
+      return;
+    }
+    InstructionsDialog.showIfNeeded(context, _c.selectedSubject,
+        grade: _c.grade, track: _c.track.key, forceShow: force);
   }
 
   @override
@@ -127,6 +209,17 @@ class _MainChatScreenState extends State<MainChatScreen> with TickerProviderStat
     return AnimatedBuilder(
       animation: _c,
       builder: (context, _) {
+        // ما يظهر أسفل الشاشة فوق خانة الكتابة — تُحجز له مساحة في
+        // نهاية قائمة الرسائل حتى لا تختفي آخر رسالة خلفه.
+        final bool showControls = _c.sessionActive && _c.selectedMode == "وزاري";
+        final bool showMathButton = _c.selectedSubject == "رياضيات" && _c.mathMode == "شرح";
+        double bottomExtra = 0;
+        if (showControls) bottomExtra += 74; // زرّا «أكمل» و«إيقاف»
+        if (showMathButton) {
+          bottomExtra += 90; // زر «ابدأ الشرح الذكي»
+          if (_c.selectedLesson.isEmpty) bottomExtra += 84; // تنبيه اختيار الدرس
+        }
+
         return Scaffold(
           key: _scaffoldKey,
           backgroundColor: AppColors.bgLight,
@@ -137,13 +230,13 @@ class _MainChatScreenState extends State<MainChatScreen> with TickerProviderStat
             child: ChatGlassAppBar(
               controller: _c,
               onMenu: () => _scaffoldKey.currentState?.openDrawer(),
-              onHelp: () => InstructionsDialog.showIfNeeded(context, _c.selectedSubject, forceShow: true),
+              onHelp: () => _showInstructions(force: true),
             ),
           ),
           body: Stack(
             children: [
               // قائمة المحادثة (تملأ الشاشة)
-              Positioned.fill(child: ChatListView(controller: _c)),
+              Positioned.fill(child: ChatListView(controller: _c, bottomExtra: bottomExtra)),
 
               // خانة الكتابة وأزرار التحكم (مثبتة في الأسفل)
               Positioned(
@@ -154,10 +247,14 @@ class _MainChatScreenState extends State<MainChatScreen> with TickerProviderStat
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // أزرار التحكم (تظهر فقط في وضع الوزاري)
-                    if (_c.sessionActive && _c.selectedMode == "وزاري") _buildControlButtons(),
+                    if (showControls) _buildControlButtons(),
 
                     // ✅ زر بدء الشرح (يظهر دائماً في وضع شرح الرياضيات)
-                    if (_c.selectedSubject == "رياضيات" && _c.mathMode == "شرح") _buildMathExplainButton(),
+                    if (showMathButton) _buildMathExplainButton(),
+
+                    // 👨‍🏫 شرائح متابعة الأداة («أضف مثالاً من الحياة»…) —
+                    //    تُرسل كرسالة متابعة حقيقية لا كنصّ ثابت.
+                    if (_c.isTeacher) TeacherSuggestionChips(controller: _c),
 
                     // ✅ خانة الكتابة العائمة
                     ChatInputArea(controller: _c, onEmptyWarning: _showEmptyWarning),
@@ -173,6 +270,18 @@ class _MainChatScreenState extends State<MainChatScreen> with TickerProviderStat
                 left: 16,
                 right: 16,
                 child: SessionSettingsPanel(controller: _c),
+              ),
+
+              // 💡 تلميح أول زيارة (يظهر مرة واحدة ويختفي تلقائياً)
+              ScreenTip(
+                screenId: _c.isTeacher ? "teacher_chat" : "chat",
+                text: _c.isTeacher
+                    ? "اختر المادة من القائمة ☰، ثم الوحدة والدرس من زر الإعدادات ⚙️، ثم اضغط زرّ الأداة — وناقش النتيجة بعدها."
+                    : "اختر المادة من القائمة الجانبية ☰، وحدّد الوضع والوحدة من زر الإعدادات، ثم اكتب سؤالك.",
+                autoHideAfter: Duration(seconds: 11),
+                // زاوية أعلى اليسار: أسفل الشاشة مزدحم بلوحة الإعدادات وخانة الكتابة.
+                anchorTop: true,
+                topOffset: 100,
               ),
             ],
           ),

@@ -1,7 +1,7 @@
 import os
 import json
 import re
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
@@ -9,17 +9,16 @@ import asyncio
 import hashlib
 import time
 # من config
-from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE
+# ⚠️ **مصدر واحد للحدود.** كانت هذه الثوابت تُستورد من config ثم **يُعاد
+#    تعريفها هنا فوراً** — فتغيير القيمة في `config.py` لا يفعل شيئاً إطلاقاً.
+#    نفس فخّ `normalize_arabic` المكرّرة ونفس فخّ الرقم 6 المبعثر.
+from config import (
+    BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE,
+    MAX_PAGES_EXPLAIN_SUMMARY, MAX_PAGES_EXAMS, UNIT_BATCH_PAGES,
+)
 
 # المتغيرات
 embed_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-
-
-MAX_PAGES_EXPLAIN_SUMMARY = 3      # أقصى صفحات لشرح/تلخيص عند الإدخال
-MAX_PAGES_EXAMS = 5                # أقصى صفحات لبحث الوزاري عبر الصفحات
-EXAMS_BATCH_SIZE = 10              # دفعة عرض أسئلة وزاري
-UNIT_BATCH_PAGES = 3               # عدد صفحات في كل دفعة عند شرح/تلخيص الوحدة
-QA_TOP_K = 3                       # عدد نتائج FAISS للسؤال
 
 
 
@@ -86,11 +85,116 @@ def help_for_mode(mode: str, input_type: str = None) -> str:
 
 
 
-def subject_book_path(subject: str) -> str:
-    return os.path.join(BASE_SUBJECTS_DIR, subject, f"{subject}.json")
+# ── البنية: data/subjects/{المادة}/{gradeN}/[{المسار}]/{الوضع}/ ──
+#    الصف الأول موحّد (بلا مجلد مسار). الثاني والثالث: علمي | أدبي.
+LESSONS_DIR = "lessons_mode"
+UNIT_DIR = "unit_mode"
+_GRADE_DIRS = {1: "grade1", 2: "grade2", 3: "grade3"}
 
-def subject_exams_dir(subject: str) -> str:
-    return os.path.join(BASE_SUBJECTS_DIR, subject, "exams")
+
+def mode_dir(subject: str, mode: str, grade: int = 3, track: str = "علمي") -> str:
+    """مجلد وضعٍ لمادة في صف/مسار. الافتراضي الثالث العلمي — وهو ما
+    تعتمد عليه المعالجات القديمة التي تستدعي بلا صف."""
+    gdir = _GRADE_DIRS.get(grade, "grade3")
+    base = os.path.join(BASE_SUBJECTS_DIR, subject, gdir)
+    if grade == 1:
+        return os.path.join(base, mode)
+    return os.path.join(base, track or "علمي", mode)
+
+
+def _first_real_json(dirpath: str):
+    """أول ملف JSON فعلي في المجلد (تجاهل ما يبدأ بـ _ أو .)."""
+    if not os.path.isdir(dirpath):
+        return None
+    for fname in sorted(os.listdir(dirpath)):
+        if fname.startswith(("_", ".")):
+            continue
+        fpath = os.path.join(dirpath, fname)
+        if os.path.isfile(fpath) and fname.lower().endswith(".json"):
+            return fpath
+    return None
+
+
+# النطاق الذي كُتبت له الملفات القديمة (قبل إعادة الهيكلة إلى صفوف).
+# ⚠️ التوافق الرجعي مسموح **لهذا النطاق وحده**: أي صف/مسار آخر يقرأ
+#    مجلده هو فقط، وإن كان فارغاً فالجواب «لا يوجد محتوى» — لا محتوى صفٍّ آخر.
+LEGACY_GRADE, LEGACY_TRACK = 3, "علمي"
+
+
+def _is_legacy_scope(grade, track) -> bool:
+    try:
+        grade = int(grade)
+    except (TypeError, ValueError):
+        return False
+    return grade == LEGACY_GRADE and (track or LEGACY_TRACK) == LEGACY_TRACK
+
+
+def subject_book_path(subject: str, grade: int = 3, track: str = "علمي",
+                      prefer: str = UNIT_DIR) -> str:
+    """مسار كتاب المادة لصف/مسار محدد: الوضع المفضَّل أولاً ثم الآخر.
+
+    المواقع القديمة تُجرَّب **للثالث العلمي فقط** — فلا يرث صفٌّ محتوى صفٍّ آخر.
+
+    🔴 **لماذا `prefer`؟ (علّة حقيقية وقعت 2026-09-03)** المعالجات القديمة
+       لكلٍّ منها شكلٌ تتوقّعه: الأحياء **قائمة صفحات**، وغيرها **قاموس وحدات
+       ودروس**. وكان الترتيب `unit_mode` ثم `lessons_mode` **دائماً** — فبقي
+       سليماً بالصدفة وحدها: لأن الفيزياء والكيمياء لم يكن لهما ملف صفحات.
+       يوم أضاف المالك `unit_mode/فيزياء.json` انهار معالج الفيزياء فوراً
+       بـ`AttributeError: 'list' object has no attribute 'get'` — أي أن
+       **إضافة محتوى صحيح كسرت الكود**. فليقل كلُّ نداءٍ أيَّ شكلٍ يريد.
+    """
+    order = (UNIT_DIR, LESSONS_DIR) if prefer == UNIT_DIR else (LESSONS_DIR, UNIT_DIR)
+    for mode in order:
+        d = mode_dir(subject, mode, grade, track)
+        named = os.path.join(d, f"{subject}.json")
+        if os.path.isfile(named):
+            return named
+        found = _first_real_json(d)
+        if found:
+            return found
+
+    legacy_base = os.path.join(BASE_SUBJECTS_DIR, subject)
+    if not _is_legacy_scope(grade, track):
+        # مسار غير موجود عمداً ⇒ load_json_safe ترجع None ⇒ «قيد الإضافة 🚧»
+        return os.path.join(mode_dir(subject, order[0], grade, track), f"{subject}.json")
+
+    # مواقع قديمة (قبل إعادة الهيكلة) — الثالث العلمي وحده
+    for candidate in (
+        os.path.join(legacy_base, order[0], f"{subject}.json"),
+        os.path.join(legacy_base, order[1], f"{subject}.json"),
+        os.path.join(legacy_base, f"{subject}.json"),
+    ):
+        if os.path.isfile(candidate):
+            return candidate
+    return os.path.join(legacy_base, f"{subject}.json")
+
+
+def math_branch_dir(branch: str, grade: int = 3, track: str = "علمي") -> str:
+    """مجلد فرع الرياضيات (الفرع = وحدة) — الجديد أولاً، والقديم للثالث العلمي فقط."""
+    new = os.path.join(mode_dir("رياضيات", LESSONS_DIR, grade, track), branch)
+    if os.path.isdir(new):
+        return new
+    if not _is_legacy_scope(grade, track):
+        return new  # غير موجود ⇒ قائمة فارغة ⇒ رسالة «قيد الإضافة»
+    legacy = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", LESSONS_DIR, branch)
+    if os.path.isdir(legacy):
+        return legacy
+    return os.path.join(BASE_SUBJECTS_DIR, "رياضيات", branch)
+
+
+def subject_exams_dir(subject: str, grade: int = 3, track: str = "علمي") -> str:
+    """مجلد بنك الوزاري لصف/مسار.
+
+    بنك الوزاري الحالي كله **للثالث العلمي** ومخزَّن مسطّحاً في `{المادة}/exams/`.
+    لإضافة وزاري صف آخر لاحقاً: أنشئ `{المادة}/exams/grade{N}/` (وللصف 2/3
+    مجلد المسار بداخله) — يُقرأ تلقائياً دون تعديل كود.
+    """
+    base = os.path.join(BASE_SUBJECTS_DIR, subject, "exams")
+    gdir = _GRADE_DIRS.get(grade, "grade3")
+    scoped = os.path.join(base, gdir) if grade == 1 else os.path.join(base, gdir, track or "علمي")
+    if os.path.isdir(scoped):
+        return scoped
+    return base if _is_legacy_scope(grade, track) else scoped
 
 def load_json_safe(path: str):
     if not os.path.isfile(path):
@@ -159,12 +263,13 @@ def extract_relevant_book_texts(book_data, query, top_k=5):
 
     return final_texts[:top_k]
 
-def extract_all_texts_and_metas(book_data: List[dict]):
+def extract_all_texts_and_metas(book_data: List[dict], subject=None):
     texts = []
     metas = []
     for unit in book_data:
         for page in unit.get("الصفحات", []):
-            texts.append(page.get("نص_الصفحة", ""))
+            # 🧮 الكسور تُرمَّز قبل أن يراها الموديل — فنقلُه الحرفيّ ينقلها مرسومة
+            texts.append(_chem_for_subject(to_frac(page.get("نص_الصفحة", "")), subject))
             metas.append({
                 "unit": unit.get("اسم_الوحدة"),
                 "page": page.get("رقم_الصفحة")
@@ -172,8 +277,11 @@ def extract_all_texts_and_metas(book_data: List[dict]):
     return texts, metas
 
 import threading
-_faiss_index_cache = {}
-_faiss_lock = threading.Lock()
+
+from core import index_store
+from core.fractions import to_frac
+from core.chem import for_subject as _chem_for_subject
+
 _build_semaphore = None
 
 def get_build_semaphore():
@@ -194,38 +302,40 @@ def _normalize_for_search(text: str) -> str:
     return text
 
 
-async def faiss_search(texts: List[str], query: str, top_k: int = QA_TOP_K):
+def build_index_sync(texts: List[str]):
+    """بناء فهرس FAISS من نصوص — متزامن كي يُستدعى من الإحماء ومن الخيط معاً."""
+    index_store.mark_build()
+    emb = embed_model.encode(texts, convert_to_numpy=True, batch_size=32, show_progress_bar=False)
+    faiss.normalize_L2(emb)
+    index = faiss.IndexFlatIP(emb.shape[1])
+    index.add(emb)
+    return index
+
+
+async def faiss_search(texts: List[str], query: str, top_k: int = QA_TOP_K, meta: Optional[dict] = None):
+    """بحث دلالي. `meta` وصف اختياري (مادة/صف/وحدة) يُسجَّل في سجلّ الفهارس."""
     if not texts:
         return [], []
     
     try:
-        # ✅ بصمة أقوى: طول + أول نص + آخر نص
-        fingerprint_data = f"{len(texts)}_{texts[0][:80]}_{texts[-1][:80]}"
-        fingerprint = hashlib.md5(fingerprint_data.encode('utf-8')).hexdigest()[:16]
+        # 🗂️ ثلاث طبقات: ذاكرة → قرص → بناء (راجع core/index_store.py).
+        #    الإحماء عند الإقلاع يجعل هذه الدالة **لا تبني شيئاً** أثناء طلب طالب.
+        fp = index_store.fingerprint(texts)
 
-        if fingerprint not in _faiss_index_cache:
+        index = index_store.get_mem(fp)
+        if index is None:
+            index = index_store.load_disk(fp)
+            if index is not None:
+                index_store.put_mem(fp, index)
+
+        if index is None:
             async with get_build_semaphore():
-                if fingerprint not in _faiss_index_cache:
-                    def _build_index():
-                        emb = embed_model.encode(
-                            texts,
-                            convert_to_numpy=True,
-                            batch_size=32,
-                            show_progress_bar=False
-                        )
-                        faiss.normalize_L2(emb)
-                        index = faiss.IndexFlatIP(emb.shape[1])
-                        index.add(emb)
-                        return index
-                    
-                    built = await asyncio.wait_for(
-                        asyncio.to_thread(_build_index),
-                        timeout=40.0
-                    )
-                    with _faiss_lock:
-                        _faiss_index_cache[fingerprint] = built
-
-        index = _faiss_index_cache[fingerprint]
+                index = index_store.get_mem(fp)      # فحص ثانٍ بعد الانتظار
+                if index is None:
+                    index = await asyncio.wait_for(
+                        asyncio.to_thread(build_index_sync, texts), timeout=90.0)
+                    index_store.put_mem(fp, index)
+                    index_store.save_disk(fp, index, meta)
 
         def _search_only():
             q_emb = embed_model.encode(
@@ -418,8 +528,8 @@ def restrict_book_to_unit(book_data: List[dict], unit_name: str):
             return [unit]
     return None
 
-def collect_exam_questions_by_years(subject: str, years: List[str]):
-    exams_dir = subject_exams_dir(subject)
+def collect_exam_questions_by_years(subject: str, years: List[str], grade: int = 3, track: str = "علمي"):
+    exams_dir = subject_exams_dir(subject, grade, track)
     found = []
     if not os.path.isdir(exams_dir):
         return found
@@ -442,22 +552,6 @@ def collect_exam_questions_by_years(subject: str, years: List[str]):
                     "النص": q
                 })
     return found
-
-def filter_exams_by_keyword(questions: list, keyword: str):
-    """
-    ترجع كل الأسئلة الوزارية التي تحتوي على الكلمة أو العبارة المطلوبة
-    """
-    keyword = keyword.strip()
-    if not keyword:
-        return []
-
-    matched = []
-    for q in questions:
-        text = q.get("النص", "")
-        if keyword in text:
-            matched.append(q)
-
-    return matched
 
 def filter_and_rank_exams(questions: list, user_text: str):
     """
@@ -486,69 +580,8 @@ def filter_and_rank_exams(questions: list, user_text: str):
 
     return [q for score, q in scored_questions]
 
-def normalize_arabic(text: str) -> str:
-    if not text:
-        return ""
-
-    text = text.lower()
-
-    # إزالة التشكيل
-    text = re.sub(r'[ًٌٍَُِّْـ]', '', text)
-
-    # توحيد الحروف
-    replacements = {
-        "أ": "ا",
-        "إ": "ا",
-        "آ": "ا",
-        "ى": "ي",
-        "ة": "ه",
-        "ؤ": "و",
-        "ئ": "ي",
-    }
-
-    for k, v in replacements.items():
-        text = text.replace(k, v)
-
-    # إزالة أل التعريف
-    text = re.sub(r'\bال', '', text)
-
-    # إزالة أي شيء غير حروف عربية
-    text = re.sub(r'[^\u0600-\u06FF\s]', ' ', text)
-
-    # إزالة المسافات الزائدة
-    text = re.sub(r'\s+', ' ', text).strip()
-
-    return text
-
-
-
-def filter_exams_smart(questions: list, query: str, min_hits: int = 2):
-    """
-    ترجع الأسئلة التي تطابق الموضوع بعدد كافٍ من الكلمات
-    """
-    keywords = extract_keywords(query)
-    if not keywords:
-        return []
-
-    matched = []
-
-    for q in questions:
-        q_text = normalize_arabic(q.get("النص", ""))
-        hits = 0
-
-        for w in keywords:
-            if w in q_text:
-                hits += 1
-
-        if hits >= min_hits:
-            matched.append(q)
-
-    return matched
-
-
-
-
-
+# ℹ️ حُذفت نسخة ثانية متطابقة من normalize_arabic كانت معرّفة هنا
+#    وتطغى على الأولى — سلوك واحد بتعريفين فخّ صامت.
 
 def get_math_exam_years(branch: str):
     """يجلب السنوات المتاحة لفرع معين"""
@@ -622,30 +655,120 @@ def get_math_exam_questions(branch: str, year: str, lesson_name: str, count: int
 def load_math_lesson(branch: str, lesson_name: str):
     """
     branch: تفاضل / تكامل / هندسة / جبر
-    lesson_name: اسم الدرس
+    lesson_name: اسم الدرس — **باسم الملف أو بالاسم الداخلي `اسم_الدرس`**
+
+    ⚠️ الاسمان يختلفان فعلاً في البيانات (ملف «القطع الزائد» واسمه الداخلي
+       «القطع الزائد (الهذلول - Hyperbola)»)، وقائمةُ الدروس صارت ترجع الاسم
+       الداخلي ليطابق `/content/capabilities`. فيلزم قبول الاثنين: الداخلي
+       لما يأتي من الاختبار والقائمة الجديدة، والملفّي لمحادثاتٍ محفوظة
+       قديماً ولأي نداءٍ لم يُحدَّث.
+
+       ويُقبل الملف **بلا امتداد `.json`** كما يفعل بناء كتاب الدروس —
+       ملف «مبدأ العد (طرائق العد )» بلا امتداد وكان يسقط هنا وحده.
     """
-    base = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", branch)
+    base = math_branch_dir(branch)
     if not os.path.isdir(base):
         return None
 
-    # ✅ تطبيع اسم الدرس المطلوب
-    normalized_lesson = normalize_lesson_name(lesson_name)
+    target = normalize_lesson_name(lesson_name)
+    files = [f for f in sorted(os.listdir(base))
+             if not f.startswith((".", "_")) and os.path.isfile(os.path.join(base, f))]
 
-    for f in os.listdir(base):
-        if not f.endswith(".json"):
-            continue
-        
-        # ✅ تطبيع اسم الملف
-        file_name = os.path.splitext(f)[0]
-        normalized_file = normalize_lesson_name(file_name)
-        
-        # ✅ مقارنة بعد التطبيع
-        if normalized_lesson == normalized_file:
+    # ١) مطابقة اسم الملف — الأرخص، بلا قراءة قرص
+    for f in files:
+        stem = f[:-5] if f.endswith(".json") else f
+        if normalize_lesson_name(stem) == target:
             return load_json_safe(os.path.join(base, f))
+
+    # ٢) مطابقة الاسم الداخلي — لا تُدفع كلفتها إلا عند فشل الأولى
+    for f in files:
+        data = load_json_safe(os.path.join(base, f))
+        if not isinstance(data, dict):
+            continue
+        inner = data.get("اسم_الدرس") or data.get("اسم_درس") or ""
+        if inner and normalize_lesson_name(inner) == target:
+            return data
 
     return None
 
 
+
+
+# ══════════════════════════════════════════════════════════
+# ⚗️ قاعدة الصيغ البنائية — تُضاف لمواد الكيمياء العضوية وحدها
+# ══════════════════════════════════════════════════════════
+# 🔴 **لماذا هنا لا في `subjects/chemistry.py`؟** لأن وضعَي الدروس والوحدات
+#    (المسار الحيّ اليوم) يمرّان بـ`core/lesson_mode.py` و`core/pages_mode.py`
+#    وهما يستعملان **هذه البرومبتات المشتركة**؛ وبرومبتات `chemistry.py`
+#    لا تُقرأ إلا في المسار القديم. تعديلُ ذاك وحده لا يغيّر شيئاً للطالب.
+#
+# والقاعدة قسمٌ مستقلٌّ بارز، وتنصّ صراحةً على أولويتها على «انقل حرفياً» —
+# فالاستثناء المدسوس داخل جملة منع طويلة يُتجاهَل (درسٌ من تجربة الكسور).
+
+# 🔒 **الكيمياء وحدها.** مصدرٌ واحد للنطاق مع `core/chem.py` — فما يُرمَّز
+#    في نصّ الكتاب هو نفسه ما تُطلب كتابته في الرد، ولا تتفرّق الكلمة.
+from core.chem import ORGANIC_SUBJECTS as _ORGANIC_SUBJECTS
+
+
+def organic_structure_rules(subject: str) -> str:
+    """تعليمة الترميز البنائي — نصٌّ فارغ للمواد التي لا صيغ فيها.
+
+    ⚠️ **حدود هذه القاعدة (مقصودة وصريحة):** هي قاعدة **كتابةٍ وشكل** لا
+       قاعدة **مصدر**. لا تبيح ذرّة معلومة من خارج الدرس، ولا تسمح برسم
+       مركّبٍ لم يرد فيه. قواعد «المصدر الوحيد هو الكتاب» تبقى فوقها كلها.
+       (الصياغة الأولى قالت «كلّما ذكرتَ مركّباً عضوياً أرفِق ترميزه» —
+        وهي دعوةٌ مفتوحة للرسم من معرفة الموديل، فأُزيلت.)
+    """
+    if (subject or "").strip() not in _ORGANIC_SUBJECTS:
+        return ""
+    return (
+        "\n════════════════════════════════════════════════════\n"
+        "⚗️ **الصيغ البنائية والحلقات — طريقة الكتابة**\n"
+        "════════════════════════════════════════════════════\n"
+        "🔒 **أولاً وقبل كل شيء:** هذه قاعدةُ **شكلِ الكتابة** لا قاعدةَ "
+        "**مصدرِ المعلومة**. المصدر يبقى نصَّ الدرس وحده كما تقول القواعد "
+        "أعلاه. **لا ترسم مركّباً لم يرد في الدرس**، ولا تُكمل صيغةً ناقصة "
+        "من معرفتك. إن لم يذكر الدرسُ الصيغة فلا تخترعها.\n\n"
+        "🚫 وحين **يذكر الدرسُ** صيغةً أو شكلاً: **يُمنع رسمه بالرموز أو "
+        "الشرطات أو داخل ```**، ولا تقل «لا أستطيع الرسم». أنت **تكتب "
+        "ترميزاً** والتطبيق **يرسمه** للطالب.\n\n"
+        "📌 السلسلة المفتوحة ⇐ \\chem{...}\n"
+        "   • المجموعات موصولةً بشرطة: \\chem{CH3-CH2-CH2-NH2}\n"
+        "   • الفرع بين قوسين بعد أصله مباشرةً: \\chem{CH3-CH(CH3)-CH3}\n"
+        "   • الثنائية = والثلاثية #: \\chem{CH3-CH=O} · \\chem{CH3-C#N}\n\n"
+        "📌 الحلقة ⇐ \\ring{...} — الأجزاء يفصلها | :\n"
+        "   • العدد أولاً: \\ring{3} مثلث · \\ring{4} مربع · \\ring{6} سداسي\n"
+        "   • ar للعطرية: \\ring{6|ar} بنزين\n"
+        "   • رمز الذرّة داخل الحلقة: \\ring{6|ar|N} بيريدين · \\ring{6|NH} بيبيريدين\n"
+        "   • +المجموعة المعلّقة: \\ring{6|ar|+NH2} أنيلين\n\n"
+        "⚠️ **وهي تسبق قاعدة «انقل بلغة الدرس حرفياً» في الشكل وحده**: إن "
+        "كتب الكتابُ الصيغةَ سطراً مسطّحاً فاكتبها أنت بالترميز — المعنى "
+        "والمحتوى كما في الكتاب حرفياً، والشكلُ وحده هو ما يتغيّر.\n"
+        "🚫 **وممنوعٌ وصفُ الشكل بالكلمات**: لا «شكل سداسي» ولا «حلقة "
+        "مثلثة» ولا «يُمثل برسم مربع» — اكتب \\ring{...} مكانها.\n\n"
+        "📥 **ونصُّ الدرس يصلك بالترميز جاهزاً — انقله كما هو.** أمثلة على "
+        "النقل المطلوب:\n"
+        "   نصّ الدرس : «1) رسمة \\ring{3} : تمثل بروبان حلقي (سيكلوبروبان)»\n"
+        "   ✅ ردُّك    : «سيكلوبروبان \\ring{3} وصيغته C3H6.»\n"
+        "   ❌ لا تكتب : «سيكلوبروبان يُمثل برسم مثلث».\n\n"
+        "   نصّ الدرس : «2) رسمة \\ring{4} : تمثل سيكلوبيوتان.»\n"
+        "   ✅ ردُّك    : «سيكلوبيوتان \\ring{4}.»\n"
+        "   ❌ لا تكتب : «سيكلوبيوتان يتم تمثيله برسم مربع».\n\n"
+        "   نصّ الدرس : «رسمة \\ring{6|ar} : شكل سداسي بداخله دائرة»\n"
+        "   ✅ ردُّك    : «البنزين \\ring{6|ar}.»\n"
+        "   ❌ لا تكتب : «البنزين شكل سداسي بداخله دائرة».\n\n"
+        "🧪 **وأمثلةُ التسمية تُعرض رسماً ثم اسماً تحته**، ولا تُحكى بالكلمات:\n"
+        "   نصّ الدرس : «الرسم: \\chem{CH3-CH2-CH2-C(=O)-NH-CH2-CH2-CH3}»\n"
+        "              «التسمية: N-بروبيل بيوتاناميد.»\n"
+        "   ✅ ردُّك    : «المثال الأول:\n"
+        "                \\chem{CH3-CH2-CH2-C(=O)-NH-CH2-CH2-CH3}\n"
+        "                التسمية: N-بروبيل بيوتاناميد.»\n"
+        "   ❌ لا تكتب : «الرسم: لدينا سلسلة من أربع كربونات مرتبطة "
+        "بذرة نيتروجين…» — هذا حكايةُ الرسم لا الرسم.\n\n"
+        "🔁 **القاعدة باختصار:** كلُّ \\ring{...} أو \\chem{...} تراه في نصّ "
+        "الدرس **يجب أن يظهر في ردّك كما هو**. عدُّها قبل الإرسال: إن كان "
+        "في الدرس ثلاثة ترميزات فلا يصحّ أن يخلو ردُّك منها.\n"
+    )
 
 
 def system_prompt_strict_explain(subject: str):
@@ -687,10 +810,16 @@ def system_prompt_strict_explain(subject: str):
         "القواعد الأساسية (مهم الالتزام بها بدقة):\n"
           "1) اشرح باللغة العربية فقط ولاتضيف اي كلمات من لغة اخرى اجنبية.\n"
           "2) اكتب المعادلات بشكل نصي نظيف ومقروء باللغة العربية و الارقام العربيه  والصيغه من اليمين لليسار في الحساب ، واستبدل علامات الشرطة السفلية (_) بمسافات عادية، وتجنب تماماً استخدام أي أكواد أو رموز برمجية مثل (\quad) أو (LaTeX)..\n"
+        "🧮 قاعدة الكسور (إلزامية ولا استثناء لها):\n"
+        "كل كسر — أي «س على ص» — يُكتب حصراً بالصيغة \\frac{البسط}{المقام}.\n"
+        "يُمنع كتابته بـ«/» أو «÷» أو بكلمة «على»، حتى لو كتبه الكتاب هكذا.\n"
+        "⚠️ وحدات القياس ليست كسوراً وتبقى كما هي: م/ث · كجم.م/ث · كم/ساعة.\n"
+        "أمثلة: السرعة = \\frac{المسافة}{الزمن} · ك = \\frac{الوزن}{تسارع الجاذبية}\n"
+        "وهذه الصيغة وحدها مستثناة من منع LaTeX المذكور أعلاه.\n"
         "3) مصدر الإجابة الوحيد هو الكتاب المعطى لك فقط، ولا يُسمح باستخدام أي معلومات من خارج الكتاب.\n"
         "4) لا تضف معرفة عامة، ولا أمثلة خارجية، ولا اجتهاد شخصي.\n"
         "5) جميع الإجابات يجب أن تكون إما نقلًا مباشرًا من نص الكتاب أو شرحًا مبسطًا لمعنى موجود صراحة في الكتاب.\n\n"
-       
+        + organic_structure_rules(subject)
     )
     
     
@@ -700,7 +829,14 @@ def system_prompt_strict_summary(subject: str, level: int):
         f"أنت ملخّص ماهر لمادة {subject}. التزم بالنص المقدم فقط. لخص بمستوى: {levels.get(level,'متوسط')}. "
         "تكلم باللغة العربية فقط ولاتضيف اي كلمات من لغة اخرى اجنبية.\n"
         " اكتب المعادلات بشكل نصي نظيف ومقروء باللغة العربية و الارقام العربيه  والصيغه من اليمين لليسار في الحساب ، واستبدل علامات الشرطة السفلية (_) بمسافات عادية، وتجنب تماماً استخدام أي أكواد أو رموز برمجية مثل (\quad) أو (LaTeX)..\n"
+        "🧮 قاعدة الكسور (إلزامية ولا استثناء لها):\n"
+        "كل كسر — أي «س على ص» — يُكتب حصراً بالصيغة \\frac{البسط}{المقام}.\n"
+        "يُمنع كتابته بـ«/» أو «÷» أو بكلمة «على»، حتى لو كتبه الكتاب هكذا.\n"
+        "⚠️ وحدات القياس ليست كسوراً وتبقى كما هي: م/ث · كجم.م/ث · كم/ساعة.\n"
+        "أمثلة: السرعة = \\frac{المسافة}{الزمن} · ك = \\frac{الوزن}{تسارع الجاذبية}\n"
+        "وهذه الصيغة وحدها مستثناة من منع LaTeX المذكور أعلاه.\n"
         "لا تضف معلومات خارج النص. التنسيق يكون واضحًا ونقاط عند الحاجة."
+        + organic_structure_rules(subject)
     )
 
 def system_prompt_strict_qa(subject: str):
@@ -713,6 +849,12 @@ def system_prompt_strict_qa(subject: str):
         "- إذا كان سؤالاً مستقلاً تماماً → تجاهل السياق.\n\n"
         "إن لم تجد الإجابة داخل النص قل: 'عذراً، هذه المعلومة غير متوفرة في الكتاب'."
         " اكتب المعادلات بشكل نصي نظيف ومقروء باللغة العربية و الارقام العربيه  والصيغه من اليمين لليسار في الحساب ، واستبدل علامات الشرطة السفلية (_) بمسافات عادية، وتجنب تماماً استخدام أي أكواد أو رموز برمجية مثل (\quad) أو (LaTeX)..\n"
+        "🧮 قاعدة الكسور (إلزامية ولا استثناء لها):\n"
+        "كل كسر — أي «س على ص» — يُكتب حصراً بالصيغة \\frac{البسط}{المقام}.\n"
+        "يُمنع كتابته بـ«/» أو «÷» أو بكلمة «على»، حتى لو كتبه الكتاب هكذا.\n"
+        "⚠️ وحدات القياس ليست كسوراً وتبقى كما هي: م/ث · كجم.م/ث · كم/ساعة.\n"
+        "أمثلة: السرعة = \\frac{المسافة}{الزمن} · ك = \\frac{الوزن}{تسارع الجاذبية}\n"
+        "وهذه الصيغة وحدها مستثناة من منع LaTeX المذكور أعلاه.\n"
     )
     
     
@@ -741,6 +883,7 @@ def system_prompt_strict_qa_improved(subject: str):
         "الإجابة: (الفروقات فقط، بدون معلومات إضافية)\n\n"
         
         "⚠️ تحذير: لا تعطِ الدرس كاملاً! أجب على السؤال فقط."
+        + organic_structure_rules(subject)
     )
 
 def system_prompt_strict_exams(subject: str):
@@ -768,10 +911,12 @@ def system_prompt_math_explain():
     
     
     
-def pages_with_headers(pages):
+def pages_with_headers(pages, subject=None):
     blocks = []
     for p in pages:
-        blocks.append(f"📄 الصفحة {p['رقم_الصفحة']}:\n{p['نص_الصفحة']}")
+        blocks.append(
+            f"📄 الصفحة {p['رقم_الصفحة']}:\n"
+            f"{_chem_for_subject(to_frac(p['نص_الصفحة']), subject)}")
     return "\n\n".join(blocks)
 
 
@@ -796,7 +941,7 @@ def fetch_pages_by_numbers(book_data: List[dict], page_nums: List[int]):
 
 
 
-def extract_all_texts_and_metas_physics(book_data: List[dict]):
+def extract_all_texts_and_metas_physics(book_data: List[dict], subject=None):
     """استخراج جميع النصوص من بيانات الفيزياء بذكاء لدعم المعادلات والمسائل"""
     texts = []
     metas = []
@@ -860,7 +1005,8 @@ def extract_all_texts_and_metas_physics(book_data: List[dict]):
                             "part_name": part_name
                         })
     
-    return texts, metas
+    # 🧮 نفس القاعدة هنا: نصّ الدرس المهيكل يصل الموديل بكسور مرمَّزة
+    return [_chem_for_subject(to_frac(t), subject) for t in texts], metas
 
 
 async def enhanced_search_physics(book_data, query, top_k=5):
@@ -907,9 +1053,10 @@ def format_arabic_math(text: str) -> str:
     text = re.sub(r'\\text\{([^}]+)\}', r'\1', text)
     text = re.sub(r'\\mathrm\{([^}]+)\}', r'\1', text)
     
-    # 3. تحويل الكسور ( \frac{A}{B} ) إلى شكل مقروء ( A / B )
-    while r'\frac' in text:
-        text = re.sub(r'\\frac\{([^}]+)\}\{([^}]+)\}', r' (\1 / \2) ', text)
+    # 3. ✅ الكسور تُترك كما هي: `\frac{A}{B}` هو الترميز الذي يرسمه التطبيق
+    #    بسطاً فوق مقام. كان هنا تحويلٌ إلى «(A / B)» يُفقد الكسرَ صورتَه
+    #    ويجعله ملتبساً على الطالب («أ / ب + ج» لا يُجزم بمعناها).
+    #    هذا الفلتر مركزي: تستدعيه كل المواد، فتصحيحه هنا يكفيها جميعاً.
         
     # 4. استبدال الرموز الرياضية اللاتينية برموز عادية
     replacements = {
@@ -946,3 +1093,25 @@ def format_arabic_math(text: str) -> str:
     text = re.sub(r'[ \t]+', ' ', text).strip()
     
     return text
+
+# ══════════════════════════════════════════════════════════
+# 🧹 تنظيف اللاتيك الشارد من رد الموديل
+# ══════════════════════════════════════════════════════════
+# المسارات القديمة (`subjects/*.py`) تنظّف الرد بنفسها، أما مسارا النسخة
+# الثالثة (`core/lesson_mode.py` و`core/pages_mode.py`) — وهما المسار الحيّ
+# اليوم — فلا ينظّفان شيئاً. فظهر على شاشة الطالب `\quad` بين صيغتين
+# و`\[ ... \]` حول قانون. والترميزات الثلاثة التي **يرسمها التطبيق**
+# مستثناة صراحةً، وإلا حُذف ما وُلِّد عمداً (علّة وقعت مع `\frac` من قبل).
+
+_KEEP = ("frac", "chem", "ring")
+_STRAY_LATEX = re.compile(r"\\(?!(?:%s)\b)[a-zA-Z]+" % "|".join(_KEEP))
+_LATEX_DELIMS = re.compile(r"\\[\[\]()]")
+
+
+def strip_stray_latex(answer: str) -> str:
+    """يحذف أوامر اللاتيك عدا ترميزات الرسم — ويترك النصّ العربي كما هو."""
+    if not answer:
+        return answer
+    out = _LATEX_DELIMS.sub("", answer)
+    out = _STRAY_LATEX.sub("", out)
+    return out

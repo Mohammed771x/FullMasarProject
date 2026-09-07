@@ -11,7 +11,7 @@ from .common import (
     filter_and_rank_exams, collect_exam_questions_by_years,
     parse_exams_input, extract_keywords, faiss_search, format_arabic_math
 )
-from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
 from typing import Dict, List, Optional
 import json
@@ -34,7 +34,9 @@ def get_book_data():
     global _book_cache
     if _book_cache is not None:
         return _book_cache
-    book = load_json_safe(subject_book_path(SUBJECT))
+    # 📖 هذا المعالج يتوقّع **قاموس وحدات ودروس** — نطلبه صراحةً
+    #    كي لا يتغيّر تحته الشكل يوم يُضاف للمادة ملف صفحات.
+    book = load_json_safe(subject_book_path(SUBJECT, prefer='lessons_mode'))
     if not book:
         return {}
     _book_cache = book
@@ -158,7 +160,7 @@ async def handle_arabic_explain(req: AskRequest, gemini_client):
         else:
             target_data = book if isinstance(book, list) else book.get("الوحدات", [])
             
-        results, idxs = await enhanced_search_physics(target_data, req.content, top_k=5)
+        results, idxs = await enhanced_search_physics(target_data, req.search_query, top_k=5)
         context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
         
         # استخراج المراجع الخاصة بالبحث الدلالي
@@ -213,7 +215,7 @@ async def handle_arabic_explain(req: AskRequest, gemini_client):
         # إرفاق سجل المحادثة إن وجد
         if req.chat_history:
             valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
-            messages_for_ai.extend(valid_history[-6:])
+            messages_for_ai.extend(valid_history[-HISTORY_LAST_N:])
         
         # رسالة الـ User مخصصة فقط للبيانات والسؤال
         messages_for_ai.append({
@@ -279,7 +281,7 @@ async def handle_arabic_summary(req: AskRequest, gemini_client):
         else:
             target_data = book if isinstance(book, list) else book.get("الوحدات", [])
         
-        results, idxs = await enhanced_search_physics(target_data, req.content, top_k=QA_TOP_K)
+        results, idxs = await enhanced_search_physics(target_data, req.search_query, top_k=QA_TOP_K)
         context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
         
         _, metas = extract_all_texts_and_metas_physics(target_data)
@@ -297,7 +299,7 @@ async def handle_arabic_summary(req: AskRequest, gemini_client):
         
         if req.chat_history:
             valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
-            messages_for_ai.extend(valid_history[-6:])
+            messages_for_ai.extend(valid_history[-HISTORY_LAST_N:])
         
         messages_for_ai.append({
             "role": "user",
@@ -342,7 +344,7 @@ async def handle_arabic_question(req: AskRequest, gemini_client):
     # استخراج سجل المحادثة لاستخدامه في البحث الذكي أو التمرير للمودل
     chat_history_from_app = req.chat_history or []
     valid_history = [msg for msg in chat_history_from_app if msg.get('role') in ['user', 'assistant']]
-    recent_history = valid_history[-6:] if valid_history else []
+    recent_history = valid_history[-HISTORY_LAST_N:] if valid_history else []
 
     context_text = ""
     refs = []
@@ -409,7 +411,7 @@ async def handle_arabic_question(req: AskRequest, gemini_client):
 
 التعليمات:
 1. إذا كان الطالب يقول "مرحبا"، "كيفك"، "شكراً"، رد بلطف وبشكل طبيعي كمعلم.
-2. إذا كان سؤالاً في المادة، استخدم المعلومات المستخرجة للإجابة. إذا لم تكن الإجابة موجودة في المعلومات المستخرجة، لا تخمن! قل: "عذراً، هذه المعلومة غير متوفرة في المنهج المرفق".
+2. إذا كان سؤالاً في المادة، استخدم المعلومات المستخرجة للإجابة. وإن كان الموضوع موجوداً في المعلومات المستخرجة لكن بصياغة مختلفة أو موزّعاً على أكثر من موضع، فاجمعه وأجب منه — هذا استخدامٌ للنص لا تخمين. أما إذا كان الموضوع نفسه غير موجود في المعلومات المستخرجة، فلا تخمن! قل: "عذراً، هذه المعلومة غير متوفرة في المنهج المرفق".
 """
         })
         

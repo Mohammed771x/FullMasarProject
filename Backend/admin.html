@@ -1,0 +1,3086 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لوحة تحكم مسار</title>
+<!--
+  ملف واحد بلا خطوة بناء ولا CDN: الخادم يقدّمه على /admin مباشرةً.
+  كل رقم هنا يأتي من /admin/* — أي من نفس Firestore الذي يكتب فيه التطبيق،
+  فلا جدول إحصاءات موازٍ يحتاج مزامنة.
+  🔒 المفتاح يبقى في هذا التبويب وحده (sessionStorage) ولا يُرسل إلا لخادمك.
+
+  التبويبات: 📊 لوحة الأرقام · 👥 المستخدمون · 🎓 المنح.
+  ⭐ تبويب المنح هو «مصدر الحقيقة» لقسم المنح في التطبيق: ما تكتبه هنا
+     يصل لكل طالب في الإقلاع التالي بلا نشر تطبيق ([docs/32-scholarships.md]).
+-->
+<style>
+  :root{
+    --bg:#0b1120; --card:#131c2f; --line:#22304d; --ink:#e8eefb; --dim:#8fa3c6;
+    --brand:#3b82f6; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:-apple-system,"SF Arabic","Segoe UI",Tahoma,sans-serif}
+  header{padding:18px 22px;border-bottom:1px solid var(--line);
+         display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  h1{font-size:19px;margin:0;font-weight:800}
+  .sp{flex:1}
+  input,button,select,textarea{font:inherit;border-radius:11px;border:1px solid var(--line);
+         background:#0f1729;color:var(--ink);padding:9px 13px}
+  textarea{width:100%;resize:vertical;line-height:1.7;font-size:13.5px}
+  button{cursor:pointer;background:var(--brand);border-color:var(--brand);font-weight:700}
+  button.ghost{background:transparent;border-color:var(--line);color:var(--dim)}
+  button.danger{background:var(--bad);border-color:var(--bad)}
+  button.ok{background:var(--ok);border-color:var(--ok);color:#04210f}
+  button.mini{padding:5px 9px;font-size:12px;border-radius:9px}
+  button:disabled{opacity:.5;cursor:default}
+  main{padding:22px;max-width:1200px;margin:0 auto}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .card .n{font-size:27px;font-weight:800;line-height:1.2}
+  .card .l{color:var(--dim);font-size:12.5px;margin-top:5px}
+  h2{font-size:15px;margin:26px 0 12px;font-weight:800}
+  h3{font-size:13.5px;margin:20px 0 9px;font-weight:800;color:var(--dim)}
+  table{width:100%;border-collapse:collapse;background:var(--card);
+        border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  th,td{padding:11px 13px;text-align:right;border-bottom:1px solid var(--line);font-size:13px}
+  th{color:var(--dim);font-weight:700;background:#0f1729;position:sticky;top:0}
+  tr:last-child td{border-bottom:none}
+  tr.banned td,tr.off td{opacity:.5}
+  .tag{display:inline-block;padding:2px 9px;border-radius:9px;font-size:11px;font-weight:700}
+  .tag.ok{background:rgba(34,197,94,.15);color:#4ade80}
+  .tag.bad{background:rgba(239,68,68,.15);color:#f87171}
+  .tag.adm{background:rgba(59,130,246,.16);color:#93c5fd}
+  .tag.warn{background:rgba(245,158,11,.16);color:#fbbf24}
+  .msg{padding:13px 16px;border-radius:13px;margin:14px 0;font-size:13.5px;display:none}
+  .msg.show{display:block}
+  .msg.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4)}
+  .msg.ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4)}
+  .gate{max-width:430px;margin:14vh auto;text-align:center}
+  .gate p{color:var(--dim);font-size:13.5px;line-height:1.8}
+  .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  svg .grid{stroke:var(--line)}
+  .muted{color:var(--dim);font-size:12px}
+  .hide{display:none !important}
+  /* التبويبات */
+  .tabs{display:flex;gap:8px}
+  .tabs button{background:transparent;border-color:var(--line);color:var(--dim)}
+  .tabs button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  /* محرّر المنحة */
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12px;color:var(--dim);font-weight:700}
+  .field input,.field select{width:100%}
+  .hint{font-size:11px;color:var(--dim);line-height:1.6}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+  .sticky-actions{position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 34%);
+                  padding:18px 0 4px;display:flex;gap:10px;flex-wrap:wrap}
+  .chatbox{background:#0f1729;border:1px solid var(--line);border-radius:14px;
+           padding:12px;max-height:280px;overflow:auto;font-size:13px;line-height:1.8}
+  .bub{padding:9px 12px;border-radius:12px;margin-bottom:9px;white-space:pre-wrap}
+  .bub.me{background:rgba(59,130,246,.16);margin-inline-start:16%}
+  .bub.ai{background:#131c2f;margin-inline-end:16%}
+  /* ── محرّر القوائم: صفٌّ لكل عنصر ── */
+  .listedit{display:flex;flex-direction:column;gap:7px}
+  .listrow{display:flex;gap:7px;align-items:center}
+  .listrow input{flex:1;min-width:0}
+  .listrow button{padding:7px 10px;line-height:1}
+  .addrow{align-self:flex-start;background:transparent;border-color:var(--line);
+          color:var(--accent);font-size:12.5px;padding:6px 12px}
+  /* ── عدّاد الحروف ── */
+  .counter{font-size:11px;color:var(--dim);text-align:left;
+           font-family:"IBM Plex Mono",monospace;direction:ltr}
+  .counter.warn{color:var(--warn)}
+  .counter.over{color:var(--bad);font-weight:700}
+
+  /* ══════════ 🔔 التنبيهات الطافية ══════════
+     لماذا طافية لا شريطٌ أعلى الصفحة؟ لأن الأدمن قد يكون في آخر جدولٍ
+     طويل حين يضغط «حظر»: رسالةٌ في الأعلى لا يراها، فيظن الزرّ لم يعمل. */
+  #toasts{position:fixed;bottom:18px;inset-inline-start:18px;z-index:90;
+          display:flex;flex-direction:column;gap:9px;max-width:min(380px,86vw)}
+  .toast{background:var(--card);border:1px solid var(--line);border-radius:13px;
+         padding:12px 15px;font-size:13.5px;line-height:1.7;
+         box-shadow:0 14px 34px rgba(0,0,0,.45);
+         animation:toastIn .18s ease-out;display:flex;gap:9px;align-items:flex-start}
+  .toast.ok{border-color:rgba(34,197,94,.55);background:#10241a}
+  .toast.err{border-color:rgba(239,68,68,.55);background:#251418}
+  .toast.info{border-color:rgba(59,130,246,.5);background:#111e33}
+  .toast .x{margin-inline-start:auto;background:none;border:none;color:var(--dim);
+            padding:0 2px;font-size:15px;line-height:1;cursor:pointer}
+  .toast.out{animation:toastOut .2s ease-in forwards}
+  @keyframes toastIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+  @keyframes toastOut{to{opacity:0;transform:translateY(9px)}}
+
+  /* ⏳ الزرّ أثناء التنفيذ — دوّارٌ صغير داخله، فلا يبدو الزرّ ميتاً */
+  button.busy{position:relative;color:transparent !important}
+  button.busy::after{content:"";position:absolute;inset:0;margin:auto;
+    width:15px;height:15px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+    animation:spin .6s linear infinite}
+  button.ghost.busy::after{border-color:rgba(143,163,198,.3);border-top-color:var(--dim)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ⏳ هيكلٌ أثناء التحميل بدل فراغٍ يوحي بالعطل */
+  .skel{background:linear-gradient(90deg,var(--card),#1a2540,var(--card));
+        background-size:220% 100%;animation:sk 1.1s linear infinite;
+        border-radius:12px;height:64px;margin-bottom:10px}
+  @keyframes sk{to{background-position:-220% 0}}
+
+  /* 🗒️ الحالات الفارغة — تُفرَّق عن الأعطال بالنبرة واللون */
+  .empty{background:var(--card);border:1px dashed var(--line);border-radius:16px;
+         padding:26px 20px;text-align:center;color:var(--dim);font-size:13.5px;
+         line-height:1.9}
+  .empty b{color:var(--ink);display:block;margin-bottom:5px;font-size:14.5px}
+  .warnbox{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);
+           border-radius:13px;padding:12px 15px;font-size:13px;line-height:1.8;
+           margin:10px 0;color:#fcd34d}
+
+  /* 🏷️ شريط المخزن — أعلى كل شيء لأنه يُغيّر معنى كل رقمٍ تحته */
+  .storebar{border-radius:13px;padding:11px 15px;font-size:13px;line-height:1.8;
+            margin:0 0 14px;border:1px solid}
+  .storebar.dev{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.45);
+                color:#fca5a5}
+  .storebar.none{background:rgba(245,158,11,.1);
+                 border-color:rgba(245,158,11,.35);color:#fcd34d}
+  .storebar.live{background:rgba(34,197,94,.08);
+                 border-color:rgba(34,197,94,.28);color:#86efac;font-size:12.3px}
+
+  /* 🏷️ رقائق الفلاتر */
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{padding:6px 13px;border-radius:999px;border:1px solid var(--line);
+        background:transparent;color:var(--dim);font-size:12.5px;font-weight:700;
+        cursor:pointer}
+  .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  /* 📊 أعمدة الترتيب (أفضل المواد · أصعب الدروس) */
+  .bars{display:flex;flex-direction:column;gap:9px}
+  .bar{display:grid;grid-template-columns:1fr auto;gap:4px}
+  .bar .t{font-size:12.5px;display:flex;justify-content:space-between;gap:10px}
+  .bar .track{grid-column:1/-1;height:7px;border-radius:9px;background:#0f1729;overflow:hidden}
+  .bar .fill{height:100%;border-radius:9px;background:var(--brand)}
+  .bar.bad .fill{background:var(--bad)}
+  .bar.good .fill{background:var(--ok)}
+
+  /* 🔐 مصفوفة الأثر */
+  .matrix{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
+  .cell{border:1px solid var(--line);border-radius:12px;padding:9px;text-align:center;
+        font-size:12px;background:#0f1729}
+  .cell .m{font-weight:800;margin-top:4px;font-size:12.5px}
+  .cell.on .m{color:#4ade80}
+  .cell.soon .m{color:#fbbf24}
+  .cell.off .m{color:#f87171}
+
+  /* 📱 الشاشات الصغيرة: اللوحة تُفتح من الجوال كثيراً */
+  @media (max-width:760px){
+    header{padding:12px 14px;gap:9px}
+    main{padding:14px}
+    .tabs{width:100%;overflow-x:auto;padding-bottom:3px;-webkit-overflow-scrolling:touch}
+    .tabs button{white-space:nowrap;flex:0 0 auto}
+    .card .n{font-size:22px}
+    th,td{padding:9px 8px;font-size:12px}
+    .sticky-actions{flex-direction:column;align-items:stretch}
+    #toasts{inset-inline:12px;max-width:none}
+  }
+  /* ══ 💬 حوار التأكيد داخل الصفحة ══
+     يحلّ محلّ confirm/prompt الأصليين — راجع تعليق `ask()` في السكربت. */
+  .ovl{position:fixed;inset:0;background:rgba(2,6,23,.72);backdrop-filter:blur(3px);
+       display:flex;align-items:center;justify-content:center;z-index:9999;padding:18px}
+  .ovl[hidden]{display:none}
+  .dlg{background:var(--card);border:1px solid var(--line);border-radius:18px;
+       max-width:520px;width:100%;padding:20px 22px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+  .dlg h3{margin:0 0 10px;font-size:16px}
+  .dlg .body{white-space:pre-wrap;line-height:1.75;font-size:13.5px;color:var(--dim);
+             max-height:52vh;overflow:auto}
+  .dlg input{width:100%;margin-top:12px;padding:10px 12px;border-radius:11px;
+             background:var(--bg);border:1px solid var(--line);color:inherit;font:inherit}
+  .dlg .row{display:flex;gap:10px;justify-content:flex-start;margin-top:18px}
+</style>
+</head>
+<body>
+
+<div id="toasts" aria-live="polite"></div>
+
+<!-- 💬 حوار التأكيد — بديل confirm/prompt الأصليين (انظر `ask()`). -->
+<div class="ovl" id="ovl" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dlg">
+    <h3 id="dlgTitle"></h3>
+    <div class="body" id="dlgBody"></div>
+    <input id="dlgInput" hidden>
+    <div class="row">
+      <button class="ok" id="dlgOk">تأكيد</button>
+      <button class="ghost" id="dlgCancel">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div id="gate" class="gate">
+  <h1>🛡️ لوحة تحكم مسار</h1>
+  <p>أدخل مفتاح الإدارة (<code>ADMIN_KEY</code> المضبوط على الخادم).<br>
+     يبقى في هذا التبويب وحده ولا يُرسل إلا لخادمك.</p>
+  <div class="row" style="justify-content:center;margin-top:16px">
+    <input id="key" type="password" placeholder="مفتاح الإدارة" style="flex:1;min-width:210px"
+           autocomplete="current-password">
+    <button id="btnLogin" onclick="login(this)">دخول</button>
+  </div>
+  <div id="gateMsg" class="msg err"></div>
+</div>
+
+<div id="app" class="hide">
+  <header>
+    <h1>🛡️ مسار</h1>
+    <div class="tabs">
+      <button id="tabDash" class="on" onclick="switchTab('dash')">📊 الأرقام</button>
+      <button id="tabStats" onclick="switchTab('stats')">📈 التحليلات</button>
+      <button id="tabUsers" onclick="switchTab('users')">👥 المستخدمون</button>
+      <button id="tabNotif" onclick="switchTab('notif')">🔔 الإشعارات</button>
+      <button id="tabAccess" onclick="switchTab('access')">🔐 الوصول</button>
+      <button id="tabSch" onclick="switchTab('sch')">🎓 المنح</button>
+      <button id="tabBan" onclick="switchTab('ban')">🎏 البانرات</button>
+      <button id="tabTeach" onclick="switchTab('teach')">👨‍🏫 المعلم</button>
+      <button id="tabSet" onclick="switchTab('set')">⚙️ الإعدادات</button>
+    </div>
+    <span class="sp"></span>
+    <button class="ghost" onclick="act(this, 'تحديث', async () => { await refresh(); }, '✅ حُدّثت البيانات.')">🔄 تحديث</button>
+    <button class="ghost" onclick="logout()">خروج</button>
+  </header>
+
+  <main>
+    <!-- 🏷️ يُملأ من `store` في أول ردٍّ يصل — لا يُحجز له فراغٌ قبل ذلك. -->
+    <div id="storeBar"></div>
+    <div id="msg" class="msg"></div>
+
+    <!-- ═══════════ 📊 الأرقام ═══════════ -->
+    <section id="viewDash">
+      <div class="row" style="margin-bottom:14px">
+        <span class="sp"></span>
+        <select id="days" onchange="loadOverview()">
+          <option value="7">آخر ٧ أيام</option>
+          <option value="30" selected>آخر ٣٠ يوماً</option>
+          <option value="90">آخر ٩٠ يوماً</option>
+        </select>
+      </div>
+      <div class="cards" id="cards"></div>
+      <h2>📈 الأسئلة اليومية</h2>
+      <div class="card"><div id="chart"></div></div>
+    </section>
+
+    <!-- ═══════════ 👥 المستخدمون ═══════════ -->
+    <section id="viewUsers" class="hide">
+      <div class="row" style="margin-bottom:12px">
+        <h2 style="margin:0">👥 المستخدمون <span id="ucount" class="muted"></span></h2>
+        <span class="sp"></span>
+        <select id="usort" onchange="loadUsers()" title="الترتيب">
+          <option value="active">الأنشط اليوم</option>
+          <option value="total">الأكثر أسئلةً</option>
+          <option value="recent">آخر نشاط</option>
+          <option value="new">الأحدث تسجيلاً</option>
+          <option value="name">الاسم</option>
+        </select>
+        <input id="q" placeholder="ابحث باسم أو بريد أو معرّف…" oninput="debouncedUsers()"
+               style="flex:1;min-width:200px;max-width:340px">
+      </div>
+
+      <!-- 🏷️ فلاتر جاهزة — تُبنى من الخادم لا من قائمة مكرّرة هنا، فما
+           يُصفّى في هذا الجدول هو **بعينه** ما يُستهدف في الإشعارات. -->
+      <div class="chips" id="userChips" style="margin-bottom:12px"></div>
+
+      <p class="hint" style="margin:0 0 12px">
+        الحظر يسري عند <b>أول طلب</b> للمستخدم لا في اللوحة وحدها، والحدّ الخاص
+        يعلو على الحدّ العام في ⚙️ الإعدادات.
+      </p>
+      <div style="overflow:auto;max-height:70vh">
+        <table>
+          <thead><tr>
+            <th>الاسم</th><th>البريد</th><th>الصف والمسار</th>
+            <th>اليوم</th><th>٧ أيام</th><th>الإجمالي</th>
+            <th>آخر نشاط</th><th>الحدّ</th><th>الحالة</th><th>إجراءات</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════ 📈 التحليلات ═══════════ -->
+    <!-- ⭐ الفلاتر أعلى الصفحة لا داخل كل بطاقة: الشريحة والمدّة تسريان
+         على **كل** رقمٍ تحتها، فوضعُهما في مكان واحد يمنع قراءةَ رقمٍ
+         بشريحةٍ ورقمٍ جاره بأخرى. -->
+    <section id="viewStats" class="hide">
+      <div class="panel" style="margin-bottom:16px">
+        <div class="grid2">
+          <div class="field">
+            <label>👥 الشريحة</label>
+            <select id="st_segment" onchange="loadStats()"></select>
+            <span class="hint" id="st_segment_hint">&nbsp;</span>
+          </div>
+          <div class="field">
+            <label>📅 الفترة</label>
+            <select id="st_days" onchange="loadStats()">
+              <option value="7">آخر ٧ أيام</option>
+              <option value="30" selected>آخر ٣٠ يوماً</option>
+              <option value="90">آخر ٩٠ يوماً</option>
+            </select>
+            <span class="hint" id="st_period">&nbsp;</span>
+          </div>
+          <div class="field">
+            <label>📚 المادة (للاختبارات والمحادثات)</label>
+            <select id="st_subject" onchange="loadStats()">
+              <option value="">كل المواد</option>
+            </select>
+            <span class="hint">تُبنى من المواد التي ظهرت في البيانات فعلاً.</span>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="ghost" onclick="loadStats(this, true)">🔄 تحديث الأرقام</button>
+            <span class="hint" id="st_fresh">&nbsp;</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="statsBody"></div>
+    </section>
+
+    <!-- ═══════════ 🔔 الإشعارات ═══════════ -->
+    <section id="viewNotif" class="hide">
+      <h2 style="margin-top:0">🔔 الإشعارات</h2>
+      <div id="notifCapability"></div>
+
+      <div class="panel" style="margin-bottom:18px">
+        <h3 style="margin-top:0">✍️ إشعار جديد</h3>
+        <div class="field">
+          <label>العنوان</label>
+          <input id="n_title" maxlength="80" data-count oninput="notifPreviewCard()">
+        </div>
+        <div class="field">
+          <label>النص</label>
+          <textarea id="n_body" rows="3" maxlength="300" data-count
+                    oninput="notifPreviewCard()"></textarea>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>🎯 الجمهور</label>
+            <div class="chips" style="margin-bottom:8px">
+              <button type="button" class="chip on" id="n_mode_segment"
+                      onclick="setNotifMode('segment')">شريحة</button>
+              <button type="button" class="chip" id="n_mode_picked"
+                      onclick="setNotifMode('picked')">طلاب محدّدون</button>
+            </div>
+            <select id="n_segment" onchange="notifAudience()"></select>
+            <span class="hint" id="n_segment_hint">&nbsp;</span>
+          </div>
+          <div class="field">
+            <label>📍 عند النقر يفتح</label>
+            <select id="n_link" onchange="notifAudience()"></select>
+            <span class="hint">القسم الذي ينتقل إليه الطالب — ويحدّد أيَّ
+              مفتاحِ إشعاراتٍ نحترم (المنح أم العام).</span>
+          </div>
+        </div>
+        <!-- 🎯 اختيار طلابٍ بأعيانهم — الوضع الثاني للجمهور.
+             ⚠️ يُبنى من نفس مسار المستخدمين (`/admin/users`) لا من قائمةٍ
+                ثانية: من تراه هنا هو **بعينه** من تراه في تبويب المستخدمين. -->
+        <div id="n_picked_wrap" class="hide" style="margin-top:4px">
+          <div class="field">
+            <label>🔍 ابحث ثم أضِف</label>
+            <input id="n_search" placeholder="اسم أو بريد أو معرّف…"
+                   oninput="debouncedNotifSearch()">
+            <span class="hint">اكتب حرفين على الأقل — تُعرض أول ٢٠ نتيجة.</span>
+          </div>
+          <div id="n_results"></div>
+          <label class="hint" style="display:block;margin:12px 0 6px;font-weight:700">
+            المختارون <span id="n_chosen_count" class="muted"></span></label>
+          <div id="n_chosen" class="chips"></div>
+        </div>
+
+        <label class="hint" style="display:block;margin:10px 0">
+          <input type="checkbox" id="n_only_enabled" checked onchange="notifAudience()">
+          استثنِ من أطفأ الإشعارات في إعداداته
+        </label>
+
+        <label style="display:block;margin:14px 0 8px;font-weight:700">👁️ المعاينة</label>
+        <div id="notifCard"></div>
+
+        <div class="warnbox" id="notifAudienceBox">اختر الجمهور لعرض عدد المستلمين.</div>
+
+        <div class="row" style="margin-top:14px">
+          <button class="ghost" onclick="notifAudience(this)">🔍 احسب الجمهور</button>
+          <button class="ok" onclick="sendNotification(this)">📤 مراجعة وإرسال</button>
+        </div>
+      </div>
+
+      <h3>📜 السجل</h3>
+      <div id="notifList"></div>
+    </section>
+
+    <!-- ═══════════ 🔐 التحكم والوصول ═══════════ -->
+    <section id="viewAccess" class="hide">
+      <h2 style="margin-top:0">🔐 التحكم والوصول</h2>
+      <p class="hint" style="margin:0 0 8px;line-height:1.9">
+        تتحكّم بظهور أقسام التطبيق <b>بلا إصدار نسخة جديدة</b>. والقاعدة تُفرض
+        في الخادم أيضاً لا في إخفاء الزرّ وحده — فمن يعرف الرابط لا يتخطّاها.
+        <br>⏱️ يصل الطلاب في الإقلاع التالي.
+      </p>
+      <div class="warnbox" style="line-height:2">
+        <b>ترتيب الأولوية — لا تعارض ولا غموض:</b><br>
+        ① <b>تعطيل عام</b> للقسم يعلو على كل قاعدة.<br>
+        ② ثم <b>القاعدة الأخصّ</b>: «ثالث علمي» تغلب «الصف الثالث» تغلب «الطلاب» تغلب «الجميع».<br>
+        ③ وعند تساوي الخصوصية <b>الأشدّ يغلب</b> (مُخفى ← قريباً ← مفتوح).<br>
+        ④ وما لا تُطابقه قاعدة فهو <b>مفتوح</b>.
+      </div>
+      <div id="accessBody"></div>
+    </section>
+
+    <!-- ═══════════ ⚙️ الإعدادات ═══════════ -->
+    <section id="viewSet" class="hide">
+      <h2 style="margin-top:0">⚙️ الإعدادات العامة</h2>
+      <p class="hint" style="margin:0 0 16px">
+        تصل الخادم خلال <b>≤ ٥ دقائق</b> (كاش الإعدادات) بلا إعادة نشر.
+        والحدّ الخاص بمستخدم بعينه يُضبط من تبويب 👥 المستخدمون ويعلو على ما هنا.
+      </p>
+      <div class="panel">
+        <div class="grid2">
+          <div class="field">
+            <label>🎟️ حدّ الطالب المسجَّل — يومياً</label>
+            <input id="s_ask" type="number" min="1" max="1000" dir="ltr">
+            <span class="hint">عدد الأسئلة لكل طالب في اليوم. الفعّال الآن:
+              <b id="s_ask_now">—</b></span>
+          </div>
+          <div class="field">
+            <label>🧪 تجربة الزائر — تراكمية</label>
+            <input id="s_guest" type="number" min="0" max="100" dir="ltr">
+            <span class="hint">أسئلة الزائر <b>كلها</b> لا يومياً. الفعّال الآن:
+              <b id="s_guest_now">—</b></span>
+          </div>
+        </div>
+        <div class="row" style="margin-top:16px">
+          <button class="ok" onclick="saveSettings(this)">💾 حفظ الإعدادات</button>
+          <button class="ghost" onclick="loadSettings()">إعادة تحميل</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ 👨‍🏫 مساعد المعلم ═══════════ -->
+
+    <!-- ═══════════ 🎏 البانرات ═══════════ -->
+    <section id="viewBan" class="hide">
+      <h2 style="margin-top:0">🎏 بانرات الأقسام</h2>
+      <p class="hint" style="margin:0 0 14px;line-height:1.9">
+        البانر يصل الطلاب <b>بلا تحديث للتطبيق</b>. وهو نوعان:
+        <b>يدويّ</b> تكتبه هنا، و<b>تلقائيّ</b> يولّده النظام من حالة المنح
+        (تفتح · مفتوحة · على وشك الإغلاق) — نصّه من القوالب أسفل الصفحة،
+        ولا يحتاج منك تذكّر مواعيد.
+        <br>⏱️ التغيير يظهر للطالب عند فتح التطبيق التالي.
+      </p>
+
+      <div class="row" style="margin-bottom:14px">
+        <button class="ok" onclick="newBanner()">➕ بانر جديد</button>
+        <button class="ghost" onclick="loadBanners()">إعادة تحميل</button>
+      </div>
+
+      <div id="banEditor" class="panel hide" style="margin-bottom:18px">
+        <h3 style="margin-top:0" id="banEditorTitle">بانر جديد</h3>
+        <div class="grid2">
+          <div class="field">
+            <label>📍 القسم</label>
+            <select id="b_section"></select>
+            <span class="hint">أين يظهر هذا البانر داخل التطبيق.</span>
+          </div>
+          <div class="field">
+            <label>🎯 عند النقر</label>
+            <select id="b_action" onchange="banActionChanged()"></select>
+            <span class="hint" id="b_action_hint">وجهة الطالب بعد الضغط.</span>
+          </div>
+          <div class="field">
+            <label>👥 الفئة المستهدفة</label>
+            <select id="b_segment" onchange="banSegmentChanged()"></select>
+            <span class="hint" id="b_segment_hint">من يرى هذا البانر.</span>
+          </div>
+        </div>
+        <div class="field" id="b_value_wrap">
+          <label>قيمة الوجهة</label>
+          <input id="b_action_value" dir="ltr" maxlength="500">
+          <span class="hint" id="b_value_hint">معرّف المنحة أو الرابط.</span>
+        </div>
+        <div class="field">
+          <label>✏️ العنوان <span class="hint" id="b_title_c"></span></label>
+          <input id="b_title" maxlength="60" oninput="banCount()">
+        </div>
+        <div class="field">
+          <label>📝 السطر الثاني <span class="hint" id="b_sub_c"></span></label>
+          <input id="b_subtitle" maxlength="90" oninput="banCount()">
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>🎨 الأيقونة</label>
+            <select id="b_icon" onchange="banPreview()"></select>
+          </div>
+          <div class="field">
+            <label>🌈 التدرّج اللوني</label>
+            <div class="row">
+              <input id="b_c1" type="color" value="#3B82F6" onchange="banPreview()" style="height:42px">
+              <input id="b_c2" type="color" value="#1D4ED8" onchange="banPreview()" style="height:42px">
+            </div>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>📅 يظهر من (اختياري)</label>
+            <input id="b_start" type="date" dir="ltr">
+          </div>
+          <div class="field">
+            <label>📅 يختفي بعد (اختياري)</label>
+            <input id="b_end" type="date" dir="ltr">
+            <span class="hint">اتركهما فارغين ليظهر دائماً.</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>🔢 الترتيب</label>
+          <input id="b_order" type="number" min="0" max="999" value="0" dir="ltr">
+          <span class="hint">الأصغر أولاً. التلقائيّ يأتي بعد اليدويّ دائماً.</span>
+        </div>
+
+        <label style="display:block;margin:14px 0 8px;font-weight:700">👁️ معاينة</label>
+        <div id="banPreview"></div>
+
+        <div class="row" style="margin-top:16px">
+          <button class="ok" onclick="saveBanner(this)">💾 حفظ</button>
+          <button class="ghost" onclick="closeBanEditor()">إلغاء</button>
+        </div>
+      </div>
+
+      <div id="banList"></div>
+
+      <h3 style="margin-top:28px">🤖 قوالب البانر التلقائي</h3>
+      <p class="hint" style="margin:0 0 12px;line-height:1.9">
+        <b>{name}</b> يُستبدل باسم المنحة و<b>{days}</b> بعدد الأيام.
+        عطّل أي قالب لتوقف بانراته كلها.
+      </p>
+      <div id="banTemplates"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="ok" onclick="saveTemplates(this)">💾 حفظ القوالب</button>
+      </div>
+
+      <h3 style="margin-top:28px">👀 ما يراه الطالب الآن من التلقائي</h3>
+      <div id="banAuto"></div>
+    </section>
+    <section id="viewTeach" class="hide">
+      <h2 style="margin-top:0">👨‍🏫 برومبتات مساعد المعلم</h2>
+      <p class="hint" style="margin:0 0 14px;line-height:1.9">
+        الأدوات <b>مشحونة مع التطبيق</b> ولا تُنشأ ولا تُحذف من هنا — هذه اللوحة
+        تُحسّن <b>سلوكها</b> فقط. ولكل أداة <b>برومبتان لا واحد</b>:
+        <span class="tag adm">🚀 التوليد</span> يُستعمل عند ضغط زرّ الأداة،
+        و<span class="tag ok">💬 المحادثة</span> لكل رسالة متابعة بعده.
+        <br>⚠️ خلطُهما يجعل المساعد <b>يعيد بناء الخطة كاملةً</b> كلما قال المعلّم
+        «أضف مثالاً» — وهذا ما يقتل الإحساس بأنها محادثة.
+        <br>🔁 <b>تفريغ الحقل = العودة للبرومبت الافتراضي</b> المكتوب في الكود،
+        لا تعطيلٌ للأداة. والتغيير يصل الخادم خلال <b>≤ ٥ دقائق</b> بلا نشر.
+      </p>
+
+      <div class="row" style="margin-bottom:12px">
+        <button class="ghost mini" onclick="toggleTeacherCore()">👁️ اعرض البرومبت المشترك</button>
+        <span class="hint">للقراءة فقط — يُعدَّل من <code>core/teacher_prompts.py</code>.
+          فيه النبرة ومنع التكرار والتقيّد بالدرس، فلا تُعِد كتابته في الحقول أدناه.</span>
+      </div>
+      <pre id="teachCore" class="hide" style="background:#0f1729;border:1px solid var(--line);
+           border-radius:12px;padding:14px;font-size:12px;line-height:1.9;
+           white-space:pre-wrap;max-height:320px;overflow:auto;margin:0 0 16px"></pre>
+
+      <div id="teachStore" class="msg"></div>
+      <div id="teachTools"></div>
+
+      <!-- 🧪 التجربة -->
+      <div class="panel" style="margin-top:18px">
+        <h3 style="margin-top:0">🧪 جرّب قبل الحفظ</h3>
+        <p class="hint" style="margin:0 0 12px">
+          التجربة تستعمل <b>ما هو مكتوب في الحقل الآن</b> — حتى قبل الحفظ.
+          واختيار درسٍ حقيقي يجعل التجربة مطابقة لما سيراه المعلّم.
+        </p>
+        <div class="grid2">
+          <div class="field"><label>الأداة والبرومبت</label>
+            <select id="t_target"></select></div>
+          <div class="field"><label>المادة</label>
+            <select id="t_subject" onchange="loadTeacherLessons()"></select></div>
+          <div class="field"><label>الصف</label>
+            <select id="t_grade" onchange="loadTeacherLessons()">
+              <option value="1">الأول الثانوي</option>
+              <option value="2">الثاني الثانوي</option>
+              <option value="3" selected>الثالث الثانوي</option>
+            </select></div>
+          <div class="field"><label>المسار</label>
+            <select id="t_track" onchange="loadTeacherLessons()">
+              <option value="علمي" selected>علمي</option>
+              <option value="أدبي">أدبي</option>
+              <option value="عام">عام</option>
+            </select></div>
+          <div class="field"><label>الوحدة</label>
+            <select id="t_unit" onchange="fillTeacherLessons()"></select></div>
+          <div class="field"><label>الدرس</label>
+            <select id="t_lesson"></select></div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <input id="t_q" placeholder="اكتب طلب المعلّم… (مثال: أنشئ خطة الدرس)"
+                 style="flex:1;min-width:240px">
+          <button class="ghost" onclick="tryTeacherPrompt()">إرسال</button>
+          <button class="ghost mini"
+                  onclick="document.getElementById('t_box').innerHTML=''">مسح</button>
+        </div>
+        <div id="t_box" class="chatbox" style="margin-top:10px"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════ 🎓 المنح ═══════════ -->
+    <section id="viewSch" class="hide">
+
+      <!-- قائمة المنح -->
+      <div id="schList">
+        <div class="row" style="margin-bottom:14px">
+          <h2 style="margin:0">🎓 المنح <span id="schCount" class="muted"></span></h2>
+          <span class="sp"></span>
+          <span id="schVersion" class="muted"></span>
+          <button onclick="openEditor(null)">➕ إضافة منحة</button>
+        </div>
+        <p class="hint" style="margin:0 0 12px">
+          ما تحفظه هنا يصل لكل الطلاب في الإقلاع التالي للتطبيق (يرتفع
+          <code>config/meta.version</code> تلقائياً). حفظ <b>برومبت المساعد</b> وحده
+          لا يرفع الرقم — يلتقطه الخادم خلال ≤ ٥ دقائق.
+        </p>
+        <div style="overflow:auto">
+          <table>
+            <thead><tr>
+              <th>#</th><th>المنحة</th><th>الدولة</th><th>التمويل</th>
+              <th>المواعيد</th><th>الحالة</th><th>الغلاف</th><th>المساعد</th><th>الظهور</th><th>إجراءات</th>
+            </tr></thead>
+            <tbody id="schRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- محرّر المنحة -->
+      <div id="schEditor" class="hide">
+        <div class="row" style="margin-bottom:16px">
+          <button class="ghost" onclick="closeEditor()">→ رجوع للقائمة</button>
+          <span class="sp"></span>
+          <h2 id="editorTitle" style="margin:0"></h2>
+        </div>
+
+        <div class="panel">
+          <h3>البيانات الأساسية</h3>
+          <!-- ⚠️ الحقول اللاتينية (معرّف · روابط · تواريخ · ألوان) عليها dir="ltr":
+               في صفحة RTL تقلب خوارزمية الاتجاه الثنائي مقاطعها فيقرأ الأدمن
+               «10-01-2026» بدل «2026-01-10» و«EF4444#» بدل «#EF4444».
+               وكل حقل نصّي عليه maxlength + عدّاد حيّ: الحدّ يُفرض في المتصفح
+               قبل الخادم، فلا يكتب الأدمن فقرة ثم تُرفض عند الحفظ. -->
+          <div class="grid2">
+            <div class="field">
+              <label>المعرّف (لا يتغيّر بعد الإنشاء)</label>
+              <input id="f_id" dir="ltr" maxlength="64" placeholder="turkey">
+              <span class="hint">حروف لاتينية صغيرة وأرقام وشرطات فقط.</span>
+            </div>
+            <div class="field"><label>اسم المنحة *</label>
+              <input id="f_name" maxlength="120" data-count placeholder="المنحة التركية"></div>
+            <div class="field"><label>الدولة *</label>
+              <input id="f_country" maxlength="80" data-count placeholder="تركيا"></div>
+            <div class="field"><label>علم الدولة (إيموجي)</label>
+              <input id="f_flag" maxlength="8" placeholder="🇹🇷"></div>
+            <div class="field">
+              <label>نوع التمويل</label>
+              <select id="f_funding">
+                <option value="full">ممولة بالكامل</option>
+                <option value="partial">تمويل جزئي</option>
+              </select>
+            </div>
+            <div class="field"><label>فتح التقديم (YYYY-MM-DD)</label>
+              <input id="f_open" dir="ltr" maxlength="10" placeholder="2026-01-10"></div>
+            <div class="field"><label>إغلاق التقديم (YYYY-MM-DD)</label>
+              <input id="f_close" dir="ltr" maxlength="10" placeholder="2026-03-20"></div>
+            <div class="field"><label>الموقع الرسمي</label>
+              <input id="f_website" dir="ltr" maxlength="500" placeholder="https://..."></div>
+            <div class="field"><label>الشعار</label>
+              <div class="row">
+                <input id="f_logoFile" type="file" accept="image/jpeg,image/png,image/webp"
+                       onchange="pickImage(event,'logo')" style="display:none">
+                <button class="ghost mini" onclick="document.getElementById('f_logoFile').click()">📁 اختر شعاراً</button>
+                <button class="ghost mini" onclick="clearImage('logo')">🗑️ إزالة</button>
+                <img id="logoPreview" class="hide" alt="شعار المنحة"
+                     style="width:52px;height:52px;border-radius:12px;border:1px solid var(--line);object-fit:cover">
+              </div>
+              <span id="logoInfo" class="hint"></span></div>
+            <div class="field"><label>لون التدرّج ١</label>
+              <input id="f_g1" dir="ltr" maxlength="7" placeholder="#EF4444"></div>
+            <div class="field"><label>لون التدرّج ٢</label>
+              <input id="f_g2" dir="ltr" maxlength="7" placeholder="#B91C1C"></div>
+          </div>
+
+          <h3>🖼️ صورة الغلاف</h3>
+          <p class="hint">
+            تُقصّ <b>إلزامياً</b> على نسبة 16:9 — وهي نسبة عرضها في التطبيق، فما
+            تراه هنا هو ما يراه الطالب تماماً. وتُضغط تلقائياً قبل الرفع.
+            <br>⚠️ الغلاف يُحفظ منفصلاً عن بيانات المنحة ويُجلب عند فتح شاشتها
+            وحدها — كي لا تنتفخ القائمة التي تُنزَّل على جهاز كل طالب.
+          </p>
+          <div class="row" style="margin-bottom:10px">
+            <input id="f_coverFile" type="file" accept="image/jpeg,image/png,image/webp"
+                   onchange="pickImage(event,'cover')" style="display:none">
+            <button class="ghost" onclick="document.getElementById('f_coverFile').click()">
+              📁 اختر صورة</button>
+            <button class="ghost" id="btnCoverClear" onclick="clearImage('cover')">🗑️ إزالة الغلاف</button>
+            <span id="coverInfo" class="hint"></span>
+          </div>
+          <div id="coverStage" class="hide" style="margin-bottom:12px">
+            <div class="hint" style="margin-bottom:6px">
+              <b id="cropTitle">قصّ الغلاف</b> — اسحب لتحريك الصورة · مرّر
+              بالعجلة أو استعمل المؤشّر للتكبير.
+            </div>
+            <canvas id="coverCanvas" width="640" height="360"
+                    style="width:100%;max-width:520px;border-radius:12px;border:1px solid var(--line);
+                           background:#0f1729;cursor:grab;touch-action:none"></canvas>
+            <div class="row" style="margin-top:8px">
+              <span class="hint">تكبير</span>
+              <input id="coverZoom" type="range" min="100" max="300" value="100"
+                     oninput="drawCrop()" style="flex:1;max-width:240px">
+              <button class="ok mini" onclick="applyCrop()">✓ اعتمد القصّ</button>
+              <button class="ghost mini" onclick="cancelCrop()">إلغاء</button>
+            </div>
+          </div>
+          <img id="coverPreview" class="hide" alt="غلاف المنحة"
+               style="width:100%;max-width:420px;border-radius:12px;border:1px solid var(--line)">
+
+          <div class="field" style="margin-top:14px">
+            <label>وصف قصير — سطر واحد في الكرت</label>
+            <input id="f_short" maxlength="120" data-count
+                   placeholder="تمويل كامل مع راتب شهري">
+            <span class="hint">⚠️ يُقصّ في الكرت بعد سطرين. اجعله <b>أقل من 90 حرفاً</b>
+              ليظهر كاملاً.</span>
+          </div>
+
+          <div class="field" style="margin-top:12px">
+            <label>نبذة عن المنحة</label>
+            <textarea id="f_about" rows="5" maxlength="1500" data-count></textarea>
+            <span class="hint">فقرة أو فقرتان. ما زاد يقرؤه المساعد ولا يقرؤه الطالب.</span>
+          </div>
+
+          <h3>القوائم</h3>
+          <p class="hint">
+            كل عنصر في <b>سطر مستقل</b> — يظهر في التطبيق كبطاقة قائمة بذاتها.
+            اجعل العنصر <b>جملة واحدة قصيرة</b> (أقل من 120 حرفاً) كي لا تتشوّه البطاقة.
+          </p>
+          <div class="grid2">
+            <div class="field"><label>المزايا</label><div id="L_benefits" class="listedit"></div></div>
+            <div class="field"><label>الشروط والمتطلبات</label><div id="L_req" class="listedit"></div></div>
+            <div class="field"><label>الوثائق المطلوبة</label><div id="L_docs" class="listedit"></div></div>
+            <div class="field"><label>خطوات التقديم (تُرقَّم تلقائياً)</label><div id="L_apply" class="listedit"></div></div>
+          </div>
+
+          <div class="grid2" style="margin-top:12px">
+            <div class="field">
+              <label>المراحل الدراسية</label>
+              <div class="row" id="f_levels">
+                <label class="hint"><input type="checkbox" value="دبلوم"> دبلوم</label>
+                <label class="hint"><input type="checkbox" value="بكالوريوس"> بكالوريوس</label>
+                <label class="hint"><input type="checkbox" value="ماجستير"> ماجستير</label>
+                <label class="hint"><input type="checkbox" value="دكتوراه"> دكتوراه</label>
+              </div>
+            </div>
+            <div class="field">
+              <label>المجالات (تفصل بينها فاصلة)</label>
+              <input id="f_fields" maxlength="300" data-count placeholder="طب، هندسة، حاسوب">
+              <span class="hint">تُستخدم في «منح تناسب مجالك» بعد اختبار الميول.</span>
+            </div>
+            <div class="field">
+              <label>الظهور للطلاب</label>
+              <select id="f_enabled">
+                <option value="1">ظاهرة</option>
+                <option value="0">مخفية</option>
+              </select>
+            </div>
+            <div class="field"><label>ترتيب العرض</label>
+              <input id="f_order" type="number" dir="ltr" value="0"></div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px">
+          <h3>🔒 تعليمات هذه المنحة</h3>
+          <p class="hint">
+            تُحفظ في مجموعة <code>scholarship_prompts</code> التي <b>لا يقرؤها التطبيق أبداً</b>.
+            <br><b>لا تكتب هنا برومبتاً كاملاً.</b> المساعد يعمل على ثلاث طبقات:
+            <br>① <b>برومبت مشترك</b> مكتوب في الخادم لكل المنح (النبرة · طول الرد ·
+            منع التكرار · منع الاختراع) — اطّلع عليه بالزر أدناه.
+            <br>② <b>بيانات المنحة</b> تُحقن تلقائياً من الحقول أعلاه (المواعيد والشروط
+            والوثائق والخطوات) — لا تُعِد كتابتها هنا.
+            <br>③ <b>هذا الحقل</b>: ما يخصّ هذه المنحة وحدها فقط — سطران أو ثلاثة تكفي.
+            اتركه فارغاً وسيعمل المساعد بلا نقص.
+          </p>
+          <div class="row" style="margin-bottom:8px">
+            <button class="ghost mini" onclick="toggleShared()">👁️ اعرض البرومبت المشترك</button>
+            <span class="hint">للقراءة فقط — يُعدَّل من الكود لا من هنا.</span>
+          </div>
+          <pre id="sharedBox" class="hide" style="background:#0f1729;border:1px solid var(--line);
+               border-radius:12px;padding:14px;font-size:12px;line-height:1.9;
+               white-space:pre-wrap;max-height:300px;overflow:auto;margin:0 0 12px"></pre>
+          <textarea id="f_prompt" rows="5"
+            placeholder="مثال: طلاب اليمن يحتاجون معادلة الشهادة من وزارة التربية — ذكّرهم بها عند سؤالهم عن الوثائق."></textarea>
+
+          <h3>🧪 جرّب البرومبت قبل النشر</h3>
+          <div class="row">
+            <input id="tryQ" placeholder="اكتب سؤال طالب…" style="flex:1;min-width:220px">
+            <button class="ghost" onclick="tryPrompt()">إرسال</button>
+            <button class="ghost mini" onclick="document.getElementById('tryBox').innerHTML=''">مسح</button>
+          </div>
+          <div id="tryBox" class="chatbox" style="margin-top:10px"></div>
+          <p class="hint">التجربة تستعمل ما هو مكتوب في الحقل أعلاه — حتى قبل الحفظ.</p>
+        </div>
+
+        <div class="sticky-actions">
+          <button class="ok" onclick="saveScholarship(this)">💾 حفظ ونشر</button>
+          <button class="ghost" onclick="closeEditor()">إلغاء</button>
+          <span class="sp"></span>
+          <button id="btnDelete" class="danger hide" onclick="deleteScholarship(this)">🗑️ حذف المنحة</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const KEY_STORE = 'masar_admin_key';
+let users = [];
+let schs = [];
+let editingId = null;      // null = إنشاء جديد
+
+function key(){ return sessionStorage.getItem(KEY_STORE) || ''; }
+
+// ⭐ **الخطأ يُترجَم هنا مرّةً واحدة** لا في كل نداء: رمزٌ عارٍ («خطأ 500»)
+//    لا يقول للأدمن ماذا يفعل. وأهمّها ٤٠١: انتهاء الجلسة يبدو كعطلٍ غامض
+//    ما لم يُقَل صراحةً — فنقولها ونعيده لبوابة الدخول.
+const HTTP_HINTS = {
+  401: '⛔ انتهت صلاحية جلستك أو المفتاح غير صحيح — سجّل الدخول من جديد.',
+  403: '⛔ هذا الحساب لا يملك صلاحية الإدارة.',
+  404: '❌ المسار غير موجود على الخادم — تأكّد أن الخادم محدَّث.',
+  429: '⏳ محاولات كثيرة في وقت قصير — انتظر قليلاً ثم أعد المحاولة.',
+  500: '⚠️ عطل في الخادم — راجع سجلّ الخادم (server.log).',
+  503: '🔒 لوحة التحكم غير مفعّلة على الخادم (ADMIN_KEY أو ADMIN_EMAILS).',
+};
+
+async function api(path, opts){
+  let res;
+  try{
+    res = await fetch(path, Object.assign({headers:{
+      'X-Admin-Key': key(), 'Content-Type':'application/json'
+    }}, opts||{}));
+  }catch(e){
+    // انقطاعُ شبكةٍ لا يعطي رمزاً — ولا يجوز أن يظهر كـ«undefined».
+    throw new Error('📡 تعذّر الوصول إلى الخادم — تأكّد أنه يعمل واتصالك سليم.');
+  }
+  let data = {};
+  try { data = await res.json(); } catch(e){}
+  if(!res.ok){
+    if(res.status === 401 && !document.getElementById('app').classList.contains('hide')){
+      sessionStorage.removeItem(KEY_STORE);
+      setTimeout(() => location.reload(), 1600);
+    }
+    throw new Error(data.error || HTTP_HINTS[res.status] || ('خطأ ' + res.status));
+  }
+  return data;
+}
+
+function show(el, text, kind){
+  el.textContent = text;
+  el.className = 'msg show ' + (kind||'err');
+  if(kind === 'ok') setTimeout(()=>{ el.className = 'msg'; }, 3200);
+}
+const msg = () => document.getElementById('msg');
+
+// ══════════════ 🔔 التنبيهات ══════════════
+// ⭐ **لماذا طافيةٌ لا رسالةٌ في أعلى الصفحة؟** لأن الأدمن يضغط «حظر» وهو
+//    في آخر جدولٍ من مئتي صف: رسالةٌ في الأعلى لا يراها، فيظن الزرّ لم
+//    يستجب فيضغط ثانيةً. التنبيه يظهر حيث عينُه، ويبقى الخطأ حتى يُغلقه
+//    بنفسه — نجاحٌ يمضي وخطأٌ يُقرأ.
+
+function toast(text, kind){
+  kind = kind || 'ok';
+  const box = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  const span = document.createElement('span');
+  span.textContent = text;
+  const x = document.createElement('button');
+  x.className = 'x'; x.textContent = '✕'; x.title = 'إغلاق';
+  x.onclick = () => close();
+  let closed = false;
+  const close = () => {
+    if(closed) return; closed = true;
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 220);
+  };
+  el.append(span, x);
+  box.appendChild(el);
+  // الخطأ يبقى: قد يكون فيه اسمُ حقلٍ يحتاج الأدمن قراءته وتصحيحه.
+  if(kind !== 'err') setTimeout(close, 3600);
+  while(box.children.length > 3) box.firstChild.remove();
+  return el;
+}
+
+// ══════════════ 💬 التأكيد داخل الصفحة ══════════════
+// 🔴 **العلّة التي أوقفت نصف اللوحة (كُشفت 2026-09-07):**
+//    `confirm()` و`prompt()` الأصليان **مكبوتان في المتصفحات المدمجة**
+//    (لوحة المتصفح داخل التطبيق، وWebView، وأي متصفحٍ عطّل نوافذ الصفحة).
+//    والمكبوت **يرجع `false` فوراً بلا أي إشارة** — فالكود يقرؤه «ألغى
+//    الأدمن» ويمضي بصمت.
+//
+//    العَرَض حرفياً: يُملأ الإشعار ويُضغط «إرسال» فلا يحدث **شيء إطلاقاً** —
+//    لا رسالة ولا خطأ ولا طلب شبكة. وكان يصيب ثمانية إجراءات: الإرسال
+//    وحذف الإشعار وحظر المستخدم وحدّه اليومي وحذف البانر والمنحة وإعادة
+//    البرومبت وتغيير وضع قسم.
+//
+//    ولذلك **لا نداء لـ`confirm` في هذا الملف بعد اليوم** — الحوار عنصرٌ
+//    في الصفحة يعمل في كل متصفح، ولا يمكن لأحدٍ كبتُه.
+
+let _askResolve = null;
+
+function _closeAsk(value){
+  const ovl = document.getElementById('ovl');
+  ovl.hidden = true;
+  document.getElementById('dlgInput').hidden = true;
+  const r = _askResolve; _askResolve = null;
+  if(r) r(value);
+}
+
+/// سؤال «نعم/لا». يعيد وعداً بـ`true` عند التأكيد.
+/// `okLabel` يسمّي الفعل صراحةً («حظر» · «إرسال») — «تأكيد» وحدها لا تقول ماذا.
+function ask(title, body, okLabel){
+  return new Promise(resolve => {
+    _askResolve = resolve;
+    document.getElementById('dlgTitle').textContent = title;
+    document.getElementById('dlgBody').textContent = body || '';
+    document.getElementById('dlgOk').textContent = okLabel || 'تأكيد';
+    document.getElementById('ovl').hidden = false;
+    setTimeout(() => document.getElementById('dlgOk').focus(), 30);
+  });
+}
+
+/// سؤالٌ بنصّ — بديل `prompt`. يعيد النصّ أو `null` عند الإلغاء.
+function askText(title, body, value, okLabel){
+  return new Promise(resolve => {
+    _askResolve = resolve;
+    document.getElementById('dlgTitle').textContent = title;
+    document.getElementById('dlgBody').textContent = body || '';
+    const inp = document.getElementById('dlgInput');
+    inp.hidden = false; inp.value = value == null ? '' : String(value);
+    document.getElementById('dlgOk').textContent = okLabel || 'حفظ';
+    document.getElementById('ovl').hidden = false;
+    setTimeout(() => { inp.focus(); inp.select(); }, 30);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('dlgInput');
+  document.getElementById('dlgOk').onclick =
+    () => _closeAsk(inp.hidden ? true : inp.value);
+  document.getElementById('dlgCancel').onclick = () => _closeAsk(inp.hidden ? false : null);
+  // النقر خارج الصندوق والـEscape كلاهما إلغاء — كسلوك الحوار الأصلي.
+  document.getElementById('ovl').onclick = e => {
+    if(e.target.id === 'ovl') _closeAsk(inp.hidden ? false : null);
+  };
+  inp.onkeydown = e => { if(e.key === 'Enter') _closeAsk(inp.value); };
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && !document.getElementById('ovl').hidden){
+      _closeAsk(inp.hidden ? false : null);
+    }
+  });
+});
+
+const fail = e => toast(String(e && e.message ? e.message : e), 'err');
+const done = t => toast(t, 'ok');
+const info = t => toast(t, 'info');
+
+// ══════════════ ⏳ غلاف كل عملية تكتب ══════════════
+// 🔴 **القاعدة: لا زرَّ يبدو ميتاً، ولا نموذجَ يُمسح عند الخطأ.**
+//    قبل هذا الغلاف كان الأدمن يضغط «حفظ» فلا يتغيّر شيءٌ ظاهر (الطلب
+//    في الطريق)، فيضغط مرّتين وثلاثاً — فتُنشأ ثلاث منح متطابقة. الغلاف
+//    يعطّل الزرّ ويُظهر دوّاراً، فالضغط المكرّر مستحيلٌ لا مُثبَّطٌ فقط.
+//
+//    وعند الخطأ **لا يُلمس النموذج**: ما كتبه الأدمن ملكُه، ومسحُه عقوبةٌ
+//    على عطلِ شبكةٍ لا ذنب له فيه.
+
+async function act(btn, busyLabel, fn, okMsg){
+  if(btn && btn.dataset.busy === '1') return;      // نقرةٌ ثانيةٌ تُهمَل
+  const original = btn ? btn.textContent : '';
+  if(btn){
+    btn.dataset.busy = '1';
+    btn.disabled = true;
+    btn.classList.add('busy');
+    btn.setAttribute('aria-busy', 'true');
+    if(busyLabel) btn.title = busyLabel + '…';
+  }
+  const slow = setTimeout(() => info('⏳ ' + (busyLabel || 'جارٍ التنفيذ') + '… العملية تأخذ وقتاً أطول من المعتاد.'), 6000);
+  try{
+    const out = await fn();
+    if(okMsg) done(okMsg);
+    return out;
+  }catch(e){
+    fail(e);                     // ⚠️ ولا نلمس الحقول — انظر أعلاه
+    return undefined;
+  }finally{
+    clearTimeout(slow);
+    if(btn){
+      btn.dataset.busy = '';
+      btn.disabled = false;
+      btn.classList.remove('busy');
+      btn.removeAttribute('aria-busy');
+      btn.textContent = original;
+      btn.removeAttribute('title');
+    }
+  }
+}
+
+/// قراءةٌ (لا كتابة): تُظهر هيكلاً ثم النتيجة، وتقول سبب الفشل في مكانه
+/// بدل أن تترك مربّعاً فارغاً يوحي بأن «لا بيانات».
+async function load(box, fn){
+  const el = typeof box === 'string' ? $(box) : box;
+  if(el) el.innerHTML = '<div class="skel"></div><div class="skel" style="height:38px"></div>';
+  try{
+    return await fn();
+  }catch(e){
+    if(el) el.innerHTML = `<div class="empty"><b>⚠️ تعذّر التحميل</b>${esc(e.message)}
+      <div style="margin-top:12px"><button class="ghost" onclick="refresh()">إعادة المحاولة</button></div></div>`;
+    else fail(e);
+    return undefined;
+  }
+}
+
+function emptyState(title, hint, action){
+  return `<div class="empty"><b>${esc(title)}</b>${esc(hint || '')}
+    ${action || ''}</div>`;
+}
+
+async function login(btn){
+  const k = document.getElementById('key').value.trim();
+  if(!k){
+    show(document.getElementById('gateMsg'), '❌ اكتب مفتاح الإدارة أولاً.', 'err');
+    return;
+  }
+  sessionStorage.setItem(KEY_STORE, k);
+  if(btn){ btn.disabled = true; btn.classList.add('busy'); }
+  try{
+    paintStore((await api('/admin/overview?days=7')).store);
+    enter();
+  }catch(e){
+    sessionStorage.removeItem(KEY_STORE);
+    show(document.getElementById('gateMsg'), e.message, 'err');
+  }finally{
+    if(btn){ btn.disabled = false; btn.classList.remove('busy'); }
+  }
+}
+
+// ══════════════ 🏷️ وسمُ المخزن ══════════════
+// ⭐ **يُرسم من أول ردٍّ يحمله، لا من نداءٍ خاص.** نداءٌ مستقلٌّ يفشل
+//    وحده فيبقى الشريط غائباً بينما الأرقام تُعرض — وغيابُ التحذير أسوأ
+//    من غياب الرقم. و`/admin/overview` و`/admin/notifications` كلاهما
+//    يحمله، فأيُّ تبويبٍ فُتح أولاً يرسمه.
+function paintStore(st){
+  const el = $('storeBar');
+  if(!el || !st || !st.kind) return;
+  if(st.kind === 'firestore'){
+    el.className = 'storebar live';
+    el.innerHTML = `🗄️ المصدر: <b>${esc(st.label)}</b> — بيانات حقيقية.`;
+    return;
+  }
+  el.className = 'storebar ' + (st.kind === 'dev' ? 'dev' : 'none');
+  el.innerHTML = `<b>🗄️ المصدر: ${esc(st.label)}</b><br>${esc(st.warning)}`;
+}
+
+function enter(){
+  document.getElementById('gate').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  // 🔗 التبويب من الرابط: تحديثُ الصفحة لا يُعيد الأدمن لأول تبويب.
+  switchTab((location.hash || '#dash').slice(1));
+  // الشرائح تُحمَّل مبكراً: ثلاثة تبويبات تنتظرها، ولا تُحمَّل ثلاث مرّات.
+  loadSegments().catch(() => {});
+}
+
+function logout(){
+  sessionStorage.removeItem(KEY_STORE);
+  location.reload();
+}
+
+// ══════════════ التبويبات ══════════════
+// ⭐ التبويب يعيش في `#hash`: الأدمن يُحدّث الصفحة وهو في «الإشعارات» فيعود
+//    إليها لا إلى الأرقام — ويستطيع أن يحفظ رابط تبويبٍ بعينه.
+const TABS = {
+  dash:   {btn:'tabDash',   view:'viewDash',   load: () => loadOverview()},
+  stats:  {btn:'tabStats',  view:'viewStats',  load: () => loadStats()},
+  users:  {btn:'tabUsers',  view:'viewUsers',  load: () => loadUsers()},
+  notif:  {btn:'tabNotif',  view:'viewNotif',  load: () => loadNotifications()},
+  access: {btn:'tabAccess', view:'viewAccess', load: () => loadAccess()},
+  sch:    {btn:'tabSch',    view:'viewSch',    load: () => { closeEditor(); return loadScholarships(); }},
+  ban:    {btn:'tabBan',    view:'viewBan',    load: () => loadBanners()},
+  teach:  {btn:'tabTeach',  view:'viewTeach',  load: () => loadTeacher()},
+  set:    {btn:'tabSet',    view:'viewSet',    load: () => loadSettings()},
+};
+let tab = 'dash';
+
+function switchTab(name){
+  if(!TABS[name]) name = 'dash';
+  tab = name;
+  Object.keys(TABS).forEach(t => {
+    $(TABS[t].btn).classList.toggle('on', t === name);
+    $(TABS[t].view).classList.toggle('hide', t !== name);
+  });
+  if(location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
+  refresh().catch(fail);
+}
+
+// يعيد الوعد كي يعرف زرّ «تحديث» متى ينتهي فعلاً — وإلا ومض دوّاره
+// ومضةً لا معنى لها بينما البيانات ما زالت في الطريق.
+function refresh(){
+  const entry = TABS[tab] || TABS.dash;
+  return Promise.resolve(entry.load());
+}
+
+// ══════════════ 👥 الشرائح — تُحمَّل مرّةً وتُستعمل في ثلاثة تبويبات ══════════════
+// ⚠️ ولا تُكتب هنا يدوياً: قائمةٌ ثانيةٌ في اللوحة تنحرف عن الخادم يوم
+//    تُضاف شريحة، فيرى الأدمن خياراً لا يفهمه الخادم أو العكس.
+let SEGMENTS = [];
+
+async function loadSegments(){
+  if(SEGMENTS.length) return SEGMENTS;
+  const d = await api('/admin/segments');
+  SEGMENTS = d.segments || [];
+  return SEGMENTS;
+}
+
+function segmentOptions(list, selected){
+  return (list || SEGMENTS).map(sg =>
+    `<option value="${esc(sg.key)}"${sg.key === selected ? ' selected' : ''}>${esc(sg.label)}</option>`
+  ).join('');
+}
+
+function segmentHint(key){
+  const sg = SEGMENTS.find(x => x.key === key);
+  return sg ? sg.hint : '';
+}
+
+
+// ══════════════ 🎏 البانرات ══════════════
+// ⭐ الفرق عن تبويب المنح: هنا نوعان في شاشة واحدة — يدويٌّ يُحرَّر، وتلقائيٌّ
+//    يُعرض للاطّلاع ولا يُحرَّر إلا من قوالبه. الخلط بينهما هو ما يربك
+//    المحرِّر، فالبطاقة التلقائية تُوسم صراحةً ولا تحمل زرّ تعديل.
+
+let banMeta = {sections:[], icons:[], actions:[], templates:{}};
+let banEditingId = null;
+
+const ACTION_LABELS = {
+  none: 'بلا وجهة', scholarship: 'منحة بعينها', scholarships: 'قائمة المنح',
+  education: 'قسم التعليم', quiz: 'اختبر نفسك', analysis: 'تحليل مستواي',
+  teacher: 'مساعد المعلم', services: 'الخدمات', url: 'رابط خارجي'
+};
+const ICON_LABELS = {
+  flight:'✈️ طائرة', school:'🎓 تخرّج', explore:'🧭 بوصلة', handshake:'🤝 مصافحة',
+  book:'📖 كتاب', quiz:'❓ اختبار', chart:'📈 رسم بياني', teacher:'🎙️ معلّم',
+  star:'⭐ نجمة', fire:'🔥 نار', gift:'🎁 هدية', clock:'⏰ ساعة',
+  bell:'🔔 جرس', rocket:'🚀 صاروخ', target:'🎯 هدف', trophy:'🏆 كأس'
+};
+
+async function loadBanners(){
+  try{
+    const data = await api('/admin/banners');
+    banMeta = data;
+    fillBanSelects();
+    renderBanList(data.items || []);
+    renderTemplates(data.templates || {});
+    renderAutoPreview(data.auto_preview || []);
+  }catch(e){ fail(e); }
+}
+
+function fillBanSelects(){
+  // 🎯 الفئات من الخادم لا من قائمةٍ هنا — نفس شرائح تبويبَي الوصول والإشعارات.
+  const seg = $('b_segment');
+  seg.innerHTML = (banMeta.segments||[{key:'all',label:'جميع المستخدمين'}])
+    .map(sg => `<option value="${esc(sg.key)}">${esc(sg.label)}</option>`).join('');
+
+  const sec = $('b_section');
+  sec.innerHTML = (banMeta.sections||[]).map(s =>
+    `<option value="${s.key}">${s.label}</option>`).join('');
+  const act = $('b_action');
+  act.innerHTML = (banMeta.actions||[]).map(a =>
+    `<option value="${a}">${ACTION_LABELS[a]||a}</option>`).join('');
+  const icon = $('b_icon');
+  icon.innerHTML = (banMeta.icons||[]).map(i =>
+    `<option value="${i}">${ICON_LABELS[i]||i}</option>`).join('');
+}
+
+function renderBanList(items){
+  const box = $('banList');
+  if(!items.length){
+    box.innerHTML = '<p class="hint">لا بانرات يدوية بعد. البانر التلقائي يعمل وحده.</p>';
+    return;
+  }
+  const labels = {};
+  (banMeta.sections||[]).forEach(s => labels[s.key] = s.label);
+  const segLabels = {};
+  (banMeta.segments||[]).forEach(s => segLabels[s.key] = s.label);
+  box.innerHTML = items.map(b => `
+    <div class="panel" style="margin-bottom:12px">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div style="flex:1">
+          ${bannerChip(b)}
+          <div class="hint" style="margin-top:8px">
+            📍 ${labels[b.section]||b.section}
+            · 👥 ${esc(segLabels[b.segment || 'all'] || b.segment || 'الجميع')}
+            · 🎯 ${ACTION_LABELS[b.action]||b.action}${b.action_value ? ' → '+esc(b.action_value) : ''}
+            · 🔢 ${b.order||0}
+            ${b.start_date||b.end_date ? '· 📅 '+esc(b.start_date||'…')+' ← '+esc(b.end_date||'…') : ''}
+          </div>
+        </div>
+        <div class="row">
+          <button class="ghost" onclick="editBanner('${b.id}')">✏️ تعديل</button>
+          <button class="ghost" onclick="toggleBanner(this,'${b.id}', ${b.enabled === false})">
+            ${b.enabled === false ? '👁️ إظهار' : '🚫 إخفاء'}</button>
+          <button class="danger" onclick="deleteBanner(this,'${b.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function bannerChip(b){
+  const c = (b.colors && b.colors.length ? b.colors : ['#3B82F6','#1D4ED8']);
+  const dim = b.enabled === false ? 'opacity:.45;' : '';
+  return `<div style="${dim}background:linear-gradient(135deg,${c[0]},${c[1]||c[0]});
+      color:#fff;border-radius:16px;padding:14px 16px;max-width:420px">
+      <div style="font-weight:800;font-size:14px">${esc(b.title||'')}</div>
+      ${b.subtitle ? `<div style="opacity:.9;font-size:12px;margin-top:5px">${esc(b.subtitle)}</div>` : ''}
+    </div>`;
+}
+
+function renderAutoPreview(items){
+  const box = $('banAuto');
+  box.innerHTML = items.length
+    ? items.map(b => `<div style="margin-bottom:10px">${bannerChip(b)}
+        <div class="hint" style="margin-top:6px">🤖 تلقائيّ → منحة «${esc(b.action_value)}»</div></div>`).join('')
+    : '<p class="hint">لا بانر تلقائي الآن — لا منحة قريبة الفتح ولا الإغلاق.</p>';
+}
+
+function renderTemplates(tpl){
+  const names = {
+    sch_open: '🎉 منحة فُتحت',
+    sch_closing: '⏳ منحة تقترب من الإغلاق',
+    sch_soon: '🔔 منحة تفتح قريباً'
+  };
+  $('banTemplates').innerHTML = Object.keys(names).map(key => {
+    const t = tpl[key] || {};
+    const c = t.colors || ['#3B82F6','#1D4ED8'];
+    return `
+    <div class="panel" style="margin-bottom:12px">
+      <div class="row" style="justify-content:space-between">
+        <b>${names[key]}</b>
+        <label class="hint"><input type="checkbox" id="t_${key}_on" ${t.enabled === false ? '' : 'checked'}> مُفعَّل</label>
+      </div>
+      <div class="field"><label>العنوان</label>
+        <input id="t_${key}_title" maxlength="60" value="${esc(t.title||'')}"></div>
+      <div class="field"><label>السطر الثاني</label>
+        <input id="t_${key}_sub" maxlength="90" value="${esc(t.subtitle||'')}"></div>
+      <div class="grid2">
+        <div class="field"><label>الأيقونة</label>
+          <select id="t_${key}_icon">${(banMeta.icons||[]).map(i =>
+            `<option value="${i}" ${i===t.icon?'selected':''}>${ICON_LABELS[i]||i}</option>`).join('')}</select></div>
+        <div class="field"><label>الألوان</label>
+          <div class="row">
+            <input id="t_${key}_c1" type="color" value="${c[0]}" style="height:42px">
+            <input id="t_${key}_c2" type="color" value="${c[1]||c[0]}" style="height:42px">
+          </div></div>
+      </div>
+      ${t.days_before !== undefined ? `
+      <div class="field"><label>يبدأ الظهور قبل (يوماً)</label>
+        <input id="t_${key}_days" type="number" min="1" max="120" value="${t.days_before}" dir="ltr">
+        <span class="hint">أبعد من ذلك لا يظهر — البانر البعيد ضوضاء.</span></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function saveTemplates(btn){
+  const keys = ['sch_open','sch_closing','sch_soon'];
+  const templates = {};
+  keys.forEach(key => {
+    const entry = {
+      enabled: $('t_'+key+'_on').checked,
+      title: $('t_'+key+'_title').value.trim(),
+      subtitle: $('t_'+key+'_sub').value.trim(),
+      icon: $('t_'+key+'_icon').value,
+      colors: [$('t_'+key+'_c1').value, $('t_'+key+'_c2').value]
+    };
+    const days = $('t_'+key+'_days');
+    if(days) entry.days_before = parseInt(days.value||'14', 10);
+    templates[key] = entry;
+  });
+  await act(btn, 'حفظ القوالب', async () => {
+    await api('/admin/banner-templates', {method:'POST', body: JSON.stringify({templates})});
+    await loadBanners();
+  }, '✅ تم حفظ القوالب بنجاح — تصل الطلاب في الإقلاع التالي.');
+}
+
+function newBanner(){
+  banEditingId = null;
+  $('banEditorTitle').textContent = 'بانر جديد';
+  $('b_section').value = 'home';
+  $('b_segment').value = 'all';
+  $('b_action').value = 'none';
+  $('b_action_value').value = '';
+  $('b_title').value = '';
+  $('b_subtitle').value = '';
+  $('b_icon').value = 'star';
+  $('b_c1').value = '#3B82F6';
+  $('b_c2').value = '#1D4ED8';
+  $('b_start').value = '';
+  $('b_end').value = '';
+  $('b_order').value = 0;
+  $('banEditor').classList.remove('hide');
+  banActionChanged(); banSegmentChanged(); banCount(); banPreview();
+}
+
+function editBanner(id){
+  const b = (banMeta.items||[]).find(x => x.id === id);
+  if(!b) return;
+  banEditingId = id;
+  $('banEditorTitle').textContent = 'تعديل البانر';
+  $('b_section').value = b.section || 'home';
+  $('b_segment').value = b.segment || 'all';
+  $('b_action').value = b.action || 'none';
+  $('b_action_value').value = b.action_value || '';
+  $('b_title').value = b.title || '';
+  $('b_subtitle').value = b.subtitle || '';
+  $('b_icon').value = b.icon || 'star';
+  const c = b.colors || ['#3B82F6','#1D4ED8'];
+  $('b_c1').value = c[0]; $('b_c2').value = c[1] || c[0];
+  $('b_start').value = b.start_date || '';
+  $('b_end').value = b.end_date || '';
+  $('b_order').value = b.order || 0;
+  $('banEditor').classList.remove('hide');
+  banActionChanged(); banSegmentChanged(); banCount(); banPreview();
+  $('banEditor').scrollIntoView({behavior:'smooth'});
+}
+
+function closeBanEditor(){
+  banEditingId = null;
+  $('banEditor').classList.add('hide');
+}
+
+function banSegmentChanged(){
+  const sg = (banMeta.segments||[]).find(x => x.key === $('b_segment').value);
+  $('b_segment_hint').textContent = sg ? sg.hint : 'من يرى هذا البانر.';
+}
+
+function banActionChanged(){
+  const action = $('b_action').value;
+  const needsValue = (action === 'scholarship' || action === 'url' || action === 'education');
+  $('b_value_wrap').classList.toggle('hide', !needsValue);
+  $('b_value_hint').textContent =
+    action === 'scholarship' ? 'معرّف المنحة كما في تبويب المنح (مثل: india).'
+    : action === 'url' ? 'رابط كامل يبدأ بـ https://'
+    : 'اسم المادة (اختياري — اتركه فارغاً لفتح القسم كما هو).';
+}
+
+function banCount(){
+  $('b_title_c').textContent = `${$('b_title').value.length} / 60`;
+  $('b_sub_c').textContent = `${$('b_subtitle').value.length} / 90`;
+  banPreview();
+}
+
+function banPreview(){
+  $('banPreview').innerHTML = bannerChip({
+    title: $('b_title').value || 'عنوان البانر',
+    subtitle: $('b_subtitle').value,
+    colors: [$('b_c1').value, $('b_c2').value]
+  });
+}
+
+async function saveBanner(btn){
+  const body = {
+    section: $('b_section').value,
+    segment: $('b_segment').value,
+    title: $('b_title').value.trim(),
+    subtitle: $('b_subtitle').value.trim(),
+    icon: $('b_icon').value,
+    colors: [$('b_c1').value, $('b_c2').value],
+    action: $('b_action').value,
+    action_value: $('b_action_value').value.trim(),
+    enabled: true,
+    order: parseInt($('b_order').value || '0', 10),
+    start_date: $('b_start').value || '',
+    end_date: $('b_end').value || ''
+  };
+  // ⚠️ التحقق قبل الزرّ لا بعده: رسالةٌ فوريّة خيرٌ من رحلةِ شبكةٍ تعود برفض.
+  if(!body.title){ toast('❌ عنوان البانر مطلوب.', 'err'); $('b_title').focus(); return; }
+  if(body.action === 'url' && !/^https?:\/\//.test(body.action_value)){
+    toast('❌ الرابط الخارجي يجب أن يبدأ بـ https://', 'err');
+    $('b_action_value').focus(); return;
+  }
+  if(body.action === 'scholarship' && !body.action_value){
+    toast('❌ اكتب معرّف المنحة التي يفتحها البانر.', 'err');
+    $('b_action_value').focus(); return;
+  }
+  if(body.start_date && body.end_date && body.start_date > body.end_date){
+    toast('❌ تاريخ الظهور بعد تاريخ الاختفاء — راجع المدّة.', 'err'); return;
+  }
+  const editing = banEditingId;
+  const ok = await act(btn, 'حفظ البانر', async () => {
+    if(editing){
+      await api('/admin/banners/' + editing, {method:'PUT', body: JSON.stringify(body)});
+    }else{
+      await api('/admin/banners', {method:'POST', body: JSON.stringify(body)});
+    }
+    return true;
+  }, editing ? '✅ تم حفظ التعديل — يظهر للطلاب في الإقلاع التالي.'
+             : '✅ تم إنشاء البانر — يظهر للطلاب في الإقلاع التالي.');
+  // 🛟 المحرّر لا يُغلق إلا عند النجاح: إغلاقه على خطأٍ يضيّع ما كُتب.
+  if(ok){ closeBanEditor(); await loadBanners(); }
+}
+
+async function toggleBanner(btn, id, enabled){
+  const ok = await act(btn, enabled ? 'إظهار البانر' : 'إخفاء البانر', async () => {
+    await api('/admin/banners/'+id+'/enabled', {method:'POST', body: JSON.stringify({enabled})});
+    return true;
+  }, enabled ? '👁️ ظهر البانر للطلاب.' : '🚫 أُخفي البانر عن الطلاب.');
+  if(ok) await loadBanners();
+}
+
+async function deleteBanner(btn, id){
+  const b = (banMeta.items||[]).find(x => x.id === id);
+  if(!await ask('حذف البانر',
+      `«${b ? b.title : id}»\n\nسيُحذف نهائياً ولا يمكن التراجع.`, 'حذف')) return;
+  const ok = await act(btn, 'حذف البانر', async () => {
+    await api('/admin/banners/'+id, {method:'DELETE'});
+    return true;
+  }, '🗑️ تم حذف البانر.');
+  if(ok) await loadBanners();
+}
+
+// ══════════════ ⚙️ الإعدادات العامة ══════════════
+
+// ══════════════ 👨‍🏫 برومبتات مساعد المعلم ══════════════
+// ⭐ الفرق عن تبويب المنح: لا إنشاء ولا حذف — الأدوات مشحونة مع التطبيق،
+//    واللوحة تُحسّن سلوكها. وتفريغ الحقل عودةٌ للافتراضي لا تعطيل.
+
+let teachTools = [];
+let teachLessonTree = [];
+
+
+async function loadTeacher(){
+  try{
+    const d = await api('/admin/teacher/prompts');
+    teachTools = d.tools || [];
+    renderTeacher(d);
+    fillTeacherTargets();
+    loadTeacherLessons();
+  }catch(e){ fail(e); }
+}
+
+function renderTeacher(d){
+  // ⚠️ حالة المخزن تُقال صراحةً: بلا Firestore يعمل القسم ببرومبتات الكود
+  //    لكن **الحفظ لا يعمل** — والأدمن يجب أن يعرف ذلك قبل أن يكتب لا بعده.
+  const box = $('teachStore');
+  if(d.firestore){ box.className = 'msg'; }
+  else {
+    box.textContent = '⚠️ Firestore غير متاح على الخادم: الأدوات تعمل ببرومبتات '
+      + 'الكود، لكن الحفظ من هنا لن ينجح حتى يُضبط FIREBASE_SERVICE_ACCOUNT_JSON.';
+    box.className = 'msg show err';
+  }
+
+  $('teachTools').innerHTML = teachTools.map(t => {
+    const kinds = [];
+    if(t.has_generate) kinds.push(['generate','🚀 برومبت التوليد',
+      'يُستعمل مرة واحدة عند ضغط زرّ الأداة — هنا تُوصف بنية المُخرَج وأقسامه.']);
+    kinds.push(['chat','💬 برومبت المحادثة',
+      'يُستعمل في كل رسالة متابعة — هنا تُوصف طريقة التعديل والنقاش لا البناء.']);
+
+    return `<div class="panel" style="margin-bottom:14px">
+      <div class="row" style="justify-content:space-between;margin-bottom:4px">
+        <h3 style="margin:0">${t.emoji} ${esc(t.label)}</h3>
+        <span class="muted" dir="ltr">${esc(t.tool)}</span>
+      </div>
+      ${!t.has_generate ? '<p class="hint" style="margin:0 0 10px">'
+        + 'محادثة مفتوحة بلا زرّ توليد — لها برومبت المحادثة وحده.</p>' : ''}
+      ${kinds.map(([kind,label,hint]) => `
+        <div class="field" style="margin-top:12px">
+          <label>${label}
+            <span class="tag ${t[kind+'_overridden'] ? 'adm' : 'ok'}">
+              ${t[kind+'_overridden'] ? 'مخصَّص من اللوحة' : 'الافتراضي من الكود'}</span>
+          </label>
+          <span class="hint">${hint}</span>
+          <textarea id="tp_${t.tool}_${kind}" rows="9">${esc(t[kind] || '')}</textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="ok" onclick="saveTeacherPrompt(this,'${t.tool}','${kind}')">💾 حفظ</button>
+            <button class="ghost mini"
+              onclick="resetTeacherPrompt(this,'${t.tool}','${kind}')">↩️ عُد للافتراضي</button>
+            <button class="ghost mini"
+              onclick="pickTeacherTarget('${t.tool}','${kind}')">🧪 جرّبه</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+async function saveTeacherPrompt(btn, tool, kind){
+  const ok = await act(btn, 'حفظ البرومبت', async () => {
+    await api('/admin/teacher/prompts/' + encodeURIComponent(tool),
+      {method:'POST', body: JSON.stringify(
+        {kind: kind, prompt: $('tp_' + tool + '_' + kind).value})});
+    return true;
+  }, '✅ تم الحفظ بنجاح — يصل الخادم خلال ≤ ٥ دقائق.');
+  if(ok) await loadTeacher();
+}
+
+async function resetTeacherPrompt(btn, tool, kind){
+  if(!await ask('العودة للبرومبت الافتراضي',
+      'سيُفرَّغ الحقل ويعود البرومبت المكتوب في الكود.', 'أعِد الافتراضي')) return;
+  const ok = await act(btn, 'العودة للافتراضي', async () => {
+    await api('/admin/teacher/prompts/' + encodeURIComponent(tool),
+      {method:'POST', body: JSON.stringify({kind: kind, prompt: ''})});
+    return true;
+  }, '↩️ تم — عاد البرومبت للافتراضي المكتوب في الكود.');
+  if(ok) await loadTeacher();
+}
+
+let teachCoreLoaded = false;
+async function toggleTeacherCore(){
+  const box = $('teachCore');
+  if(!teachCoreLoaded){
+    try{
+      const d = await api('/admin/teacher/core');
+      box.textContent = d.core || '';
+      teachCoreLoaded = true;
+    }catch(e){ return fail(e); }
+  }
+  box.classList.toggle('hide');
+}
+
+// ───────── التجربة ─────────
+
+function fillTeacherTargets(){
+  const opts = [];
+  teachTools.forEach(t => {
+    if(t.has_generate) opts.push([t.tool + '|generate', t.emoji + ' ' + t.label + ' — 🚀 التوليد']);
+    opts.push([t.tool + '|chat', t.emoji + ' ' + t.label + ' — 💬 المحادثة']);
+  });
+  $('t_target').innerHTML = opts
+    .map(([v,l]) => `<option value="${v}">${esc(l)}</option>`).join('');
+}
+
+function pickTeacherTarget(tool, kind){
+  $('t_target').value = tool + '|' + kind;
+  $('t_q').focus();
+  $('t_q').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+// ⚠️ قائمة المواد **من الخادم** لا من ثابت هنا: نسخةٌ ثانية منها في اللوحة
+//    تنحرف عن المنهج يوم يتغيّر، فيجرّب الأدمن على مادة لا وجود لها.
+async function loadTeacherLessons(){
+  const g = $('t_grade').value, tr = $('t_track').value;
+  const s = $('t_subject').value;
+  try{
+    const d = await api('/admin/teacher/lessons?subject=' + encodeURIComponent(s || '')
+      + '&grade=' + g + '&track=' + encodeURIComponent(tr));
+    $('t_subject').innerHTML = (d.subjects || [])
+      .map(x => `<option value="${esc(x)}"${x === d.subject ? ' selected' : ''}>${esc(x)}</option>`)
+      .join('');
+    $('t_track').value = d.track;      // الصف الأول موحّد بلا مسار — الخادم يصحّح
+    teachLessonTree = d.units || [];
+    // ⚠️ مادة بلا دروس تُقال صراحةً — أدوات المعلم تُبنى من نصّ الدرس وحده،
+    //    ولا تسقط على محتوى الوحدات كما يفعل قسم التعليم.
+    $('t_unit').innerHTML = teachLessonTree.length
+      ? teachLessonTree.map(u => `<option value="${esc(u.unit)}">${esc(u.unit)}</option>`).join('')
+      : '<option value="">— لا دروس لهذه المادة بعد —</option>';
+    fillTeacherLessons();
+  }catch(e){ fail(e); }
+}
+
+function fillTeacherLessons(){
+  const u = teachLessonTree.find(x => x.unit === $('t_unit').value);
+  const lessons = (u && u.lessons) || [];
+  $('t_lesson').innerHTML = lessons.length
+    ? lessons.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('')
+    : '<option value="">—</option>';
+}
+
+async function tryTeacherPrompt(){
+  const [tool, kind] = $('t_target').value.split('|');
+  const q = $('t_q').value.trim();
+  if(!q) return;
+  const box = $('t_box');
+  box.innerHTML += `<div class="bub me">${esc(q)}</div>`;
+  box.innerHTML += '<div class="bub ai" id="t_wait">…</div>';
+  box.scrollTop = box.scrollHeight;
+  $('t_q').value = '';
+  try{
+    const d = await api('/admin/teacher/prompts/' + encodeURIComponent(tool) + '/try',
+      {method:'POST', body: JSON.stringify({
+        kind: kind,
+        prompt: $('tp_' + tool + '_' + kind) ? $('tp_' + tool + '_' + kind).value : '',
+        question: q,
+        subject: $('t_subject').value, grade: +$('t_grade').value,
+        track: $('t_track').value,
+        unit_name: $('t_unit').value, lesson_name: $('t_lesson').value})});
+    $('t_wait').textContent = d.answer || '(لا رد)';
+    $('t_wait').removeAttribute('id');
+  }catch(e){
+    $('t_wait').textContent = '⚠️ ' + e.message;
+    $('t_wait').removeAttribute('id');
+  }
+  box.scrollTop = box.scrollHeight;
+}
+
+async function loadSettings(){
+  try{
+    const d = await api('/admin/settings');
+    $('s_ask').value = d.stored.quota_ask ?? '';
+    $('s_guest').value = d.stored.quota_guest ?? '';
+    $('s_ask_now').textContent = num(d.effective.quota_ask);
+    $('s_guest_now').textContent = num(d.effective.quota_guest);
+    // الحقل الفارغ يعني «اتبع قيمة البيئة» — نُظهرها كتلميح لا كقيمة محفوظة.
+    $('s_ask').placeholder = d.effective.quota_ask;
+    $('s_guest').placeholder = d.effective.quota_guest;
+  }catch(e){ fail(e); }
+}
+
+async function saveSettings(btn){
+  const body = {};
+  const ask = $('s_ask').value.trim(), guest = $('s_guest').value.trim();
+  if(ask !== '') body.quota_ask = Number(ask);
+  if(guest !== '') body.quota_guest = Number(guest);
+  if(!Object.keys(body).length){
+    info('ℹ️ لم تغيّر شيئاً — اكتب رقماً في أحد الحقلين.'); return;
+  }
+  const ok = await act(btn, 'حفظ الإعدادات', async () => {
+    await api('/admin/settings', {method:'POST', body: JSON.stringify(body)});
+    return true;
+  }, '✅ تم حفظ الإعدادات — تصل الخادم خلال ≤ ٥ دقائق.');
+  if(ok) await loadSettings();
+}
+
+function num(n){ return (n ?? 0).toLocaleString('ar-EG'); }
+
+/// النسبة بأرقام عربية وعلامةٍ عربية — لا تُخلط الأرقام في صفٍّ واحد.
+function pct(n){ return num(n) + '٪'; }
+
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g,
+    c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ══════════════ 📈 التحليلات ══════════════
+// 🔴 **لا رقمَ مُختلَق في هذا القسم.** ما لا مصدر له يُعرض كحالةٍ صريحة:
+//    «غير متاح + السبب» إن تعذّرت القراءة، و«لا بيانات بعد» إن قُرئت
+//    فوُجدت فارغة. والفرق بينهما ليس تجميلاً: الأول عطلٌ يُصلَح، والثاني
+//    واقعٌ يُقرأ — وخلطهما يجعل الأدمن يطارد عطلاً لا وجود له.
+
+let statsData = null;
+let statsSubjects = [];
+
+async function loadStats(btn, force){
+  await loadSegments();
+  const seg = $('st_segment');
+  if(!seg.options.length){
+    seg.innerHTML = segmentOptions();
+    seg.value = 'all';
+  }
+  $('st_segment_hint').textContent = segmentHint(seg.value) || ' ';
+
+  const run = async () => {
+    const d = await api('/admin/analytics?days=' + $('st_days').value
+      + '&segment=' + encodeURIComponent(seg.value)
+      + '&subject=' + encodeURIComponent($('st_subject').value)
+      + (force ? '&refresh=1' : ''));
+    statsData = d;
+    $('st_period').textContent = `من ${d.period.from} إلى ${d.period.to}`;
+    $('st_fresh').textContent = d.cached ? 'أرقام محفوظة (≤ دقيقة)' : 'أرقام لحظية';
+    fillStatsSubjects(d);
+    renderStats(d);
+  };
+  if(btn) await act(btn, 'تحديث الأرقام', run, '✅ حُدّثت الأرقام.');
+  else await load('statsBody', run);
+}
+
+/// قائمة المواد تُبنى مما ظهر في البيانات — لا من ثابتٍ ينحرف عن المنهج.
+function fillStatsSubjects(d){
+  const seen = new Set(statsSubjects);
+  ((d.quiz && d.quiz.by_subject) || []).forEach(x => seen.add(x.subject));
+  ((d.assistant && d.assistant.by_subject) || []).forEach(x => seen.add(x.subject));
+  const list = [...seen].filter(Boolean).sort();
+  if(list.length === statsSubjects.length) return;
+  statsSubjects = list;
+  const cur = $('st_subject').value;
+  $('st_subject').innerHTML = '<option value="">كل المواد</option>'
+    + list.map(x => `<option value="${esc(x)}"${x === cur ? ' selected' : ''}>${esc(x)}</option>`).join('');
+}
+
+function cardsHtml(items){
+  return `<div class="cards">` + items.map(([e, n, l, sub]) =>
+    `<div class="card"><div class="n">${e} ${typeof n === 'number' ? num(n) : esc(n)}</div>
+       <div class="l">${esc(l)}</div>
+       ${sub ? `<div class="l" style="opacity:.75">${esc(sub)}</div>` : ''}</div>`
+  ).join('') + `</div>`;
+}
+
+/// حالةُ قسمٍ تحليليّ: متاحٌ بأرقام · متاحٌ وفارغ · غير متاح.
+function sectionState(part, title){
+  if(!part || part.available === false)
+    return `<div class="empty"><b>${esc(title)} — غير متاح</b>
+      ${esc((part && part.note) || 'تعذّرت قراءة هذا القسم.')}</div>`;
+  if(!part.count)
+    return `<div class="empty"><b>${esc(title)} — لا بيانات بعد</b>
+      ${esc(part.note || 'لم تُسجَّل بيانات ضمن هذا الفلتر.')}</div>`;
+  return '';
+}
+
+function barList(items, opts){
+  const max = Math.max(1, ...items.map(i => i.value));
+  return `<div class="bars">` + items.map(i => `
+    <div class="bar ${i.kind || ''}">
+      <div class="t" style="grid-column:1/-1">
+        <span>${esc(i.label)}</span>
+        <span class="muted">${esc(i.right)}</span>
+      </div>
+      <div class="track"><div class="fill" style="width:${(i.value / max * 100).toFixed(1)}%"></div></div>
+    </div>`).join('') + `</div>`;
+}
+
+function renderStats(d){
+  const u = d.users, a = d.asks, q = d.quota;
+  const out = [];
+
+  out.push(`<h2 style="margin-top:0">👥 الجمهور — ${esc(d.segment.label)}</h2>`);
+  out.push(cardsHtml([
+    ['👥', u.total, 'ضمن الشريحة', `${pct(d.segment.share)} من ${num(u.total_platform)} مستخدم`],
+    ['🟢', u.dau, 'نشط اليوم'],
+    ['📅', u.wau, 'نشط هذا الأسبوع'],
+    ['🗓️', u.mau, 'نشط هذا الشهر'],
+    ['🆕', u.new_in_period, 'تسجيل جديد في الفترة'],
+    // 👨‍🏫 بلا هذه البطاقة يختفي المعلمون: هم خارج «الطلاب» وخارج جدول
+    //    الصفوف، فيصير الإجمالي أكبر من مجموع أجزائه بلا تفسير.
+    ['🎓', u.students ?? 0, 'طالب'],
+    ['👨‍🏫', u.teachers ?? 0, 'معلّم'],
+    ['⛔', u.banned, 'محظور'],
+  ]));
+  if(u.undated){
+    out.push(`<p class="hint">ℹ️ ${num(u.undated)} حساباً بلا تاريخ تسجيل
+      (أُنشئت قبل تسجيل هذا الحقل) — تُحتسب في الإجمالي لا في منحنى النمو.</p>`);
+  }
+
+  // ── الصفوف والمسارات ──
+  if(u.by_grade.length){
+    // ⚠️ «الطلاب» في العنوان ليست تجميلاً: المعلّم له صفٌّ في مستنده أيضاً
+    //    — الصف الذي *يُدرّسه* — وهو مستبعَدٌ من هذا الجدول عمداً.
+    out.push(`<h2>🎓 الطلاب حسب الصف والمسار <span class="hint">(بلا المعلمين)</span></h2>`);
+    out.push(barList(u.by_grade.map(g => ({
+      label: `الصف ${g.grade}${g.track && g.track !== '?' ? ' — ' + g.track : ''}`,
+      right: num(g.count) + ' طالب',
+      value: g.count,
+    }))));
+  }
+
+  // ── النمو ──
+  out.push(`<h2>📈 نمو المستخدمين</h2>`);
+  out.push(`<div class="card"><div id="growthChart"></div></div>`);
+
+  // ── الأسئلة ──
+  out.push(`<h2>💬 استخدام المساعد والذكاء الاصطناعي</h2>`);
+  out.push(cardsHtml([
+    ['💬', a.today, 'سؤال اليوم'],
+    ['📨', a.in_period, 'سؤال في الفترة'],
+    ['🙋', a.askers_in_period, 'طالب سأل في الفترة'],
+    ['📊', a.avg_per_asker, 'متوسط الأسئلة للطالب السائل'],
+    ['📅', a.avg_per_day, 'متوسط الأسئلة يومياً'],
+    ['🔝', a.busiest_day.day ? a.busiest_day.day.slice(5) : '—', 'أعلى يوم',
+     num(a.busiest_day.asks) + ' سؤال'],
+  ]));
+  out.push(`<div class="card" style="margin-top:12px"><div id="asksChart"></div></div>`);
+
+  // ── الحصص ──
+  out.push(`<h2>🎟️ استهلاك الحصص</h2>`);
+  out.push(cardsHtml([
+    ['🎯', q.student_daily, 'الحدّ اليومي العام'],
+    ['🧪', q.guest_total, 'حدّ الزائر (تراكمي)'],
+    ['🛑', q.at_limit_today, 'بلغ حدّه اليوم'],
+    ['⚠️', q.near_limit_today, 'قارب حدّه اليوم (≥ ٨٠٪)'],
+    ['⚙️', q.overrides, 'له حدّ خاص'],
+  ]));
+
+  // ── الاختبارات ──
+  out.push(`<h2>🧠 الاختبارات</h2>`);
+  const quizEmpty = sectionState(d.quiz, 'الاختبارات');
+  if(quizEmpty){ out.push(quizEmpty); }
+  else{
+    const z = d.quiz;
+    out.push(cardsHtml([
+      ['📝', z.count, 'اختبار'],
+      ['👥', z.students, 'طالب اختبر'],
+      ['🎯', pct(z.avg_percent), 'متوسط النتائج'],
+      ['❓', z.questions, 'سؤال أُجيب'],
+      ['⏱️', num(Math.round(z.avg_duration_sec / 60)) + ' د', 'متوسط زمن الاختبار'],
+    ]));
+    if(z.truncated) out.push(`<div class="warnbox">⚠️ البيانات أكثر من سقف المسحة —
+      الأرقام أعلاه من عيّنة كبيرة لا من كل السجل.</div>`);
+
+    if(z.best_subjects.length || z.worst_subjects.length){
+      out.push(`<h3>🏆 أفضل وأسوأ المواد <span class="muted">(بمتوسط النتيجة —
+        وللمواد التي لها ${num(z.ranked_min_quizzes)} اختبارات فأكثر)</span></h3>`);
+      out.push(`<div class="grid2">`);
+      out.push(`<div class="panel"><b style="font-size:13px">🟢 الأعلى نتيجةً</b>
+        <div style="margin-top:10px">${z.best_subjects.length
+          ? barList(z.best_subjects.map(x => ({label: x.subject, kind: 'good',
+              right: pct(x.avg_percent) + ' · ' + num(x.count) + ' اختبار', value: x.avg_percent})))
+          : '<p class="hint">لا مادة بلغت العدد الأدنى من الاختبارات بعد.</p>'}</div></div>`);
+      out.push(`<div class="panel"><b style="font-size:13px">🔴 الأدنى نتيجةً</b>
+        <div style="margin-top:10px">${z.worst_subjects.length
+          ? barList(z.worst_subjects.map(x => ({label: x.subject, kind: 'bad',
+              right: pct(x.avg_percent) + ' · ' + num(x.count) + ' اختبار', value: x.avg_percent})))
+          : '<p class="hint">لا مادة بلغت العدد الأدنى من الاختبارات بعد.</p>'}</div></div>`);
+      out.push(`</div>`);
+    }
+
+    if(z.top_lessons.length){
+      out.push(`<h3>🔁 أكثر الدروس اختباراً</h3>`);
+      out.push(barList(z.top_lessons.map(x => ({
+        label: x.lesson, right: `${esc(x.subject)} · ${num(x.asked)} سؤال`, value: x.asked}))));
+    }
+
+    if(z.weak_lessons.length){
+      out.push(`<h3>🚨 أكثر الدروس التي يخطئ فيها الطلاب
+        <span class="muted">(بنسبة الخطأ لا بعدده — ولدروسٍ سُئل عنها
+        ${num(z.weak_min_asked)} أسئلة فأكثر)</span></h3>`);
+      out.push(barList(z.weak_lessons.map(x => ({
+        label: x.lesson, kind: 'bad',
+        right: `${esc(x.subject)} · ${pct(x.error_rate)} خطأ (${num(x.wrong)}/${num(x.asked)})`,
+        value: x.error_rate}))));
+    }else{
+      out.push(`<p class="hint">ℹ️ لا درسَ بلغ ${num(z.weak_min_asked || 10)} أسئلة بعد —
+        نسبةُ خطأٍ من أسئلةٍ قليلة صدفةٌ لا ضعف.</p>`);
+    }
+  }
+
+  // ── محادثات التعليم ──
+  out.push(`<h2>💬 محادثات قسم التعليم</h2>`);
+  const asEmpty = sectionState(d.assistant, 'المحادثات');
+  if(asEmpty){ out.push(asEmpty); }
+  else{
+    out.push(cardsHtml([
+      ['💬', d.assistant.count, 'محادثة'],
+      ['👥', d.assistant.students, 'طالب'],
+    ]));
+    if(d.assistant.by_subject.length){
+      out.push(`<h3>حسب المادة</h3>`);
+      out.push(barList(d.assistant.by_subject.map(x =>
+        ({label: x.subject, right: num(x.count), value: x.count}))));
+    }
+    if(d.assistant.by_mode.length){
+      out.push(`<h3>حسب الوضع</h3>`);
+      out.push(barList(d.assistant.by_mode.map(x =>
+        ({label: x.mode, right: num(x.count), value: x.count}))));
+    }
+  }
+
+  // ── المنح ──
+  out.push(`<h2>🎓 التفاعل مع المنح</h2>`);
+  const schEmpty = sectionState(d.scholarships, 'تفاعل المنح');
+  if(schEmpty){ out.push(schEmpty); }
+  else{
+    out.push(cardsHtml([
+      ['💬', d.scholarships.count, 'محادثة مساعد منحة'],
+      ['👥', d.scholarships.students, 'طالب تفاعل'],
+    ]));
+    out.push(`<h3>أكثر المنح تفاعلاً</h3>`);
+    out.push(barList(d.scholarships.by_scholarship.map(x =>
+      ({label: x.name, right: `${num(x.chats)} محادثة · ${num(x.students)} طالب`, value: x.chats}))));
+  }
+
+  $('statsBody').innerHTML = out.join('');
+  lineChart('asksChart', a.series.map(p => ({x: p.day, y: p.asks})), '#3b82f6');
+  lineChart('growthChart', d.users.growth.map(p => ({x: p.day, y: p.total})), '#22c55e');
+}
+
+// ══════════════ 🔔 الإشعارات ══════════════
+// 🔴 **لا إرسالَ وهمي.** لا ناقلَ دفعٍ (FCM) في المنصّة بعد، وزرٌّ يقول
+//    «أُرسل» بلا مُرسَلٍ إليه أسوأ من غيابه: يظن المالك أن ألف طالبٍ قرأ
+//    إعلاناً لم يصل أحداً. فالقدرة تُقرأ من الخادم وتُقال في أعلى التبويب،
+//    والجمهور **يُحسب فعلاً**، والإشعار يُحفظ مستهدَفاً بلقطة مستلمين
+//    حقيقية — تنقصه خطوةُ الدفع وحدها، وتُقال صراحةً.
+
+let notifMeta = {delivery: false, links: [], items: []};
+let notifAudienceData = null;
+
+// 🎯 وضع الجمهور: شريحةٌ كاملة أم طلابٌ بأعيانهم.
+//    ⚠️ كان الوضع الثاني **مفقوداً من اللوحة كلياً** رغم أن الخادم يدعمه —
+//       فكان «طالبٌ بعينه» مستحيلاً، وأيُّ محاولةٍ تسقط على الشريحة كلها.
+let notifMode = 'segment';
+const notifChosen = new Map();   // uid → {name, email}
+
+function setNotifMode(mode){
+  notifMode = mode;
+  $('n_mode_segment').classList.toggle('on', mode === 'segment');
+  $('n_mode_picked').classList.toggle('on', mode === 'picked');
+  $('n_segment').classList.toggle('hide', mode !== 'segment');
+  $('n_segment_hint').classList.toggle('hide', mode !== 'segment');
+  $('n_picked_wrap').classList.toggle('hide', mode !== 'picked');
+  notifAudience();
+}
+
+let notifSearchTimer;
+function debouncedNotifSearch(){
+  clearTimeout(notifSearchTimer);
+  notifSearchTimer = setTimeout(notifSearch, 300);
+}
+
+async function notifSearch(){
+  const q = $('n_search').value.trim();
+  const box = $('n_results');
+  if(q.length < 2){ box.innerHTML = ''; return; }
+  try{
+    const d = await api('/admin/users?limit=20&search=' + encodeURIComponent(q));
+    const rows = d.users || [];
+    box.innerHTML = rows.length
+      ? rows.map(u => `
+        <div class="row" style="justify-content:space-between;padding:7px 10px;
+             border:1px solid var(--line);border-radius:11px;margin-bottom:6px">
+          <div style="min-width:0">
+            <b style="font-size:13px">${esc(u.name)}</b>
+            <div class="hint">${esc(u.email || u.uid)} · الصف ${u.grade ?? '—'}
+              ${u.track ? '— ' + esc(u.track) : ''}
+              ${u.banned ? '· <span style="color:var(--bad)">محظور</span>' : ''}</div>
+          </div>
+          <button class="mini ${notifChosen.has(u.uid) ? 'ghost' : ''}"
+            onclick="toggleNotifUser('${esc(u.uid)}', ${JSON.stringify(u.name).replace(/"/g,'&quot;')}, ${JSON.stringify(u.email || '').replace(/"/g,'&quot;')})">
+            ${notifChosen.has(u.uid) ? '✓ مُختار' : '＋ أضِف'}</button>
+        </div>`).join('')
+      : '<p class="hint">لا نتائج لهذا البحث.</p>';
+  }catch(e){ fail(e); }
+}
+
+function toggleNotifUser(uid, name, email){
+  if(notifChosen.has(uid)) notifChosen.delete(uid);
+  else notifChosen.set(uid, {name, email});
+  renderNotifChosen();
+  notifSearch();          // يحدّث شارة الزرّ في نتائج البحث
+  notifAudience();
+}
+
+function renderNotifChosen(){
+  $('n_chosen_count').textContent = notifChosen.size ? `(${num(notifChosen.size)})` : '';
+  $('n_chosen').innerHTML = notifChosen.size
+    ? [...notifChosen.entries()].map(([uid, u]) =>
+        `<button class="chip on" title="${esc(u.email || uid)}"
+           onclick="toggleNotifUser('${esc(uid)}', ${JSON.stringify(u.name).replace(/"/g,'&quot;')}, ${JSON.stringify(u.email || '').replace(/"/g,'&quot;')})">
+           ${esc(u.name)} ✕</button>`).join('')
+    : '<p class="hint">لم تختر أحداً بعد — ابحث أعلاه وأضِف.</p>';
+}
+
+/// الجمهور المُرسَل للخادم: قائمة معرّفات أو `null` (فتُستعمل الشريحة).
+function notifUids(){
+  return notifMode === 'picked' ? [...notifChosen.keys()] : null;
+}
+
+const LINK_LABELS = {
+  none: 'بلا وجهة', education: '📚 التعليم', quiz: '🧠 اختبر نفسك',
+  analysis: '📊 تحليل مستواي', scholarships: '🎓 المنح',
+  teacher: '👨‍🏫 مساعد المعلم', services: '🛠️ الخدمات',
+};
+
+async function loadNotifications(){
+  await loadSegments();
+  await load('notifList', async () => {
+    const d = await api('/admin/notifications');
+    notifMeta = d;
+    paintStore(d.store);
+
+    $('notifCapability').innerHTML = d.delivery
+      ? `<div class="msg ok show">✅ ناقل الدفع مضبوط — الإشعار يصل الأجهزة.</div>`
+      : `<div class="warnbox"><b>ℹ️ لا ناقل دفع (FCM) مضبوط بعد.</b><br>
+          الإشعار هنا <b>يُحفظ ويُستهدَف فعلياً</b> ويظهر في صندوق الطالب حين
+          يقرأه التطبيق، لكنه <b>لن يرنّ على الجهاز</b>. الحالة تُعرض
+          «بانتظار الإرسال» ولا تُسمّى «أُرسل» — والعدد المعروض أدناه عددُ
+          مستلمين محسوب من الحسابات فعلاً، لا تقدير.</div>`;
+
+    const seg = $('n_segment');
+    if(!seg.options.length){ seg.innerHTML = segmentOptions(); seg.value = 'students'; }
+    const link = $('n_link');
+    if(!link.options.length){
+      link.innerHTML = (d.links || ['none']).map(k =>
+        `<option value="${esc(k)}">${esc(LINK_LABELS[k] || k)}</option>`).join('');
+    }
+    $('n_segment_hint').textContent = segmentHint(seg.value) || ' ';
+
+    renderNotifList(d.items || []);
+    renderNotifChosen();
+    notifPreviewCard();
+    attachCounters();
+  });
+}
+
+function renderNotifList(items){
+  if(!items.length){
+    $('notifList').innerHTML = emptyState('لا إشعارات بعد',
+      'أنشئ إشعارك الأول من النموذج أعلاه — سترى هنا سجلّ كل ما أُنشئ.');
+    return;
+  }
+  // ⭐ الحالة تُقال بأرقامها: «أُرسل» وحدها لا تكفي حين يصل ٩ من ١٠.
+  const STATUS = {
+    pending: '<span class="tag warn">⏳ بانتظار ناقل الدفع</span>',
+    // 📭 **حالةٌ منتهية لا منتظِرة**: الناقل يعمل، وليس في الشريحة جهازٌ
+    //    واحدٌ يُدفع إليه. كانت تُعرض «بانتظار الإرسال» فيُنتظر ما لا يأتي.
+    no_devices: '<span class="tag warn">📭 بلا أجهزة — في الصناديق</span>',
+    sent: '<span class="tag ok">✅ أُرسل</span>',
+    failed: '<span class="tag bad">⚠️ فشل الدفع</span>',
+  };
+  $('notifList').innerHTML = items.map(x => `
+    <div class="panel" style="margin-bottom:11px">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div style="flex:1;min-width:200px">
+          <b>${esc(x.title)}</b>
+          <div class="hint" style="margin-top:5px;white-space:pre-wrap">${esc(x.body)}</div>
+          <div class="hint" style="margin-top:8px">
+            🎯 ${esc(x.segment_label || x.segment)} · 👥 ${num(x.recipient_count)} مستلم
+            · 📍 ${esc(LINK_LABELS[x.link] || x.link)}
+            · 🕒 <span dir="ltr">${esc((x.created_at || '').slice(0, 16).replace('T', ' '))}</span>
+            ${(x.sent || x.failed)
+              ? `<br>📲 وصل <b>${num(x.users_reached)}</b> مستلماً على
+                 ${num(x.sent)} جهازاً${x.failed ? ` · تعذّر ${num(x.failed)}` : ''}`
+              : ''}
+            ${x.reason ? `<br>🗣️ ${esc(x.reason)}` : ''}
+          </div>
+        </div>
+        <div class="row">
+          ${STATUS[x.status] || esc(x.status)}
+          <button class="mini danger" onclick="deleteNotification(this,'${esc(x.id)}')">🗑️</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function notifPreviewCard(){
+  const title = $('n_title').value.trim();
+  const body = $('n_body').value.trim();
+  $('notifCard').innerHTML = `
+    <div style="background:#0f1729;border:1px solid var(--line);border-radius:16px;
+                padding:14px 16px;max-width:420px">
+      <div class="row" style="gap:8px;align-items:center">
+        <span style="font-size:17px">🔔</span>
+        <b style="font-size:14px">${esc(title || 'عنوان الإشعار')}</b>
+      </div>
+      <div style="color:var(--dim);font-size:12.5px;margin-top:7px;white-space:pre-wrap">${
+        esc(body || 'نصّ الإشعار كما يراه الطالب.')}</div>
+    </div>`;
+}
+
+async function notifAudience(btn){
+  $('n_segment_hint').textContent = segmentHint($('n_segment').value) || ' ';
+  const run = async () => {
+    const picked = notifUids();
+    if(picked && !picked.length){
+      notifAudienceData = null;
+      $('notifAudienceBox').innerHTML = 'اختر طالباً واحداً على الأقل.';
+      return null;
+    }
+    const d = await api('/admin/notifications/preview', {method:'POST', body: JSON.stringify({
+      segment: $('n_segment').value,
+      notifications_only: $('n_only_enabled').checked,
+      // ⚠️ الوجهة جزءٌ من الجمهور: من أطفأ «إشعارات المنح» يخرج من إشعار
+      //    المنح وحده — فمعاينةٌ بلا وجهة تعرض عدداً يخالف من يصله.
+      link: $('n_link').value,
+      uids: picked,
+    })});
+    notifAudienceData = d;
+    const parts = d.by_grade.map(g => `${esc(g.label)}: ${num(g.count)}`).join(' · ');
+    $('notifAudienceBox').innerHTML = `
+      <b>👥 ${num(d.recipients)} مستلم</b> — ${esc(d.segment_label)}
+      ${d.devices !== undefined ? ` · 📲 ${num(d.devices)} جهاز مسجَّل` : ''}
+      ${parts ? `<br>${parts}` : ''}
+      ${d.excluded_banned ? `<br>⛔ استُثني ${num(d.excluded_banned)} محظوراً.` : ''}
+      ${d.excluded_muted ? `<br>🔕 استُثني ${num(d.excluded_muted)} أطفأ الإشعارات.` : ''}
+      ${(d.unknown_uids || []).length
+        ? `<br>❓ معرّفات لا حساب لها: ${esc((d.unknown_uids || []).join('، '))}` : ''}
+      <br>${esc(d.delivery_note)}`;
+    return d;
+  };
+  return btn ? act(btn, 'حساب الجمهور', run) : run().catch(fail);
+}
+
+async function sendNotification(btn){
+  const title = $('n_title').value.trim();
+  const body = $('n_body').value.trim();
+  if(!title){ toast('❌ عنوان الإشعار مطلوب.', 'err'); $('n_title').focus(); return; }
+  if(!body){ toast('❌ نصّ الإشعار مطلوب.', 'err'); $('n_body').focus(); return; }
+
+  // 👁️ **الملخّص قبل الإرسال إلزامي**: الجمهور يُحسب الآن لا من ذاكرة
+  //    ضغطةٍ قديمة — فلو غيّر الأدمن الشريحة بعد آخر حساب لم يُرسل لخطأ.
+  const audit = await notifAudience(btn);
+  if(!audit) return;
+  if(!audit.recipients){
+    toast('❌ لا مستلم واحد يطابق هذا الجمهور — راجع الشريحة.', 'err'); return;
+  }
+  const lines = audit.by_grade.map(g => `  • ${g.label}: ${g.count}`).join('\n');
+  const ok = await ask(`إرسال «${title}»`,
+    `🎯 الجمهور: ${audit.segment_label}\n`
+    + `👥 عدد المستلمين: ${audit.recipients}\n${lines ? lines + '\n' : ''}`
+    + (audit.without_device ? `📲 بلا جهاز مسجَّل: ${audit.without_device}\n` : '')
+    + (audit.excluded_banned ? `⛔ مستثنى (محظور): ${audit.excluded_banned}\n` : '')
+    + (audit.excluded_muted ? `🔕 مستثنى (أطفأ الإشعارات): ${audit.excluded_muted}\n` : '')
+    + `\n${audit.delivery_note}`, '📤 أرسل الآن');
+  if(!ok) return;
+
+  // 🔴 **الرسالة من الرد لا من التوقّع.** كانت تقول «✅ أُرسل» كلّما كان
+  //    الناقل مضبوطاً — حتى حين لا يصل جهازٌ واحد. فيقرأ الأدمن «أُرسل»
+  //    ثم يجد «⏳ بانتظار الإرسال» في السجل تحتها مباشرةً، فلا يدري
+  //    أيَّهما يصدّق. الخادم يعرف ما جرى فعلاً — فليقله هو.
+  const done_ = await act(btn, 'إنشاء الإشعار', () =>
+    api('/admin/notifications', {method:'POST', body: JSON.stringify({
+      title, body,
+      segment: $('n_segment').value,
+      link: $('n_link').value,
+      notifications_only: $('n_only_enabled').checked,
+      uids: notifUids(),
+    })}));
+  if(done_){
+    const n = num(done_.recipient_count);
+    if(done_.status === 'sent')
+      done(`✅ وصل ${num(done_.users_reached)} مستلماً على ${num(done_.sent)} جهازاً `
+           + `(من ${n} مستهدَفاً).`);
+    else if(done_.status === 'failed')
+      info(`⚠️ حُفظ لـ${n} مستلم، لكن الدفع فشل على ${num(done_.failed)} جهازاً — `
+           + `الرسالة في صناديقهم. راجع السجل أدناه.`);
+    else
+      info(`📭 حُفظ ومُستهدَف لـ${n} مستلم — ${done_.delivered_note || ''}`);
+  }
+  // 🧹 الحقول لا تُفرَّغ إلا بعد نجاحٍ مؤكَّد — الفشل يُبقي ما كُتب.
+  if(done_){
+    $('n_title').value = ''; $('n_body').value = '';
+    notifChosen.clear(); renderNotifChosen();
+    $('n_search').value = ''; $('n_results').innerHTML = '';
+    notifPreviewCard(); repaintCounters();
+    await loadNotifications();
+  }
+}
+
+async function deleteNotification(btn, id){
+  if(!await ask('حذف الإشعار',
+      'سيختفي من صناديق من لم يقرأه بعد.', 'حذف')) return;
+  const ok = await act(btn, 'حذف الإشعار', async () => {
+    await api('/admin/notifications/' + encodeURIComponent(id), {method:'DELETE'});
+    return true;
+  }, '🗑️ تم حذف الإشعار.');
+  if(ok) await loadNotifications();
+}
+
+// ══════════════ 🔐 التحكم والوصول ══════════════
+// ⭐ **الأثر يُعرض محسوباً لا موصوفاً.** قواعدُ متداخلةٌ يقرأها الأدمن
+//    ويخمّن نتيجتها ثم يكتشف الخطأ من شكوى طالب. لذلك تحت كل قسم صفٌّ
+//    يقول لكل صفٍّ دراسيّ ماذا يرى **الآن** — بحساب الخادم نفسه لا بحساب
+//    ثانٍ في المتصفّح قد يخالفه.
+
+let accessData = null;
+
+async function loadAccess(){
+  await load('accessBody', async () => {
+    const d = await api('/admin/access');
+    accessData = d;
+    if(!d.storage){
+      $('accessBody').innerHTML = `<div class="empty"><b>⚠️ Firestore غير متاح</b>
+        القواعد تُقرأ وتُحفظ من Firestore — بدونها كل الأقسام مفتوحة
+        ولا يمكن حفظ أي قاعدة. اضبط FIREBASE_SERVICE_ACCOUNT_JSON.</div>`;
+      return;
+    }
+    renderAccess(d);
+  });
+}
+
+const MODE_TAG = {
+  on:   '<span class="tag ok">مفتوح</span>',
+  soon: '<span class="tag warn">قريباً</span>',
+  off:  '<span class="tag bad">مُخفى</span>',
+};
+
+function renderAccess(d){
+  $('accessBody').innerHTML = d.sections.map(sec => `
+    <div class="panel" style="margin-bottom:14px" id="acc_${sec.key}">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h3 style="margin:0">${esc(sec.label)}</h3>
+        ${MODE_TAG[sec.mode] || ''}
+      </div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div class="field">
+          <label>🌍 الوضع العام <span class="hint">(يعلو على كل قاعدة)</span></label>
+          <select id="am_${sec.key}">${d.modes.map(m =>
+            `<option value="${esc(m.key)}"${m.key === sec.mode ? ' selected' : ''}>${esc(m.label)}</option>`).join('')}</select>
+        </div>
+        <div class="field">
+          <label>💬 الرسالة المعروضة <span class="hint">(تُترك فارغةً لرسالةٍ افتراضية)</span></label>
+          <input id="ag_${sec.key}" maxlength="160" value="${esc(sec.message)}"
+                 placeholder="مثال: القسم قيد التجهيز — يفتح بعد الاختبارات.">
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="ok mini" onclick="saveAccessSection(this,'${esc(sec.key)}')">💾 حفظ الوضع العام</button>
+      </div>
+
+      <h3 style="margin:18px 0 6px">🎯 قواعد الشرائح</h3>
+      <p class="hint" style="margin:0 0 10px">
+        ${sec.mode !== 'on'
+          ? '⚠️ الوضع العام مُفعَّل الآن ويعلو على هذه القواعد كلها — أعِد القسم إلى «مفتوح» لتعمل.'
+          : 'تُطبَّق الأخصُّ فالأشدّ. وشريحةٌ لا قاعدة لها ترى القسم مفتوحاً.'}
+      </p>
+      <div id="ar_${sec.key}" class="listedit"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="addrow" onclick="addAccessRule('${esc(sec.key)}')">＋ إضافة قاعدة</button>
+        <span class="sp"></span>
+        <button class="ok mini" onclick="saveAccessRules(this,'${esc(sec.key)}')">💾 حفظ القواعد</button>
+      </div>
+
+      <h3 style="margin:18px 0 6px">👁️ الأثر الفعلي الآن</h3>
+      <div class="matrix" id="ap_${sec.key}">${sec.preview.map(p =>
+        `<div class="cell ${p.mode}">${esc(p.label)}<div class="m">${esc(
+          (d.modes.find(m => m.key === p.mode) || {}).label || p.mode)}</div></div>`).join('')}</div>
+    </div>`).join('');
+
+  d.sections.forEach(sec => {
+    const box = $('ar_' + sec.key);
+    box.innerHTML = '';
+    sec.rules.forEach(r => box.appendChild(accessRuleRow(sec.key, r)));
+    if(!sec.rules.length) box.innerHTML = '<p class="hint">لا قواعد — القسم مفتوح للجميع.</p>';
+  });
+}
+
+function accessRuleRow(sectionKey, rule){
+  const segs = (accessData.segments || []);
+  const row = document.createElement('div');
+  row.className = 'listrow accessrule';
+  row.style.flexWrap = 'wrap';
+  row.innerHTML = `
+    <select class="rs" style="flex:1;min-width:130px">${segs.map(sg =>
+      `<option value="${esc(sg.key)}"${sg.key === (rule && rule.segment) ? ' selected' : ''}>${esc(sg.label)}</option>`).join('')}</select>
+    <select class="rm" style="flex:0 0 auto">${(accessData.modes || []).map(m =>
+      `<option value="${esc(m.key)}"${m.key === (rule && rule.mode) ? ' selected' : ''}>${esc(m.label)}</option>`).join('')}</select>
+    <input class="rt" maxlength="160" placeholder="رسالة خاصة (اختياري)"
+           style="flex:2;min-width:160px" value="${esc((rule && rule.message) || '')}">`;
+  const del = document.createElement('button');
+  del.className = 'ghost'; del.textContent = '✕'; del.title = 'حذف القاعدة';
+  del.onclick = () => {
+    row.remove();
+    const box = $('ar_' + sectionKey);
+    if(!box.querySelector('.accessrule'))
+      box.innerHTML = '<p class="hint">لا قواعد — القسم مفتوح للجميع.</p>';
+  };
+  row.appendChild(del);
+  return row;
+}
+
+function addAccessRule(sectionKey){
+  const box = $('ar_' + sectionKey);
+  if(!box.querySelector('.accessrule')) box.innerHTML = '';
+  if(box.querySelectorAll('.accessrule').length >= 12){
+    toast('❌ حدّ القواعد ١٢ لكل قسم — بسّطها.', 'err'); return;
+  }
+  box.appendChild(accessRuleRow(sectionKey, {segment: 'g1', mode: 'off', message: ''}));
+}
+
+async function saveAccessSection(btn, key){
+  const mode = $('am_' + key).value;
+  const message = $('ag_' + key).value.trim();
+  const label = (accessData.sections.find(s => s.key === key) || {}).label || key;
+  if(mode !== 'on' && !await ask(
+      `${mode === 'off' ? 'إخفاء' : 'وضع «قريباً» على'} «${label}»`,
+      'يسري على كل المستخدمين، ويعلو على كل قواعد الشرائح في هذا القسم.',
+      mode === 'off' ? 'أخفِ القسم' : 'اجعله «قريباً»')) return;
+  const ok = await act(btn, 'حفظ الوضع', async () => {
+    await api('/admin/access/' + encodeURIComponent(key),
+      {method:'POST', body: JSON.stringify({mode, message})});
+    return true;
+  }, '✅ تم الحفظ — يصل الطلاب في الإقلاع التالي.');
+  if(ok) await loadAccess();
+}
+
+async function saveAccessRules(btn, key){
+  const rules = [...$('ar_' + key).querySelectorAll('.accessrule')].map(row => ({
+    segment: row.querySelector('.rs').value,
+    mode: row.querySelector('.rm').value,
+    message: row.querySelector('.rt').value.trim(),
+  }));
+  // ⚠️ التكرار يُمسك هنا **وفي الخادم**: هنا ليُصلَح فوراً بلا رحلةِ شبكة،
+  //    وهناك لأن الواجهة قد تُتجاوَز.
+  const seen = new Set();
+  for(const r of rules){
+    if(seen.has(r.segment)){
+      toast('❌ شريحة مكرّرة في هذا القسم — قاعدتان لشريحةٍ واحدة تجعلان السلوك غامضاً.', 'err');
+      return;
+    }
+    seen.add(r.segment);
+  }
+  const ok = await act(btn, 'حفظ القواعد', async () => {
+    await api('/admin/access/' + encodeURIComponent(key) + '/rules',
+      {method:'POST', body: JSON.stringify({rules})});
+    return true;
+  }, rules.length ? `✅ حُفظت ${num(rules.length)} قاعدة — تصل في الإقلاع التالي.`
+                  : '✅ حُذفت كل القواعد — القسم مفتوح للجميع.');
+  if(ok) await loadAccess();
+}
+
+// ══════════════ 📊 الأرقام ══════════════
+
+async function loadOverview(){
+  try{
+    const days = document.getElementById('days').value;
+    const d = await api('/admin/overview?days=' + days);
+    paintStore(d.store);
+    document.getElementById('cards').innerHTML = [
+      ['👥', d.users, 'مستخدم مسجَّل'],
+      ['🟢', d.active_today, 'نشط اليوم'],
+      ['💬', d.asks_today, 'سؤال اليوم'],
+      ['📨', d.requests_total, 'إجمالي الطلبات'],
+      ['🧪', d.guests, 'زائر جرّب'],
+      ['⛔', d.banned, 'محظور'],
+    ].map(([e,n,l]) =>
+      `<div class="card"><div class="n">${e} ${num(n)}</div><div class="l">${l}</div></div>`
+    ).join('');
+    drawChart(d.series);
+  }catch(e){ fail(e); }
+}
+
+// رسم يدوي بـSVG — بلا أي مكتبة رسوم.
+// ⭐ دالّةٌ واحدة لكل السلاسل (الأسئلة · النمو · ما يأتي لاحقاً): نسخةٌ
+//    ثانيةٌ منها تعني منحنيين بمقياسين مختلفين في صفحةٍ واحدة، فيقارن
+//    الأدمن ارتفاعين لا يقارَنان.
+function lineChart(elementId, points, color){
+  const box = document.getElementById(elementId);
+  if(!box) return;
+  if(!points || points.length < 2){
+    box.innerHTML = '<div class="empty">لا بيانات كافية للرسم بعد — '
+      + 'يحتاج المنحنى يومين على الأقل.</div>';
+    return;
+  }
+  const w = 1000, h = 210, pad = 34;
+  const max = Math.max(1, ...points.map(p => p.y));
+  const x = i => pad + (w - pad*2) * i / (points.length - 1);
+  const y = v => h - pad - (h - pad*2) * v / max;
+  const line = points.map((p,i) => `${i?'L':'M'}${x(i).toFixed(1)},${y(p.y).toFixed(1)}`).join(' ');
+  const area = `${line} L${x(points.length-1).toFixed(1)},${h-pad} L${pad},${h-pad} Z`;
+  const ticks = [...new Set([0, Math.round(max/2), max])].map(v =>
+    `<line class="grid" x1="${pad}" x2="${w-pad}" y1="${y(v)}" y2="${y(v)}"/>
+     <text x="${w-pad+6}" y="${y(v)+4}" fill="#8fa3c6" font-size="11">${v}</text>`).join('');
+  // نُظهر خمسة تواريخ فقط كي لا تتزاحم
+  const step = Math.max(1, Math.ceil(points.length / 5));
+  const labels = points.map((p,i) => i % step === 0
+    ? `<text x="${x(i)}" y="${h-10}" fill="#8fa3c6" font-size="10.5"
+             text-anchor="middle">${esc(String(p.x).slice(5))}</text>` : '').join('');
+  // 🖱️ عنوانٌ لكل نقطة: الرقم الدقيق بلا مكتبةِ تلميحات.
+  const dots = points.map((p,i) =>
+    `<circle cx="${x(i).toFixed(1)}" cy="${y(p.y).toFixed(1)}" r="7" fill="transparent">
+       <title>${esc(p.x)} — ${num(p.y)}</title></circle>`).join('');
+  const rgb = color === '#22c55e' ? '34,197,94' : '59,130,246';
+  box.innerHTML =
+    `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:210px">
+       ${ticks}
+       <path d="${area}" fill="rgba(${rgb},.16)"/>
+       <path d="${line}" fill="none" stroke="${color}" stroke-width="2.4"
+             stroke-linejoin="round" stroke-linecap="round"/>
+       ${labels}${dots}
+     </svg>`;
+}
+
+function drawChart(series){
+  lineChart('chart', (series || []).map(p => ({x: p.day, y: p.asks})), '#3b82f6');
+}
+
+let timer;
+function debouncedUsers(){ clearTimeout(timer); timer = setTimeout(loadUsers, 280); }
+
+let userSegment = 'all';
+
+async function loadUsers(){
+  await loadSegments();
+  renderUserChips();
+  const rows = document.getElementById('rows');
+  rows.innerHTML = '<tr><td colspan="10" class="muted">⏳ جارٍ التحميل…</td></tr>';
+  try{
+    const q = encodeURIComponent(document.getElementById('q').value.trim());
+    const d = await api('/admin/users?limit=500&search=' + q
+      + '&segment=' + encodeURIComponent(userSegment)
+      + '&sort=' + encodeURIComponent($('usort').value));
+    users = d.users || [];
+    const seg = SEGMENTS.find(x => x.key === userSegment);
+    document.getElementById('ucount').textContent =
+      `(${num(users.length)}${userSegment !== 'all' && seg ? ' — ' + seg.label : ''})`;
+    // 🗒️ «لا نتائج» ليست حالةً واحدة: بحثٌ بلا نتيجة يُقترح تفريغه،
+    //    وشريحةٌ فارغة تُقترح توسعتها — والرسالة نفسها لهما تُربك.
+    rows.innerHTML = users.length
+      ? users.map(renderRow).join('')
+      : `<tr><td colspan="10">${emptyState(
+          'لا نتائج',
+          document.getElementById('q').value.trim()
+            ? 'لا مستخدم يطابق هذا البحث في الشريحة المختارة.'
+            : (userSegment === 'all'
+                ? 'لا مستخدمين بعد — أوّل من يسجّل في التطبيق يظهر هنا.'
+                : 'لا مستخدم في هذه الشريحة بعد.'),
+          '<div style="margin-top:12px"><button class="ghost" onclick="clearUserFilters()">إظهار الكل</button></div>'
+        )}</td></tr>`;
+  }catch(e){
+    rows.innerHTML = `<tr><td colspan="10">${emptyState('⚠️ تعذّر التحميل', e.message,
+      '<div style="margin-top:12px"><button class="ghost" onclick="loadUsers()">إعادة المحاولة</button></div>')}</td></tr>`;
+    fail(e);
+  }
+}
+
+function renderUserChips(){
+  // 🎭 «المعلمون» بجوار «الطلاب»، و«ثاني علمي/أدبي» كانتا ناقصتين أصلاً
+  //    رغم وجودهما في الخادم — الشريحة الغائبة من هذه القائمة لا يمكن
+  //    الترشيح بها إطلاقاً مهما عرفها الخادم.
+  const keys = ['all', 'students', 'teachers', 'g1', 'g2', 'g3',
+                'g2_sci', 'g2_lit', 'g3_sci', 'g3_lit',
+                'active', 'inactive', 'banned', 'admins'];
+  $('userChips').innerHTML = keys
+    .filter(k => SEGMENTS.some(s => s.key === k))
+    .map(k => {
+      const sg = SEGMENTS.find(s => s.key === k);
+      return `<button class="chip ${k === userSegment ? 'on' : ''}" title="${esc(sg.hint)}"
+        onclick="pickUserSegment('${k}')">${esc(sg.label)}</button>`;
+    }).join('');
+}
+
+function pickUserSegment(key){
+  userSegment = key;
+  loadUsers();
+}
+
+function clearUserFilters(){
+  userSegment = 'all';
+  document.getElementById('q').value = '';
+  loadUsers();
+}
+
+function renderRow(u){
+  // ⚠️ «نشط» كانت تُطلق على كل غير محظور — فيبدو حسابٌ مهجور منذ شهرين
+  //    نشطاً. الحالة الآن من آخر نشاط فعلي.
+  // 👨‍🏫 وسم المعلّم **قبل** حالة النشاط: «نشط» تصف سلوكه، و«معلّم» تصف
+  //    من هو — والثانية هي ما يبحث عنه المالك في الجدول.
+  const roleTag = u.role === 'admin' ? '<span class="tag adm">مدير</span>'
+    : (u.role === 'teacher' ? '<span class="tag adm">👨‍🏫 معلّم</span>' : '');
+  const status = u.banned
+    ? '<span class="tag bad">محظور</span>'
+    : (roleTag ||
+       (u.asks_7d > 0 ? '<span class="tag ok">نشط</span>'
+        : (u.last_active ? '<span class="tag warn">خامل</span>'
+                         : '<span class="tag warn">لم يبدأ</span>')));
+  const limit = u.quota_override ?? '—';
+  // 🕳️ **حسابٌ بلا صفّ لا تُطابقه شريحةُ صفٍّ واحدة** — فلا يصله إعلانُ
+  //    «ثالث علمي» مهما أُرسل، ولو كان جهازه مسجَّلاً. و«—» وحدها في
+  //    الخانة لا تقول ذلك، فتبدو تفصيلاً تجميلياً وهي سببُ صمتٍ كامل.
+  // 🎭 **«يُدرّس» لا «الصف»** للمعلّم: الحقل نفسه والمعنى نقيضه — وقراءته
+  //    «الصف ٣» تجعل المالك يعدّه طالباً في الثالث وهو معلّمه.
+  const gradeText = u.grade == null ? '' : `${u.grade}${u.track ? ' — ' + esc(u.track) : ''}`;
+  const grade = u.grade == null
+    ? `<span class="tag warn" title="مستند بلا ملف شخصي — غالباً سُجِّل جهازه قبل أن يكمل التسجيل. لا تُطابقه أي شريحة صفّ.">⚠️ بلا صفّ</span>`
+    : (u.role === 'teacher' ? `👨‍🏫 يُدرّس الصف ${gradeText}` : `الصف ${gradeText}`);
+  return `<tr class="${u.banned?'banned':''}">
+    <td>${esc(u.name)}</td>
+    <td class="muted">${esc(u.email)}</td>
+    <td>${grade}</td>
+    <td><b>${num(u.asks_today)}</b></td>
+    <td>${num(u.asks_7d ?? 0)}</td>
+    <td>${num(u.asks_total)}</td>
+    <td class="muted" dir="ltr">${esc(u.last_active || '—')}</td>
+    <td>${limit}</td>
+    <td>${status}</td>
+    <td class="row">
+      <button class="mini ${u.banned?'ghost':'danger'}"
+              onclick="toggleBan(this,'${esc(u.uid)}', ${u.banned})">
+        ${u.banned ? 'رفع الحظر' : 'حظر'}
+      </button>
+      <button class="mini ghost" onclick="editQuota(this,'${esc(u.uid)}', ${u.quota_override ?? 'null'})">
+        الحدّ
+      </button>
+    </td>
+  </tr>`;
+}
+
+async function toggleBan(btn, uid, banned){
+  const u = users.find(x => x.uid === uid);
+  const who = u ? (u.name || u.email || uid) : uid;
+  const verb = banned ? 'رفع الحظر عن' : 'حظر';
+  // ⚠️ الحظر يسري عند **أول طلب** للطالب لا في اللوحة وحدها — يُقال في
+  //    نصّ التأكيد نفسه كي لا يظنّه الأدمن قطعاً فورياً للجلسة الجارية.
+  if(!await ask(`${verb} «${who}»`, banned
+      ? 'سيعود إلى الخدمة عند أول طلب بعد الآن.'
+      : 'سيُمنع من الخدمة عند أول طلب بعد الآن، وتبقى بياناته كما هي.', verb)) return;
+  const ok = await act(btn, verb, async () => {
+    await api('/admin/users/' + encodeURIComponent(uid) + '/ban',
+      {method:'POST', body: JSON.stringify({banned: !banned})});
+    return true;
+  }, banned ? `✅ تم رفع الحظر عن «${who}».` : `⛔ تم حظر «${who}» — يسري عند أول طلب.`);
+  if(ok) await loadUsers();
+}
+
+async function editQuota(btn, uid, current){
+  const u = users.find(x => x.uid === uid);
+  const raw = await askText(`الحدّ اليومي لـ«${u ? (u.name || uid) : uid}»`,
+    'اتركه فارغاً ليعود للحدّ العام في ⚙️ الإعدادات.',
+    current === null ? '' : current, 'احفظ الحدّ');
+  if(raw === null) return;                      // ألغى — لا رسالة ولا طلب
+  const value = raw.trim() === '' ? null : Number(raw.trim());
+  if(value !== null && (!Number.isInteger(value) || value < 0 || value > 100000)){
+    toast('❌ أدخل رقماً صحيحاً بين ٠ و١٠٠٠٠٠، أو اتركه فارغاً للحدّ العام.', 'err');
+    return;
+  }
+  const ok = await act(btn, 'ضبط الحدّ', async () => {
+    await api('/admin/users/' + encodeURIComponent(uid) + '/quota',
+      {method:'POST', body: JSON.stringify({limit: value})});
+    return true;
+  }, value === null ? '✅ تم — عاد المستخدم للحدّ العام.'
+                    : `✅ تم ضبط حدّه اليومي على ${num(value)}.`);
+  if(ok) await loadUsers();
+}
+
+// ══════════════ 🎓 المنح ══════════════
+
+const STATUS_TAG = {
+  open:   '<span class="tag ok">🟢 مفتوح</span>',
+  soon:   '<span class="tag warn">🟡 قريباً</span>',
+  closed: '<span class="tag bad">🔴 مغلق</span>',
+};
+
+async function loadScholarships(){
+  try{
+    const d = await api('/admin/scholarships');
+    schs = d.items || [];
+    document.getElementById('schCount').textContent = `(${num(schs.length)})`;
+    document.getElementById('schVersion').textContent = 'نسخة المحتوى: ' + num(d.version);
+    document.getElementById('schRows').innerHTML = schs.length
+      ? schs.map(renderSchRow).join('')
+      : '<tr><td colspan="10" class="muted">لا منح بعد — ابدأ بـ«➕ إضافة منحة».</td></tr>';
+  }catch(e){ fail(e); }
+}
+
+function renderSchRow(s, i){
+  // ⚠️ **فخّان في RTL معاً:** (1) سهمٌ بين تاريخين تقلبه خوارزمية الاتجاه
+  //    الثنائي فيقرأ الأدمن الإغلاق قبل الفتح ⇒ «من … إلى …». (2) التاريخ
+  //    ISO نفسه تُقلب مقاطعه فيصير 2026-01-10 مقروءاً «10-01-2026» ⇒ نغلّفه
+  //    بـ`dir="ltr"` فيبقى كما كُتب.
+  const day = d => d ? `<span dir="ltr">${esc(d)}</span>` : '—';
+  const dates = 'من ' + day(s.open_date) + '<br>إلى ' + day(s.close_date);
+  const left = (s.status === 'open' && s.days_left > -9999)
+    ? `<div class="muted">باقٍ ${num(s.days_left)} يوماً</div>` : '';
+  return `<tr class="${s.enabled === false ? 'off' : ''}">
+    <td class="muted">${i + 1}</td>
+    <td><b>${esc(s.flag)} ${esc(s.name)}</b><div class="muted">${esc(s.short_desc)}</div></td>
+    <td>${esc(s.country)}</td>
+    <td>${s.funding_type === 'full' ? 'كاملة' : 'جزئية'}</td>
+    <td class="muted">${dates}${left}</td>
+    <td>${STATUS_TAG[s.status] || ''}</td>
+    <td>${s.has_cover ? '<span class="tag ok">✓</span>'
+                      : '<span class="muted">—</span>'}</td>
+    <td>${s.has_prompt ? '<span class="tag adm">مخصّص</span>'
+                       : '<span class="muted">افتراضي</span>'}</td>
+    <td>${s.enabled === false ? '<span class="tag bad">مخفية</span>'
+                              : '<span class="tag ok">ظاهرة</span>'}</td>
+    <td class="row">
+      <button class="mini" onclick="openEditor('${esc(s.id)}')">تحرير</button>
+      <button class="mini ghost" onclick="toggleEnabled(this,'${esc(s.id)}', ${s.enabled !== false})">
+        ${s.enabled === false ? 'إظهار' : 'إخفاء'}
+      </button>
+      <button class="mini ghost" onclick="move(this,'${esc(s.id)}', -1)" ${i === 0 ? 'disabled' : ''}>↑</button>
+      <button class="mini ghost" onclick="move(this,'${esc(s.id)}', 1)"
+              ${i === schs.length - 1 ? 'disabled' : ''}>↓</button>
+    </td>
+  </tr>`;
+}
+
+async function toggleEnabled(btn, id, currentlyOn){
+  const ok = await act(btn, currentlyOn ? 'إخفاء المنحة' : 'إظهار المنحة', async () => {
+    await api('/admin/scholarships/' + encodeURIComponent(id) + '/enabled',
+      {method:'POST', body: JSON.stringify({enabled: !currentlyOn})});
+    return true;
+  }, currentlyOn ? '🚫 أُخفيت من التطبيق.' : '👁️ ظهرت للطلاب.');
+  if(ok) await loadScholarships();
+}
+
+async function move(btn, id, delta){
+  const from = schs.findIndex(s => s.id === id);
+  const to = from + delta;
+  if(from < 0 || to < 0 || to >= schs.length) return;
+  const ids = schs.map(s => s.id);
+  ids.splice(to, 0, ids.splice(from, 1)[0]);
+  const ok = await act(btn, 'إعادة الترتيب', async () => {
+    await api('/admin/scholarships/reorder',
+      {method:'POST', body: JSON.stringify({ids})});
+    return true;
+  }, `✅ صارت «${schs[from].name}» في المرتبة ${num(to + 1)}.`);
+  if(ok) await loadScholarships();
+}
+
+// ── المحرّر ──
+
+const $ = id => document.getElementById(id);
+
+// ══════════════ 📏 عدّاد الحروف ══════════════
+// ⭐ الحدّ يُفرض في المتصفح (`maxlength`) **ويُرى** (عدّاد حيّ) — فلا يكتب
+//    الأدمن فقرة كاملة ثم يُفاجأ برفضها عند الحفظ، ولا يملأ حقلاً يُقصّ في
+//    الكرت بلا أن يدري.
+
+function attachCounters(){
+  document.querySelectorAll('[data-count]').forEach(el => {
+    if(el.dataset.counterReady) return;
+    el.dataset.counterReady = '1';
+    const max = Number(el.getAttribute('maxlength')) || 0;
+    const out = document.createElement('div');
+    out.className = 'counter';
+    el.insertAdjacentElement('afterend', out);
+    const paint = () => {
+      const n = el.value.length;
+      out.textContent = `${n} / ${max}`;
+      out.classList.toggle('warn', max && n >= max * 0.8 && n < max);
+      out.classList.toggle('over', max && n >= max);
+    };
+    el.addEventListener('input', paint);
+    el._paintCounter = paint;
+    paint();
+  });
+}
+
+function repaintCounters(){
+  document.querySelectorAll('[data-count]').forEach(el => el._paintCounter && el._paintCounter());
+}
+
+// ══════════════ 📝 محرّر القوائم — صفٌّ لكل عنصر ══════════════
+// كان مربّع نصّ واحد بـ«سطر لكل عنصر»: يسهل فيه لصقُ فقرة كاملة في سطر
+// فتتشوّه بطاقة القائمة في التطبيق. الصفوف المستقلة تجعل الحدّ مرئياً
+// ومفروضاً لكل عنصر على حدة.
+
+const LIST_MAX = 120;      // حدّ العنصر الواحد — بطاقة القائمة تتسع لسطرين
+const LIST_MAX_ROWS = 30;
+
+function listRow(container, value){
+  const row = document.createElement('div');
+  row.className = 'listrow';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.maxLength = LIST_MAX;
+  input.value = value || '';
+  input.placeholder = 'اكتب عنصراً…';
+  // Enter يضيف صفاً جديداً ويقفز إليه — أسرع من ملاحقة الزر بالفأرة.
+  input.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      const next = listRow(container, '');
+      container.insertBefore(next, row.nextSibling);
+      next.querySelector('input').focus();
+    }
+  });
+
+  const del = document.createElement('button');
+  del.className = 'ghost';
+  del.title = 'حذف السطر';
+  del.textContent = '✕';
+  del.onclick = () => { row.remove(); ensureOneRow(container); };
+
+  row.append(input, del);
+  return row;
+}
+
+function ensureOneRow(container){
+  if(!container.querySelector('.listrow')){
+    container.insertBefore(listRow(container, ''), container.querySelector('.addrow'));
+  }
+}
+
+function buildList(id, values){
+  const container = $(id);
+  container.innerHTML = '';
+  (values && values.length ? values : ['']).slice(0, LIST_MAX_ROWS)
+    .forEach(v => container.appendChild(listRow(container, v)));
+
+  const add = document.createElement('button');
+  add.className = 'addrow';
+  add.textContent = '＋ إضافة سطر';
+  add.onclick = () => {
+    if(container.querySelectorAll('.listrow').length >= LIST_MAX_ROWS){
+      show(msg(), `❌ الحد الأقصى ${LIST_MAX_ROWS} عنصراً.`, 'err'); return;
+    }
+    const row = listRow(container, '');
+    container.insertBefore(row, add);
+    row.querySelector('input').focus();
+  };
+  container.appendChild(add);
+}
+
+function readList(id){
+  return [...$(id).querySelectorAll('.listrow input')]
+    .map(i => i.value.trim()).filter(Boolean);
+}
+
+// ══════════════ 🖼️ الصور: قصّ إلزامي ثم ضغط ══════════════
+// ⭐ **لماذا القصّ إلزامي؟** كل صورة تُعرض في التطبيق بنسبة ثابتة. صورةٌ
+//    بنسبة أخرى تُقصّ آلياً هناك فيضيع وجهها أو نصّها بلا أن يدري الأدمن.
+//    القصّ هنا يجعل ما يراه في اللوحة هو **ما يراه الطالب حرفياً**.
+// وترتيب العمليات مقصود: قصّ ← تصغير ← ضغط. فالضغط قبل التصغير يهدر وقتاً
+// على بكسلات ستُرمى.
+
+const IMG_SPEC = {
+  // الغلاف: 16:9 — نسبة رأس شاشة المنحة.
+  cover: {w: 1200, h: 675, quality: 0.72, type: 'image/jpeg',
+          title: 'قصّ الغلاف (16:9)', path: 'cover'},
+  // الشعار: مربّع — يُعرض 58×58 في الكرت و64×64 في الرأس.
+  //         PNG لأن الشعارات غالباً بخلفية شفافة أو حواف حادّة.
+  logo:  {w: 512, h: 512, quality: 0.9, type: 'image/png',
+          title: 'قصّ الشعار (مربّع)', path: 'logo'},
+};
+
+// حالة كل نوع على حدة — كي لا يفسد قصُّ الشعار غلافاً معتمداً.
+const imgState = {
+  cover: {data: '', dirty: false},
+  logo:  {data: '', dirty: false},
+};
+
+let cropKind = 'cover';                    // النوع قيد القصّ الآن
+let cropImg = null;
+let cropPan = {x: 0, y: 0, dragging: false, lastX: 0, lastY: 0};
+
+function pickImage(event, kind){
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';                 // كي يعمل اختيار الملف نفسه ثانيةً
+  if(!file) return;
+  if(file.size > 12 * 1024 * 1024){
+    show(msg(), '❌ الملف أكبر من 12 ميغابايت. اختر صورة أصغر.', 'err'); return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      cropKind = kind;
+      cropImg = img;
+      cropPan = {x: 0, y: 0, dragging: false, lastX: 0, lastY: 0};
+      const spec = IMG_SPEC[kind];
+      const cv = $('coverCanvas');
+      // اللوحة تأخذ نسبة النوع نفسها — فما يُرى هو ما يُقصّ بالضبط.
+      cv.width = 640;
+      cv.height = Math.round(640 * spec.h / spec.w);
+      cv.style.maxWidth = kind === 'logo' ? '320px' : '520px';
+      $('cropTitle').textContent = spec.title;
+      $('coverZoom').value = 100;
+      $('coverStage').classList.remove('hide');
+      drawCrop();
+      $('coverStage').scrollIntoView({block: 'nearest'});
+    };
+    img.onerror = () => show(msg(), '❌ تعذّرت قراءة الصورة.', 'err');
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function drawCrop(){
+  if(!cropImg) return;
+  const cv = $('coverCanvas'), ctx = cv.getContext('2d');
+  const zoom = Number($('coverZoom').value) / 100;
+
+  // «التغطية»: أصغر مقياس يملأ الإطار — فلا تظهر حواف فارغة أبداً.
+  const cover = Math.max(cv.width / cropImg.width, cv.height / cropImg.height) * zoom;
+  const w = cropImg.width * cover, h = cropImg.height * cover;
+
+  // نحصر الإزاحة داخل الحدود كي لا تنزلق الصورة خارج الإطار.
+  const maxX = Math.max(0, (w - cv.width) / 2), maxY = Math.max(0, (h - cv.height) / 2);
+  cropPan.x = Math.min(maxX, Math.max(-maxX, cropPan.x));
+  cropPan.y = Math.min(maxY, Math.max(-maxY, cropPan.y));
+
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = '#0f1729';
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.drawImage(cropImg, (cv.width - w) / 2 + cropPan.x,
+                (cv.height - h) / 2 + cropPan.y, w, h);
+}
+
+(function bindCropDrag(){
+  const cv = document.getElementById('coverCanvas');
+  if(!cv) return;
+  const scale = () => cv.width / cv.getBoundingClientRect().width;
+  cv.addEventListener('pointerdown', e => {
+    cropPan.dragging = true; cropPan.lastX = e.clientX; cropPan.lastY = e.clientY;
+    cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing';
+  });
+  cv.addEventListener('pointermove', e => {
+    if(!cropPan.dragging) return;
+    const k = scale();
+    cropPan.x += (e.clientX - cropPan.lastX) * k;
+    cropPan.y += (e.clientY - cropPan.lastY) * k;
+    cropPan.lastX = e.clientX; cropPan.lastY = e.clientY;
+    drawCrop();
+  });
+  const stop = () => { cropPan.dragging = false; cv.style.cursor = 'grab'; };
+  cv.addEventListener('pointerup', stop);
+  cv.addEventListener('pointercancel', stop);
+  cv.addEventListener('wheel', e => {
+    e.preventDefault();
+    const z = $('coverZoom');
+    z.value = Math.min(300, Math.max(100, Number(z.value) - Math.sign(e.deltaY) * 8));
+    drawCrop();
+  }, {passive: false});
+})();
+
+function cancelCrop(){
+  cropImg = null;
+  $('coverStage').classList.add('hide');
+}
+
+function applyCrop(){
+  if(!cropImg) return;
+  const spec = IMG_SPEC[cropKind];
+  const out = document.createElement('canvas');
+  out.width = spec.w; out.height = spec.h;
+  const src = $('coverCanvas');
+  out.getContext('2d').drawImage(src, 0, 0, src.width, src.height, 0, 0, spec.w, spec.h);
+
+  const data = out.toDataURL(spec.type, spec.quality);
+  imgState[cropKind] = {data, dirty: true};
+  const kb = Math.round(data.length * 0.75 / 1024);
+  paintImage(cropKind, data, `جاهز (~${kb} كيلوبايت) — يُرفع مع «حفظ ونشر».`);
+  cancelCrop();
+}
+
+function paintImage(kind, data, note){
+  const img = $(kind === 'cover' ? 'coverPreview' : 'logoPreview');
+  const info = $(kind === 'cover' ? 'coverInfo' : 'logoInfo');
+  if(data){
+    img.src = data;
+    img.classList.remove('hide');
+  }else{
+    img.classList.add('hide');
+    img.removeAttribute('src');
+  }
+  info.textContent = note;
+}
+
+function clearImage(kind){
+  imgState[kind] = {data: '', dirty: true};
+  if(cropKind === kind) cancelCrop();
+  paintImage(kind, '', 'سيُزال عند الحفظ.');
+}
+
+/// يُحمّل ما هو محفوظ حالياً عند فتح المحرّر.
+async function loadImages(sch){
+  cancelCrop();
+  imgState.cover = {data: '', dirty: false};
+  imgState.logo  = {data: '', dirty: false};
+
+  paintImage('logo', sch && sch.logo_url ? sch.logo_url : '',
+             sch && sch.logo_url ? 'الشعار الحالي.' : 'لا شعار — اختر صورة.');
+
+  if(sch && sch.cover_url){
+    paintImage('cover', sch.cover_url, 'الغلاف الحالي.');
+    return;
+  }
+  // ⚠️ سقوط آمن: أغلفة رُفعت قبل تفعيل Storage تعيش في Firestore بلا رابط.
+  if(sch && sch.has_cover && sch.id){
+    try{
+      const d = await api('/scholarships/' + encodeURIComponent(sch.id) + '/cover');
+      paintImage('cover', d.image || '', d.image ? 'الغلاف الحالي (قديم — يُرقّى عند الحفظ).' : 'لا غلاف — اختر صورة.');
+      return;
+    }catch(e){ /* نكمل بالحالة الفارغة */ }
+  }
+  paintImage('cover', '', 'لا غلاف — اختر صورة.');
+}
+
+/// يُرفعان بعد حفظ المنحة (الرفع يتطلب وجودها).
+async function pushImages(id){
+  for(const kind of ['cover', 'logo']){
+    if(!imgState[kind].dirty) continue;
+    await api(`/admin/scholarships/${encodeURIComponent(id)}/${IMG_SPEC[kind].path}`,
+      {method:'POST', body: JSON.stringify({image_base64: imgState[kind].data})});
+    imgState[kind].dirty = false;
+  }
+}
+
+function setLevels(values){
+  const set = new Set(values || []);
+  $('f_levels').querySelectorAll('input').forEach(cb => { cb.checked = set.has(cb.value); });
+}
+function getLevels(){
+  return [...$('f_levels').querySelectorAll('input')].filter(cb => cb.checked).map(cb => cb.value);
+}
+
+function fillForm(s){
+  s = s || {};
+  $('f_id').value = s.id || '';
+  $('f_id').disabled = !!s.id;
+  $('f_name').value = s.name || '';
+  $('f_country').value = s.country || '';
+  $('f_flag').value = s.flag || '';
+  $('f_funding').value = s.funding_type || 'full';
+  $('f_open').value = s.open_date || '';
+  $('f_close').value = s.close_date || '';
+  $('f_website').value = s.website || '';
+  $('f_g1').value = (s.gradient || [])[0] || '';
+  $('f_g2').value = (s.gradient || [])[1] || '';
+  $('f_short').value = s.short_desc || '';
+  $('f_about').value = s.about || '';
+  buildList('L_benefits', s.benefits);
+  buildList('L_req', s.requirements);
+  buildList('L_docs', s.documents);
+  buildList('L_apply', s.how_to_apply);
+  $('f_fields').value = (s.fields || []).join('، ');
+  $('f_enabled').value = s.enabled === false ? '0' : '1';
+  $('f_order').value = s.order ?? 0;
+  $('f_prompt').value = s.assistant_prompt || '';
+  setLevels(s.degree_levels);
+  $('tryBox').innerHTML = '';
+  $('tryQ').value = '';
+  attachCounters();
+  repaintCounters();
+}
+
+function readForm(){
+  return {
+    id: $('f_id').value.trim(),
+    name: $('f_name').value.trim(),
+    country: $('f_country').value.trim(),
+    flag: $('f_flag').value.trim(),
+    funding_type: $('f_funding').value,
+    open_date: $('f_open').value.trim(),
+    close_date: $('f_close').value.trim(),
+    website: $('f_website').value.trim(),
+    gradient: [$('f_g1').value.trim(), $('f_g2').value.trim()].filter(Boolean),
+    short_desc: $('f_short').value.trim(),
+    about: $('f_about').value.trim(),
+    benefits: readList('L_benefits'),
+    requirements: readList('L_req'),
+    documents: readList('L_docs'),
+    how_to_apply: readList('L_apply'),
+    fields: ($('f_fields').value || '').split(/[،,]/).map(x => x.trim()).filter(Boolean),
+    degree_levels: getLevels(),
+    enabled: $('f_enabled').value === '1',
+    order: Number($('f_order').value) || 0,
+    assistant_prompt: $('f_prompt').value,
+  };
+}
+
+let sharedPrompt = "";
+
+function toggleShared(){
+  const box = $('sharedBox');
+  box.textContent = sharedPrompt || "(تعذّر تحميل البرومبت المشترك)";
+  box.classList.toggle('hide');
+}
+
+async function openEditor(id){
+  editingId = id;
+  $('schList').classList.add('hide');
+  $('schEditor').classList.remove('hide');
+  $('btnDelete').classList.toggle('hide', !id);
+  $('editorTitle').textContent = id ? 'تحرير منحة' : 'منحة جديدة';
+  $('sharedBox').classList.add('hide');
+  if(!id){ fillForm({order: schs.length}); await loadImages(null); return; }
+  try{
+    const full = await api('/admin/scholarships/' + encodeURIComponent(id));
+    fillForm(full);
+    await loadImages(full);
+    // البرومبت المشترك للعرض فقط — كي لا يعيد الأدمن كتابة ما هو مغطّى أصلاً.
+    const p = await api('/admin/scholarships/' + encodeURIComponent(id) + '/prompt');
+    sharedPrompt = p.shared_system || "";
+  }catch(e){ fail(e); closeEditor(); }
+}
+
+function closeEditor(){
+  editingId = null;
+  $('schEditor').classList.add('hide');
+  $('schList').classList.remove('hide');
+}
+
+async function saveScholarship(btn){
+  const body = readForm();
+  if(!body.name){ toast('❌ اسم المنحة مطلوب.', 'err'); $('f_name').focus(); return; }
+  if(!body.country){ toast('❌ الدولة مطلوبة.', 'err'); $('f_country').focus(); return; }
+  if(!editingId && !body.id){
+    toast('❌ اكتب معرّف المنحة (بالإنجليزية، مثل: india).', 'err');
+    $('f_id').focus(); return;
+  }
+  if(body.open_date && body.close_date && body.open_date > body.close_date){
+    toast('❌ تاريخ الفتح بعد تاريخ الإغلاق — راجع المواعيد.', 'err'); return;
+  }
+  const ok = await act(btn, 'حفظ ونشر', async () => {
+    let id = editingId;
+    if(id){
+      await api('/admin/scholarships/' + encodeURIComponent(id),
+        {method:'PUT', body: JSON.stringify(body)});
+    }else{
+      const created = await api('/admin/scholarships', {method:'POST', body: JSON.stringify(body)});
+      id = created.id;
+      // ⚠️ نثبّت المعرّف فوراً: لو فشل رفع الصورة بعده، فإعادةُ الضغط
+      //    تُعدّل المنحة المنشأة ولا تُنشئ ثانيةً بنفس الاسم.
+      editingId = id;
+    }
+    // 🖼️ الغلاف بعد المنحة: رفعه يتطلب وجودها (يُربط بمعرّفها).
+    await pushImages(id);
+    return true;
+  }, '✅ تم الحفظ والنشر — تصل الطلاب في الإقلاع التالي.');
+  if(ok){ closeEditor(); await loadScholarships(); }
+}
+
+async function deleteScholarship(btn){
+  if(!editingId) return;
+  const id = editingId;
+  if(!await ask(`حذف «${id}»`,
+      'تُحذف المنحة وبرومبت مساعدها نهائياً. لا يمكن التراجع عن هذا.', 'حذف')) return;
+  const ok = await act(btn, 'حذف المنحة', async () => {
+    await api('/admin/scholarships/' + encodeURIComponent(id), {method:'DELETE'});
+    return true;
+  }, '🗑️ تم حذف المنحة وبرومبتها.');
+  if(ok){ closeEditor(); await loadScholarships(); }
+}
+
+async function tryPrompt(){
+  const q = $('tryQ').value.trim();
+  if(!q) return;
+  if(!editingId){
+    show(msg(), '❌ احفظ المنحة أولاً ثم جرّب مساعدها.', 'err'); return;
+  }
+  const box = $('tryBox');
+  box.insertAdjacentHTML('beforeend', `<div class="bub me">${esc(q)}</div>`);
+  box.insertAdjacentHTML('beforeend', '<div class="bub ai" id="pending">…</div>');
+  box.scrollTop = box.scrollHeight;
+  $('tryQ').value = '';
+  try{
+    const d = await api('/admin/scholarships/' + encodeURIComponent(editingId) + '/try',
+      {method:'POST', body: JSON.stringify({
+        question: q, assistant_prompt: $('f_prompt').value })});
+    document.getElementById('pending').outerHTML =
+      `<div class="bub ai">${esc(d.answer || d.error || '—')}</div>`;
+  }catch(e){
+    document.getElementById('pending').outerHTML =
+      `<div class="bub ai">⚠️ ${esc(e.message)}</div>`;
+  }
+  box.scrollTop = box.scrollHeight;
+}
+
+// ══════════════ الإقلاع ══════════════
+
+// دخول تلقائي إن كان المفتاح محفوظاً في هذا التبويب
+if(key()){
+  api('/admin/overview?days=7').then(d => { paintStore(d.store); enter(); })
+    .catch(e => {
+      sessionStorage.removeItem(KEY_STORE);
+      // ⚠️ الفشل يُقال: مفتاحٌ سقط بصمت يجعل الأدمن يظن اللوحة معطّلة.
+      show(document.getElementById('gateMsg'),
+           'انتهت جلستك السابقة: ' + e.message, 'err');
+    });
+}
+
+// زرّا «رجوع/تقدّم» في المتصفّح يبدّلان التبويب كما يتوقّع أي صفحة.
+window.addEventListener('hashchange', () => {
+  const name = (location.hash || '#dash').slice(1);
+  if(name !== tab && !document.getElementById('app').classList.contains('hide'))
+    switchTab(name);
+});
+document.getElementById('key').addEventListener('keydown', e => {
+  if(e.key === 'Enter') login();
+});
+document.getElementById('tryQ').addEventListener('keydown', e => {
+  if(e.key === 'Enter') tryPrompt();
+});
+document.getElementById('t_q').addEventListener('keydown', e => {
+  if(e.key === 'Enter') tryTeacherPrompt();
+});
+</script>
+</body>
+</html>

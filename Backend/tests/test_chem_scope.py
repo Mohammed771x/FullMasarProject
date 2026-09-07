@@ -1,0 +1,163 @@
+"""🔒 حارس النطاق والمصدر لميزة رسم الكيمياء العضوية.
+
+هذا الملف لا يختبر «هل يرسم؟» — ذاك في `test_chem.py`. يختبر أمرين يخشاهما
+المالك أكثر من غياب الرسم نفسه:
+
+  1️⃣ **ألّا تتسرّب الميزة لمادة أخرى.** الكيمياء وحدها، وما عداها يمرّ نصُّها
+     وبرومبتها كما كانا حرفياً.
+  2️⃣ **ألّا تُضعِف قاعدةَ «المصدر هو الكتاب وحده».** الترميز طريقةُ كتابة،
+     ولا يجوز أن يصير باباً لرسم مركّبٍ من معرفة الموديل.
+"""
+import pytest
+
+from core.chem import (
+    ORGANIC_SUBJECTS, is_organic_subject, for_subject, to_chem, to_ring,
+)
+from core.curriculum import SUBJECTS_BY_GRADE_TRACK
+from subjects.common import (
+    organic_structure_rules,
+    system_prompt_strict_explain,
+    system_prompt_strict_summary,
+    system_prompt_strict_qa_improved,
+    strip_stray_latex,
+)
+
+ALL_SUBJECTS = sorted({s for lst in SUBJECTS_BY_GRADE_TRACK.values() for s in lst})
+OTHER_SUBJECTS = [s for s in ALL_SUBJECTS if s not in ORGANIC_SUBJECTS]
+
+
+# ══════════════ 1️⃣ النطاق: الكيمياء وحدها ══════════════
+
+def test_scope_is_chemistry_only():
+    assert ORGANIC_SUBJECTS == frozenset({"كيمياء"})
+    assert is_organic_subject("كيمياء")
+    assert is_organic_subject("  كيمياء  ")
+
+
+@pytest.mark.parametrize("subject", OTHER_SUBJECTS)
+def test_no_rule_leaks_into_other_subjects(subject):
+    """برومبتات بقية المواد خالية من أي ذكرٍ للترميز."""
+    assert organic_structure_rules(subject) == ""
+    for prompt in (system_prompt_strict_explain(subject),
+                   system_prompt_strict_qa_improved(subject),
+                   system_prompt_strict_summary(subject, 3)):
+        assert "\\chem" not in prompt
+        assert "\\ring" not in prompt
+        assert "الصيغ البنائية" not in prompt
+
+
+@pytest.mark.parametrize("subject", OTHER_SUBJECTS)
+def test_no_text_conversion_for_other_subjects(subject):
+    """نصٌّ يحوي صيغةً وشكلاً معاً يمرّ **حرفياً** لغير الكيمياء."""
+    text = ("CH3-NH-CH3 : ثنائي ميثيل أمين\n"
+            "رسمة المثلث : تمثل بروبان حلقي\n"
+            "CH3 CH2 CH2 NH2 : بروبيل أمين")
+    assert for_subject(text, subject) == text
+
+
+def test_conversion_happens_for_chemistry():
+    text = "CH3-NH-CH3 : ثنائي ميثيل أمين\nرسمة المثلث : تمثل بروبان حلقي"
+    out = for_subject(text, "كيمياء")
+    assert r"\chem{CH3-NH-CH3}" in out
+    assert r"\ring{3}" in out
+
+
+@pytest.mark.parametrize("subject", [None, "", "   ", "مادة وهمية"])
+def test_unknown_subject_is_never_converted(subject):
+    """المادة المجهولة تُعامل معاملة غير الكيميائية — قائمة بيضاء لا سوداء."""
+    text = "CH3-NH-CH3 : ثنائي ميثيل أمين"
+    assert for_subject(text, subject) == text
+
+
+# ══════════════ 2️⃣ المصدر: الكتاب وحده ══════════════
+
+def test_rule_states_it_is_about_form_not_source():
+    rule = organic_structure_rules("كيمياء")
+    assert "شكلِ الكتابة" in rule
+    assert "مصدرِ المعلومة" in rule
+
+
+def test_rule_forbids_drawing_compounds_absent_from_the_lesson():
+    """🔴 الصياغة الأولى قالت «كلّما ذكرتَ مركّباً عضوياً أرفِق ترميزه» —
+    وهي دعوةٌ مفتوحة للرسم من معرفة الموديل. يجب ألّا تعود."""
+    rule = organic_structure_rules("كيمياء")
+    assert "لا ترسم مركّباً لم يرد في الدرس" in rule
+    assert "لا تخترعها" in rule
+    assert "كلّما ذكرتَ مركّباً عضوياً" not in rule
+
+
+def test_rule_overrides_wording_only_never_the_source():
+    """«تسبق قاعدة انقل حرفياً» مقيَّدة بالشكل صراحةً."""
+    rule = organic_structure_rules("كيمياء")
+    assert "في الشكل وحده" in rule
+    assert "والمحتوى كما في الكتاب حرفياً" in rule
+
+
+def test_chemistry_explain_prompt_keeps_its_source_clauses():
+    """قواعد المصدر الأصلية باقية كما هي بعد إضافة قاعدة الرسم."""
+    prompt = system_prompt_strict_explain("كيمياء")
+    assert "مصدر الإجابة الوحيد هو الكتاب المعطى لك فقط" in prompt
+    assert "لا تضف معرفة عامة، ولا أمثلة خارجية، ولا اجتهاد شخصي" in prompt
+
+
+def test_chemistry_summary_and_qa_keep_their_source_clauses():
+    assert "التزم بالنص المقدم فقط" in system_prompt_strict_summary("كيمياء", 3)
+    assert "لا تضف معلومات خارج النص" in system_prompt_strict_summary("كيمياء", 3)
+    assert "لا تضف معلومات إضافية لم يطلبها" in system_prompt_strict_qa_improved("كيمياء")
+
+
+def test_source_clauses_identical_between_chemistry_and_physics():
+    """القاعدة أُضيفت **ذيلاً** ولم تُعدّل حرفاً في المتن المشترك."""
+    chem = system_prompt_strict_explain("كيمياء")
+    phys = system_prompt_strict_explain("فيزياء")
+    body = chem[: len(chem) - len(organic_structure_rules("كيمياء"))]
+    assert body == phys.replace("فيزياء", "كيمياء")
+
+
+# ══════════════ 3️⃣ منظّف اللاتيك لا يأكل ترميزاً ولا عربية ══════════════
+
+def test_cleaner_keeps_the_three_render_codes():
+    src = r"\chem{CH3-CH3} \quad \ring{6|ar} و \frac{1}{2} و \[ x \]"
+    out = strip_stray_latex(src)
+    assert r"\chem{CH3-CH3}" in out
+    assert r"\ring{6|ar}" in out
+    assert r"\frac{1}{2}" in out
+    assert r"\quad" not in out
+    assert r"\[" not in out
+
+
+def test_cleaner_leaves_plain_arabic_untouched():
+    line = "الأمينات مركبات تحتوي على مجموعة الأمين المرتبطة بذرات الكربون."
+    assert strip_stray_latex(line) == line
+
+
+def test_cleaner_is_safe_on_empty():
+    assert strip_stray_latex("") == ""
+    assert strip_stray_latex(None) is None
+
+
+# ══════════════ 4️⃣ لا أثر جانبي على نصوص المواد الأخرى ══════════════
+
+def test_arabic_literature_text_is_never_mistaken_for_a_formula():
+    """نصّ العربي فيه رموز لاتينية أحياناً — ولا يجوز أن يُحوَّل."""
+    line = "قال الشاعر: العلم نور — انظر الصفحة A ثم B."
+    assert for_subject(line, "عربي") == line
+    # وحتى لو مُرّر للكيمياء: ليست صيغةً بنائية أصلاً.
+    assert to_chem(line) == line
+
+
+def test_physics_units_are_not_structures():
+    line = "السرعة تُقاس بـ م/ث والقوة بالنيوتن N."
+    assert for_subject(line, "فيزياء") == line
+    assert to_chem(line) == line
+
+
+def test_biology_ring_words_are_untouched_now():
+    """الأحياء خرجت من النطاق عمداً — «حلقة كريبس» ليست رسماً كيميائياً."""
+    line = "حلقة كريبس : سلسلة تفاعلات داخل الميتوكندريا."
+    assert for_subject(line, "احياء") == line
+
+
+def test_to_ring_alone_still_pure_for_direct_use():
+    """الدوال الخام تبقى قابلة للاستدعاء المباشر في الاختبارات."""
+    assert r"\ring{3}" in to_ring("رسمة المثلث : سيكلوبروبان")

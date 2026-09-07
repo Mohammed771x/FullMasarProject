@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/demo_data.dart';
 import '../widgets/demo_widgets.dart';
-import '../widgets/robot_widget.dart';
+import '../../../../core/widgets/robot_widget.dart';
 import 'aptitude_result_screen.dart';
 
 // ==========================================
@@ -72,7 +72,7 @@ class _AptitudeScreenState extends State<AptitudeScreen> {
                     children: [
                       Row(
                         children: [
-                          const RobotWidget(size: 56, state: RobotState.think),
+                          RobotWidget(size: 56, state: RobotState.think),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Container(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../banners/data/banner_model.dart';
+import '../../../banners/presentation/banner_carousel.dart';
 import '../../data/demo_data.dart';
 import '../widgets/demo_widgets.dart';
 import 'quiz_loading_screen.dart';
@@ -81,6 +83,13 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
                   children: [
+                    // 🎏 بانر القسم — يُدار من لوحة التحكم.
+                    BannerCarousel(
+                      section: BannerSection.quiz,
+                      onAction: (a, v) => _onBannerAction(context, a, v),
+                      height: 120,
+                    ),
+                    const SizedBox(height: 16),
                     _label("1. اختر المادة"),
                     Wrap(
                       spacing: 8,
@@ -180,4 +189,11 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
       ),
     );
   }
+  /// 🎏 وجهة النقر على بانر هذا القسم. البانر هنا داخليّ غالباً، فالوجهات
+  /// الخارجة عن القسم تُترك للشاشة الرئيسية بدل فتح شاشات متداخلة بلا نهاية.
+  void _onBannerAction(BuildContext context, String action, String value) {
+    if (action == "url" || action == "none") return;
+    Navigator.pop(context);
+  }
+
 }

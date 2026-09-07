@@ -1,0 +1,90 @@
+{
+  "stages": [
+    {
+      "stage": "0. بايثون فارغ (baseline)",
+      "rss_mb": 19.6,
+      "vms_mb": 425127.3
+    },
+    {
+      "stage": "1. + FastAPI/uvicorn/pydantic",
+      "rss_mb": 53.1,
+      "vms_mb": 425146.3
+    },
+    {
+      "stage": "2. + عملاء AI (openai/groq)",
+      "rss_mb": 65.3,
+      "vms_mb": 425155.3
+    },
+    {
+      "stage": "3. + numpy",
+      "rss_mb": 73.0,
+      "vms_mb": 425162.9
+    },
+    {
+      "stage": "4. + PyTorch (import فقط)",
+      "rss_mb": 226.7,
+      "vms_mb": 425428.1
+    },
+    {
+      "stage": "5. + FAISS (import فقط)",
+      "rss_mb": 235.4,
+      "vms_mb": 425443.1
+    },
+    {
+      "stage": "6. + sentence_transformers (import)",
+      "rss_mb": 391.8,
+      "vms_mb": 425579.7
+    },
+    {
+      "stage": "7. + تحميل MiniLM (53.3s)",
+      "rss_mb": 802.9,
+      "vms_mb": 425913.1
+    },
+    {
+      "stage": "8. + تحميل كل كتب JSON (5 ملف، 0.0s)",
+      "rss_mb": 803.4,
+      "vms_mb": 425913.1
+    },
+    {
+      "stage": "9. + بناء فهارس 5 مواد (2074 متجه، 6.8s)",
+      "rss_mb": 1388.3,
+      "vms_mb": 426005.7
+    },
+    {
+      "stage": "10. بعد 20 عملية بحث (54.5 ms/بحث)",
+      "rss_mb": 1397.9,
+      "vms_mb": 426009.0
+    }
+  ],
+  "model_load_s": 53.35,
+  "books_load_s": 0.0,
+  "index_build_s": 6.83,
+  "search_ms_avg": 54.46,
+  "indexes": [
+    {
+      "subject": "احياء",
+      "vectors": 162,
+      "dim": 384,
+      "bytes": 248832
+    },
+    {
+      "subject": "فيزياء",
+      "vectors": 777,
+      "dim": 384,
+      "bytes": 1193472
+    },
+    {
+      "subject": "كيمياء",
+      "vectors": 936,
+      "dim": 384,
+      "bytes": 1437696
+    },
+    {
+      "subject": "عربي",
+      "vectors": 199,
+      "dim": 384,
+      "bytes": 305664
+    }
+  ],
+  "total_vectors": 2074
+}

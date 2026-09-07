@@ -49,7 +49,7 @@ class _TypingIndicatorState extends State<TypingIndicator> with TickerProviderSt
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 2),
             width: 8, height: 8,
-            decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
           ),
         ),
       )),

@@ -10,20 +10,110 @@ import '../data/app_instructions.dart';
 // 📚 نظام التعليمات (مربوط بالملف الخارجي والذاكرة الدائمة)
 // ==========================================
 class InstructionsDialog {
-  static Future<void> showIfNeeded(BuildContext context, String subject, {bool forceShow = false}) async {
+  /// تُعرض عند طلب التعليمات يدوياً لمادة لم تُكتب تعليماتها بعد.
+  static void _showMissing(BuildContext context, String subject) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.softSurface, borderRadius: BorderRadius.circular(16)),
+              child: Icon(Icons.tips_and_updates_rounded, color: AppColors.primary, size: 24),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Text("تعليمات $subject",
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+            ),
+          ],
+        ),
+        content: Text(
+          "تعليمات هذه المادة قيد الإعداد 🚧\n\nيمكنك الآن اختيار الوضع والوحدة من زر إعدادات الجلسة ثم كتابة سؤالك مباشرة.",
+          style: TextStyle(color: AppColors.textSecondary, height: 1.8, fontWeight: FontWeight.w600),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text("حسناً", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// هل لهذه المادة تعليمات مكتوبة؟
+  static bool hasInstructions(String subject) => AppInstructions.data.containsKey(subject);
+
+  static Future<void> showIfNeeded(
+    BuildContext context,
+    String subject, {
+    required int grade,
+    required String track,
+    bool forceShow = false,
+  }) async {
+    final instructionData = AppInstructions.data[subject];
+
+    // ⚠️ سابقاً: أي مادة غير موجودة كانت تعرض **تعليمات الأحياء** بالخطأ.
+    //    الآن: لا نعرض شيئاً تلقائياً، وعند الطلب اليدوي نوضّح أنها قيد الإعداد.
+    if (instructionData == null) {
+      if (forceShow && context.mounted) _showMissing(context, subject);
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
-    final String storageKey = PrefsKeys.instructionShown(subject);
+    final String storageKey = PrefsKeys.instructionShown(grade, track, subject);
     final bool hasBeenShown = prefs.getBool(storageKey) ?? false;
 
     // إذا ظهرت مسبقاً ولم يطلبها الطالب يدوياً، لا تظهرها مرة أخرى
     if (hasBeenShown && !forceShow) return;
 
-    // جلب البيانات من الملف الخارجي
-    final instructionData = AppInstructions.data[subject] ?? AppInstructions.data["احياء"]!;
-    final String instructionText = instructionData["text"]!;
-    final String videoUrl = instructionData["video_url"]!;
+    if (!context.mounted) return;
+    await _present(
+      context,
+      text: instructionData["text"]!,
+      videoUrl: instructionData["video_url"]!,
+      onUnderstood: () => prefs.setBool(storageKey, true),
+    );
+  }
+
+  /// 👨‍🏫 تعليمات **أداة المعلم** — واحدة لكل المواد (طلب المالك).
+  ///
+  /// ⚠️ فرقان مقصودان عن تعليمات الطالب:
+  ///   ① لا تُربط بمادة ولا بصف: طريقة الاستعمال واحدة مهما كانت المادة،
+  ///      فربطُها بهما كان سيعيد عرضها بلا جديد عند كل تبديل.
+  ///   ② **لا رسالة «قيد الإعداد» هنا**: الأدوات أربعٌ معروفة ولكلٍّ نصُّها،
+  ///      فغيابُ النصّ عطلٌ برمجي لا حالةُ محتوى ناقص.
+  static Future<void> showTeacher(BuildContext context, String tool,
+      {bool forceShow = false}) async {
+    final data = AppInstructions.teacher[tool];
+    if (data == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final key = PrefsKeys.teacherInstructionShown(tool);
+    if ((prefs.getBool(key) ?? false) && !forceShow) return;
 
     if (!context.mounted) return;
+    await _present(
+      context,
+      text: data["text"]!,
+      videoUrl: data["video_url"]!,
+      onUnderstood: () => prefs.setBool(key, true),
+    );
+  }
+
+  /// نافذة التعليمات نفسها — واحدة للطالب وللمعلّم.
+  /// (كانت مكتوبة داخل `showIfNeeded`؛ استُخرجت كي لا تُنسخ مرتين فتفترقا.)
+  static Future<void> _present(
+    BuildContext context, {
+    required String text,
+    required String videoUrl,
+    required Future<void> Function() onUnderstood,
+  }) async {
+    final String instructionText = text;
 
     await showDialog(
       context: context,
@@ -101,8 +191,8 @@ class InstructionsDialog {
             decoration: BoxDecoration(gradient: AppColors.mainGradient, borderRadius: BorderRadius.circular(20)),
             child: TextButton(
               onPressed: () async {
-                // ✅ حفظ في الذاكرة الدائمة أن الطالب قرأ التعليمات ولن تظهر مجدداً
-                await prefs.setBool(storageKey, true);
+                // ✅ حفظ في الذاكرة الدائمة أن التعليمات قُرئت ولن تظهر مجدداً
+                await onUnderstood();
                 if (context.mounted) Navigator.pop(context);
               },
               child: Text("فهمت، ابدأ الآن 🚀", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),

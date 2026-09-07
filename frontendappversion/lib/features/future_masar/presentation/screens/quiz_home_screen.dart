@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/fade_in_slide.dart';
 import '../widgets/demo_widgets.dart';
-import '../widgets/robot_assistant.dart';
-import '../widgets/robot_widget.dart';
+import '../../../../core/widgets/screen_tip.dart';
+import '../../../../core/widgets/robot_widget.dart';
 import 'aptitude_screen.dart';
 import 'quiz_setup_screen.dart';
 
@@ -50,7 +50,7 @@ class QuizHomeScreen extends StatelessWidget {
               ),
             ],
           ),
-          const RobotAssistant(screenId: "quiz"),
+          const ScreenTip(screenId: "quiz", text: "اختبر نفسك 🧠 اختر مادة ووحدة وعدد الأسئلة، وبعدها ستظهر لك نقاط ضعفك."),
         ],
       ),
     );

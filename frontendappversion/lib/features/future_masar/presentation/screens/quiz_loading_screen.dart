@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/typewriter_text.dart';
 import '../widgets/demo_widgets.dart';
-import '../widgets/robot_widget.dart';
+import '../../../../core/widgets/robot_widget.dart';
 
 // ==========================================
 // 🤖 شاشة تحميل توليد الاختبار (محاكاة)
@@ -40,7 +40,7 @@ class _QuizLoadingScreenState extends State<QuizLoadingScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const RobotWidget(size: 130, state: RobotState.think),
+                  RobotWidget(size: 130, state: RobotState.think),
                   const SizedBox(height: 26),
                   ...widget.lines.map((l) => Padding(
                         padding: const EdgeInsets.only(bottom: 8),

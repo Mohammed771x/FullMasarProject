@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -24,6 +26,51 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<!-- 🔔 استقبال الإشعارات والتطبيق في الخلفية.
+	     `remote-notification` لازمة للرسائل الصامتة ولإيقاظ التطبيق عند
+	     وصول إشعار — وبدونها تصل الإشعارات المرئية وحدها. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>يتصل مسار بخادم التطوير على شبكتك المحلية أثناء التجربة.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>يستخدم مسار الكاميرا لتصوير سؤالك من الكتاب أو الدفتر.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>يستخدم مسار معرض الصور لاختيار صورة سؤالك.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>يستخدم مسار المايكروفون لتحويل سؤالك الصوتي إلى نص.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>يستخدم مسار التعرف على الكلام لكتابة سؤالك تلقائياً.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -41,9 +88,17 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<!-- 🇬 تسجيل الدخول بجوجل: iOS يعيد النتيجة عبر هذا المخطط.
+			     القيمة = REVERSED_CLIENT_ID من GoogleService-Info.plist حرفياً.
+			     بدونه يفشل الدخول بجوجل على الآيفون دائماً. -->
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.1027662199828-m67r26hcfpe4ccvpa3sca65uf8n6svs0</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

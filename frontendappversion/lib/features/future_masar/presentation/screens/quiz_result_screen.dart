@@ -121,7 +121,7 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                   Expanded(child: _actionBtn("📝 إعادة الاختبار", const [Color(0xFFF59E0B), Color(0xFFEA580C)], () => Navigator.pop(context))),
                   const SizedBox(width: 12),
                   Expanded(child: _actionBtn("📊 عرض تحليل المادة", const [Color(0xFF10B981), Color(0xFF059669)], () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => SubjectAnalysisScreen(subjectKey: widget.subject)));
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => SubjectAnalysisScreen(subject: widget.subject)));
                   })),
                 ]),
               ],

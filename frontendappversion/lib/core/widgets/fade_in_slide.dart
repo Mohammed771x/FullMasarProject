@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 // ==========================================
@@ -21,6 +23,11 @@ class FadeInSlide extends StatefulWidget {
 
 class _FadeInSlideState extends State<FadeInSlide> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+
+  /// ⚠️ مؤقّت التأخير **يُملَك ويُلغى**. كان `Future.delayed` طليقاً: يبقى
+  ///    معلّقاً بعد التخلّص من الويدجت — تسريبٌ في الإنتاج، وتعليقٌ في
+  ///    اختبارات الويدجت («A Timer is still pending»).
+  Timer? _delay;
   late Animation<Offset> _offsetAnimation;
   late Animation<double> _fadeAnimation;
 
@@ -32,13 +39,19 @@ class _FadeInSlideState extends State<FadeInSlide> with SingleTickerProviderStat
         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeInCubic);
 
-    Future.delayed(Duration(milliseconds: (widget.delay * 1000).toInt()), () {
-      if (mounted) _controller.forward();
-    });
+    final ms = (widget.delay * 1000).toInt();
+    if (ms <= 0) {
+      _controller.forward();
+    } else {
+      _delay = Timer(Duration(milliseconds: ms), () {
+        if (mounted) _controller.forward();
+      });
+    }
   }
 
   @override
   void dispose() {
+    _delay?.cancel();
     _controller.dispose();
     super.dispose();
   }

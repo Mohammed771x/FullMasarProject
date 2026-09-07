@@ -1,0 +1,34 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "masar-b9925",
+          "appId": "1:1027662199828:android:9c0ed0c806cc5f53683b01",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "masar-b9925",
+          "appId": "1:1027662199828:ios:831fa71e6592a7a1683b01",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "masar-b9925",
+          "configurations": {
+            "android": "1:1027662199828:android:9c0ed0c806cc5f53683b01",
+            "ios": "1:1027662199828:ios:831fa71e6592a7a1683b01",
+            "web": "1:1027662199828:web:8285f9f3e8f4f23f683b01"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

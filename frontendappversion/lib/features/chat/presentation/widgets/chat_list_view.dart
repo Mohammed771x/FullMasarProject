@@ -1,4 +1,9 @@
+import 'dart:io';
+import '../../../../core/widgets/masar_markdown.dart';
+
 import 'package:flutter/material.dart';
+
+import '../../../../core/media/image_viewer_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
@@ -6,6 +11,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/fade_in_slide.dart';
 import '../../../../core/widgets/typewriter_text.dart';
 import '../../../../core/widgets/typing_indicator.dart';
+import '../../../../core/session/user_session.dart';
+import '../../../../core/settings/app_settings.dart';
+import '../../../saved/data/saved_storage.dart';
 import '../controllers/chat_controller.dart';
 
 // ==========================================
@@ -14,7 +22,11 @@ import '../controllers/chat_controller.dart';
 class ChatListView extends StatelessWidget {
   final ChatController controller;
 
-  const ChatListView({super.key, required this.controller});
+  /// ارتفاع ما يظهر أسفل الشاشة فوق خانة الكتابة (أزرار الوزاري / زر شرح
+  /// الرياضيات). بدونه تختفي آخر رسالة خلف تلك الأزرار.
+  final double bottomExtra;
+
+  const ChatListView({super.key, required this.controller, this.bottomExtra = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +36,7 @@ class ChatListView extends StatelessWidget {
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
-        bottom: 160, // مساحة كافية لخانة الكتابة والزر
+        bottom: 160 + bottomExtra, // خانة الكتابة + ما يعلوها من أزرار
         top: MediaQuery.of(context).padding.top + 85, // مساحة للبار العلوي
       ),
       itemCount: messages.length + (controller.isLoading ? 1 : 0),
@@ -50,7 +62,6 @@ class ChatListView extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
               children: [
                 if (!isUser)
                   Container(
@@ -62,9 +73,23 @@ class ChatListView extends StatelessWidget {
                 Flexible(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                    // ⚠️ التطبيق RTL: `start` = يمين الشاشة و`end` = يسارها.
+                    //    رسالة الطالب تُحاذى لليمين، ورد المساعد لليسار —
+                    //    وبهذا تلتصق الفقاعة بحافة الصور المرفقة نفسها
+                    //    بدل أن تنزاح للجهة المقابلة عند إرسال صورتين.
+                    crossAxisAlignment: isUser ? CrossAxisAlignment.start : CrossAxisAlignment.end,
                     children: [
+                      // 📷 الصور المرفقة — قابلة للضغط لعرضها ملء الشاشة
+                      if (((msg["images"] as List?) ?? const []).isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: _AttachedImages(
+                            key: const ValueKey("attachedImages"),
+                            paths: List<String>.from(msg["images"]),
+                          ),
+                        ),
                       Container(
+                        key: const ValueKey("bubble"),
                         margin: EdgeInsets.only(bottom: isUser ? 4 : 12),
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         decoration: BoxDecoration(
@@ -108,11 +133,11 @@ class ChatListView extends StatelessWidget {
                                 },
                               )
                             else
-                              MarkdownBody(
+                              MasarMarkdown(
                                 data: msg["text"],
                                 selectable: true,
                                 styleSheet: MarkdownStyleSheet(
-                                  p: TextStyle(color: isUser ? Colors.white : AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w500, height: 1.6),
+                                  p: TextStyle(color: isUser ? Colors.white : AppColors.textPrimary, fontSize: AppSettings.I.answerFontSize, fontWeight: FontWeight.w500, height: 1.6),
                                 ),
                               ),
                             if (msg["refs"] != null && (msg["refs"] as List).isNotEmpty)
@@ -151,7 +176,14 @@ class ChatListView extends StatelessWidget {
                             // 👇 زر النسخ للذكاء الاصطناعي 👇
                             if (!isUser) ...[
                               const SizedBox(height: 12),
-                              _copyButton(msg, dense: false),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _copyButton(msg, dense: false),
+                                  const SizedBox(width: 8),
+                                  _saveButton(context, msg),
+                                ],
+                              ),
                             ],
                           ],
                         ),
@@ -171,6 +203,76 @@ class ChatListView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  /// ⭐ حفظ الإجابة.
+  ///
+  /// ⚠️ **لا نحفظ أثناء الطباعة**: `text` وقتها جزءٌ ناقص من الرد، فتُخزَّن
+  ///    نصفُ إجابة ببصمةٍ لا تطابق النصّ الكامل بعد انتهائه — فيظهر الزر
+  ///    فارغاً وقد حُفظ شيء. لذلك نقرأ `fullText` ونعطّل الزر حتى تكتمل.
+  Widget _saveButton(BuildContext context, Map<String, dynamic> msg) {
+    final String text = (msg["fullText"] ?? msg["text"] ?? "").toString();
+    final bool busy = msg["animating"] == true;
+    final String uid = UserSession.I.uid;
+    final bool saved = !busy && SavedStorage.isSaved(uid, text);
+
+    return InkWell(
+      onTap: busy || text.trim().isEmpty
+          ? null
+          : () async {
+              final nowSaved = await SavedStorage.toggle(
+                ownerUid: uid,
+                section: controller.isTeacher ? "teacher" : "education",
+                subject: controller.selectedSubject,
+                text: text,
+                scope: UserSession.I.scope,
+              );
+              controller.refresh();
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(
+                  content: Text(
+                    nowSaved ? "⭐ حُفظت في المحفوظات" : "أُزيلت من المحفوظات",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: AppColors.textPrimary,
+                ));
+            },
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: saved
+              ? Colors.amber.withValues(alpha: 0.14)
+              : AppColors.softSurface,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              saved ? Icons.star_rounded : Icons.star_outline_rounded,
+              size: 15,
+              color: busy
+                  ? AppColors.textSecondary.withValues(alpha: 0.4)
+                  : (saved ? Colors.amber.shade700 : AppColors.textSecondary),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              saved ? "محفوظة" : "حفظ",
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: saved ? Colors.amber.shade800 : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -219,6 +321,68 @@ class ChatListView extends StatelessWidget {
               ),
               child: inner,
             ),
+    );
+  }
+}
+
+
+/// صور الرسالة — ضغطة تفتح العارض ملء الشاشة.
+class _AttachedImages extends StatelessWidget {
+  final List<String> paths;
+  const _AttachedImages({super.key, required this.paths});
+
+  @override
+  Widget build(BuildContext context) {
+    // صورتان معاً ⇒ مربّعان متساويان تماماً، فلا تتفاوت الحواف السفلية
+    // ولا يبدو النص تحتهما مائلاً. صورة واحدة ⇒ تحتفظ بنسبتها الطبيعية.
+    final bool multi = paths.length > 1;
+    final double w = multi ? 120.0 : 190.0;
+    final double? h = multi ? 120.0 : null;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: List.generate(paths.length, (i) {
+        return Padding(
+          padding: EdgeInsets.only(left: i < paths.length - 1 ? 6 : 0),
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ImageViewerScreen(paths: paths, initialIndex: i),
+              ),
+            ),
+            borderRadius: BorderRadius.circular(18),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Image.file(
+                File(paths[i]),
+                width: w,
+                height: h,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  width: w,
+                  height: h ?? 110,
+                  color: AppColors.softSurface,
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.image_not_supported_rounded,
+                          color: AppColors.textSecondary, size: 24),
+                      const SizedBox(height: 4),
+                      Text("الصورة لم تعد متاحة",
+                          style: TextStyle(
+                              fontSize: 10.5,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

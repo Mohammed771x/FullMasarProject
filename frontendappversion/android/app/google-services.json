@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "1027662199828",
+    "project_id": "masar-b9925",
+    "storage_bucket": "masar-b9925.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1027662199828:android:9c0ed0c806cc5f53683b01",
+        "android_client_info": {
+          "package_name": "com.MFD.masar"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1027662199828-m7r0tfjh784a3fsq4aivkdsiqmaohvr9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxwYfHjUqtiyDk1g6LTAS1xqUeP4U-Wuc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1027662199828-m7r0tfjh784a3fsq4aivkdsiqmaohvr9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1027662199828-6q4j4ue7ogrhuufcrm2gc309htermk66.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.yeStudentTutor"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

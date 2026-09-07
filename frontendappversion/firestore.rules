@@ -1,0 +1,125 @@
+rules_version = '2';
+
+// ==========================================
+// 🔒 قواعد أمان Firestore — منصة مسار
+// ==========================================
+// ⚠️ **هذه هي الحماية الحقيقية، لا كود التطبيق.** أي شخص يستطيع نداء
+//    Firestore بتوكنه مباشرةً دون المرور بتطبيقنا.
+//
+// ⚠️⚠️ الفخ الأخطر ([07§2]): في rules_version 2 النمط `{doc=**}` يطابق
+//    **صفر مقاطع أو أكثر** — أي أن `match /users/{uid}/{doc=**}` يطابق
+//    مستند `/users/{uid}` نفسه. والقواعد تعمل بـ OR (أي قاعدة تسمح ⇒ يمر).
+//    فلو استعملناه لسمح للطالب بكتابة `role: "admin"` في مستنده.
+//    ولذلك: **مستند المستخدم له قاعدته، وفروعه لها قاعدة منفصلة `/{col}/{docId}`.**
+//
+// النشر:  firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═════════ مساعدات ═════════
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    /// الحقول التي لا يجوز للطالب لمسها في مستنده إطلاقاً.
+    function keepsProtectedFields() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+                .hasAny(['role', 'created_at']);
+    }
+
+    function validProfile() {
+      return request.resource.data.grade is int
+        && request.resource.data.grade >= 1
+        && request.resource.data.grade <= 3
+        && request.resource.data.track in ['عام', 'علمي', 'أدبي']
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 60;
+    }
+
+    // ═════════ مستند المستخدم ═════════
+    // ★ لا `{doc=**}` هنا — راجع التحذير أعلاه.
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+
+      // الإنشاء: الدور يجب أن يكون 'student' حرفياً (أو غائباً).
+      allow create: if isOwner(uid)
+        && validProfile()
+        && (!('role' in request.resource.data) || request.resource.data.role == 'student');
+
+      // التحديث: ممنوع تغيير الدور أو تاريخ الإنشاء.
+      allow update: if isOwner(uid) && validProfile() && keepsProtectedFields();
+
+      allow delete: if isOwner(uid);   // «حذف حسابي» (إلزام Google Play)
+
+      // ── فروع المستخدم: محادثاته ونتائجه ومحفوظاته ──
+      match /{col}/{docId} {
+        allow read, write: if isOwner(uid)
+          && col in ['conversations', 'results', 'saved_answers'];
+      }
+    }
+
+    // ═════════ الإعدادات العامة ═════════
+    // يقرأها كل مستخدم (حتى الزائر) — وهي أساس كاش النسخة (meta.version).
+    match /config/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // ═════════ محتوى تقرأه الواجهة ويحرّره الأدمن ═════════
+    match /scholarships/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /services/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /banners/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /suggested_questions/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // ═════════ 🔒 أسرار لا يلمسها العميل إطلاقاً ═════════
+    // الباك اند يقرأها بـ Admin SDK الذي **يتجاوز هذه القواعد كلياً**،
+    // فلا سبب لفتحها للطلاب — ولا حتى للقراءة.
+    match /prompts/{docId} {
+      allow read, write: if false;
+    }
+    match /scholarship_prompts/{docId} {
+      allow read, write: if false;
+    }
+
+    // ═════════ 🎟️ عدّادات الحصة ═════════
+    // يكتبها الباك اند وحده (Admin SDK). الطالب يقرأ عدّاده ليرى المتبقي،
+    // ولا يكتبه أبداً — وإلا صفّر حصته بنفسه.
+    match /usage/{docId} {
+      allow read: if signedIn() && docId.matches('.*' + request.auth.uid + '.*');
+      allow write: if false;
+    }
+
+    // ═════════ 📊 الإحصائيات ═════════
+    match /stats/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;      // الباك اند فقط
+    }
+
+    // ═════════ الافتراضي: الرفض ═════════
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

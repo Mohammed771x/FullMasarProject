@@ -10,7 +10,7 @@ from .common import (
     normalize_lesson_name, get_math_exam_years, get_math_exam_lessons,
     get_math_exam_questions, load_math_lesson,format_arabic_math
 )
-from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE
+from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
 from typing import Dict, Any, List, Optional
 import json
@@ -90,6 +90,7 @@ def system_prompt_math_explain():
         "الرموز:\n"
         "- استخدم (جا، جتا، ظا) و (س، ص)\n"
         "- او اي صيغ اخرى  LaTeX او int اكتب الرموز والمعادلات باللغة العربية بالرموز و الطرق المكتوبة بالدرس لاتستخدم\n"
+        "- ✅ استثناء وحيد: **الكسور**. اكتب كل كسر بالصيغة \\frac{البسط}{المقام} ولا تكتبه بـ«/» ولا «÷» — مثال: \\frac{لو أ}{لو ب}\n"
         "- اكتب المعادلات كنص عادي: ص = 2س² + 1"
     )
 
@@ -110,7 +111,8 @@ async def explain_math_lesson(lesson: dict, groq_client,deepseek_client):
 اشرح هذا الدرس شرحًا تعليميًا واضحًا للطالب.
 - اكتب باللغة العربية فقط
 - استخدم الرموز العربية مثل (جا، جتا، ظا) و (س، ص،أ،ب،ج وغيرها )
-- لا تستخدم LaTeX أو \text أو \frac
+- لا تستخدم LaTeX أو \\text
+- ✅ استثناء وحيد: **الكسور**. اكتب كل كسر بالصيغة \\frac{{البسط}}{{المقام}} ولا تكتبه بـ«/» ولا «÷» — مثال: \\frac{{لو أ}}{{لو ب}}
 - اكتب المعادلات كنص عادي
 مثال: ص = 2س² + 1
 """
@@ -269,7 +271,7 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
         
         if req.chat_history:
             valid_history = [msg for msg in req.chat_history if msg.get('role') in ['user', 'assistant']]
-            messages_for_ai.extend(valid_history[-6:])
+            messages_for_ai.extend(valid_history[-HISTORY_LAST_N:])
         
         messages_for_ai.append({
             "role": "user",
@@ -279,7 +281,8 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
 - وضّح الفكرة بأسلوب تعليمي مرتبط بالشرح السابق.
 - اكتب الشرح باللغة العربية فقط
 - لا تستخدم LaTeX
-- لا تستخدم \text أو \frac
+- لا تستخدم \\text
+- ✅ استثناء وحيد: **الكسور**. اكتب كل كسر بالصيغة \\frac{البسط}{المقام} ولا تكتبه بـ«/» ولا «÷» — مثال: \\frac{لو أ}{لو ب}
 - اكتب المعادلات كنص عادي
 مثال: ص = 2س² + 1"""
         })
@@ -364,7 +367,8 @@ async def handle_math_question(req: AskRequest, sessions: Dict, deepseek_client)
             "- يمنع استخدام الإنجليزية أو أي لغة أخرى.\n\n"
             "🔢 الرموز الرياضية:\n"
             "- استخدم فقط: (جا، جتا، ظا) و (س، ص)\n\n"
-            "-  لا تستخدم \\text أو \\frac او اي رموز اخرى مشابه لها , اكتب بنفس الصيغه الموجودة في الدرس \n\n"
+            "-  لا تستخدم \\text او اي رموز اخرى مشابه لها , اكتب بنفس الصيغه الموجودة في الدرس \n"
+            "- ✅ استثناء وحيد: **الكسور**. اكتب كل كسر بالصيغة \\frac{البسط}{المقام} ولا تكتبه بـ«/» ولا «÷» — مثال: \\frac{لو أ}{لو ب}\n\n"
             "✏️ مثال للكتابة الصحيحة:\nص = 2س² + 1\n\n"
             "⚠️ مهم جداً: اكتب الحل مرة واحدة فقط، بدون تكرار."
     )
@@ -375,7 +379,7 @@ async def handle_math_question(req: AskRequest, sessions: Dict, deepseek_client)
         if req.chat_history:
             valid_history = [msg for msg in req.chat_history 
                             if msg.get('role') in ['user', 'assistant']]
-            messages_for_ai.extend(valid_history[-6:])  # آخر 6 رسائل
+            messages_for_ai.extend(valid_history[-HISTORY_LAST_N:])
         
         messages_for_ai.append({
             "role": "user",
@@ -588,7 +592,8 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
             "- يمنع استخدام الإنجليزية أو أي لغة أخرى.\n\n"
             "يمنع استخدام اي رموز غير عربية .\n\n"
             "- استخدم فقط: (جا، جتا، ظا) و (س، ص)\n\n"
-            "- لا تستخدم \\text أو \\frac\n\n"
+            "- لا تستخدم \\text\n"
+            "- ✅ استثناء وحيد: **الكسور**. اكتب كل كسر بالصيغة \\frac{البسط}{المقام} ولا تكتبه بـ«/» ولا «÷» — مثال: \\frac{لو أ}{لو ب}\n\n"
             "✏️ مثال للكتابة الصحيحة:\nص = 2س² + 1\n\n"
                 "- اشرح الحل خطوة بخطوة\n"
                 "- اذكر القوانين المستخدمة\n"
@@ -610,7 +615,7 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
             if req.chat_history:
                 valid_history = [msg for msg in req.chat_history 
                                 if msg.get('role') in ['user', 'assistant']]
-                messages_for_ai.extend(valid_history[-6:])  # آخر 4 رسائل
+                messages_for_ai.extend(valid_history[-HISTORY_LAST_N:])
             
             # ✅ سؤال الطالب الجديد
             messages_for_ai.append({
@@ -640,7 +645,9 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
             
             # إزالة أي كود LaTeX متبقي
             clean_answer = re.sub(r'\$.*?\$', '', clean_answer)
-            clean_answer = re.sub(r'\\[a-z]+', '', clean_answer)
+            # ⚠️ `\frac` مستثناة: هي ترميز الكسر الذي يرسمه التطبيق
+            #    بسطاً فوق مقام. مسحُها هنا كان يُفرغ البرومبت من معناه.
+            clean_answer = re.sub(r'\\(?!frac\b|chem\b|ring\b)[a-z]+', '', clean_answer)
             
             return {
                 "answer": clean_answer,
