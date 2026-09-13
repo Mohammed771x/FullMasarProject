@@ -262,12 +262,17 @@ def test_example_pair_is_rendered_as_drawing_then_name():
 
 
 def test_example_pair_untouched_for_other_subjects():
-    """🔒 النطاق: مادةٌ غير الكيمياء لا يُمسّ مثالها."""
+    """🔒 النطاق: مادةٌ غير الكيمياء لا يُمسّ مثالها.
+
+    ⚠️ والمادّةُ هنا **أحياء** لا فيزياء: الفيزياء صارت تُعرّب أرقامها
+       في المُسلسِل نفسِه (2026-09-12) فيصير «٤ كربونات» — وهو تغييرُ
+       شكلٍ مقصود لا مساسٌ بالرسم، لكنه يُشوّش مقصدَ هذا الاختبار.
+    """
     from core.serializer import serialize_lesson
     lesson = {"الأجزاء": [{"المحتوى": [{
         "الرسم": "سلسلة من 4 كربونات مرتبطة بـ NH.",
         "التسمية": "N-بروبيل بيوتاناميد."}]}]}
-    out = serialize_lesson(lesson, "وحدة", subject="فيزياء")
+    out = serialize_lesson(lesson, "وحدة", subject="احياء")
     assert "سلسلة من 4 كربونات مرتبطة بـ NH." in out
     assert "\\chem" not in out
 

@@ -177,15 +177,58 @@ class UserRepository {
     await _doc(uid).set({"settings": settings}, SetOptions(merge: true));
   }
 
+  /// كل فروع مستند المستخدم — **مصدرٌ واحد** يُشتقّ منه الحذف والاختبار.
+  ///
+  /// 🔴 **العطل الذي أوجب هذه القائمة:** كان الحذف يعدّد ثلاث مجموعات
+  ///    مكتوبةً في مكانها، وقد أُضيفت `scholarship_chats` بعدها في
+  ///    `firestore.rules` ولم يعلم بها أحد هنا. فكان الطالب يحذف حسابه
+  ///    و**تبقى محادثاته مع مساعد المنح في السحابة** — بياناتٌ شخصية لحسابٍ
+  ///    لم يعد له مالك، ومخالفةٌ صريحة لإلزام Google Play وحماية البيانات.
+  ///
+  /// ⚠️ ومن يضيف فرعاً جديداً في القواعد يضيفه هنا — واختبار
+  ///    `account_deletion_test.dart` يقارن الاثنين فيسقط إن نُسي.
+  static const List<String> userSubcollections = [
+    "conversations",
+    "scholarship_chats",
+    "results",
+    "saved_answers",
+  ];
+
+  /// أقصى عدد عمليات في دفعة Firestore الواحدة (حدُّ المنصّة ٥٠٠).
+  static const int _batchLimit = 450;
+
   /// حذف بيانات المستخدم قبل حذف حسابه (إلزام Google Play).
-  /// ⚠️ Firestore **لا يحذف الفروع مع المستند** — نحذفها صراحةً أولاً.
+  ///
+  /// ⚠️ Firestore **لا يحذف الفروع مع المستند** — تُحذف صراحةً أولاً.
+  ///
+  /// ⚡ **بدفعاتٍ لا واحدةً واحدة:** الصيغة السابقة كانت `await` داخل حلقة،
+  ///    أي رحلةً شبكية لكل مستند. طالبٌ نشط عنده ٣٠ محادثة و١٠٠ نتيجة
+  ///    ⇒ نحو ١٥٠ رحلة و٢٠–٣٠ ثانية بلا أي مؤشر تقدّم، وإن انقطع النت في
+  ///    منتصفها بقيت بقايا بلا مالك. الدفعة تُنهيها في نداءاتٍ معدودة
+  ///    **وذرّيةً**: إمّا أن تُحذف الدفعة كلها أو لا شيء منها.
   Future<void> deleteAllData(String uid) async {
-    for (final col in const ["conversations", "results", "saved_answers"]) {
-      final snap = await _doc(uid).collection(col).get();
-      for (final d in snap.docs) {
-        await d.reference.delete();
-      }
+    if (uid.isEmpty) return;
+    for (final col in userSubcollections) {
+      await _deleteCollection(_doc(uid).collection(col));
     }
     await _doc(uid).delete();
+  }
+
+  /// يحذف مجموعةً كاملة على دفعاتٍ متتالية حتى تفرغ.
+  ///
+  /// ⚠️ الحلقة `while` لا مرورٌ واحد: المجموعة قد تتجاوز حدّ الدفعة، ومرورٌ
+  ///    واحد كان سيترك الباقي **صامتاً** — أسوأ من الفشل لأنه يبدو نجاحاً.
+  Future<void> _deleteCollection(
+      CollectionReference<Map<String, dynamic>> col) async {
+    while (true) {
+      final snap = await col.limit(_batchLimit).get();
+      if (snap.docs.isEmpty) return;
+      final batch = _db.batch();
+      for (final d in snap.docs) {
+        batch.delete(d.reference);
+      }
+      await batch.commit();
+      if (snap.docs.length < _batchLimit) return;
+    }
   }
 }

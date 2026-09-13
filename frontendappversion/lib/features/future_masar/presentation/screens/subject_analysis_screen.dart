@@ -8,6 +8,7 @@ import '../../../quiz/data/models/quiz_models.dart';
 import '../../../quiz/data/quiz_analytics.dart';
 import '../../../quiz/data/quiz_storage.dart';
 import '../../../quiz/presentation/quiz_setup_screen.dart';
+import '../../../quiz/presentation/quiz_review_screen.dart';
 import '../widgets/demo_widgets.dart';
 import '../widgets/weak_spot_sheet.dart';
 
@@ -147,6 +148,14 @@ class _SubjectAnalysisScreenState extends State<SubjectAnalysisScreen> {
                               ),
                             ),
                           ],
+
+                          // 🗂️ السجلّ **تحت نقاط الضعف** لا فوقها.
+                          //
+                          // ⚠️ وُضع فوقها أولاً فدفعها خارج الشاشة — وهي
+                          //    جوهر هذه الشاشة وسبب فتحها. السجلّ مرجعٌ
+                          //    يُطلب عن قصد، فمكانه بعد ما يُقرأ أولاً.
+                          const SizedBox(height: 26),
+                          FadeInSlide(delay: 0.35, child: _history()),
                         ],
                       ),
               ),
@@ -155,6 +164,103 @@ class _SubjectAnalysisScreenState extends State<SubjectAnalysisScreen> {
         ],
       ),
     );
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🗂️ سجلّ الاختبارات — ومنه المراجعة
+  // ══════════════════════════════════════════════════
+  // 🔴 **الفجوة التي يسدّها:** المراجعة كانت متاحةً بعد الاختبار مباشرةً
+  //    **وحدها**، لأن الأسئلة تعيش في ذاكرة المتحكّم وتختفي بإغلاق الشاشة.
+  //    فطالبٌ يرى هنا أنه أخطأ في «الأكسدة» قبل يومين لا يستطيع أن يعرف
+  //    ماذا أخطأ فيه — والتحليل يشخّص بلا أن يُري الدواء.
+  //
+  // ⚠️ ونعرض **خمسة** لا كل السجلّ: هذه شاشة تحليل لا أرشيف، والقائمة
+  //    الطويلة تدفن نقاط الضعف تحتها وهي الأهمّ.
+  Widget _history() {
+    final recent = _results.take(5).toList();
+    if (recent.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text("🗂️ اختباراتك الأخيرة",
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary)),
+        ),
+        const SizedBox(height: 10),
+        for (final r in recent) _historyRow(r),
+      ],
+    );
+  }
+
+  Widget _historyRow(QuizResult r) {
+    final color = r.percent >= 80
+        ? Colors.green.shade600
+        : r.percent >= 50
+            ? Colors.orange
+            : Colors.redAccent;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: SoftCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10)),
+              child: Text("${r.percent}%",
+                  style: TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w900, color: color)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("${r.score} من ${r.total}",
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 2),
+                  Text(_ago(r.createdAt),
+                      style: TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
+            // ⚠️ الزرّ يظهر **حين توجد مراجعة فعلاً**: نتيجةٌ قديمة أو
+            //    مستعادة من السحابة تصل بلا مراجعة، وزرٌّ يفتح شاشةً
+            //    تعتذر أسوأ من غيابه.
+            if (r.hasReview)
+              TextButton.icon(
+                onPressed: () => _push(QuizReviewScreen.saved(r)),
+                icon: const Icon(Icons.fact_check_rounded, size: 16),
+                label: const Text("راجع",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// «قبل يومين» لا تاريخٌ مجرّد — الطالب يفكّر بالمسافة لا بالتقويم.
+  static String _ago(DateTime t) {
+    final d = DateTime.now().difference(t);
+    if (d.inMinutes < 60) return "قبل قليل";
+    if (d.inHours < 24) return "اليوم";
+    if (d.inDays == 1) return "أمس";
+    if (d.inDays < 7) return "قبل ${d.inDays} أيام";
+    if (d.inDays < 30) return "قبل ${(d.inDays / 7).floor()} أسابيع";
+    return "قبل ${(d.inDays / 30).floor()} أشهر";
   }
 
   Widget _empty() => Center(

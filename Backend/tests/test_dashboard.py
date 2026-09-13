@@ -695,7 +695,7 @@ def test_profile_change_takes_effect_immediately(client, db, monkeypatch):
     assert acc.state_of("analysis", **acc.profile_for("u1"))["usable"] is True
 
 
-def test_profile_change_requires_a_token(client, db):
+def test_profile_change_requires_a_token(client, db, anonymous):
     """🔒 بلا توكن لا إسقاط: وإلا أجبر أيُّ أحدٍ الخادمَ على قراءةٍ لكل طلب."""
     assert client.post("/me/profile-changed").status_code == 401
 
@@ -847,7 +847,7 @@ def test_snapshot_freezes_the_audience(client, db):
     assert [x["id"] for x in notif.inbox("a")] == [out["id"]]
 
 
-def test_inbox_requires_a_token(client, db):
+def test_inbox_requires_a_token(client, db, anonymous):
     assert client.get("/notifications/inbox").status_code == 401
 
 
@@ -1122,7 +1122,7 @@ def test_record_is_saved_before_it_is_pushed(client, db, monkeypatch):
 
 # ── تسجيل الأجهزة ──
 
-def test_device_registration_requires_a_token(client, db):
+def test_device_registration_requires_a_token(client, db, anonymous):
     assert client.post("/me/device", json={"token": "x"}).status_code == 401
 
 

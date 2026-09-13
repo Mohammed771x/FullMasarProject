@@ -50,7 +50,7 @@ class QuizRepository {
     required int count,
     String? idToken,
     String userId = "",
-    String deviceId = "",
+    String requestId = "",
   }) async {
     final res = await _client
         .post(
@@ -58,8 +58,7 @@ class QuizRepository {
           headers: ApiClient.authHeaders(idToken),
           body: jsonEncode({
             "user_id": userId,
-            "code": AppConfig.accessCode,
-            "device_id": deviceId,
+            "request_id": requestId,
             "subject": subject,
             "grade": grade,
             "track": track,

@@ -18,6 +18,8 @@ import os
 import random
 import asyncio
 
+from core import streaming
+
 SUBJECT = "انجليزي"
 sessions_english = {}
 
@@ -355,13 +357,16 @@ async def handle_english_explain(req: AskRequest, gemini_client):
 - إذا كانت المعلومات تقول 'لا توجد نصوص'، اعتذر بلطف وأخبره أن هذا غير متوفر بالمنهج."""
         })
         
-        response = await asyncio.wait_for(
-            gemini_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        _raw = await streaming.complete(
+            gemini_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gemini-3.1-flash-lite",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.2
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
-        answer = format_arabic_math(response.choices[0].message.content)
+            temperature=0.2,
+        )
+        answer = format_arabic_math(_raw, "انجليزي")
     except asyncio.TimeoutError:
         # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
         answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
@@ -421,13 +426,16 @@ async def handle_english_summary(req: AskRequest, gemini_client):
             "content": f"المعلومات المستخرجة:\n{context_text}\n\nما يريده الطالب: تلخيص '{req.content}'\n(اكتب التلخيص بالعربية)"
         })
         
-        response = await asyncio.wait_for(
-            gemini_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        _raw = await streaming.complete(
+            gemini_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gemini-3.1-flash-lite",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.15
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
-        answer = format_arabic_math(response.choices[0].message.content)
+            temperature=0.15,
+        )
+        answer = format_arabic_math(_raw, "انجليزي")
     except asyncio.TimeoutError:
         # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
         answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
@@ -490,13 +498,16 @@ async def handle_english_question(req: AskRequest, gemini_client):
             "content": f"المعلومات المستخرجة:\n{context_text}\n\nسؤال الطالب: {req.content}\n\n(أجب مباشرة على قدر السؤال)"
         })
         
-        response = await asyncio.wait_for(
-            gemini_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        _raw = await streaming.complete(
+            gemini_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gemini-3.1-flash-lite",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.1
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
-        answer = format_arabic_math(response.choices[0].message.content)
+            temperature=0.1,
+        )
+        answer = format_arabic_math(_raw, "انجليزي")
     
     except asyncio.TimeoutError:
         # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً

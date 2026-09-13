@@ -8,6 +8,7 @@ import '../../../../core/widgets/masar_brand.dart';
 import '../../../auth/presentation/verify_email_screen.dart';
 import 'auth_screen.dart';
 import 'onboarding_screen.dart';
+import '../../../onboarding/presentation/force_update_screen.dart';
 
 // ==========================================
 // 💫 شاشة البداية (Splash) — الشعار الرسمي ثم التوجيه
@@ -36,6 +37,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (!mounted) return;
 
     final Widget next = switch (entry) {
+      // 📦 نسخةٌ لم تعد تتفاهم مع الخادم — شاشةٌ واحدة بلا تخطٍّ.
+      AppEntry.forceUpdate =>
+        ForceUpdateScreen(verdict: AppBootstrap.versionVerdict),
       AppEntry.onboarding => const OnboardingScreen(),
       AppEntry.auth => const AuthScreen(),
       AppEntry.verifyEmail => const VerifyEmailScreen(),

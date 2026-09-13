@@ -1,0 +1,1990 @@
+[
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "6 CO₂ + 12 H₂O --(طاقة ضوئية / كلوروفيل وانزيمات)--> C₆H₁₂O₆ + 6 O₂ + 6 H₂O"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "2 NH₃ + 3 O₂ --(نيتروسوموناس)--> 2 NO₂ + 2 H₂O + طاقة"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "6 CO₂ + 12 H₂O --(طاقة كيميائية)--> C₆H₁₂O₆ + 6 O₂ + 6 H₂O"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "2 HNO₂ + O₂ --(نيتروباكتر)--> 2 HNO₃ + طاقة"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "نشا مطبوخ --(إنزيم الأميليز اللعابي Salivary amylase)--> مالتوز ( سكر شعير ) maltose"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "ببسينوجين ( غير فعال ) --(تنشيط / HCl)--> ببسين فعال ."
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "مواد بروتينية --(أنزيم الببسين)--> بروتيوزات + ببتونات ."
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "برورينين ( غير فعال ) --(تنشيط / HCl)--> رينين ( فعال )"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "كازين ( بروتين اللبن الذائب ) --(الرينين)--> باراكازين ( بروتين اللبن غير الذائب ) ."
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "نشا --(الأميليز البنكرياسي)--> مالتوز"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "بروتين وبروتيوزات وببتونات --(التربسين / الكيموتربسين)--> عديد الببتيد"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "عديد الببتيد --(كربوكسي الببتيد)--> ثنائي الببتيد"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "مستحلب دهني --(الليبيز البنكرياسي)--> أحماض دهنية وجليسرول"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "١- مالتوز ( سكر شعير ) --(المالتيز)--> جلوكوز + جلوكوز"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "٢- سكروز ( سكر قصب ) --(السكريز)--> جلوكوز + فركتوز"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "٣- لاكتوز ( سكر اللبن ) --(اللاكتيز)--> جلوكوز + جالاكتوز"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "١ - عديد الببتيد --(امينو الببتديز)--> ثنائي الببتيد"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "٢ - ثنائي الببتيد --(ثنائي الببتديز)--> أحماض أمينية"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "دهون لم تهضم بواسطة الليبيز البنكرياسي --(ليبيز معوي)--> أحماض دهنية + جليسرول"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "ج - سكريات ثنائية + H₂O --(تحلل مائي)--> ........."
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "C6H12O6 --(تخمر)--> 2C2H5OH + 2CO2 + طاقة"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "C6H12O6 + 6O2 --(إنزيمات أكسدة في الميتوكوندريا)--> 6CO2 + 6H2O + طاقة"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "Hb + O2 ----> HbO2"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "هيموجلوبين + أكسجين ----> أوكسي هيموجلوبين"
+ },
+ {
+  "scope": "احياء/grade1/unit_mode/أحياء.json",
+  "line": "جلوكوز --(انزيمات أكسدة)--> حمض لاكتيك + ثاني أكسيد الكربون + ATP"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "6CO2 + 12H2O --طاقة ضوئية / كلوروفيل وانزيمات--> C6H12O6 + 6O2 + 6H2O"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "2NH3 + 3O2 --نیتروسوموناس--> 2NO2 + 2H2O + طاقة"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "6CO2 + 12H2O --طاقة كيميائية--> C6H12O6 + 6O2 + 6H2O"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "2HNO2 + O2 --نیتروباکتر--> 2HNO3 + طاقة"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "نشا مطبوخ --إنزيم الأميليز اللعابي Salivary amylase--> مالتوز ( سكر شعير ) maltose"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "ببسينوجين ( غير فعال ) --HCl تنشيط--> ببسين فعال ."
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "مواد بروتينية --أنزيم الببسين--> بروتيوزات + ببتونات ."
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "برورينين ( غير فعال ) --HCl تنشيط--> رينين ( فعال )"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "كازين ( بروتين اللبن الذائب ) --الرينين--> باراكازين ( بروتين اللبن غير الذائب ) ."
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "نشا --الأميليز البنكرياسي--> مالتوز"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "بروتين وبروتيوزات وببتونات --التربسين / الكيموتربسين--> عديد الببتيد"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "عديد الببتيد --كربوكسي الببتيد--> ثنائي الببتيد"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "مستحلب دهني --الليبيز البنكرياسي--> أحماض دهنية وجليسرول"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "1 - مالتوز ( سكر شعير) --المالتيز--> جلوكوز + جلوكوز"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "۲- سكروز (سكر قصب ) --السكريز--> جلوكوز + فركتوز"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "۳- لاكتوز ( سكر اللبن ) --اللاكتيز--> جلوكوز + جالاكتوز"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "۱ - عديد الببتيد --امينو الببتديز--> ثنائي الببتيد"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "۲ - ثنائي الببتيد --ثنائي الببتديز--> أحماض أمينية"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "دهون لم تهضم بواسطة الليبيز البنكرياسي --ليبيز معوي--> أحماض دهنية + جليسرول"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "ج - سكريات ثنائية + H2O --تحلل مائي--> ........."
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "صفائح دموية + أنسجة تالفة ----> أنزيم ثرمبو بلاستين"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "بروثرمبين --(أنزيم ثرمبوبلاستين + Ca++)--> ثرومبين"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "فيبرينوجين --(ثرومبين)--> فيبرين"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "C6H12O6 --تخمر--> 2C2H5OH + 2CO2 + طاقة"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "C6H12O6 + 6O2 --أنزيمات تنفسية / أكسدة--> 6CO2 + 6H2O + طاقة"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "Hb + O2 ⇌ HbO2"
+ },
+ {
+  "scope": "احياء/grade1/lessons_mode/احياء.json",
+  "line": "١- ما الذي تدل عليه المعادلة الآتية : جلوكوز --انزيمات / أكسدة--> حمض لاكتيك + ثاني أكسيد الكربون + ATP ( تحلل مائي - تنفس هوائي - تنفس لا هوائي - بناء ضوئي ) ."
+ },
+ {
+  "scope": "احياء/grade2/علمي/lessons_mode/احياء.json",
+  "line": "6CO2 + 12H2O --ضوء / كلوروفيل--> C6H12O6 + 6O2 + 6H2O"
+ },
+ {
+  "scope": "احياء/grade2/علمي/lessons_mode/احياء.json",
+  "line": "C6H12O6 + 6O2 --> 6CO2 + 6H2O + Energy"
+ },
+ {
+  "scope": "احياء/grade2/علمي/lessons_mode/احياء.json",
+  "line": "C6H12O6 + 6O2 + 6H2O --الإنزيم--> 6CO2 + 6H2O + Energy"
+ },
+ {
+  "scope": "احياء/grade2/علمي/lessons_mode/احياء.json",
+  "line": "Glucose + 2 ATP --> 2 PGAL + 2 ADP"
+ },
+ {
+  "scope": "احياء/grade2/علمي/lessons_mode/احياء.json",
+  "line": "2 PGAL + 2 NAD + 4 ADP --> 2 Pyruvic Acid + 2 NADH + 4 ATP"
+ },
+ {
+  "scope": "احياء/grade2/علمي/lessons_mode/احياء.json",
+  "line": "البيانات المكتوبة على الرسم: NADH، FMNH2، مرافق إنزيمي QH2، سيتوكرومات (b , c)، سيتوكرومات (c1 , a , a3)، e-، H+، ATP، 2 H+ + \\frac{1}{2} O2 --> H2O، Kcal/mol، تدريج الأرقام: 0، 10، 20، 30، 40، 50، 60.]"
+ },
+ {
+  "scope": "رياضيات/grade3/علمي/lessons_mode/تكامل/التكامل بالتجزئة.json",
+  "line": "نضع ف = س + ١  ⟵  د ف = د س"
+ },
+ {
+  "scope": "رياضيات/grade3/علمي/lessons_mode/تكامل/التكامل بالتجزئة.json",
+  "line": "نضع د ق = جا س . د س  ⟵  ق = - جتا س"
+ },
+ {
+  "scope": "رياضيات/grade3/علمي/lessons_mode/تكامل/التكامل بالتجزئة.json",
+  "line": "نضع ف = س² + ٢س  ⟵  د ف = (٢س + ٢) د س"
+ },
+ {
+  "scope": "رياضيات/grade3/علمي/lessons_mode/تكامل/التكامل بالتجزئة.json",
+  "line": "نضع د ق = جتا س . د س  ⟵  ق = جا س"
+ },
+ {
+  "scope": "رياضيات/grade3/علمي/lessons_mode/تكامل/التكامل بالتجزئة.json",
+  "line": "نضع ف١ = ٢س + ٢  ⟵  د ف١ = ٢ د س"
+ },
+ {
+  "scope": "رياضيات/grade3/علمي/lessons_mode/تكامل/التكامل بالتجزئة.json",
+  "line": "نضع د ق١ = جا س . د س  ⟵  ق١ = - جتا س"
+ },
+ {
+  "scope": "رياضيات/grade3/علمي/lessons_mode/تكامل/التكامل بالتجزئة.json",
+  "line": "نضع ف = لو س  ⟵  د ف = \\frac{١}{س} . د س"
+ },
+ {
+  "scope": "رياضيات/grade3/علمي/lessons_mode/تكامل/التكامل بالتجزئة.json",
+  "line": "نضع د ق = س . د س  ⟵  ق = \\frac{س²}{٢}"
+ },
+ {
+  "scope": "رياضيات/grade3/علمي/lessons_mode/تكامل/التكامل بالتجزئة.json",
+  "line": "نضع د ق = د س  ⟵  ق = س"
+ },
+ {
+  "scope": "رياضيات/grade3/علمي/lessons_mode/تكامل/التكامل بالتجزئة.json",
+  "line": "نضع ف = هـ^س  ⟵  د ف = هـ^س د س"
+ },
+ {
+  "scope": "رياضيات/grade3/علمي/lessons_mode/تكامل/التكامل بالتجزئة.json",
+  "line": "نضع ص = لو س  ⟵  س = هـ^ص  ⟵  د س = هـ^ص . د ص"
+ },
+ {
+  "scope": "كيمياء/grade1/unit_mode/كيمياء.json",
+  "line": "معدن حرارة-----> كلس + فلوجستون (يتصاعد إلى الهواء )"
+ },
+ {
+  "scope": "كيمياء/grade1/unit_mode/كيمياء.json",
+  "line": "كلس + فحم نباتي ( غني بالفلوجستون) حرارة-----> معدن"
+ },
+ {
+  "scope": "كيمياء/grade1/unit_mode/كيمياء.json",
+  "line": "زئبق + أكسجين --حرارة--> أكسيد الزئبق"
+ },
+ {
+  "scope": "كيمياء/grade1/unit_mode/كيمياء.json",
+  "line": "CaCl2 --تحليل كهربائي--> Ca++ + 2Cl-"
+ },
+ {
+  "scope": "كيمياء/grade1/unit_mode/كيمياء.json",
+  "line": "Ca++ + 2e- --> Ca (اختزال عند المهبط)"
+ },
+ {
+  "scope": "كيمياء/grade1/unit_mode/كيمياء.json",
+  "line": "2Cl- --> Cl2↑ + 2e- (أكسدة عند المصعد)"
+ },
+ {
+  "scope": "كيمياء/grade1/unit_mode/كيمياء.json",
+  "line": "CaCO3 --تسخين--> CaO + CO2↑"
+ },
+ {
+  "scope": "كيمياء/grade1/unit_mode/كيمياء.json",
+  "line": "أ ) كربون + أكسجين --حرارة--> ثاني أكسيد الكربون"
+ },
+ {
+  "scope": "كيمياء/grade1/unit_mode/كيمياء.json",
+  "line": "ب) ماغنسيوم + كلور --حرارة--> كلوريد الماغنسيوم"
+ },
+ {
+  "scope": "كيمياء/grade1/unit_mode/كيمياء.json",
+  "line": "جـ) ألومينيوم + أكسيد الحديديك --حرارة--> حديد + أكسيد ألومينيوم"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "معدن --تسخين--> كلس + فلوجستون (يتصاعد إلى الهواء )"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "كلس + فحم نباتي ( غني بالفلوجستون) --تسخين--> معدن"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "هيدروجين --تفريغ كهربائي / فرق جهد عال--> إلكترون + بروتون"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "معادلة التأين الأول: M(g) + E1 --> M+(g) + e-[cite: 1]"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "معادلة التأين الثاني: M+(g) + E2 --> M++(g) + e-[cite: 1]"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "معادلة التأين الثالث: M++(g) + E3 --> M+++(g) + e-[cite: 1]"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "M(g) + e- --> M-(g) + E1[cite: 1]"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "Cl(g) + e- --> Cl-(g) + E1[cite: 1]"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "فلز + ماء --> هيدروكسيد الفلز + غاز الهيدروجين"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2Na + 2H2O --> 2NaOH + H2↑"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "NaCl --> Na+ + Cl-"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2Cl- --> Cl2 + 2e-"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2Na+ + 2e- --> 2Na"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "4Na + O2 --> 2Na2O"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2Na + Cl2 --> 2NaCl"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2NaCl + 2H2O --> 2NaOH + H2↑ + Cl2↑"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "NaOH + HCl --> NaCl + H2O"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2NaOH + Cl2 --محلول مخفف بارد--> NaOCl + NaCl + H2O"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "6NaOH + 3Cl2 --محلول مركز ساخن--> NaClO3 + 5NaCl + 3H2O"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "1- NH3 + CO2 + H2O --> NH4HCO3"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2- NH4HCO3 + NaCl --> NaHCO3 + NH4Cl"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "3- 2NaHCO3 --> Na2CO3 + H2O + CO2"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "Na2CO3 + 2H2O --> 2NaOH + H2CO3"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "MgSO4 + Na2CO3 --> MgCO3↓ + Na2SO4"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2AgNO3 + Na2CO3 --> Ag2CO3↓ + 2NaNO3"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "Na2CO3 + H2O + CO2 --> 2NaHCO3"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "NaOH + CO2 --> NaHCO3"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2NaHCO3 --> Na2CO3 + CO2 + H2O"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "NaHCO3 + HCl --> NaCl + CO2 + H2O"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "ألمونيوم + أكسجين --حرارة--> أكسيد ألمونيوم"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "4Al(s) + 3O2(g) --Δ--> 2Al2O3(s)"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "Cl2(g) + 2NaBr(s) --Δ--> Br2(g) + 2NaCl(s)"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "أكسيد الحديديك + أول أكسيد الكربون --حرارة--> حديد + ثاني أكسيد الكربون"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "Al4C3 + 12H2O --> 4Al(OH)3 + 3CH4↑"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "كربيد الألومينيوم + ماء --> هيدروكسيد الألومينيوم + ميثان"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH3COONa + NaOH --حرارة(Δ)--> Na2CO3 + CH4"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "خلات الصوديوم + هيدروكسيد الصوديوم --حرارة--> كربونات الصوديوم + ميثان"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH4 + 2O2 --> CO2 + 2H2O"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH4 + 2Cl2 --> C + 4HCl"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "1) CH4 + Cl2 --> HCl + CH3Cl (أحادي كلوريد الميثان)."
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2) CH3Cl + Cl2 --> HCl + CH2Cl2 (ثنائي كلوريد الميثان)."
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "3) CH2Cl2 + Cl2 --> HCl + CHCl3 (ثلاثي كلوريد الميثان - كلوروفورم)."
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "4) CHCl3 + Cl2 --> HCl + CCl4 (رباعي كلوريد الميثان - رابع كلوريد الكربون)."
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH4 + I2 ⇌ CH3I + HI"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "HIO3 + 5HI --> 3I2 + 3H2O"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH4 + HO-NO2 --> CH3-NO2 + H2O"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "(غاز الميثان + حمض النيتريك --> نيترو ميثان + ماء، مبينة بالصيغة البنائية)"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH4 --1000م--> C + 2H2"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH4 + H2O --725م/Ni/Al2O3--> CO + 3H2↑"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH3CH2OH --H2SO4, 180°C, -H2O--> CH2=CH2"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "كحول إيثيلي --> إيثين"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH3-CH2-OH + H-H-SO4 --80°C--> CH3CH2HSO4 + H2O"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "كحول إيثيلي + حمض كبريتيك --> كبريتات الإيثيل الهيدروجينية + ماء"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH3-CH2-HSO4 --170°C--> CH2=CH2 + H2SO4"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "كبريتات الإيثيل الهيدروجينية --> غاز الإيثين + حمض كبريتيك"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "C2H4 + 3O2 --> 2CO2 + 2H2O + طاقة"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH2=CH2 + H2 --نيكل مجزأ ساخن--> CH3-CH3"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "إيثين + هيدروجين --> إيثان"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH2=CH2 + Cl2 --> C2H4Cl2"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "إيثيلين + كلور --> ثنائي كلوريد الإيثيلين"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CH2=CH2 + HI --> CH3-CH2I"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "إيثين + يوديد الهيدروجين --> يوديد الأيثيل"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "n(CH2=CH2) --> (-CH2-CH2-)n"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "CaC2 + 2H2O --> C2H2 + Ca(OH)2"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "كربيد الكالسيوم + ماء --> أسيتلين + هيدروكسيد كالسيوم"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2C2H2 + 3O2 --احتراق--> 2CO2 + 2H2O + 2C"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "أسيتلين + أكسجين --> ثاني أكسيد الكربون + ماء + كربون"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "2C2H2 + 5O2 --احتراق--> 4CO2 + 2H2O + لهب شديد الحرارة"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "HC≡CH --+H2 (النيكل)--> CH2=CH2 --+H2 (النيكل)--> CH3-CH3"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "أسيتلين --> إيثين --> إيثان"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "HC≡C-H + Cl2 --> 2C + 2HCl"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "H-C≡C-H + Cl2 --> C2H2Cl2 + Cl2 --> C2H2Cl4"
+ },
+ {
+  "scope": "كيمياء/grade1/lessons_mode/كيمياء.json",
+  "line": "ثنائي كلوريد الأسيتلين --> رباعي كلوريد الأسيتلين"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "3FeO(s) ---> Fe(s) + Fe2O3(s)"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "C(s) + O2(g) ---> CO2(g) ΔH= -394 Kj/mole"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "CO2(g) + C ---> 2CO(g) ΔH = +173 Kj"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "3Fe2O3 + CO ---> 2Fe3O4 + CO2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Fe3O4 + CO ---> 3FeO + CO2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "FeO + CO ---> Fe + CO2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "CaCO3 ---> CaO + CO2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "CaO + SiO2 ---> CaSiO3"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "3CaO + P2O5 ---> Ca3(PO4)2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "CaO + Al2O3 ---> Ca(AlO2)2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "3Fe + 2O2 ---> Fe3O4"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "3Fe + 4H2O(g) ---> Fe3O4 + 4H2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "4Fe + 2H2O + 3O2 ---> 2(Fe2O3.H2O)"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "2Fe + 3Cl2 ---> 2FeCl3"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Fe + S ---> FeS"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Fe + 2HCl ---> FeCl2 + H2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Fe + H2SO4 ---> FeSO4 + H2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "NH4NO3(s) --H2O(l)--> NH4+(aq) + NO3-(aq) , ΔH = +25.7 KJ/mole"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "NaOH(s) --H2O--> Na+(aq) + OH-(aq) , ΔH = -445.1 KJ/mole"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "2H+(aq) + 2e- ⇌ H2(g)"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Li+ / Li | Li+ + e- ⇌ Li | -3.04 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "K+ / K | K+ + e- ⇌ K | -2.93 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Ba2+ / Ba | Ba2+ + 2e- ⇌ Ba | -2.90 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Ca2+ / Ca | Ca2+ + 2e- ⇌ Ca | -2.87 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Na+ / Na | Na+ + e- ⇌ Na | -2.71 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Mg2+ / Mg | Mg2+ + 2e- ⇌ Mg | -2.37 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Al3+ / Al | Al3+ + 3e- ⇌ Al | -1.66 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "H2O / H2 | 2H2O + 2e- ⇌ H2 + 2OH- | -0.83 | تزداد القوة المختزلة لأعلى"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Zn2+ / Zn | Zn2+ + 2e- ⇌ Zn | -0.76 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Cr3+ / Cr | Cr3+ + 3e- ⇌ Cr | -0.74 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Fe2+ / Fe | Fe2+ + 2e- ⇌ Fe | -0.45 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "H2O / H2 (PH 7) | 2H2O + 2e- ⇌ H2 + 2OH- | -0.42 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Cd2+ / Cd | Cd2+ + 2e- ⇌ Cd | -0.40 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "PbSO4 / Pb | PbSO4 + 2e- ⇌ Pb + SO42- | -0.36 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Co2+ / Co | Co2+ + 2e- ⇌ Co | -0.28 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Ni2+ / Ni | Ni2+ + 2e- ⇌ Ni | -0.25 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Sn2+ / Sn | Sn2+ + 2e- ⇌ Sn | -0.14 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Pb2+ / Pb | Pb2+ + 2e- ⇌ Pb | -0.13 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Fe3+ / Fe | Fe3+ + 3e- ⇌ Fe | -0.036 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "H+ / H2 | 2H+ + 2e- ⇌ H2 | 0.000 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "AgCl / Ag | AgCl + e- ⇌ Ag + Cl- | +0.22 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Hg2Cl2 / Hg | Hg2Cl2 + 2e- ⇌ 2Hg + 2Cl- | +0.27 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Cu2+ / Cu | Cu2+ + 2e- ⇌ Cu | +0.34 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "O2 / OH- | O2 + 2H2O + 4e- ⇌ 4OH- | +0.40 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Cu+ / Cu | Cu+ + e- ⇌ Cu | +0.52 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "I2 / I- | I2 + 2e- ⇌ 2I- | +0.54 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Fe3+ / Fe2+ | Fe3+ + e- ⇌ Fe2+ | +0.77 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Hg22+ / Hg | Hg22+ + 2e- ⇌ 2Hg | +0.79 | تزداد القوة المؤكسدة لأسفل"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Ag+ / Ag | Ag+ + e- ⇌ Ag | +0.80 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "O2 / H2O (PH 7) | O2 + 4H+ + 4e- ⇌ 2H2O | +0.82 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Hg2+ / Hg | Hg2+ + 2e- ⇌ Hg | +0.85 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Br2 / Br- | Br2 + 2e- ⇌ 2Br- | +1.07 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "O2 / H2O | O2 + 4H+ + 4e- ⇌ 2H2O | +1.23 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "MnO2 / Mn3+ | MnO2 + 4H+ + 2e- ⇌ Mn2+ + 2H2O | +1.28 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Cr2O72- / Cr3+ | Cr2O72- + 14H+ + 6e- ⇌ 2Cr3+ + 7H2O | +1.33 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Cl2 / Cl- | Cl2 + 2e- ⇌ 2Cl- | +1.36 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "MnO4- / Mn2+ | MnO4- + 8H+ + 5e- ⇌ Mn2+ + 4H2O | +1.51 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "PbO2 / PbSO4 | PbO2 + 4H+ + SO42- + 2e- ⇌ PbSO4 + 2H2O | +1.69 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "F2 / F- | F2 + 2e- ⇌ 2F- | +2.87 |"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Pb + PbO2 + 4H+ + 2SO4 2- ⇌ (التفريغ / الشحن) 2PbSO4 + 2H2O"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "نشا --تحلل مائي--> دكسترين --تحلل مائي--> مالتوز --تحلل مائي--> جلوكوز"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "H2CO3(aq) --[سهم عليه كلمة: أنزيم]--> H2O(l) + CO2(g)"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "نشا --أنزيم--> جلوكوز + ما تبقى من سلسلة النشا"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "Ca + 2C --(حرارة)--> CaC2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "CaC2 + 2H2O --(ضغط / حرارة)--> Ca(OH)2 + HC≡CH"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "2Al + 3H2O --(حرارة)--> Al2O3 + 3H2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "HC≡CH + H2 --> H2C=CH2 --(حرارة / H2)--> CH3-CH3"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "3HC≡CH --> C6H6"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "2CH2=CH2 --> CH3-CH=CH-CH3"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "C17H36(l) + H2 --(حرارة 500 \\frac{م}{20}-50 ضغط جوي)--> C9H20(l) + C8H18"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "C12H26(l) --(Al2O3 / حرارة 500 م)--> C7H16(l) + C5H10(l)"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "C5H12(l) + C5H12 --(عامل حفاز / حرارة)--> C10H22(l) + H2(g)"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "N2(g) + 3H2(g) ⇌ 2NH3(g) (أمونيا)"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/unit_mode/كيمياء.json",
+  "line": "N2(g) + ...... ⇌ 2NH3(g)"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "3Fe + 2O2 --(Δ)--> Fe3O4"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "3Fe + 4H2O --(Δ)--> Fe3O4 + 4H2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "4Fe + 2H2O + 3O2 --> 2(Fe2O3 . H2O)"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "2Fe + 3Cl2 --> 2FeCl3"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "Fe + S --> FeS"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "Fe + 2HCl --> FeCl2 + H2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "Fe + H2SO4 --> FeSO4 + H2"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "NH4NO3 (s) --(H2O)--> NH4+ (aq) + NO3- (aq) , ΔH = +25.7 KJ/mole"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "NaOH (s) --(H2O)--> Na+ (aq) + OH- (aq) , ΔH = -445.1 KJ/mole"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "2Mg + O2 --(Δ)--> 2MgO"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "Pb + PbO2 + 4H+ + 2SO4-2 ⇌ 2PbSO4 + 2H2O"
+ },
+ {
+  "scope": "كيمياء/grade3/علمي/lessons_mode/كيمياء.json",
+  "line": "3Fe + 4H2O --(Δ)--> Fe3O4 + 4H2 ↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H2O(l) + CO2(g) ⇌ H2CO3(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2Mg + O2 --(حرارة)--> 2MgO"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "Mg + S --(حرارة)--> MgS"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "Se + O2 --> SeO2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2S + 3O2 --> 2SO3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "S + Cl2 --> SCl2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "O2 + 2H2 --> 2H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "S + H2 --> H2S"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2HgO --(تسخين)--> 2Hg + O2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2KClO3 --(MnO2)--> 2KCl + 3O2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2KMnO4 --(MnO2)--> K2MnO4 + MnO2 + O2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2Ag2O --(تسخين)--> 4Ag + O2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2Fe + O2 --> 2FeO"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "4Fe + 3O2 --> 2Fe2O3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "4Al + 3O2 --> 2Al2O3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2P + 5O2 --> 2P2O5"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2Cu + O2 --> 2CuO"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "4Hg + O2 --> 2Hg2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "C + O2 --> CO2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "S + O2 --> SO2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2H2 + O2 --> 2H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2NO + O2 --> 2NO2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "4CuCl + 4HCl + O2 --> 4CuCl2 + 2H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2Fe + O2 --(حرارة)--> 2FeO (أكسيد الحديد II)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "4Fe + 3O2 --(حرارة)--> 2Fe2O3 (أكسيد الحديد III)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "Na2O(s) + H2O(l) --> 2NaOH(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "SO2 + H2O --> H2SO3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "Al2O3 + 6HCl --> 2AlCl3 + 3H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "Al2O3 + 2NaOH --> 2NaAlO2 + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "O2 --(أشعة فوق بنفسجية)--> O + O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "O2 + O --> O3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "O3 --(أشعة فوق بنفسجية)--> O2 + O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "1) N2 + 3H2 ⇌ 2NH3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2) CH3COOH + CH3CH2OH ⇌ CH3COOCH2CH3 + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "3) CaCO3 ⇌ CaO + CO2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "من خلال الأمثلة السابقة تلاحظ سهمين متعاكسين ، وهما يدلان على أن التفاعل منعكس، أحدهما في الاتجاه الطردي والآخر في الاتجاه العكسي ( ⇌ )"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H2(g) + I2(g) ⇌ 2HI(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "المسار الأول (تفاعل مثمر): A2 + B2 ⇌ 2AB. وضع مناسب قبل التصادم وطاقة حركة الجزيئات عالية. أثناء التصادم (تداخل الكرات). ناتج التصادم (جزيئين AB)."
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2SO2 + O2 ⇌ 2SO3(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "سكر جلوكوز ⇌ نشا حيواني"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "A + B ⇌ C + D"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "البيانات المكتوبة على الرسم: SO2 and O2, 2SO2 + O2 ⇌ 2SO3, SO3. ليس في حالة اتزان (صورتان)، في حالة اتزان. شكل ( 11 ) حالات الاتزان للمواد المتفاعلة.]"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "a A + b B ⇌ c C + d D"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "N2(g) + 3H2(g) ⇌ 2NH3(g) + Energy"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CO(g) + 2H2 ⇌ CH3OH(l) + Heat"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H2 + Cl2 ⇌ 2HCl"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H2 + I2 ⇌ 2HI"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H2(g) + Cl2(g) ⇌ 2HCl(g) + Energy"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2CO2(g) + Energy ⇌ 2CO(g) + O2(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "3O2(g) + Energy ⇌ 2O3(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CO(g) + 3H2(g) ⇌ CH4(g) + H2O(g) + Energy"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H2(g) + I2(g) + Energy ⇌ 2HI(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H2(g) + Cl2(g) ⇌ 2HCl(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "4NH3(g) + 5O2(g) ⇌ 4NO(g) + 6H2O(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "3O2(g) ⇌ 2O3(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CO(g) + H2O(g) ⇌ CO2(g) + H2(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CO(g) + H2O(g) ⇌ CO2(g) + H2(g) + Heat"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "2NO2(g) ⇌ N2O4(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "NaCl(s) --H2O--> Na+(aq) + Cl-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "HCl(g) --H2O--> H+(aq) + Cl-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CH3COOH(l) <--H2O--> CH3COO-(aq) + H+(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H2O <--> H+ + OH-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "HCl(g) + H2O(l) --> H3O+(aq) + Cl-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "حمض قوي HNO3(l) + H2O(l) --> H3O+(aq) + NO3-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "حمض ضعيف H2CO3(l) + H2O(l) <--> H3O+(aq) + HCO3-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "قاعدة قوية NaOH(s) + H2O(l) --> Na+(aq) + OH-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "قاعدة ضعيفة NH3(g) + H2O(l) <--> NH4+(aq) + OH-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H:Cl: + H:O:H --> [H:O:H]^+ + :Cl:^-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H:Cl: + H:N:H --> [H:N:H]^+ + :Cl:^-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "NH3(g) + H2O(l) <--> NH4+(aq) + OH-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H:N:H + H:O:H <--> [H:N:H]^+ + :O:H^-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "HF(aq) + H2O(l) <--> H3O+(aq) + F-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "حمض ( 1 ) + قاعدة ( 2 ) <--> حمض ( 2 ) + قاعدة ( 1 )"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "NH3(g) + HOH(l) <--> NH4+(aq) + OH-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "قاعدة + حمض <--> حمض قرين + قاعدة قرينة"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "HNO2(l) + H2O(l) <--> H3O+(aq) + NO2-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H:N:H + H:Cl: --> [H:N:H]^+ + :Cl:^-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "Ag+(aq) + 2:NH3(aq) --> [H3N-Ag-NH3]+(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "F:B:F + :F:^- --> [F:B:F]^-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "AB <--> A+ + B-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "مادة إلكتروليتية ضعيفة <--> أيونات منفصلة في المحلول"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "HCl --> H+ + Cl-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "0.01 --> 0.01"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "NaOH --> Na+ + OH-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "0.001 --> 0.001"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "HA <--> H+ + A-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "HA + H2O <--> H3O+ + A-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "MA --H2O--> M+ + A- يتفكك في وجود الماء"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "H2O <--> H+ + OH- تأين الماء"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "A- + H2O <--> HA + OH- تحلل مائي"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CH3COONa --> CH3COO- + Na+"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CH3COO- + H2O <--> CH3COOH + OH-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "NH4Cl --> NH4+ + Cl-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "NH4+ + H2O <--> NH4OH + H+"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "HSO3- + H3O+ <--> ............ + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "HSO3- + OH- <--> ............ + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CH3-CH2CHO + [2H] --(Zn+HCl)--> CH3CH2CH2CH2OH + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CH3C(=O)OH + CH3CH2OH --(H2SO4 مركز)--> CH3C(=O)OCH2CH3 + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CH3CH2-OH + HCl --(H2SO4 مركز)--> CH3CH2Cl + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CH3-C(H)(H)-OH + [O] --(KMnO4 / OH-)--> [CH3-C(H)(OH)(OH)] --(-H2O)--> CH3-C(=O)H"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CH3-C(H)(OH)-CH3 + [O] --(KMnO4 / OH-)--> [CH3-C(OH)(OH)-CH3] --(-H2O)--> CH3-C(=O)-CH3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CH3CH2-OH + CH3CH2-OH --(H2SO4 مركز 140م)--> CH3CH2-O-CH2CH3 + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/unit_mode/كيمياء.json",
+  "line": "CH3-OH + CH3-OH --(\\frac{H2SO4}{140} م)--> CH3-O-CH3 + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "7Al2O3 + 12C --تسخين--> 14Al + 3CO ↑ + 9CO2 ↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "3MnO2 + 4Al --حرارة--> 3Mn + 2Al2O3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Fe2O3 + 2Al --تسخين--> 2Fe + Al2O3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2Al2(SO4)3 --حرارة شديدة--> 2Al2O3 + 6SO2 ↑ + 3O2 ↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "C(s) + O2(g) --تسخين--> CO2(g)↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Si(s) + O2(g) --تسخين--> SiO2(s)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Sn(s) + O2(g) --تسخين--> SnO2(s)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "NaNO2 + NH4Cl --> NH4NO2 + NaCl"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "NH4NO2 --حرارة--> N2 ↑ + 2H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "N2 + 3H2 ⇌ 2NH3 ↑ + Heat"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "N2 + O2 ⇌ 2NO ↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "3Mg + N2 --حرارة شديدة--> Mg3N2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Mg3N2 + 6H2O --> 3Mg(OH)2 + 2NH3 ↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Mg3N2 + 3H2O --> 3MgO + 2NH3 ↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "6Li (s) + N2 (g) --> 2Li3N"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2NaNO3 --حرارة--> 2NaNO2 + O2 ↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2AgNO3 --حرارة--> 2Ag + 2NO2 ↑ + O2 ↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "NH4NO3 --حرارة--> N2O ↑ + 2H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2HNO3 + Ca(OH)2 --> Ca(NO3)2 + 2H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2NH3 + H2SO4 --> (NH4)2SO4"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2Mg + O2 --حرارة--> 2MgO"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Mg + S --حرارة--> MgS"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "S + H2 ⇌ H2S"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2HgO --تسخين--> 2Hg + O2↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2KClO3 --MnO2--> 2KCl + 3O2↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2KMnO4 --MnO2--> K2MnO4 + MnO2 + O2↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2Ag2O --تسخين--> 4Ag + O2↑"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2Fe + O2 --حرارة--> 2FeO"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "4Fe + 3O2 --حرارة--> 2Fe2O3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "O2 --أشعة فوق بنفسجية--> O + O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "O3 --أشعة فوق بنفسجية--> O2 + O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H2 + X2 ---> 2HX"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H2 + Br2 ---> 2HBr"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2Na + I2 ---> 2NaI"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Mg + F2 ---> MgF2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2Al + 3Br2 ---> 2AlBr3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CaBr2 + Cl2 ---> CaCl2 + Br2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH4 + Br2 ---> CH3Br + HBr"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "N2 + 3F2 ---> 2NF3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Br2 + 2NaOH ---> NaBr + NaOBr + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2F2 + 2H2O ---> 4HF + O2 + Heat"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2NaBr + Cl2 ---> Br2 + 2NaCl"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2NaI + Cl2 ---> I2 + 2NaCl"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "W + 2I2 ---> WI4"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "WI4 ---> W + 2I2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "4HCl + O2 --450C--> 2H2O + 2Cl2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2NaCl + MnO2 + 2H2SO4 ---> Na2SO4 + MnSO4 + 2H2O + Cl2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H2 + Cl2 ---> 2HCl"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2K + Cl2 ---> 2KCl"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Ca + Cl2 ---> CaCl2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2Al + 3Cl2 ---> 2AlCl3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Si + 2Cl2 ---> SiCl4"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2P + 3Cl2 ---> 2PCl3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "MgBr2 + Cl2 ---> MgCl2 + Br2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH4(g) + Cl2(g) ---> CH3Cl(g) + HCl(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Cl2 + 2NaOH ---> NaCl + NaOCl + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2Cl2 + 2Ca(OH)2 ---> CaCl2 + Ca(OCl)2 + 2H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Cl2 + H2O ---> HCl + HClO"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "HClO --ينحل في ضوء الشمس--> HCl + [O]"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Cl2 + NaOH ---> NaCl + .......... + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Cl2 + CaBr2 ---> CaCl2 + .........."
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "I2 + NaOH ---> NaI + .......... + ........"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "1) N2(g) + 3H2(g) ⇌ 2NH3(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2) CH3COOH(l) + CH3CH2OH(l) ⇌ CH3COOCH2CH3(l) + H2O(l)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "3) CaCO3(s) ⇌ CaO(s) + CO2(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "البيانات المكتوبة على الرسم: معادلة: A2 + B2 ⇌ 2AB. المسار الأول: تفاعل مثمر، وضع مناسب قبل التصادم وطاقة حركة الجزيئات عالية، أثناء التصادم، ناتج التصادم. المسار الثاني: تفاعل غير مثمر، وضع غير مناسب قبل التصادم، أثناء التصادم، ناتج التصادم (الجزيئات ارتدت كما هي). المسار الثالث: تفاعل غير مثمر، وضع مناسب قبل التصادم ولكن طاقة حركة الجزيئات منخفضة، أثناء التصادم، ناتج التصادم (ارتدت كما هي).]"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2SO2(g) + O2(g) ⇌ 2SO3(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H2O(l) --تبخر أكبر من تكثف--> H2O(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H2O(l) <--تكثف أكبر من تبخر-- H2O(g)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "البيانات المكتوبة على الرسم: معادلة: 2SO2 + O2 ⇌ 2SO3. ليس في حالة اتزان، في حالة اتزان، ليس في حالة اتزان.]"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CO(g) + 2H2(g) ⇌ CH3OH(l) + Heat"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H2O <==> H+ + OH-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H2O(l) + HCl(g) --> H3O+(aq) + Cl-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "البيانات المكتوبة على الرسم: ماء + غاز كلوريد هيدروجين --> أيون الهيدرونيوم (+) + أيون الكلوريد (-). شكل ( 4 ) يوضح تكون أيون الهيدرونيوم.]"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "حمض ضعيف H2CO3(l) + H2O(l) <==> H3O+(aq) + HCO3-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "قاعدة ضعيفة NH3(g) + H2O(l) <==> NH4+(aq) + OH-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H:Cl: + H:O:H --> [ H:O:H ]+ + :Cl:-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H:Cl: + H:N:H --> [ H:N:H ]+ + :Cl:-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H2O(l) + NH3(g) <==> NH4+(aq) + OH-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H:O:H + H:N:H <==> [ H:N:H ]+ + :O:H-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "HF(aq) + H2O(l) <==> F-(aq) + H3O+(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "حمض ( 1 ) + قاعدة ( 2 ) <==> قاعدة ( 1 ) + حمض ( 2 )"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "NH3(g) + HOH(l) <==> NH4+(aq) + OH-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "قاعدة + حمض <==> حمض قرين + قاعدة قرينة"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "HNO2(l) + H2O(l) <==> H3O+(aq) + NO2-(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "حمض ( 1 ) + قاعدة ( 2 ) <==> حمض ( 2 ) + قاعدة ( 1 )"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H:N:H + H:Cl: --> [ H:N:H ]+ + :Cl:-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "Ag+(aq) + 2:NH3(aq) --> [ H3N-Ag-NH3 ]+(aq)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "F:B:F + :F:- --> [ F:B:F ]-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "AB <==> A+ + B-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "مادة إلكتروليتية ضعيفة <==> أيونات منفصلة في المحلول"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "A <==> H+ + B-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "A + H2O <==> H3O+ + B-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "MA --H2O--> M+ + A- (يتفكك في وجود الماء)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H2O <==> H+ + OH- (تأين الماء)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "A- + H2O <==> HA + OH- (تحلل مائي)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3COO- + H2O <==> CH3COOH + OH-"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "NH4+ + H2O <==> NH4OH + H+"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "aA + bR --> نواتج"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "HSO3- + H3O+ <==> ........... + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "HSO3- + OH- <==> ........... + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "3CH≡CH --Fe/500°C--> C6H6"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "C6H5OH + Zn --حرارة--> C6H6 + ZnO"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "C6H5COONa + NaOH --CaO/حرارة--> C6H6 + Na2CO3"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2C6H6 + 15O2 --كمية وافرة--> 12CO2 + 6H2O + طاقة"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "C6H6 + 3H2 --Pt/Ni / ضغط وحرارة--> C6H12"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "C6H6 + 3Cl2 --ضوء الشمس المباشر--> C6H6Cl6"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H-O-H --(-H / +R)--> R-OH (كحول)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H-O-H --(-H / +Ar)--> Ar-OH (فينول)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "R-X + M-OH(aq) --> R-OH + M-X"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CH2-Br + NaOH(aq) --> CH3-CH2-OH + NaBr"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CH2-CHO --Zn+HCl/[2H]--> CH3-CH2-CH2-OH + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2CH3-OH + 2K --> 2CH3OK + H2↑ (ميثوكسيد البوتاسيوم)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2CH3CH2-OH + 2Na --> 2CH3CH2ONa + H2↑ (إيثوكسيد الصوديوم)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-COOH + CH3CH2-OH --[H2SO4 مركز]--> CH3-COO-CH2CH3 + H2O (إيثانوات الإيثيل)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3CH2-OH + HCl --[H2SO4 مركز]--> CH3CH2Cl + H2O (كلوريد الإيثيل)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2CH3OH + 3O2 --> 2CO2 + 4H2O + Energy"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CH2-OH + [O] --KMnO4/OH---> [CH3-CH(OH)2] --(-H2O)--> CH3-CHO (أسيت الدهيد)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CHO + [O] --استمرار أثر العامل المؤكسد--> CH3-COOH (حمض الأسيتيك)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CH(OH)-CH3 + [O] --KMnO4/OH---> [CH3-C(OH)2-CH3] --(-H2O)--> CH3-CO-CH3 (بروبانون - أسيتون)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3CH2-OH + CH3CH2-OH --\\frac{H2SO4 مركز}{140} م--> CH3CH2-O-CH2CH3 + H2O (ثنائي إيثيل إيثر)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-OH + CH3-OH --\\frac{H2SO4 مركز}{140} م--> CH3-O-CH3 + H2O (ثنائي ميثيل إيثر)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-O-CH3 + HI --\\frac{H2SO4 مركز}{120} م--> CH3I + CH3-OH"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-OH + HI --> CH3I + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-O-CH3 + 2HI --حرارة--> 2CH3I + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3CH2-O-CH2CH3 + 2HBr --\\frac{H2SO4 مركز}{120} م--> 2CH3CH2Br + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "C6H5-O-CH3 + HI --> C6H5-OH + CH3I"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-COOH (حمض أسيتيك) --> CH3-CHO (أسيت الدهيد)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CH3 (إيثان) --> CH3-CHO (إيثانال - ألدهيد)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H-C≡C-H + H2O --[H2SO4]--> CH3-CHO"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CH2-OH --[Cu / 200-300 م]--> CH3-CHO + H2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "2CH3-COOH + CaO --[300 م]--> (CH3COO)2Ca (إيثانوات الكالسيوم)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "(CH3COO)2Ca --[300 م]--> CH3-CO-CH3 (أسيتون) + CaCO3 (كربونات الكالسيوم)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CaCO3 --[500-600 م]--> CaO + CO2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CH2-CH(OH)-CH3 + [O] --[KMnO4 / OH]--> [CH3-CH2-C(OH)2-CH3] --(-H2O)--> CH3-CH2-CO-CH3 (كيتون)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CH(OH)-CH3 --[Cu / 200-300 م]--> CH3-CO-CH3 + H2"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "R-C(δ+)(=O(δ-))-H + H-CN(δ-) --> R-C(OH)(CN)-H (ألكانال سيانو هيدرين)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-C(δ+)(=O(δ-))-H + H-CN(δ-) --> CH3-C(OH)(CN)-H (إيثانال سيانو هيدرين)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-C(δ+)(=O(δ-))-CH3 (أسيتون) + H-CN --> CH3-C(OH)(CN)-CH3 (أسيتون سيانو هيدرين)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "R-CH2-OH (كحول أولي) + [O] --[KMnO4 / OH-]--> [R-C(OH)2-H] --(-H2O)--> R-CHO (ألدهيد)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "R-CHO + [O] --استمرار أثر العامل المؤكسد--> R-COOH (حمض كربوكسيلي)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CO-CH3 (أسيتون) + 3[O] --[HNO3 مركز]--> CH3-COOH (حمض أسيتيك) + H-COOH (حمض فورميك)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CHO (إيثانال) + H2 --[بلاتين / حرارة]--> CH3-CH2-OH (إيثانول)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CO-CH3 (أسيتون) + H2 --[بلاتين / حرارة]--> CH3-CH(OH)-CH3 (2- بروبانول - كحول ثانوي)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CH3 (إيثان) --> CH3-COOH (إيثانويك - حمض كربوكسيلي)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "H-C≡C-H (أسيتيلين) + H2O --[H2SO4 / 60 م]--> CH3-CHO (أسيت الدهيد) --[O]--> CH3-COOH (حمض أسيتيك)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3CH2Cl + Mg --[إيثر جاف]--> CH3CH2MgCl + CO2 --[H+]--> CH3CH2COOH"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "C6H5Br + Mg --[إيثر جاف]--> C6H5MgBr + CO2 --[H+]--> C6H5COOH"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "R-CHO (ألدهيد) + [O] --> R-COOH (حمض)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "R-COOH + NaOH --> R-COONa (ملح ألكانوات الصوديوم) + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-COOH + NaOH --> .................. + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-COOH + CH3CH2-OH ⇌ CH3-COO-CH2CH3 + H2O"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "R-COOH (حمض كربوكسيلي) + [2H] --[CuCrO4 / 200 م]--> R-CHO (ألدهيد) --[2H]--> R-CH2-OH (كحول)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3CH2-CO-OCH3 (ميثيل بروبانوات) + H2O ⇌ CH3CH2-COOH (حمض البروبانويك) + CH3-OH (ميثانول)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "R-CO-OR' (إستر) + H-NH2 (أمونيا) --> R-CO-NH2 (أميد) + R'-OH (كحول)"
+ },
+ {
+  "scope": "كيمياء/grade2/علمي/lessons_mode/كيمياء.json",
+  "line": "CH3-CO-OCH2CH3 (إيثانوات الإيثيل / أسيتات الإيثيل) + H-NH2 --> CH3-CO-NH2 (إيثاناميد / أسيتاميد) + ......."
+ }
+]

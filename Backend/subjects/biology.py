@@ -10,7 +10,7 @@ from .common import (
     collect_exam_questions_by_years, pages_with_headers,
     system_prompt_strict_explain, system_prompt_strict_summary,
     system_prompt_strict_qa, normalize_arabic, extract_keywords,
-    parse_exams_input, fetch_pages_by_numbers
+    parse_exams_input, fetch_pages_by_numbers, requested_pages
 )
 from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, MAX_PAGES_EXPLAIN_SUMMARY, HISTORY_LAST_N
 from models import AskRequest
@@ -19,6 +19,8 @@ import json
 import os
 import re
 import asyncio
+
+from core import streaming
 
 SUBJECT = "احياء"
 sessions_biology = {}
@@ -84,11 +86,10 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
     # ==========================
     if req.input_type == "صفحة":
         # استخراج الأرقام من النص
-        numbers = re.findall(r'\d+', req.page_source)
-        if not numbers:
-            return {"answer": "صيغة غير صحيحة. الرجاء كتابة أرقام الصفحات."}
-        
-        page_nums = [int(n) for n in numbers]
+        page_nums = requested_pages(req)
+        if not page_nums:
+            return {"answer": "📄 لم تختر أي صفحة بعد.\n\nافتح إعدادات الجلسة "
+                              "واختر الصفحات التي تريدها من القائمة، ثم اسأل."}
         
         # التحقق من الحد الأقصى
         if len(page_nums) > MAX_PAGES_EXPLAIN_SUMMARY:
@@ -119,14 +120,15 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
                 "content": f"نص الكتاب:\n{context_text}\n\nطلب الطالب: اشرح المحتوى أعلاه."
             })
             
-            response = await asyncio.wait_for(
-                gemini_client.chat.completions.create(
+            # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+            answer = await streaming.complete(
+                gemini_client,
+                sink=streaming.sink_of(req),
+                timeout=50,
                 model="gemini-3.1-flash-lite",
                 messages=messages_for_ai, max_tokens=4000,
-                temperature=0.1
-            ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
-                
-            answer = response.choices[0].message.content
+                temperature=0.1,
+            )
             
             # إضافة تنبيه عن الصفحات المفقودة إن وجدت
             if missing:
@@ -179,13 +181,15 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
 """
             })
             
-            response = await asyncio.wait_for(
-                gemini_client.chat.completions.create(
+            # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+            answer = await streaming.complete(
+                gemini_client,
+                sink=streaming.sink_of(req),
+                timeout=50,
                 model="gemini-3.1-flash-lite",
                 messages=messages_for_ai, max_tokens=4000,
-                temperature=0.1
-            ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
-            answer = response.choices[0].message.content
+                temperature=0.1,
+            )
         
         
         except asyncio.TimeoutError:
@@ -217,8 +221,7 @@ async def handle_biology_summary(req: AskRequest, gemini_client):
 
     # تلخيص الصفحات
     if req.input_type == "صفحة":
-        numbers = re.findall(r'\d+', req.page_source)
-        page_nums = [int(n) for n in numbers] if numbers else []
+        page_nums = requested_pages(req)
         found_pages, _ = fetch_pages_by_numbers(target_data, page_nums)
         
         if not found_pages: return {"answer": "الصفحات غير موجودة."}
@@ -227,18 +230,18 @@ async def handle_biology_summary(req: AskRequest, gemini_client):
         system_prompt = system_prompt_strict_summary(SUBJECT, req.summary_level)
         
         try:
-            response = await asyncio.wait_for(
-                gemini_client.chat.completions.create(
+            # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+            answer = await streaming.complete(
+                gemini_client,
+                sink=streaming.sink_of(req),
+                timeout=50,
                 model="gemini-3.1-flash-lite",
                 messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"نص الكتاب:\n{context_text}\n\nالمطلوب: لخص المحتوى."}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"نص الكتاب:\n{context_text}\n\nالمطلوب: لخص المحتوى."}
                 ],
-                temperature=0.15
-            ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
-            
-            
-            answer = response.choices[0].message.content
+                temperature=0.15,
+            )
             
         except asyncio.TimeoutError:
         # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
@@ -260,16 +263,18 @@ async def handle_biology_summary(req: AskRequest, gemini_client):
         system_prompt = system_prompt_strict_summary(SUBJECT, req.summary_level)
         
         try:
-           response = await asyncio.wait_for( 
-                gemini_client.chat.completions.create(
-                model="gemini-3.1-flash-lite",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"نص الكتاب:\n{context_text}\n\nالمطلوب: لخص الموضوع '{req.content}'."}
-                ],
-                temperature=0.15
-            ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
-           answer = response.choices[0].message.content
+           # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+           answer = await streaming.complete(
+               gemini_client,
+               sink=streaming.sink_of(req),
+               timeout=50,
+               model="gemini-3.1-flash-lite",
+               messages=[
+               {"role": "system", "content": system_prompt},
+               {"role": "user", "content": f"نص الكتاب:\n{context_text}\n\nالمطلوب: لخص الموضوع '{req.content}'."}
+               ],
+               temperature=0.15,
+           )
            
            
         except asyncio.TimeoutError:
@@ -312,13 +317,15 @@ async def handle_biology_question(req: AskRequest, gemini_client):
             "content": f"نص الكتاب:\n{context_text}\n\nالسؤال: {req.content}"
         })
         
-        response = await asyncio.wait_for( 
-            gemini_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        answer = await streaming.complete(
+            gemini_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gemini-3.1-flash-lite",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.1
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
-        answer = response.choices[0].message.content
+            temperature=0.1,
+        )
         
         
         

@@ -72,13 +72,14 @@ class QuizResultAdapter extends TypeAdapter<QuizResult> {
       synced: fields[12] == null ? false : fields[12] as bool,
       askedPerLesson:
           fields[13] == null ? {} : (fields[13] as Map).cast<String, int>(),
+      reviewRaw: fields[14] == null ? [] : (fields[14] as List).cast<String>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, QuizResult obj) {
     writer
-      ..writeByte(14)
+      ..writeByte(15)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -106,7 +107,9 @@ class QuizResultAdapter extends TypeAdapter<QuizResult> {
       ..writeByte(12)
       ..write(obj.synced)
       ..writeByte(13)
-      ..write(obj.askedPerLesson);
+      ..write(obj.askedPerLesson)
+      ..writeByte(14)
+      ..write(obj.reviewRaw);
   }
 
   @override

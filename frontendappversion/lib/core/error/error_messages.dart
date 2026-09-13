@@ -32,4 +32,32 @@ class ErrorMessages {
 
   static const String askUnexpected =
       "⚠️ **حدث خطأ غير متوقع**\n\nيرجى المحاولة لاحقاً.";
+
+  // ══════════════════════════════════════════════════
+  // 📡 تصنيف عطل الإرسال — مكانٌ واحد لا شرطٌ مكرّر
+  // ══════════════════════════════════════════════════
+  // 🔴 **العطل الذي أوجب هذه الدوال:** شاشة المحادثة كانت تمسك
+  //    `SocketException` وحدها لرسالة «لا يوجد اتصال». وحزمة `http` على
+  //    أندرويد ترمي `ClientException` في **معظم** أعطال الشبكة الحقيقية
+  //    (انقطاع Wi-Fi · بيانات مغلقة · DNS فاشل)، فكان الطالب المنقطع نتُّه
+  //    يرى «حدث خطأ غير متوقع» — رسالةٌ تُلقي اللومَ على التطبيق وتُخفي
+  //    السببَ الوحيد الذي يستطيع الطالب إصلاحه بنفسه.
+  //
+  // ⚠️ وتُطابَق `ClientException` **بنوعها لا بنصّها**: نصوصها تختلف بين
+  //    أندرويد وiOS والويب وتتغيّر بين إصدارات الحزمة.
+
+  /// هل هذا العطل انقطاعُ اتصالٍ يستطيع الطالب إصلاحه؟
+  static bool isConnectivity(Object error) =>
+      error is SocketException || error is http.ClientException;
+
+  /// هل تُجدي إعادةُ المحاولة؟ (مهلة أو شبكة — لا خطأ برمجي)
+  static bool isRetryable(Object error) =>
+      error is TimeoutException || isConnectivity(error);
+
+  /// نصّ الفقاعة الذي يراه الطالب عند فشل الإرسال.
+  static String forSendFailure(Object error) {
+    if (error is TimeoutException) return askTimeout;
+    if (isConnectivity(error)) return askNoConnection;
+    return askUnexpected;
+  }
 }

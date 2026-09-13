@@ -18,8 +18,7 @@ def client(no_real_api_calls):
 
 
 def _body(**over):
-    body = {"user_id": "u", "code": "SUPER_USER", "device_id": "d",
-            "subject": "فيزياء", "grade": 3, "track": "علمي",
+    body = {"subject": "فيزياء", "grade": 3, "track": "علمي",
             "unit": "الفيزياء الذرية", "lessons": ["نظرية بوهر"], "count": 5}
     body.update(over)
     return body
@@ -223,14 +222,15 @@ def test_collect_falls_back_to_unit_lessons_when_none_chosen():
 
 
 # ══════════ نقطة النهاية ══════════
-def test_endpoint_requires_auth(client, monkeypatch):
-    monkeypatch.setattr(api, "AUTH_ALLOW_LEGACY_CODE", False)
+def test_endpoint_requires_auth(client, anonymous):
     r = client.post("/quiz/generate", json=_body())
     assert r.status_code == 401
 
 
-def test_endpoint_rejects_bad_code(client):
-    assert client.post("/quiz/generate", json=_body(code="مزيف")).status_code == 401
+def test_activation_code_no_longer_opens_the_endpoint(client, anonymous):
+    """🗑️ الكود المدفون في التطبيق كان يفتح توليد الاختبارات بلا حصة."""
+    assert client.post("/quiz/generate",
+                       json=_body(code="SUPER_USER")).status_code == 401
 
 
 def test_endpoint_returns_friendly_message_for_empty_content(client, empty_lessons_target):

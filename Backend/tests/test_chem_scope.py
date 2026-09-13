@@ -11,11 +11,13 @@
 import pytest
 
 from core.chem import (
-    ORGANIC_SUBJECTS, is_organic_subject, for_subject, to_chem, to_ring,
+    ORGANIC_SUBJECTS, REACTION_SUBJECTS, is_organic_subject, for_subject,
+    to_chem, to_ring,
 )
 from core.curriculum import SUBJECTS_BY_GRADE_TRACK
 from subjects.common import (
     organic_structure_rules,
+    reaction_equation_rules,
     system_prompt_strict_explain,
     system_prompt_strict_summary,
     system_prompt_strict_qa_improved,
@@ -110,8 +112,18 @@ def test_source_clauses_identical_between_chemistry_and_physics():
     """القاعدة أُضيفت **ذيلاً** ولم تُعدّل حرفاً في المتن المشترك."""
     chem = system_prompt_strict_explain("كيمياء")
     phys = system_prompt_strict_explain("فيزياء")
-    body = chem[: len(chem) - len(organic_structure_rules("كيمياء"))]
-    assert body == phys.replace("فيزياء", "كيمياء")
+    # ⚠️ والذيولُ **ثلاثة** منذ 2026-09-12: الترميزُ البنائي، ثم معادلةُ
+    #    التفاعل، ثم شكلُ الأرقام — يُطرح كلٌّ من مادّته بترتيب إلحاقه.
+    #
+    # ⚖️ وذيلُ الأرقام **معكوسُ النطاق**: فارغٌ في الكيمياء (أرقامها
+    #    لاتينية بنصّ المالك) وموجودٌ في الفيزياء — فيُطرح من الفيزياء.
+    from subjects.common import arabic_digits_rules
+    assert arabic_digits_rules("كيمياء") == ""
+    tails = len(organic_structure_rules("كيمياء")) + \
+        len(reaction_equation_rules("كيمياء"))
+    body = chem[: len(chem) - tails]
+    phys_tail = len(arabic_digits_rules("فيزياء"))
+    assert body == phys[: len(phys) - phys_tail].replace("فيزياء", "كيمياء")
 
 
 # ══════════════ 3️⃣ منظّف اللاتيك لا يأكل ترميزاً ولا عربية ══════════════
@@ -161,3 +173,38 @@ def test_biology_ring_words_are_untouched_now():
 def test_to_ring_alone_still_pure_for_direct_use():
     """الدوال الخام تبقى قابلة للاستدعاء المباشر في الاختبارات."""
     assert r"\ring{3}" in to_ring("رسمة المثلث : سيكلوبروبان")
+
+
+# ══════════════ 4️⃣ معادلة التفاعل: الكيمياء والأحياء ══════════════
+# 🔴 علّةُ المالك (2026-09-12): «ادخل على الكيمياء في المعادلات… ما طاع
+#    يضبط». والموديل كان يكتب العنوان والمعادلة في سطرٍ واحد فيخلطهما
+#    الاتجاهُ الثنائي، ويكتب السهم بشرطةٍ واحدة.
+
+REACTION_OTHERS = [s for s in ALL_SUBJECTS if s not in REACTION_SUBJECTS]
+
+
+def test_reaction_scope_matches_the_renderer():
+    """🔒 نطاقُ التعليمة يطابق `chemSubjects` في التطبيق حرفياً."""
+    assert REACTION_SUBJECTS == frozenset({"كيمياء", "احياء"})
+
+
+@pytest.mark.parametrize("subject", sorted(REACTION_SUBJECTS))
+def test_reaction_rule_reaches_all_three_prompts(subject):
+    rule = reaction_equation_rules(subject)
+    assert "-->" in rule and "<=>" in rule
+    # ⭐ «سطرٌ مستقلّ» هو جوهرُ الإصلاح: خلطُ العنوان بالمعادلة هو العطل.
+    assert "سطرٍ وحدَها" in rule
+    for prompt in (system_prompt_strict_explain(subject),
+                   system_prompt_strict_qa_improved(subject),
+                   system_prompt_strict_summary(subject, 3)):
+        assert "معادلة التفاعل" in prompt
+
+
+@pytest.mark.parametrize("subject", REACTION_OTHERS)
+def test_reaction_rule_does_not_leak(subject):
+    """⚠️ الفيزياء فيها معادلاتٌ نووية — والرسّام لا يرسمها، فلا تُؤمر بها."""
+    assert reaction_equation_rules(subject) == ""
+    for prompt in (system_prompt_strict_explain(subject),
+                   system_prompt_strict_qa_improved(subject),
+                   system_prompt_strict_summary(subject, 3)):
+        assert "معادلة التفاعل" not in prompt

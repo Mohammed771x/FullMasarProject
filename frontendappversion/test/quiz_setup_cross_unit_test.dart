@@ -4,6 +4,8 @@
 // وشاشة الإعداد كانت تقيّد الاختيار بوحدة واحدة — فيصل «اختبار المراجعة»
 // بثلاثة دروس ويُعلَّم على أوّلها فقط، والباقي يسقط بصمت.
 import 'package:flutter/material.dart';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ye_student_tutor/core/network/api_client.dart';
 import 'package:ye_student_tutor/features/chat/data/models/subject_capabilities.dart';
@@ -87,4 +89,37 @@ void main() {
     await t.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('المختارة'), findsNothing);
   });
+
+  // ══════════════════════════════════════════════════
+  // 🎯 لا صفَّ ولا مسار في «اختبر نفسك»
+  // ══════════════════════════════════════════════════
+  //
+  // 🔴 **قرار المالك (2026-09-09):** «ماشي داعي موجود الصف الدراسي والمسار،
+  //    خلاص تطلع المواد حق المادة اللي مختارة من قبل الطالب».
+  //
+  // ⚖️ وهي نفس القاعدة المطبّقة على القائمة الجانبية: الطالب حسم صفَّه في
+  //    إعداداته مرّةً واحدة، وإعادةُ سؤاله تُقحم قراراً محسوماً — بل وتُغري
+  //    بتغييره فيمتحن نفسه في منهجٍ ليس منهجه.
+  //
+  // 🛡️ والحارسُ **بنيويّ على الملف** لا اختبارُ ويدجت: بناءُ شاشة الإعداد
+  //    يستدعي شبكةً وتخزيناً، وحارسٌ لا يعمل إلا بمحاكاةِ نصفِ التطبيق
+  //    يُعطَّل عند أول تغيير فيصير أخضرَ على عيبٍ قائم.
+  group('🎯 نطاق «اختبر نفسك»', () {
+    final src = File('lib/features/quiz/presentation/quiz_setup_screen.dart')
+        .readAsStringSync();
+
+    test('لا شريحة صفٍّ ولا مسار في شاشة الإعداد', () {
+      for (final gone in ['_gradeChips', '_trackChips', '_setGrade', '_setTrack',
+                          '"الصف الدراسي"', '"المسار"']) {
+        expect(src.contains(gone), isFalse, reason: 'ما زال موجوداً: $gone');
+      }
+    });
+
+    test('والمواد تُبنى من صفّ الطالب نفسه', () {
+      // ⚠️ الحذفُ وحده لا يكفي: لو بُنيت المواد من ثابتٍ لظهرت مواد صفٍّ آخر.
+      expect(src.contains('Curriculum.subjectsFor(_grade, _track)'), isTrue);
+      expect(src.contains('UserSession.I.grade'), isTrue);
+    });
+  });
+
 }

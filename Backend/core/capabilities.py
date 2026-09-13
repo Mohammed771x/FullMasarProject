@@ -4,11 +4,30 @@
 # «الكود لا يعرف أسماء المواد» — القدرات تُكتشف من وجود الملفات وشكلها.
 # أضف lessons.json → يظهر وضع الدروس تلقائياً. أضف pages.json → وضع الوحدات.
 
+from config import MAX_PAGES_EXPLAIN_SUMMARY
 from .content_store import (
     get_lessons_book, get_pages_book,
     lessons_units, lessons_in_unit, pages_units,
     MATH_SUBJECT,
 )
+
+
+def _unit_pages(book, unit_name: str) -> list:
+    """أرقام صفحات وحدةٍ بعينها، مرتّبةً وبلا تكرار.
+
+    ⚠️ **وتُهمل الصفحات غير الرقمية**: في فيزياء الثاني صفحةٌ اسمها «غلاف»
+       — بيانات صحيحة لا خطأ، لكنها ليست رقماً يُختار ولا يجدها البحث
+       بالرقم. فعرضُها في المُنتقي كان سيُعطي زراً لا يعمل.
+    """
+    for u in (book or []):
+        if not isinstance(u, dict):
+            continue
+        if (u.get("اسم_الوحدة") or "").strip() != unit_name:
+            continue
+        nums = {p.get("رقم_الصفحة") for p in u.get("الصفحات", [])
+                if isinstance(p.get("رقم_الصفحة"), int)}
+        return sorted(nums)
+    return []
 
 
 def _has_exam_bank(grade, track, subject) -> bool:
@@ -42,6 +61,8 @@ def describe(grade, track, subject) -> dict:
     # الرياضيات: وضع الدروس فقط (قرار المالك)
     pages_book = None if subject == MATH_SUBJECT else get_pages_book(grade, track, subject)
 
+    p_units = pages_units(pages_book) if pages_book is not None else []
+
     lessons_tree = []
     if lessons_book is not None:
         for uname in lessons_units(lessons_book):
@@ -50,8 +71,14 @@ def describe(grade, track, subject) -> dict:
     return {
         "subject": subject,
         "lessons": {"available": lessons_book is not None, "units": lessons_tree},
+        # 📄 **وأرقام الصفحات معها في النداء نفسه** (قرار المالك 2026-09-09):
+        #    الطالب كان يكتب «13، 14، 15» من ذاكرته أو من الكتاب الورقي —
+        #    والآن يختارها من قائمة. ولو جُلبت بنداءٍ ثانٍ لظهر المُنتقي
+        #    فارغاً لحظةً ثم امتلأ، وهذه اللحظة هي كل تجربة الطالب.
         "pages": {"available": pages_book is not None,
-                  "units": pages_units(pages_book) if pages_book is not None else []},
+                  "units": p_units,
+                  "unit_pages": {u: _unit_pages(pages_book, u) for u in p_units},
+                  "max_selectable": MAX_PAGES_EXPLAIN_SUMMARY},
         # 📝 الوزاري: بنك أسئلة هذا الصف/المسار
         "exams": {"available": _has_exam_bank(grade, track, subject)},
         # 🧠 اختبر نفسك: يُبنى من الدروس حصراً (لكل المواد بلا استثناء)

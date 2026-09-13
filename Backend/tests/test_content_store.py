@@ -40,12 +40,19 @@ def test_math_branches_as_units():
     all_lessons = [l for u in units for l in cs.lessons_in_unit(book, u)]
     assert any("العد" in l for l in all_lessons), "الدرس بلا امتداد .json يجب أن يُرى"
 
-def test_subject_without_files_returns_none():
-    # مواد لم يُضف لها محتوى بعد → None بلا انفجار (لا استثناء، لا مسار خاطئ)
-    assert cs.get_lessons_book(2, "أدبي", "علم الاجتماع") is None
-    assert cs.get_pages_book(2, "أدبي", "جغرافيا") is None
-    assert cs.get_lessons_book(3, "أدبي", "فلسفة") is None
-    assert cs.get_lessons_book(3, "أدبي", "منطق") is None
+def test_subject_without_files_returns_none(empty_lessons_target, empty_pages_target):
+    """مادة لم يُضف محتواها ⇒ `None` بلا انفجار.
+
+    ⚠️ **والهدف يُكتشف لا يُسمّى** — كما في `conftest._find_empty`. الصيغة
+       القديمة كانت تسمّي «علم الاجتماع» و«فلسفة» بالاسم، فلمّا أضاف المالك
+       محتواها سقط الاختبار **بلا أي عطل في الكود**، وبقيت المجموعة حمراء
+       فلم تعد صالحةً كبوابةٍ قبل النشر — وذلك أغلى بكثير من الاختبار نفسه.
+    """
+    lg, lt, lsub = empty_lessons_target
+    assert cs.get_lessons_book(lg, lt, lsub) is None
+
+    pg, pt, psub = empty_pages_target
+    assert cs.get_pages_book(pg, pt, psub) is None
 
 
 def test_each_grade_track_is_isolated():
@@ -74,9 +81,15 @@ def test_subject_not_in_grade_returns_none():
     assert cs.get_pages_book(3, "علمي", "مجتمع") is None
 
 
-def test_templates_not_read_as_content():
-    """ملفات _TEMPLATE.json في المجلدات الفارغة لا تُقرأ كمحتوى."""
-    assert cs.get_lessons_book(1, "عام", "تاريخ") is None
+def test_templates_not_read_as_content(empty_lessons_target):
+    """ملفات `_TEMPLATE.json` في المجلدات الفارغة لا تُقرأ كمحتوى.
+
+    ⚠️ نفس فخّ الاختبار السابق: كان يسمّي «تاريخ · الأول» بالاسم فسقط يوم
+       أُضيف محتواها. والهدف الآن مُكتشَف — والقالبُ نفسه لا يزال حاضراً
+       على القرص، فالسلوك المُختبَر حقيقيّ لا رمزيّ.
+    """
+    grade, track, subject = empty_lessons_target
+    assert cs.get_lessons_book(grade, track, subject) is None
 
 
 def test_templates_folder_is_ignored():

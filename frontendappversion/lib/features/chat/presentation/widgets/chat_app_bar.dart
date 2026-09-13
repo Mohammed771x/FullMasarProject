@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/quota_badge.dart';
 import '../controllers/chat_controller.dart';
 import '../../../teacher/data/teacher_tool.dart';
 
@@ -69,6 +70,9 @@ class ChatGlassAppBar extends StatelessWidget {
                         maxLines: 1,
                       ),
                     ),
+                    // 🎟️ الحصة بجوار العنوان — يراها الطالب قبل أن يصطدم بها.
+                    const SizedBox(width: 8),
+                    const QuotaBadge(compact: true),
                     if (isLoadingMsg) ...[
                       const SizedBox(width: 8),
                       SizedBox(

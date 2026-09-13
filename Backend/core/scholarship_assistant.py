@@ -32,6 +32,8 @@
 #    تعليمات** — والحدود الصريحة أدناه تمنع قراءة سطرٍ فيها كأنه أمر نظامي.
 
 import asyncio
+
+from . import streaming
 import re
 
 from config import HISTORY_LAST_N, HISTORY_MAX_CHARS
@@ -332,7 +334,7 @@ NUMBER_WARNING = (
 # النداء
 # ══════════════════════════════════════════════════
 
-async def ask(sch: dict, question: str, chat_history, clients: dict) -> dict:
+async def ask(sch: dict, question: str, chat_history, clients: dict, sink=None) -> dict:
     """يجيب على سؤال الطالب. الفشل رسالةٌ ودّية لا انهيار."""
     text = (question or "").strip()[:MAX_QUESTION_CHARS]
     if not text:
@@ -350,12 +352,9 @@ async def ask(sch: dict, question: str, chat_history, clients: dict) -> dict:
     messages.append({"role": "user", "content": text})
 
     try:
-        response = await asyncio.wait_for(
-            client.chat.completions.create(
-                model=MODEL, messages=messages,
-                max_tokens=_MAX_TOKENS, temperature=0.4),
-            timeout=_AI_TIMEOUT)
-        answer = (response.choices[0].message.content or "").strip()
+        answer = (await streaming.complete(
+            client, model=MODEL, messages=messages, sink=sink,
+            timeout=_AI_TIMEOUT, max_tokens=_MAX_TOKENS, temperature=0.4) or "").strip()
     except asyncio.TimeoutError:
         return {"answer": "⏳ تأخّر الرد. أعد إرسال سؤالك من فضلك.", "ok": False}
     except Exception as e:

@@ -403,7 +403,7 @@ def test_stale_version_returns_items(client, db):
 
 # ══════════════ 7. مساعد المنحة ══════════════
 
-def test_ask_requires_auth(client, db):
+def test_ask_requires_auth(client, db, anonymous):
     create(client)
     r = client.post("/scholarship/ask",
                     json={"scholarship_id": "turkey", "question": "الشروط؟", "code": "لا"})

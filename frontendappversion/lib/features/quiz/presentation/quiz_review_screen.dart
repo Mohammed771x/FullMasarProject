@@ -3,21 +3,55 @@ import '../../../../core/widgets/masar_markdown.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/fade_in_slide.dart';
+import '../data/models/quiz_models.dart';
 import 'quiz_controller.dart';
 
 // ==========================================
 // 📋 راجع إجاباتك
 // ==========================================
-// الأسئلة ما زالت في ذاكرة الجلسة (لا تُخزَّن)، فالمراجعة مجانية وفورية —
-// وهي أهم لحظة تعلّم: يرى الطالب خطأه بجوار الصواب مباشرةً.
+// أهم لحظة تعلّم في المنتج: يرى الطالب خطأه بجوار الصواب مباشرةً.
+//
+// 🔴 **وكانت متاحةً بعد الاختبار مباشرةً وحده.** الأسئلة تعيش في ذاكرة
+//    `QuizController`، فبمجرد إغلاق الشاشة تختفي إلى الأبد. فطالبٌ يفتح
+//    «تحليل مستواي» ويرى أنه أخطأ في «الأكسدة» قبل يومين **لا يستطيع أن
+//    يعرف ماذا أخطأ فيه** — والتحليل يشخّص ولا يُري الدواء.
+//
+// ✅ فصارت الشاشة تقبل مصدرين، وتعرضهما بنفس الرسم حرفياً:
+//    • [QuizReviewScreen.live]  ← جلسة الاختبار الجارية (كما كان)
+//    • [QuizReviewScreen.saved] ← نتيجة محفوظة ([QuizResult.review])
 class QuizReviewScreen extends StatelessWidget {
-  final QuizController controller;
-  const QuizReviewScreen({super.key, required this.controller});
+  const QuizReviewScreen._({required this.items, this.title});
+
+  /// مراجعة الجلسة الجارية — الأسئلة ما زالت في الذاكرة.
+  factory QuizReviewScreen.live({required QuizController controller}) {
+    final qs = controller.questions;
+    final answers = controller.answers;
+    return QuizReviewScreen._(
+      items: [
+        for (var i = 0; i < qs.length; i++)
+          QuizReviewItem.from(qs[i], i < answers.length ? answers[i] : null),
+      ],
+    );
+  }
+
+  /// مراجعة نتيجةٍ محفوظة — من سجلّ الاختبارات أو قسم التحليل.
+  factory QuizReviewScreen.saved(QuizResult result) => QuizReviewScreen._(
+        items: result.review,
+        title: result.subject.isEmpty ? null : result.subject,
+      );
+
+  final List<QuizReviewItem> items;
+
+  /// عنوانٌ فرعي يقول **أيّ اختبارٍ** نراجع — يلزم حين تُفتح من السجلّ.
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
-    final qs = controller.questions;
-    final answers = controller.answers;
+    final qs = items;
+
+    // 🛟 نتيجةٌ قديمة حُفظت قبل وجود المراجعة، أو مستعادةٌ من السحابة (لا
+    //    تُرفع المراجعة عمداً) ⇒ شاشةٌ تشرح بدل قائمةٍ فارغة تبدو عطلاً.
+    if (qs.isEmpty) return _unavailable(context);
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
@@ -25,8 +59,8 @@ class QuizReviewScreen extends StatelessWidget {
         backgroundColor: AppColors.surfaceWhite,
         elevation: 0,
         centerTitle: true,
-        title: const Text("مراجعة الإجابات 📋",
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+        title: Text(title == null ? "مراجعة الإجابات 📋" : "مراجعة: $title 📋",
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
       ),
       body: SafeArea(
         child: ListView.builder(
@@ -34,8 +68,8 @@ class QuizReviewScreen extends StatelessWidget {
           itemCount: qs.length,
           itemBuilder: (_, i) {
             final q = qs[i];
-            final chosen = i < answers.length ? answers[i] : null;
-            final ok = q.isCorrect(chosen);
+            final chosen = q.chosenIndex;
+            final ok = q.isCorrect;
 
             return FadeInSlide(
               child: Container(
@@ -45,7 +79,12 @@ class QuizReviewScreen extends StatelessWidget {
                   color: AppColors.surfaceWhite,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                      color: (ok ? Colors.green : Colors.redAccent).withValues(alpha: 0.35),
+                      color: (q.isSkipped
+                              ? AppColors.textSecondary
+                              : ok
+                                  ? Colors.green
+                                  : Colors.redAccent)
+                          .withValues(alpha: 0.35),
                       width: 1.4),
                 ),
                 child: Column(
@@ -53,8 +92,21 @@ class QuizReviewScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(ok ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                            size: 19, color: ok ? Colors.green.shade600 : Colors.redAccent),
+                        // ⚠️ ثلاث حالات لا اثنتان: «لم تُجب» ليست خطأً.
+                        //    اختبارٌ استُؤنف ولم يكتمل يترك أسئلةً بلا
+                        //    إجابة، وعدُّها أخطاءً يكذب على الطالب.
+                        Icon(
+                            q.isSkipped
+                                ? Icons.remove_circle_outline_rounded
+                                : ok
+                                    ? Icons.check_circle_rounded
+                                    : Icons.cancel_rounded,
+                            size: 19,
+                            color: q.isSkipped
+                                ? AppColors.textSecondary
+                                : ok
+                                    ? Colors.green.shade600
+                                    : Colors.redAccent),
                         const SizedBox(width: 8),
                         Text("سؤال ${i + 1}",
                             style: TextStyle(
@@ -72,7 +124,7 @@ class QuizReviewScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    MathOrText(q.q,
+                    MathOrText(q.question,
                         style: TextStyle(
                             fontSize: 14.5, height: 1.7,
                             fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
@@ -154,6 +206,41 @@ class QuizReviewScreen extends StatelessWidget {
                       fontSize: 10.5, fontWeight: FontWeight.w900,
                       color: right ? Colors.green.shade700 : Colors.redAccent)),
             ],
+          ),
+        ),
+      );
+
+  /// 🛟 لا مراجعة محفوظة — نقول السبب بدل قائمةٍ فارغة تبدو عطلاً.
+  Widget _unavailable(BuildContext context) => Scaffold(
+        backgroundColor: AppColors.bgLight,
+        appBar: AppBar(
+          backgroundColor: AppColors.surfaceWhite,
+          elevation: 0,
+          centerTitle: true,
+          title: const Text("مراجعة الإجابات 📋",
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.history_toggle_off_rounded,
+                    size: 44, color: AppColors.textSecondary.withValues(alpha: 0.4)),
+                const SizedBox(height: 14),
+                Text(
+                  "لا تتوفّر مراجعة لهذا الاختبار.\n"
+                  "الاختبارات الجديدة تُحفظ مراجعتها تلقائياً على هذا الجهاز.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 13,
+                      height: 1.7,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary),
+                ),
+              ],
+            ),
           ),
         ),
       );

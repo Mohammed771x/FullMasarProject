@@ -24,10 +24,22 @@ class ChatInputArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // ✅ الدرس المختار وحده يكفي — كما تَعِد لوحة الإعدادات حرفياً.
+    //
+    // 📷 **والصورةُ وحدها تكفي كذلك** — وهذا عطلُ المالك (2026-09-13):
+    //    كانت البوّابة تسأل عن نصٍّ مكتوب أو درسٍ مختار **ولا تسأل عن
+    //    المرفق إطلاقاً**. فمن أرفق صورةً بلا كتابة وجد الزرّ رمادياً
+    //    وردَّ عليه «اكتب سؤالك أولاً» — وصورةُ المسألة أمامه.
+    //    وظهر الفرق بين محادثةٍ وأخرى لأن الدرس (لا الصورة) هو ما كان
+    //    يفتح البوّابة: محادثةٌ جديدة اختير درسُها ⇒ تُرسل، ومحادثةٌ
+    //    مستعادة من السجلّ لا يُستعاد درسُها ⇒ **الزرّ ميت**.
+    //
+    // 🚦 و`isBusy` لا `isLoading`: البثُّ طلبٌ جارٍ وإن أطفأ مؤشّر
+    //    الانتظار — راجع [ChatController.isBusy].
     final bool canSend = (controller.inputController.text.trim().isNotEmpty ||
-            controller.canSendWithoutText) &&
-        !controller.isLoading;
-    final bool isGenerating = controller.isLoading || (controller.messages.isNotEmpty && controller.messages.last["animating"] == true);
+            controller.canSendWithoutText ||
+            controller.hasAttachments) &&
+        !controller.isBusy;
+    final bool isGenerating = controller.isBusy || (controller.messages.isNotEmpty && controller.messages.last["animating"] == true);
     final bool showTextInput = !(controller.selectedSubject == "رياضيات" && controller.mathMode == "شرح" && !controller.isMathExplanationStarted);
 
     return Container(
@@ -39,6 +51,18 @@ class ChatInputArea extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // 📄 **الصفحات المختارة ترتفع مع البرومبت** (قرار المالك 2026-09-09)
+            //
+            // 🔴 كان الرقم يُكتب داخل نصّ الرسالة، فيضيع في الرسالة التالية:
+            //    من اختار ص٤٠ ثم سأل «وضّح أكثر» فقد صفحته بلا أن يدري.
+            // ⭐ وموضعُها هنا — فوق حقل الكتابة لا داخل الإعدادات — يجعلها
+            //    **مرئيةً وقتَ الكتابة**، فيعرف الطالب عمّا يسأل قبل الإرسال.
+            // 🚦 بالبوّابة نفسها التي تحكم الإرسال — فلا تظهر شريحةٌ
+            //    لا تُرسل، ولا تُرسل صفحةٌ لا تظهر.
+            if (controller.canPickPages &&
+                controller.selectedPages.isNotEmpty &&
+                !controller.isRecording)
+              _selectedPagesBar(context),
             // 📷 معاينة الصور المرفقة (حتى صورتين)
             if (controller.attachedImages.isNotEmpty && !controller.isRecording)
               Padding(
@@ -194,7 +218,9 @@ class ChatInputArea extends StatelessWidget {
                       Expanded(
                         child: TextField(
                           controller: controller.inputController,
-                          enabled: !isGenerating || controller.messages.isEmpty,
+                          // ⌨️ يبقى مفتوحاً أثناء البثّ: الطالب يُحضّر سؤاله
+                          //    التالي وهو يقرأ. المنعُ على **الإرسال** وحده.
+                          enabled: !controller.isLoading || controller.messages.isEmpty,
                           minLines: 1,
                           maxLines: 4,
                           onChanged: (_) => controller.refresh(),
@@ -307,4 +333,52 @@ class ChatInputArea extends StatelessWidget {
       ),
     );
   }
+  // ══════════════════════════════════════════════════
+  // 📄 شريط الصفحات المختارة
+  // ══════════════════════════════════════════════════
+  Widget _selectedPagesBar(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.softSurface,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.menu_book_rounded, size: 15, color: AppColors.primary),
+                  const SizedBox(width: 5),
+                  Text("الصفحات",
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textSecondary)),
+                ]),
+              ),
+              ...controller.selectedPages.map((p) => InputChip(
+                    label: Text("$p",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.white)),
+                    backgroundColor: AppColors.primary,
+                    // ⚠️ الحذف بضغطةٍ واحدة على الشريحة نفسها: الطالب يرفعها
+                    //    وهو ينظر إليها، فلا يعود إلى الإعدادات ليلغي اختياراً.
+                    deleteIcon: const Icon(Icons.close_rounded,
+                        size: 16, color: Colors.white),
+                    onDeleted: () => controller.removePage(p),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: BorderSide.none),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  )),
+            ],
+          ),
+        ),
+      );
+
 }

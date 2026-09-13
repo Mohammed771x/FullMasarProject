@@ -20,8 +20,7 @@ class ChatRepository {
   /// يرمي [TimeoutException] / [SocketException] / [HttpException] عند الفشل.
   Future<AskResponse> ask({
     required String userId,
-    required String code,
-    required String deviceId,
+    required String requestId,
     required String subject,
     required String mode,
     required String inputType,
@@ -49,8 +48,8 @@ class ChatRepository {
           headers: ApiClient.authHeaders(idToken),
           body: jsonEncode({
             "user_id": userId,
-            "code": code,
-            "device_id": deviceId,
+            // 🧾 معرّف المحاولة — إعادةُ نفس الرسالة بعد مهلةٍ لا تُخصَم مرتين.
+            "request_id": requestId,
             "subject": subject,
             "mode": mode,
             "input_type": inputType,
@@ -98,8 +97,7 @@ class ChatRepository {
   ///    المحادثة **واحدة متصلة** بدل جلستين منفصلتين.
   Future<AskResponse> teacherAsk({
     required String userId,
-    required String code,
-    required String deviceId,
+    required String requestId,
     required String tool,
     required bool generate,
     required String subject,
@@ -127,8 +125,7 @@ class ChatRepository {
           headers: ApiClient.authHeaders(idToken),
           body: jsonEncode({
             "user_id": userId,
-            "code": code,
-            "device_id": deviceId,
+            "request_id": requestId,
             "tool": tool,
             "generate": generate,
             "subject": subject,
@@ -168,8 +165,6 @@ class ChatRepository {
   /// يرجع النص الخام نفسه عند أي فشل — الميزة لا تعطّل الطالب أبداً.
   Future<String> cleanVoiceText({
     required String userId,
-    required String code,
-    required String deviceId,
     required String rawText,
     String subject = "",
     String? idToken,
@@ -181,10 +176,8 @@ class ChatRepository {
             headers: ApiClient.authHeaders(idToken),
             body: jsonEncode({
               "user_id": userId,
-              "code": code,
               // 📚 المادة قرينةٌ ترجّح المصطلح عند الالتباس الصوتي.
               "subject": subject,
-              "device_id": deviceId,
               "text": rawText,
             }),
           )

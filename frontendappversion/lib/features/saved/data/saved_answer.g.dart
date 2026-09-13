@@ -22,9 +22,9 @@ class SavedAnswerAdapter extends TypeAdapter<SavedAnswer> {
       section: fields[2] as String,
       subject: fields[3] as String,
       text: fields[4] as String,
-      savedAt: fields[5] as DateTime?,
       grade: fields[6] == null ? 0 : fields[6] as int,
       track: fields[7] == null ? '' : fields[7] as String,
+      savedAt: fields[5] as DateTime?,
     );
   }
 

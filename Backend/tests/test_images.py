@@ -64,8 +64,7 @@ def client(no_real_api_calls):
 
 
 def _body(**over):
-    b = {"user_id": "img", "code": "SUPER_USER", "device_id": "d",
-         "subject": "فيزياء", "mode": "شرح", "input_type": "برومت",
+    b = {"subject": "فيزياء", "mode": "شرح", "input_type": "برومت",
          "summary_level": 3, "content": "", "unit_name": "الكل", "lesson_name": "",
          "chat_history": [], "grade": 3, "track": "علمي"}
     b.update(over)
@@ -123,8 +122,10 @@ def test_two_images_both_extracted(client):
     r = client.post("/ask", json=_body(mode="سؤال", images_base64=[JPEG, PNG],
                                        content="قارن بينهما"))
     ans = r.json()["answer"]
-    assert "الصورة 1" in ans and "الصورة 2" in ans
-    assert "2 صور" in ans
+    # ٠١٢ والأرقام عربية: المادة **فيزياء**، وأرقامها تُعرَّب في [_finish]
+    #     منذ 2026-09-12 — فترقيمُ الصور كذلك، وهو المطلوب.
+    assert "الصورة ١" in ans and "الصورة ٢" in ans
+    assert "٢ صور" in ans
 
 
 def test_third_image_is_dropped(client):

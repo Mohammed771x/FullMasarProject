@@ -97,3 +97,54 @@ def empty_pages_target():
     if target is None:
         pytest.skip("كل مواد المنهج صار لها محتوى وحدات — لا هدف فارغ للاختبار")
     return target
+
+
+# ══════════════════════════════════════════════════════════════
+# 🔐 «طالبٌ مسجَّلٌ» هو الحالة الافتراضية لكل اختبار
+# ══════════════════════════════════════════════════════════════
+# 🗑️ بعد حذف نظام أكواد التفعيل، **لا مسار يعمل بلا توكن**. وكانت كل
+#    اختبارات المسارات تمرّر `code: SUPER_USER` بلا ترويسة — فصارت كلها 401.
+#
+# ⭐ والعلاج ليس إضافة ترويسة في خمسين موضعاً بل هنا: `bearer_token` تعيد
+#    توكناً وهمياً حين لا ترويسة، و`verify` تقبله وتعيد طالباً مسجَّلاً.
+#    فتُختبر **سلوك المسار** لا بوابته، ومن أراد اختبار البوابة نفسها
+#    يستبدل الاثنتين في اختباره (monkeypatch اللاحق يطغى على السابق).
+#
+# ⚠️ ولا يُخفي هذا انكساراً حقيقياً: اختبارات البوابة صريحة في
+#    `test_auth_quota.py` وتضبط الدالتين بنفسها.
+
+DEFAULT_TEST_IDENTITY = {
+    "uid": "test-uid", "email": "student@test.local", "email_verified": True,
+    "provider": "password", "is_guest": False, "name": "طالب الاختبار",
+}
+
+
+@pytest.fixture(autouse=True)
+def signed_in_by_default(monkeypatch):
+    from core import firebase_auth as fa
+    from core import user_state, idempotency
+
+    # 🧹 كاشات عابرة للاختبارات: بقاؤها يجعل اختباراً يُفسد تاليه.
+    user_state.reset()
+    idempotency.reset()
+
+    def _token(request):
+        header = (request.headers.get("authorization", "")
+                  or request.headers.get("Authorization", ""))
+        if header.lower().startswith("bearer "):
+            return header[7:].strip()
+        return "test-token"
+
+    monkeypatch.setattr(fa, "bearer_token", _token)
+    monkeypatch.setattr(fa, "verify", lambda token: dict(DEFAULT_TEST_IDENTITY))
+    yield
+    user_state.reset()
+    idempotency.reset()
+
+
+@pytest.fixture()
+def anonymous(monkeypatch):
+    """يُعيد المسارات إلى «بلا توكن» — لاختبار البوابة نفسها."""
+    from core import firebase_auth as fa
+    monkeypatch.setattr(fa, "bearer_token", lambda request: "")
+    return None

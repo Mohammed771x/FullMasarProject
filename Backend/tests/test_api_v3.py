@@ -18,8 +18,7 @@ def client(no_real_api_calls):
 
 def _ask_body(**over):
     body = {
-        "user_id": "test-user", "code": "SUPER_USER", "device_id": "test-dev",
-        "subject": "فيزياء", "mode": "شرح", "input_type": "برومت",
+                "subject": "فيزياء", "mode": "شرح", "input_type": "برومت",
         "summary_level": 3, "content": "", "unit_name": "", "lesson_name": "",
         "chat_history": [], "grade": 3, "track": "علمي",
     }
@@ -155,8 +154,9 @@ def test_ask_legacy_no_content_mode_untouched(client):
     assert r.status_code == 200
     assert "answer" in r.json()
 
-def test_ask_invalid_code_401(client):
-    r = client.post("/ask", json=_ask_body(code="wrong-code"))
+def test_ask_without_token_401(client, anonymous):
+    """🗑️ بعد حذف الأكواد: التوكن أو 401 — ولا ثالث."""
+    r = client.post("/ask", json=_ask_body())
     assert r.status_code == 401
 
 def test_ask_wazari_never_uses_v3(client):

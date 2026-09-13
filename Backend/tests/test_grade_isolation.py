@@ -19,7 +19,6 @@ def client(no_real_api_calls):
 
 def _ask_body(**over):
     body = {
-        "user_id": "test-user", "code": "SUPER_USER", "device_id": "test-dev",
         "subject": "انجليزي", "mode": "شرح", "input_type": "برومت",
         "summary_level": 3, "content": "hello", "unit_name": "", "lesson_name": "",
         "chat_history": [], "grade": 1, "track": "عام",

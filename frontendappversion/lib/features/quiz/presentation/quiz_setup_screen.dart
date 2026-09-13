@@ -7,6 +7,7 @@ import '../../../core/widgets/fade_in_slide.dart';
 import '../../../core/widgets/robot_widget.dart';
 import '../../chat/data/models/subject_capabilities.dart';
 import '../../chat/data/repositories/tutor_content_repository.dart';
+import '../data/quiz_resume_store.dart';
 import 'quiz_controller.dart';
 import 'quiz_play_screen.dart';
 
@@ -72,9 +73,16 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
   ///    قديم لم يكن يرسل `quiz.available`).
   bool _loadFailed = false;
 
+  /// ⏸️ اختبارٌ لم يكتمل — يُعرض في أعلى الشاشة إن وُجد.
+  QuizSnapshot? _resumable;
+
   @override
   void initState() {
     super.initState();
+    // ⏸️ نسأل عن لقطةٍ محفوظة بلا أن نؤخّر بناء الشاشة.
+    QuizResumeStore.read(UserSession.I.uid).then((snap) {
+      if (mounted && snap != null) setState(() => _resumable = snap);
+    });
     _grade = widget.initialGrade ?? UserSession.I.grade;
     _track = Curriculum.normalizeTrack(
         _grade, TrackLabel.fromKey(widget.initialTrack ?? UserSession.I.track));
@@ -124,31 +132,6 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
   List<String> get _units => _caps?.unitsWithLessons ?? const [];
   List<String> get _unitLessons => _caps?.lessonsIn(_unit) ?? const [];
   bool get _ready => _caps?.quizAvailable == true && _lessons.isNotEmpty;
-
-  void _setGrade(int g) {
-    setState(() {
-      _grade = g;
-      _track = Curriculum.normalizeTrack(g, _track);
-      if (!Curriculum.subjectsFor(_grade, _track).contains(_subject)) {
-        _subject = Curriculum.defaultSubject(_grade, _track);
-      }
-      _lessons.clear();
-      _lessonUnit.clear();
-    });
-    _loadCaps();
-  }
-
-  void _setTrack(Track t) {
-    setState(() {
-      _track = t;
-      if (!Curriculum.subjectsFor(_grade, _track).contains(_subject)) {
-        _subject = Curriculum.defaultSubject(_grade, _track);
-      }
-      _lessons.clear();
-      _lessonUnit.clear();
-    });
-    _loadCaps();
-  }
 
   void _setSubject(String s) {
     setState(() {
@@ -213,15 +196,18 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
             children: [
               _header(),
-              const SizedBox(height: 18),
-              _label("الصف الدراسي"),
-              _gradeChips(),
-              if (Curriculum.hasTracks(_grade)) ...[
+              if (_resumable != null) ...[
                 const SizedBox(height: 14),
-                _label("المسار"),
-                _trackChips(),
+                _resumeCard(_resumable!),
               ],
-              const SizedBox(height: 14),
+              // ⛔ **لا صفَّ ولا مسار هنا** (قرار المالك 2026-09-09):
+              //    الطالب حدّدهما في إعداداته مرّةً واحدة، وإعادةُ سؤاله
+              //    في كل شاشة تُقحم قراراً محسوماً — بل وتُغري بتغييره
+              //    فيمتحن نفسه في منهجٍ ليس منهجه.
+              //
+              // ⭐ فتظهر **مواد صفّه مباشرةً**. وهي نفس القاعدة التي طُبّقت
+              //    على القائمة الجانبية في قسم التعليم.
+              const SizedBox(height: 18),
               _label("المادة"),
               _subjectChips(),
               const SizedBox(height: 18),
@@ -252,6 +238,89 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
         ),
       ),
     );
+  }
+
+  // ───────────────────── ⏸️ استئناف اختبار ─────────────────────
+  //
+  // 🔴 **ما كان يحدث:** مكالمةٌ أو انقطاعُ نتٍّ أو قتلُ النظام للتطبيق في
+  //    الخلفية يمحو اختباراً وصل الطالب فيه للسؤال ١٢ من ١٥. ثم إعادته
+  //    تخصم حصةً ثانية وتنادي الموديل مرةً أخرى — فيدفع الطالب (ويدفع
+  //    المالك) ثمن مقاطعةٍ لم يخترها أحد.
+  //
+  // ⚠️ والاستئناف **بلا نداء موديل ولا خصم**: الأسئلة محفوظةٌ محلياً كما هي.
+
+  Widget _resumeCard(QuizSnapshot snap) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.play_circle_fill_rounded, color: AppColors.primary, size: 22),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "لديك اختبار لم يكتمل",
+                  style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      color: AppColors.textPrimary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "${snap.subject} · ${snap.unit.isEmpty ? 'دروس مختارة' : snap.unit}"
+            " — باقٍ ${snap.remaining} من ${snap.questions.length} أسئلة",
+            style: TextStyle(fontSize: 12, height: 1.5, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => _resume(snap),
+                  icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                  label: const Text("أكمل"),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              TextButton(
+                onPressed: () async {
+                  await QuizResumeStore.clear(UserSession.I.uid);
+                  if (mounted) setState(() => _resumable = null);
+                },
+                child: Text("تجاهله",
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _resume(QuizSnapshot snap) async {
+    final c = QuizController()..resumeFrom(snap);
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => QuizPlayScreen(controller: c)),
+    );
+    if (!mounted) return;
+    // 🔄 عند العودة: إن كان الاختبار قد اكتمل فاللقطة مُسحت — نُحدّث الشاشة.
+    final still = await QuizResumeStore.read(UserSession.I.uid);
+    if (mounted) setState(() => _resumable = still);
   }
 
   // ───────────────────────── أجزاء ─────────────────────────
@@ -287,29 +356,6 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
               style: TextStyle(
                   fontSize: 12.5, fontWeight: FontWeight.w900, color: AppColors.textSecondary)),
         ),
-      );
-
-  Widget _gradeChips() => Row(
-        children: List.generate(3, (i) {
-          final g = i + 1;
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(left: i < 2 ? 8 : 0),
-              child: _chip(Curriculum.gradeShort(g), g == _grade, () => _setGrade(g)),
-            ),
-          );
-        }),
-      );
-
-  Widget _trackChips() => Row(
-        children: Curriculum.tracksFor(_grade).map((t) {
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: _chip(t.label, t == _track, () => _setTrack(t)),
-            ),
-          );
-        }).toList(),
       );
 
   Widget _subjectChips() => Wrap(

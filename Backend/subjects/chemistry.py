@@ -16,8 +16,9 @@ from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
 from typing import Dict, List, Optional
 import json
-import re
 import asyncio
+
+from core import streaming
 import time
 
 SUBJECT = "كيمياء"
@@ -224,19 +225,24 @@ async def handle_chemistry_explain(req: AskRequest, openai_client):
 """
         })
         
-        response = await asyncio.wait_for(
-            openai_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        raw_answer = await streaming.complete(
+            openai_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gpt-4o-mini",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.2
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
-        
-        raw_answer = response.choices[0].message.content
-        clean_answer = format_arabic_math(raw_answer)
+            temperature=0.2,
+        )
+        clean_answer = format_arabic_math(raw_answer, "كيمياء")
         
         # ✅ فلتر التنظيف الجذري لإزالة أكواد LaTeX والشرطة السفلية
-        # ⚠️ `\frac` مستثناة — ترميز الكسر الذي يرسمه التطبيق.
-        clean_answer = re.sub(r'\\(?!frac\b|chem\b|ring\b)[a-zA-Z]+', '', clean_answer)
+        # ℹ️ حُذف من هنا فلترٌ يمسح كل أمرٍ لاتيكيّ عدا ثلاثة
+        #    (`frac` · `chem` · `ring`) — وهي **قائمةٌ متخلّفة**: الترميزات
+        #    عشرة اليوم، فكان يمسح `\sup` و`\nuc` و`\sqrt` بعد أن
+        #    وَلَّدها [_finish] فتصل الطالبَ أقواسُها عارية. و
+        #    `format_arabic_math` تنتهي أصلاً بـ`latex_guard.clean` الذي
+        #    **يحوّل** ما لا يعرفه إلى رمزه ولا يحذف إلا ما لا مقابل له.
         clean_answer = clean_answer.replace('_', ' ')
         answer = clean_answer
     except asyncio.TimeoutError:
@@ -346,18 +352,24 @@ async def handle_chemistry_summary(req: AskRequest, openai_client):
 """
         })
         
-        response = await asyncio.wait_for(
-            openai_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        raw_answer = await streaming.complete(
+            openai_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gpt-4o-mini",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.15
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
-        raw_answer = response.choices[0].message.content
-        clean_answer = format_arabic_math(raw_answer)
+            temperature=0.15,
+        )
+        clean_answer = format_arabic_math(raw_answer, "كيمياء")
         
         # ✅ فلتر التنظيف الجذري
-        # ⚠️ `\frac` مستثناة — ترميز الكسر الذي يرسمه التطبيق.
-        clean_answer = re.sub(r'\\(?!frac\b|chem\b|ring\b)[a-zA-Z]+', '', clean_answer)
+        # ℹ️ حُذف من هنا فلترٌ يمسح كل أمرٍ لاتيكيّ عدا ثلاثة
+        #    (`frac` · `chem` · `ring`) — وهي **قائمةٌ متخلّفة**: الترميزات
+        #    عشرة اليوم، فكان يمسح `\sup` و`\nuc` و`\sqrt` بعد أن
+        #    وَلَّدها [_finish] فتصل الطالبَ أقواسُها عارية. و
+        #    `format_arabic_math` تنتهي أصلاً بـ`latex_guard.clean` الذي
+        #    **يحوّل** ما لا يعرفه إلى رمزه ولا يحذف إلا ما لا مقابل له.
         clean_answer = clean_answer.replace('_', ' ')
         answer = clean_answer
     except asyncio.TimeoutError:    
@@ -474,19 +486,24 @@ async def handle_chemistry_question(req: AskRequest, openai_client):
 """
         })
         
-        response = await asyncio.wait_for(
-            openai_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        raw_answer = await streaming.complete(
+            openai_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gpt-4o-mini",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.1
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
-        
-        raw_answer = response.choices[0].message.content
-        clean_answer = format_arabic_math(raw_answer)
+            temperature=0.1,
+        )
+        clean_answer = format_arabic_math(raw_answer, "كيمياء")
         
         # ✅ فلتر التنظيف الجذري
-        # ⚠️ `\frac` مستثناة — ترميز الكسر الذي يرسمه التطبيق.
-        clean_answer = re.sub(r'\\(?!frac\b|chem\b|ring\b)[a-zA-Z]+', '', clean_answer)
+        # ℹ️ حُذف من هنا فلترٌ يمسح كل أمرٍ لاتيكيّ عدا ثلاثة
+        #    (`frac` · `chem` · `ring`) — وهي **قائمةٌ متخلّفة**: الترميزات
+        #    عشرة اليوم، فكان يمسح `\sup` و`\nuc` و`\sqrt` بعد أن
+        #    وَلَّدها [_finish] فتصل الطالبَ أقواسُها عارية. و
+        #    `format_arabic_math` تنتهي أصلاً بـ`latex_guard.clean` الذي
+        #    **يحوّل** ما لا يعرفه إلى رمزه ولا يحذف إلا ما لا مقابل له.
         clean_answer = clean_answer.replace('_', ' ')
         answer = clean_answer
     except asyncio.TimeoutError:    

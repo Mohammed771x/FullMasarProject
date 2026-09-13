@@ -17,6 +17,15 @@ import json
 import os
 import re
 import asyncio
+
+from core import streaming
+from core.fractions import to_frac
+from core import latex_guard as _latex_guard
+from core import latex_guard
+from core.roots import to_sqrt
+from core.factorial import to_factorial
+from core import arabic_digits
+from core import steps_format
 import time
 
 
@@ -31,6 +40,26 @@ sessions_math = {}
 
 
 _session_timestamps = {}
+
+# ══════════════════════════════════════════════════════════════════
+# 📐 تعليماتُ الترميز — **نصٌّ واحد يُنادى من كل برومبت**
+# ══════════════════════════════════════════════════════════════════
+# 🔴 كانت هذه الفقرة **مكرّرةً خمس مرات** ولا تذكر إلا الكسور، فبقي
+#    الموديل يكتب «ن!» و«ل(ن، ر)» بالإنجليزية ويُصلحها الخادمُ بعدَه.
+#    والمالك طلب أن **يعرف الموديلُ الآليةَ نفسها** — فوُحّدت هنا، وكلُّ
+#    رمزٍ جديد يُضاف في مكانٍ واحد ويصل البرومبتات الخمسة معاً.
+#
+# ⚖️ والخادم يبقى يحوّل نصَّ الكتاب على كل حال (`core/*.py`)، فالتعليمة
+#    تحسينٌ لا اعتمادٌ: إن أخطأ الموديل صحّحه `_finish`.
+MARKUP_RULES = (
+    "- ✅ استثناء وحيد من منع الرموز الإنجليزية: **ترميز الرسم**. اكتبه كما يلي حرفياً:\n"
+    "  • الكسر: \\frac{البسط}{المقام} — لا «/» ولا «÷». مثال: \\frac{لو أ}{لو ب}\n"
+    "  • الجذر: \\sqrt{المقدار} والتكعيبي \\sqrt[3]{المقدار} — لا كلمة «جذر» ولا «√».\n"
+    "  • المضروب: \\fact{المقدار} — لا «!». مثال: \\fact{ن} و\\fact{ن-١}.\n"
+    "  • التباديل: \\perm{ن}{ر} — لا «ل(ن، ر)» ولا «ن ل ر».\n"
+    "  • التوافيق: \\comb{ن}{ر} — لا «(ن ق ر)».\n"
+    "  ولا تكتب أيَّ أمرٍ آخر يبدأ بشرطةٍ مائلة.\n"
+)
 
 def cleanup_old_sessions():
     now = time.time()
@@ -51,26 +80,79 @@ def cleanup_old_sessions():
 # =====================
 def format_lesson_safely(data, level=0):
     """
-    هذه الدالة تفكك أي درس مهما كان معقداً إلى نص عربي نقي 
+    هذه الدالة تفكك أي درس مهما كان معقداً إلى نص عربي نقي
     بدون ضياع أي معلومة، مما يخفف التوكنز بنسبة 40% ويسرع الموديل.
+
+    🔴 **ثغرة كشفها مسحٌ لكل دروس الرياضيات (2026-09-09):** ٢٤ درساً من ٦٤
+       كان شرحُها يخرج بشرطة القسمة لا بالكسر المرسوم — «دص/دس» · «س² / أ²» ·
+       «س³ / ٣». والسبب ليس البرومبت: البرومبت يأمر بالنقل **حرفياً من
+       الدرس**، ونصُّ الكتاب مكتوب بالشرطة، فالموديل ينقلها بأمانة — أي أنه
+       **يطيعنا**، ولا ينفع تشديد الأمر.
+
+    ⭐ والعلاج أن نُصلح نصّ الكتاب **قبل أن يراه الموديل** ([core/fractions.py]).
+       وكانت `fractions.to_frac` موصولةً بأربعة منافذ ([arabic-math-fractions])
+       — و**هذا المنفذ ليس أحدها**، مع أنه مسار «ابدأ الشرح الذكي» وهو أكثر
+       ما يُستعمل في الرياضيات.
     """
+    text = _build_lesson_text(data, level)
+    if level != 0:
+        return text
+
+    # 🛡️ حارس اللاتيك على **نصّ الكتاب** لا على جواب الموديل وحده.
+    #
+    # 🔴 كان مسار عرض الدرس («وضع الوحدات» و«ابدأ الشرح الذكي») يخرج بلا
+    #    حارس، فوصل الطالبَ حرفٌ لاتينيّ مكانَ رمزٍ رياضيّ من الملفّ نفسه:
+    #    «]-∞، ٢[ U ]٢، ∞[» و«التركيب (ق o د)» — ١١ درساً من ٦٤.
+    #
+    # ⭐ وموضعُه هنا يحرس **كل درسٍ يُضاف لاحقاً** بلا مراجعةٍ يدوية، ويحرس
+    #    الموديل معه: البرومبت يأمره بالنقل حرفياً، فما نُصلحه قبل أن يراه
+    #    يُنقل مصلَحاً ([adding-subject-content]).
+    text = latex_guard.clean(text)
+
+    # √ والجذر يُرسم لا يُكتب كلمةً — **قبل أن يراه الموديل** فينقله مرسوماً.
+    text = to_sqrt(text, "رياضيات")
+    text = to_factorial(text, "رياضيات")
+
+    # ٠١٢ وأرقام الكتاب عربية — **قبل أن يراها الموديل**، فالبرومبت يأمره
+    #     بالنقل حرفياً فينقلها عربيةً من تلقائه، ولا يبقى للفلتر إلا الشوارد.
+    text = arabic_digits.to_arabic(text)
+
+    # 🔢 التحويل مرة واحدة على النصّ المكتمل لا على كل ورقة: `to_frac` تقرأ
+    #    ما حول الشرطة لتميّز الكسر من الوحدة ومن «أو» العربية، فتقطيعُ
+    #    النصّ يحرمها ذلك السياق.
+    return to_frac(text)
+
+
+def _build_lesson_text(data, level=0):
+    """التفكيك الخام — بلا تحويل كسور (يقع مرةً واحدة في الأعلى)."""
     text = ""
     indent = "  " * level
     if isinstance(data, dict):
         for k, v in data.items():
             if isinstance(v, (dict, list)):
-                text += f"{indent}▪️ {k}:\n" + format_lesson_safely(v, level + 1)
+                text += f"{indent}▪️ {k}:\n" + _build_lesson_text(v, level + 1)
             else:
                 text += f"{indent}▪️ {k}: {v}\n"
     elif isinstance(data, list):
         for item in data:
             if isinstance(item, (dict, list)):
-                text += format_lesson_safely(item, level + 1) + "\n"
+                text += _build_lesson_text(item, level + 1) + "\n"
             else:
                 text += f"{indent}- {item}\n"
     else:
         text += f"{indent}{data}\n"
     return text.strip()
+
+
+def _finalize(text: str) -> str:
+    """آخر ما يمرّ به جوابُ الرياضيات قبل الطالب.
+
+    🔴 **والأرقام بالعربية قرارُ المالك (2026-09-09):** الكتاب اليمني يكتب
+       ٠١٢٣، فخروجُ الجواب بـ0123 يجعله غريباً عن الصفحة التي بين يدَي
+       الطالب. وهي [ضمانة] لا رجاء — راجع [core/arabic_digits.py].
+    """
+    return steps_format.space_steps(
+        arabic_digits.to_arabic(format_arabic_math(text, "رياضيات")))
 
 
 def system_prompt_math_explain():
@@ -87,18 +169,33 @@ def system_prompt_math_explain():
         "3) الشرح يكون تدريجي وبسيط.\n"
         "4) عند الأمثلة: اشرح خطوة خطوة كما هي.\n"
         "5) اشرح باللغة العربية فقط.\n\n"
+        "🔴 اللغة (قاعدة قاطعة تعلو على كل ما سواها):\n"
+        "- اكتب **بالعربية وحدها**. لا كلمة إنجليزية ولا من أي لغة أخرى\n"
+        "  إطلاقاً — لا في الشرح ولا في المعادلات ولا بين قوسين.\n"
+        "- الاستثناء الوحيد: مصطلحٌ إنجليزي **منقولٌ حرفياً من نصّ الدرس**\n"
+        "  بين قوسين (مثل: القطع الزائد (Hyperbola)).\n"
+        "- ورمز تركيب الدوال يُكتب ∘ لا حرف o.\n\n"
+        "📐 التنسيق (ما يراه الطالب على شاشة صغيرة):\n"
+        "- **كل خطوة سطرٌ مستقل**، وبين كل خطوة وأختها **سطر فارغ**.\n"
+        "- لا تبدأ خطوةً برقمٍ عارٍ («2.») — الرقم يلتصق بالمعادلة فيُقرأ\n"
+        "  جزءاً منها. اجعل العنوان **عريضاً بكلمة**: «**المجال:**» ·\n"
+        "  «**النهايات والمقاربات:**» · «**المشتقة:**».\n"
+        "- **كل معادلة على سطرها وحدها**، لا في وسط جملة.\n"
+        "- الأرقام بالعربية: ٠١٢٣٤٥٦٧٨٩ لا 0123456789 — في الشرح\n"
+        "  والمعادلات وأرقام الخطوات جميعاً.\n"
+        "- لا تُسرف في التعداد المتشعّب؛ مستوىً واحد يكفي.\n\n"
         "الرموز:\n"
         "- استخدم (جا، جتا، ظا) و (س، ص)\n"
         "- او اي صيغ اخرى  LaTeX او int اكتب الرموز والمعادلات باللغة العربية بالرموز و الطرق المكتوبة بالدرس لاتستخدم\n"
-        "- ✅ استثناء وحيد: **الكسور**. اكتب كل كسر بالصيغة \\frac{البسط}{المقام} ولا تكتبه بـ«/» ولا «÷» — مثال: \\frac{لو أ}{لو ب}\n"
-        "- اكتب المعادلات كنص عادي: ص = 2س² + 1"
+        + MARKUP_RULES +
+        "- اكتب المعادلات كنص عادي: ص = ٢س² + ١"
     )
 
 # =====================
 # دوال مساعدة
 # =====================
 
-async def explain_math_lesson(lesson: dict, groq_client,deepseek_client):
+async def explain_math_lesson(lesson: dict, groq_client, deepseek_client, sink=None):
     """شرح درس رياضيات"""
     content = format_lesson_safely(lesson)
     
@@ -112,28 +209,33 @@ async def explain_math_lesson(lesson: dict, groq_client,deepseek_client):
 - اكتب باللغة العربية فقط
 - استخدم الرموز العربية مثل (جا، جتا، ظا) و (س، ص،أ،ب،ج وغيرها )
 - لا تستخدم LaTeX أو \\text
-- ✅ استثناء وحيد: **الكسور**. اكتب كل كسر بالصيغة \\frac{{البسط}}{{المقام}} ولا تكتبه بـ«/» ولا «÷» — مثال: \\frac{{لو أ}}{{لو ب}}
+{MARKUP_RULES}
 - اكتب المعادلات كنص عادي
-مثال: ص = 2س² + 1
+مثال: ص = ٢س² + ١
 """
     
     try:
-        # 1. الطلب محمي بتايمر 50 ثانية
-        response = await asyncio.wait_for(
-            deepseek_client.chat.completions.create(
-                model="deepseek-chat",
-                temperature=0.2,
-                max_tokens=4000,
-                messages=[
-                    {"role": "system", "content": system_prompt_math_explain()},
-                    {"role": "user", "content": prompt}
-                ]
-            ), 
-            timeout=50.0  # <== التايمر هنا
+        # 🌊 **هذه هي «ابدأ الشرح الذكي»** — أكثر مسارٍ يُستعمل في الرياضيات.
+        #
+        # 🔴 وكانت مستثناةً من البثّ بتعليلٍ **خاطئ**: ظننتُ أن
+        #    `handle_math_explain` تبثّ ردَّها بنفسها، والحقيقة أن فرع «درس
+        #    جديد» **يفوّضها كاملاً** ولا ينادي الموديل إطلاقاً. فكان الطالب
+        #    يضغط «ابدأ الشرح» وينتظر صامتاً حتى يهبط الشرح دفعةً واحدة.
+        #
+        # ✅ والمصرف يصل كمعاملٍ صريح لأن الدالة بلا `req`.
+        raw_answer = await streaming.complete(
+            deepseek_client,
+            sink=sink,
+            timeout=50.0,
+            model="deepseek-chat",
+            temperature=0.2,
+            max_tokens=4000,
+            messages=[
+                {"role": "system", "content": system_prompt_math_explain()},
+                {"role": "user", "content": prompt}
+            ],
         )
-        
-        raw_answer = response.choices[0].message.content
-        clean_answer = format_arabic_math(raw_answer)
+        clean_answer = _finalize(raw_answer)
         return clean_answer  # 👈 نرجع النص النظيف الخالي من المربعات
 
     # 2. اصطياد خطأ الوقت (التايم آوت)
@@ -240,7 +342,8 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
         if not lesson: 
             return {"answer": f"❌ لم أجد درس '{lesson_name}'."}
         
-        explanation = await explain_math_lesson(lesson, groq_client,deepseek_client)
+        explanation = await explain_math_lesson(
+        lesson, groq_client, deepseek_client, sink=streaming.sink_of(req))
         
         sessions[user_id] = {
             "subject": "رياضيات",
@@ -282,23 +385,24 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
 - اكتب الشرح باللغة العربية فقط
 - لا تستخدم LaTeX
 - لا تستخدم \\text
-- ✅ استثناء وحيد: **الكسور**. اكتب كل كسر بالصيغة \\frac{البسط}{المقام} ولا تكتبه بـ«/» ولا «÷» — مثال: \\frac{لو أ}{لو ب}
-- اكتب المعادلات كنص عادي
-مثال: ص = 2س² + 1"""
+"""
+            + MARKUP_RULES
+            + """- اكتب المعادلات كنص عادي
+مثال: ص = ٢س² + ١"""
         })
         
         try:
-            response = await asyncio.wait_for(
-                deepseek_client.chat.completions.create(
+            # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+            raw_answer = await streaming.complete(
+                deepseek_client,
+                sink=streaming.sink_of(req),
+                timeout=60,
                 model="deepseek-chat",
                 temperature=0.2,
                 messages=messages_for_ai,
-                max_tokens=4000
-            ), timeout=60)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
-            
-            
-            raw_answer = response.choices[0].message.content
-            clean_answer = format_arabic_math(raw_answer)
+                max_tokens=4000,
+            )
+            clean_answer = _finalize(raw_answer)
             full_answer = clean_answer # نمرر الإجابة النظيفة للتطبيق
             clean_answer = re.sub(r'<think>.*?</think>', '', full_answer, flags=re.DOTALL | re.IGNORECASE).strip()
             
@@ -319,7 +423,8 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
     if not lesson: 
         return {"answer": f"❌ لم أجد درس '{lesson_name}'."}
     
-    explanation = await explain_math_lesson(lesson, groq_client,deepseek_client)
+    explanation = await explain_math_lesson(
+        lesson, groq_client, deepseek_client, sink=streaming.sink_of(req))
     
     sessions[user_id] = {
         "subject": "رياضيات",
@@ -368,8 +473,8 @@ async def handle_math_question(req: AskRequest, sessions: Dict, deepseek_client)
             "🔢 الرموز الرياضية:\n"
             "- استخدم فقط: (جا، جتا، ظا) و (س، ص)\n\n"
             "-  لا تستخدم \\text او اي رموز اخرى مشابه لها , اكتب بنفس الصيغه الموجودة في الدرس \n"
-            "- ✅ استثناء وحيد: **الكسور**. اكتب كل كسر بالصيغة \\frac{البسط}{المقام} ولا تكتبه بـ«/» ولا «÷» — مثال: \\frac{لو أ}{لو ب}\n\n"
-            "✏️ مثال للكتابة الصحيحة:\nص = 2س² + 1\n\n"
+            + MARKUP_RULES +
+            "✏️ مثال للكتابة الصحيحة:\nص = ٢س² + ١\n\n"
             "⚠️ مهم جداً: اكتب الحل مرة واحدة فقط، بدون تكرار."
     )
     
@@ -386,16 +491,16 @@ async def handle_math_question(req: AskRequest, sessions: Dict, deepseek_client)
             "content": f"سياق الدرس:\n{lesson_text}\n\nسؤال الطالب: {user_text}"
         })
         
-        response = await asyncio.wait_for(
-            deepseek_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        raw_answer = await streaming.complete(
+            deepseek_client,
+            sink=streaming.sink_of(req),
+            timeout=60,
             model="deepseek-chat",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.2
-        ), timeout=60)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
-        
-        
-        raw_answer = response.choices[0].message.content
-        clean_answer = format_arabic_math(raw_answer)
+            temperature=0.2,
+        )
+        clean_answer = _finalize(raw_answer)
         full_answer = clean_answer # نمرر الإجابة النظيفة للتطبيق
         
         # تنظيف النص
@@ -593,8 +698,8 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
             "يمنع استخدام اي رموز غير عربية .\n\n"
             "- استخدم فقط: (جا، جتا، ظا) و (س، ص)\n\n"
             "- لا تستخدم \\text\n"
-            "- ✅ استثناء وحيد: **الكسور**. اكتب كل كسر بالصيغة \\frac{البسط}{المقام} ولا تكتبه بـ«/» ولا «÷» — مثال: \\frac{لو أ}{لو ب}\n\n"
-            "✏️ مثال للكتابة الصحيحة:\nص = 2س² + 1\n\n"
+            + MARKUP_RULES +
+            "✏️ مثال للكتابة الصحيحة:\nص = ٢س² + ١\n\n"
                 "- اشرح الحل خطوة بخطوة\n"
                 "- اذكر القوانين المستخدمة\n"
                 "- إذا ذكر رقم سؤال، ارجع للسؤال المطابق من القائمة المعروضة\n"
@@ -626,16 +731,16 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
                 )
             })
             
-            # ✅ استدعاء الـ AI
-            response = await asyncio.wait_for(
-                deepseek_client.chat.completions.create(
+            # ✅ استدعاء الـ AI — 🌊 يبثّ على مسار البثّ، وإلا نداءٌ عادي.
+            raw_answer = await streaming.complete(
+                deepseek_client,
+                sink=streaming.sink_of(req),
+                timeout=60,
                 model="deepseek-chat",
                 messages=messages_for_ai, max_tokens=4000,
-                temperature=0.2
-            ), timeout=60)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
-            
-            raw_answer = response.choices[0].message.content
-            clean_answer = format_arabic_math(raw_answer)
+                temperature=0.2,
+            )
+            clean_answer = _finalize(raw_answer)
             full_answer = clean_answer # نمرر الإجابة النظيفة للتطبيق
             
             # ✅ تنظيف النص
@@ -645,9 +750,12 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
             
             # إزالة أي كود LaTeX متبقي
             clean_answer = re.sub(r'\$.*?\$', '', clean_answer)
-            # ⚠️ `\frac` مستثناة: هي ترميز الكسر الذي يرسمه التطبيق
-            #    بسطاً فوق مقام. مسحُها هنا كان يُفرغ البرومبت من معناه.
-            clean_answer = re.sub(r'\\(?!frac\b|chem\b|ring\b)[a-z]+', '', clean_answer)
+            # 🔴🔴 **قائمةُ الاستثناء واحدة: `latex_guard.KEPT`.**
+            #    كانت هنا نسخةٌ محلّية `(frac|chem|ring)` فتخلّفت عن الأصل،
+            #    فصارت تمسح `\sqrt` و`\fact` بعد أن يحقنهما `_finalize`
+            #    — أي أن الجذر والمضروب كانا **يُمحيان في هذا المسار وحده**.
+            #    نفسُ العلّة التي وقعت ثلاث مرات: منطقٌ مكرَّرٌ ينحرف.
+            clean_answer = _latex_guard.clean(clean_answer)
             
             return {
                 "answer": clean_answer,

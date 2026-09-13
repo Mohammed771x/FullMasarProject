@@ -167,10 +167,41 @@ void main() {
           const SubjectAnalysisScreen(subject: 'فيزياء', ownerUid: _owner)));
       await t.pump();
 
-      expect(find.text('70%'), findsOneWidget); // المتوسط: 14 من 20
-      expect(find.text('100%'), findsOneWidget); // أفضل نتيجة
-      expect(find.text('40%'), findsOneWidget); // آخر نتيجة
-      expect(find.text('2'), findsOneWidget); // عدد الاختبارات
+      // ⚠️ **نستهدف بطاقات الإحصاء بعينها لا النصّ المجرّد.** بعد إضافة
+      //    سجلّ «اختباراتك الأخيرة» صارت النسبة نفسها تظهر مرتين — مرةً
+      //    في البطاقة ومرةً في صفّ الاختبار. والتوقّع الأصلي (`findsOneWidget`
+      //    على نصٍّ عائم) كان يمرّ بالصدفة لا بالدقة.
+      expect(_statValue(t, '70%'), 1, reason: 'المتوسط: 14 من 20');
+      expect(_statValue(t, '100%'), 1, reason: 'أفضل نتيجة');
+      expect(_statValue(t, '40%'), 1, reason: 'آخر نتيجة');
+      expect(_statValue(t, '2'), 1, reason: 'عدد الاختبارات');
+    });
+
+    testWidgets('🗂️ سجلّ الاختبارات يظهر مع كل نتيجة ونسبتها', (t) async {
+      await seed(t, [
+        _r(subject: 'فيزياء', score: 10, total: 10, at: DateTime(2026, 8, 1)),
+        _r(subject: 'فيزياء', score: 4, total: 10, at: DateTime(2026, 8, 2)),
+      ]);
+      await t.pumpWidget(_app(
+          const SubjectAnalysisScreen(subject: 'فيزياء', ownerUid: _owner)));
+      await t.pump();
+
+      // 📜 السجلّ أسفل الشاشة، و`ListView` لا يبني ما هو خارجها.
+      await t.scrollUntilVisible(find.textContaining('اختباراتك الأخيرة'), 300);
+      expect(find.textContaining('اختباراتك الأخيرة'), findsOneWidget);
+      expect(find.text('10 من 10'), findsOneWidget);
+      expect(find.text('4 من 10'), findsOneWidget);
+    });
+
+    testWidgets('نتيجةٌ بلا مراجعة محفوظة ⇒ لا زرّ «راجع»', (t) async {
+      // ⚠️ زرٌّ يفتح شاشةً تعتذر أسوأ من غيابه. والنتائج القديمة (وما
+      //    يُستعاد من السحابة) تصل بلا مراجعة عمداً.
+      await seed(t, [_r(subject: 'فيزياء', score: 5, total: 10)]);
+      await t.pumpWidget(_app(
+          const SubjectAnalysisScreen(subject: 'فيزياء', ownerUid: _owner)));
+      await t.pump();
+
+      expect(find.text('راجع'), findsNothing);
     });
 
     testWidgets('بلا أخطاء ⇒ رسالة تهنئة لا قائمة فارغة', (t) async {
@@ -282,3 +313,12 @@ void detailSheetTests() {
     expect(find.text('🎯 أضعف مادة'), findsNothing);
   });
 }
+
+/// عدد بطاقات الإحصاء التي تحمل هذه القيمة.
+///
+/// تُميَّز بحجم خطّها (٢٠) عن أرقام سجلّ الاختبارات (١٣) — فالاختبار يقيس
+/// **ما يقصده** لا مجرّد وجود نصٍّ في الشجرة.
+int _statValue(WidgetTester t, String value) => t
+    .widgetList<Text>(find.text(value))
+    .where((w) => w.style?.fontSize == 20)
+    .length;

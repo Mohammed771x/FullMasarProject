@@ -11,6 +11,7 @@
 #   📄 وضع الوحدات → data/subjects/{الصف}/{المسار}/منطق/unit_mode/book.json
 
 from core import lesson_mode, pages_mode
+from core import arabic_digits, steps_format
 
 SUBJECT = "منطق"
 
@@ -56,7 +57,8 @@ def prompt_explain() -> str:
 أن يفهم الطالب الفكرة بعمق ويستطيع إعادة شرحها بنفسه."""
         "القواعد الأساسية (مهم الالتزام بها بدقة):\n"
         "1) اشرح باللغة العربية فقط ولا تضف اي كلمات من لغة اخرى اجنبية.\n"
-        "2) اكتب الأرقام والتواريخ بشكل نصي نظيف ومقروء، وتجنب تماماً استخدام أي أكواد أو رموز برمجية.\n"
+        "2) اكتب الأرقام والتواريخ **بالأرقام العربية ٠١٢٣٤٥٦٧٨٩** لا 0123456789، "
+"وتجنب تماماً استخدام أي أكواد أو رموز برمجية.\n""2-ب) كل خطوة في سطرٍ مستقل وبينها سطر فارغ، وكل معادلة على سطرها.\n"
         "3) مصدر الإجابة الوحيد هو الكتاب المعطى لك فقط، ولا يُسمح باستخدام أي معلومات من خارج الكتاب.\n"
         "4) لا تضف معرفة عامة، ولا أمثلة خارجية، ولا اجتهاد شخصي.\n"
         "5) جميع الإجابات يجب أن تكون إما نقلًا مباشرًا من نص الكتاب أو شرحًا مبسطًا لمعنى موجود صراحة في الكتاب.\n\n"
@@ -72,7 +74,7 @@ def prompt_summary(level: int) -> str:
         f"أنت ملخّص ماهر لمادة {SUBJECT}. التزم بالنص المقدم فقط. "
         f"لخص بمستوى: {levels.get(level, 'متوسط')}. "
         "تكلم باللغة العربية فقط ولا تضف اي كلمات من لغة اخرى اجنبية.\n"
-        "اكتب الأرقام والتواريخ بشكل نصي نظيف ومقروء، وتجنب أي رموز برمجية.\n"
+        "اكتب الأرقام والتواريخ بالأرقام العربية ٠١٢٣٤٥٦٧٨٩ لا 0123456789، وتجنب أي رموز برمجية.\n"
         "لا تضف معلومات خارج النص. التنسيق يكون واضحًا ونقاط عند الحاجة."
     )
 
@@ -105,9 +107,16 @@ async def handle_logic_request(req, clients: dict) -> dict:
         from core.content_store import get_lessons_book
         mode = "lessons" if get_lessons_book(req.grade, req.track, SUBJECT) is not None else "pages"
 
-    if mode == "lessons":
-        return await lesson_mode.handle(req, clients, prompts=_self())
-    return await pages_mode.handle(req, clients, prompts=_self())
+    result = await (lesson_mode if mode == "lessons" else pages_mode).handle(
+        req, clients, prompts=_self())
+
+    # ٠١٢ **أرقام المنطق بالعربية** (قرار المالك 2026-09-09): كتاب المنطق
+    #     يكتب ٠١٢٣، والبرومبت كان يقول «اكتب الأرقام بشكل نصي نظيف» —
+    #     وهي عبارةٌ لا تُلزم شيئاً، فخرجت الأرقام لاتينية. والضمانة فلتر.
+    if isinstance(result, dict) and result.get("answer"):
+        result["answer"] = steps_format.space_steps(
+            arabic_digits.to_arabic(result["answer"]))
+    return result
 
 
 def _self():

@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 // ==========================================
 // كل القيم الحساسة/البيئية تُمرّر وقت البناء عبر --dart-define بدل كتابتها
 // صريحة داخل الكود، مثال:
-//   flutter build apk --dart-define=API_BASE_URL=https://... --dart-define=ACCESS_CODE=SUPER_USER
+//   flutter build apk --dart-define=API_BASE_URL=https://...
 // مع قيم افتراضية آمنة للتطوير حتى لا ينكسر التشغيل المحلي.
 class AppConfig {
   AppConfig._();
@@ -90,13 +90,25 @@ class AppConfig {
     return _prodBaseUrl;
   }
 
-  // 🔑 كود الوصول المرسل مع كل طلب (مبدئياً SUPER_USER لمطابقة الباك)
-  static const String accessCode = String.fromEnvironment(
-    'ACCESS_CODE',
-    defaultValue: 'SUPER_USER',
-  );
+  // 🗑️ **`accessCode` حُذف بالكامل** (2026-09-08).
+  //
+  // 🔴 كان `String.fromEnvironment('ACCESS_CODE', defaultValue: 'SUPER_USER')`
+  //    يُرسَل مع كل طلب، ونوعه على الخادم `master` ⇒ بلا ربط جهاز، بلا حصة،
+  //    بلا حظر، بلا تحقق بريد. أي أن **استخراج نصٍّ واحد من الـAPK كان يفتح
+  //    فاتورة الموديلات كلها**.
+  //
+  // ⚠️ و`--obfuscate` لا يحمي منه: التشويش يعيد تسمية الرموز **ولا يخفي
+  //    النصوص الثابتة** — `strings app.so | grep SUPER` كان يكفي. وتمريره
+  //    بـ`--dart-define` لا يغيّر شيئاً: القيمة تُدفَن في الملف التنفيذي
+  //    وقت البناء كما هي.
+  //
+  // ✅ البديل: توكن Firebase قصير العمر يتجدّد تلقائياً ويُربط بحسابٍ حقيقي.
 
   // ⏱️ المهلات الزمنية
-  static const Duration askTimeout = Duration(seconds: 60);
-  static const Duration contentTimeout = Duration(seconds: 10);
+  //
+  // ⚠️ **مهلة `/ask` أطول من مهلة الخادم عمداً**: قطعُ العميل قبل أن ينهي
+  //    الخادمُ عملَه يعني حصةً خُصمت وجواباً ضاع. و`request_id` يمنع الخصم
+  //    المزدوج عند الإعادة، لكن انتظارَ الجواب أصلاً أفضل من إعادته.
+  static const Duration askTimeout = Duration(seconds: 90);
+  static const Duration contentTimeout = Duration(seconds: 20);
 }

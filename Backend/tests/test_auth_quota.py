@@ -1,4 +1,8 @@
-"""بوابة التوثيق (توكن Firebase) والحصة اليومية — بديل نظام الأكواد."""
+"""بوابة التوثيق (توكن Firebase) والحصة اليومية.
+
+🗑️ نظام أكواد التفعيل **حُذف بالكامل** — لا مسار يعمل بلا توكن، ولا مفتاح
+   بيئةٍ يعيد فتحه. الاختبارات هنا تحرس ذلك صراحةً.
+"""
 import pytest
 from fastapi.testclient import TestClient
 
@@ -6,6 +10,10 @@ import api
 from core import ratelimit as rl
 from core import firebase_auth as fa
 from core import quota as q
+
+# 📌 النسختان الحقيقيتان قبل أن يستبدلهما `conftest` — لاختبار البوابة ذاتها.
+_REAL_BEARER = fa.bearer_token
+_REAL_VERIFY = fa.verify
 
 
 @pytest.fixture()
@@ -17,7 +25,6 @@ def client(no_real_api_calls):
 
 def _body(**over):
     body = {
-        "user_id": "u1", "code": "SUPER_USER", "device_id": "d1",
         "subject": "فيزياء", "mode": "شرح", "input_type": "برومت",
         "summary_level": 3, "content": "اشرح", "unit_name": "", "lesson_name": "",
         "chat_history": [], "grade": 3, "track": "علمي",
@@ -37,13 +44,17 @@ def _fake_verify(monkeypatch, **claims):
 
 # ══════════ استخراج التوكن وتطبيع المطالبات ══════════
 def test_bearer_token_parsing():
+    # ⚠️ الدالة الأصلية لا المحقونة: `conftest` يستبدلها لتُسهّل بقية
+    #    الاختبارات، واختبارُها هنا يجب أن يمسّ الحقيقية.
+    parse = fa.bearer_token.__wrapped__ if hasattr(fa.bearer_token, "__wrapped__") else _REAL_BEARER
+
     class R:
         headers = {"authorization": "Bearer abc.def.ghi"}
-    assert fa.bearer_token(R()) == "abc.def.ghi"
+    assert parse(R()) == "abc.def.ghi"
 
     class R2:
         headers = {"authorization": "Basic xyz"}
-    assert fa.bearer_token(R2()) == ""
+    assert parse(R2()) == ""
 
 
 def test_normalize_marks_guest_and_provider():
@@ -66,7 +77,7 @@ def test_verified_email_required_for_password_only():
 
 def test_verify_rejects_empty_token():
     with pytest.raises(fa.AuthError):
-        fa.verify("")
+        _REAL_VERIFY("")
 
 
 # ══════════ البوابة في /ask ══════════
@@ -100,21 +111,41 @@ def test_invalid_token_rejected(client, monkeypatch):
     assert "جلستك انتهت" in r.json()["answer"]
 
 
-def test_legacy_code_still_works_during_transition(client):
-    r = client.post("/ask", json=_body())
-    assert r.status_code == 200
-
-
-def test_legacy_code_rejected_when_switched_off(client, monkeypatch):
-    monkeypatch.setattr(api, "AUTH_ALLOW_LEGACY_CODE", False)
+def test_no_token_is_rejected(client, anonymous):
+    """🗑️ بلا توكن = 401. لا كود ولا استثناء ولا مسار جانبي."""
     r = client.post("/ask", json=_body())
     assert r.status_code == 401
     assert "تسجيل الدخول" in r.json()["answer"]
 
 
-def test_bad_code_rejected(client):
-    r = client.post("/ask", json=_body(code="كود-مزيف"))
-    assert r.status_code == 401
+def test_activation_code_field_is_ignored_entirely(client, anonymous):
+    """الكود القديم لم يعد يفتح شيئاً — حتى `SUPER_USER` نفسه.
+
+    🔴 كان هذا الحقل يمنح **بلا حصة ولا حظر ولا تحقق بريد**، وقيمته مدفونة
+       في التطبيق ⇒ من فكّ الـAPK فتح فاتورة الموديلات كلها.
+    """
+    for code in ("SUPER_USER", "MY_MASTER_CODE_2025", "1235353"):
+        r = client.post("/ask", json=_body(code=code, device_id="d", user_id="u"))
+        assert r.status_code == 401, f"«{code}» ما زال يفتح المسار!"
+
+
+def test_client_cannot_choose_its_own_user_id(client, monkeypatch):
+    """🔐 `user_id` من التوكن لا من الجسم — وإلا قرأ طالبٌ جلسة غيره.
+
+    معالجات المواد تُمفتِح جلساتها بـ`req.user_id` (`sessions_math` وأخواتها)،
+    فلو بقي قادماً من الطلب لكفى المهاجمَ أن يكتب معرّف ضحيته.
+    """
+    seen = {}
+
+    async def _spy(req, *a, **k):
+        seen["uid"] = req.user_id
+        return {"answer": "ok", "references": [], "session_active": False}
+
+    monkeypatch.setattr(api, "handle_physics_request", _spy)
+    r = client.post("/ask", json=_body(user_id="uid-of-another-student"),
+                    headers={"Authorization": "Bearer t"})
+    assert r.status_code == 200
+    assert seen["uid"] == "test-uid"          # هوية التوكن لا ما أرسله العميل
 
 
 # ══════════ الحصة ══════════
@@ -168,24 +199,20 @@ def test_exhausted_guest_gets_429_with_signup_invite(client, monkeypatch):
     assert "سجّل حساباً" in data["answer"]
 
 
-def test_legacy_users_are_outside_quota(client):
-    """مستخدم بالكود لا تُحتسب عليه حصة — كي لا يُحرم فجأة قبل الترقية."""
+def test_every_authenticated_ask_consumes_quota(client):
+    """🎟️ **لا مستخدمَ خارج الحصة بعد اليوم.**
+
+    كان `if not identity.get("legacy")` يُخرج مستخدمي الكود منها كلياً —
+    وهم كل من يعرف `SUPER_USER`. الآن الحصة تُخصم على الجميع بلا استثناء.
+    """
     q.reset_memory()
-    for _ in range(3):
-        assert client.post("/ask", json=_body()).status_code == 200
-    assert q.peek("legacy:u1") == q.STUDENT_DAILY_ASKS
+    before = q.peek("test-uid")
+    assert client.post("/ask", json=_body(),
+                       headers={"Authorization": "Bearer t"}).status_code == 200
+    assert q.peek("test-uid") == before - 1
 
 
-def test_missing_google_auth_falls_back_to_code(client, monkeypatch):
-    """نشر ناقص (بلا google-auth) لا يُسقط كل المستخدمين — الكود القديم يعمل."""
-    monkeypatch.setattr(fa, "available", lambda: False)
-    r = client.post("/ask", json=_body(), headers={"Authorization": "Bearer whatever"})
-    assert r.status_code == 200
-
-
-def test_missing_google_auth_with_code_off_is_rejected(client, monkeypatch):
-    """وإن كان الكود مُطفأً، يُرفض الطلب بوضوح بدل تمريره بلا توثيق."""
-    monkeypatch.setattr(fa, "available", lambda: False)
-    monkeypatch.setattr(api, "AUTH_ALLOW_LEGACY_CODE", False)
-    r = client.post("/ask", json=_body(), headers={"Authorization": "Bearer whatever"})
-    assert r.status_code == 401
+def test_no_env_switch_can_reopen_the_code_gate(client, anonymous):
+    """🔒 لا متغيّر بيئةٍ يعيد فتح المسار القديم — الرمز نفسه غير موجود."""
+    assert not hasattr(api, "AUTH_ALLOW_LEGACY_CODE")
+    assert client.post("/ask", json=_body()).status_code == 401

@@ -21,6 +21,7 @@ import '../core/theme/theme_controller.dart';
 import '../features/banners/data/banner_repository.dart';
 import '../features/saved/data/saved_storage.dart';
 import '../core/storage/prefs_keys.dart';
+import '../core/version/version_gate.dart';
 import '../features/future_masar/presentation/screens/splash_screen.dart';
 
 // ==========================================
@@ -96,10 +97,22 @@ class AppBootstrap {
     return const SplashScreen();
   }
 
+  /// 📦 حكمُ النسخة — يُملأ في [firstScreen] وتقرؤه شاشة البداية.
+  ///
+  /// ⚠️ يُحفظ هنا لا يُعاد حسابه: الفحص رحلةُ شبكة، وتكرارها لأجل عرض
+  ///    الشاشة نفسها يعني انتظاراً مضاعفاً على شبكةٍ بطيئة.
+  static VersionVerdict versionVerdict = VersionVerdict.none;
+
   /// الوجهة بعد شاشة البداية.
   /// ★ التحقق من البريد بوابة حقيقية: حساب غير مفعّل يذهب لشاشة التحقق
   ///   لا للرئيسية — والباك اند يرفض طلباته أيضاً ([27§7]).
   static Future<AppEntry> firstScreen() async {
+    // 📦 **قبل كل شيء آخر**: نسخةٌ لا تتفاهم مع الخادم لا معنى لتوجيهها
+    //    إلى تسجيلٍ أو رئيسية — كلاهما سيفشل أمام الطالب برسائل غامضة.
+    //    والفحص يفشل مفتوحاً، فلا يحجب أحداً بسبب عطل شبكة ([VersionGate]).
+    versionVerdict = await VersionGate.check();
+    if (versionVerdict.updateRequired) return AppEntry.forceUpdate;
+
     final prefs = await SharedPreferences.getInstance();
     final isFirstRun = prefs.getBool(PrefsKeys.isFirstRun) ?? true;
     if (isFirstRun) return AppEntry.onboarding;
@@ -115,4 +128,4 @@ class AppBootstrap {
   }
 }
 
-enum AppEntry { onboarding, auth, verifyEmail, home }
+enum AppEntry { forceUpdate, onboarding, auth, verifyEmail, home }

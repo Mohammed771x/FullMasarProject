@@ -15,8 +15,10 @@ from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
 from typing import Dict, List, Optional
 import json
-import re
 import asyncio
+
+from core import streaming
+from core.arabic_digits import for_subject as _arabic_digits
 import time
 
 SUBJECT = "فيزياء"
@@ -190,19 +192,23 @@ async def handle_physics_explain(req: AskRequest, openai_client):
 """
         })
         
-        response = await asyncio.wait_for(
-            openai_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        raw_answer = await streaming.complete(
+            openai_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gpt-4o-mini",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.2
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+            temperature=0.2,
+        )
+        clean_answer = format_arabic_math(raw_answer, "فيزياء")
         
-        raw_answer = response.choices[0].message.content
-        clean_answer = format_arabic_math(raw_answer)
-        
-        # 1. مسح أي كود LaTeX يبدأ بـ \ (مثل \bigl, \bigr, \quad)
-        #    ⚠️ `\frac` مستثناة — ترميز الكسر الذي يرسمه التطبيق.
-        clean_answer = re.sub(r'\\(?!frac\b|chem\b|ring\b)[a-zA-Z]+', '', clean_answer)
+        # ℹ️ حُذف من هنا فلترٌ يمسح كل أمرٍ لاتيكيّ عدا ثلاثة
+        #    (`frac` · `chem` · `ring`) — وهي **قائمةٌ متخلّفة**: الترميزات
+        #    عشرة اليوم، فكان يمسح `\sup` و`\nuc` و`\sqrt` بعد أن
+        #    وَلَّدها [_finish] فتصل الطالبَ أقواسُها عارية. و
+        #    `format_arabic_math` تنتهي أصلاً بـ`latex_guard.clean` الذي
+        #    **يحوّل** ما لا يعرفه إلى رمزه ولا يحذف إلا ما لا مقابل له.
         
         # 2. استبدال الشرطة السفلية بمسافة عشان تطلع (م حث) بدل (م_حث)
         clean_answer = clean_answer.replace('_', ' ')
@@ -286,19 +292,23 @@ async def handle_physics_summary(req: AskRequest, openai_client):
 """
         })
         
-        response = await asyncio.wait_for(
-            openai_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        raw_answer = await streaming.complete(
+            openai_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gpt-4o-mini",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.15
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+            temperature=0.15,
+        )
+        clean_answer = format_arabic_math(raw_answer, "فيزياء")
         
-        raw_answer = response.choices[0].message.content
-        clean_answer = format_arabic_math(raw_answer)
-        
-        # 1. مسح أي كود LaTeX يبدأ بـ \ (مثل \bigl, \bigr, \quad)
-        #    ⚠️ `\frac` مستثناة — ترميز الكسر الذي يرسمه التطبيق.
-        clean_answer = re.sub(r'\\(?!frac\b|chem\b|ring\b)[a-zA-Z]+', '', clean_answer)
+        # ℹ️ حُذف من هنا فلترٌ يمسح كل أمرٍ لاتيكيّ عدا ثلاثة
+        #    (`frac` · `chem` · `ring`) — وهي **قائمةٌ متخلّفة**: الترميزات
+        #    عشرة اليوم، فكان يمسح `\sup` و`\nuc` و`\sqrt` بعد أن
+        #    وَلَّدها [_finish] فتصل الطالبَ أقواسُها عارية. و
+        #    `format_arabic_math` تنتهي أصلاً بـ`latex_guard.clean` الذي
+        #    **يحوّل** ما لا يعرفه إلى رمزه ولا يحذف إلا ما لا مقابل له.
         
         # 2. استبدال الشرطة السفلية بمسافة عشان تطلع (م حث) بدل (م_حث)
         clean_answer = clean_answer.replace('_', ' ')
@@ -388,19 +398,23 @@ async def handle_physics_question(req: AskRequest, openai_client):
 """
         })
         
-        response = await asyncio.wait_for(
-            openai_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        raw_answer = await streaming.complete(
+            openai_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gpt-4o-mini",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.1
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل
+            temperature=0.1,
+        )
+        clean_answer = format_arabic_math(raw_answer, "فيزياء")
         
-        raw_answer = response.choices[0].message.content
-        clean_answer = format_arabic_math(raw_answer)
-        
-        # 1. مسح أي كود LaTeX يبدأ بـ \ (مثل \bigl, \bigr, \quad)
-        #    ⚠️ `\frac` مستثناة — ترميز الكسر الذي يرسمه التطبيق.
-        clean_answer = re.sub(r'\\(?!frac\b|chem\b|ring\b)[a-zA-Z]+', '', clean_answer)
+        # ℹ️ حُذف من هنا فلترٌ يمسح كل أمرٍ لاتيكيّ عدا ثلاثة
+        #    (`frac` · `chem` · `ring`) — وهي **قائمةٌ متخلّفة**: الترميزات
+        #    عشرة اليوم، فكان يمسح `\sup` و`\nuc` و`\sqrt` بعد أن
+        #    وَلَّدها [_finish] فتصل الطالبَ أقواسُها عارية. و
+        #    `format_arabic_math` تنتهي أصلاً بـ`latex_guard.clean` الذي
+        #    **يحوّل** ما لا يعرفه إلى رمزه ولا يحذف إلا ما لا مقابل له.
         
         # 2. استبدال الشرطة السفلية بمسافة عشان تطلع (م حث) بدل (م_حث)
         clean_answer = clean_answer.replace('_', ' ')
@@ -444,7 +458,8 @@ async def handle_physics_exams(req: AskRequest, sessions: Dict, openai_client):
                 text += "\n✅ انتهت جميع الأسئلة."
                 sessions.pop(user_id, None)
             
-            return {"answer": text, "session_active": bool(sess.get("pending_exams"))}
+            return {"answer": _arabic_digits(text, SUBJECT),
+                    "session_active": bool(sess.get("pending_exams"))}
     
     year_token, rest = parse_exams_input(content)
     if not year_token or not rest: return {"answer": "اكتب الصيغة هكذا:\nمثال: 2019,الموضوع"}
@@ -470,7 +485,10 @@ async def handle_physics_exams(req: AskRequest, sessions: Dict, openai_client):
     
     if remaining: text += f"\n💡 تبقى {len(remaining)} سؤالاً. اكتب 'كمل' للمتابعة."
     
-    return {"answer": text, "session_active": bool(remaining)}
+    # ٠١٢ وأسئلةُ الوزاري أرقامُها عربية كبقية الفيزياء — هذا المسار
+    #     لا يمرّ بـ[_finish] (نصٌّ مُركَّب من الملف لا جوابُ موديل).
+    return {"answer": _arabic_digits(text, SUBJECT),
+            "session_active": bool(remaining)}
 
 
 async def handle_physics_request(req: AskRequest, openai_client):

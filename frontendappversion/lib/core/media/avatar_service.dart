@@ -99,7 +99,6 @@ class AvatarService {
       "image_base64": bytes == null ? "" : base64Encode(bytes),
       // المسار القديم (كود التفعيل) — يتجاهلها الخادم مع التوكن.
       "user_id": UserSession.I.name,
-      "code": "",
     };
 
     final http.Response res;

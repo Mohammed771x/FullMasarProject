@@ -82,16 +82,16 @@ def limit_for(is_guest: bool, uid: str = "") -> int:
 
 
 def _override_for(uid: str):
-    """`users/{uid}.quota_override` — يُضبط من لوحة التحكم فقط."""
+    """`users/{uid}.quota_override` — يُضبط من لوحة التحكم فقط.
+
+    ⚡ يقرأ من `user_state` المُكاش لا من Firestore مباشرةً: كان هذا نداءً
+       شبكياً **لكل سؤال** على مستندٍ يُقرأ في نفس الطلب مرتين أخريين.
+    """
     if not uid:
         return None
     try:
-        db = _firestore()
-        if db is None:
-            return None
-        snap = db.collection("users").document(uid).get()
-        value = (snap.to_dict() or {}).get("quota_override") if snap.exists else None
-        return int(value) if isinstance(value, (int, float)) else None
+        from . import user_state
+        return user_state.get(uid).get("quota_override")
     except Exception:
         return None
 
@@ -133,14 +133,51 @@ def _firestore():
 
 
 def _consume_firestore(db, key: str, limit: int):
+    """يخصم سؤالاً **داخل معاملة** — الفحص والزيادة لا ينفصلان.
+
+    🔴 **السباق الذي كان هنا:** الكود السابق كان يقرأ ثم يقارن ثم يكتب في
+       ثلاث خطوات منفصلة. فعشرة طلبات متوازية من نفس الحساب تقرأ كلها
+       `used = 49` وتمرّ كلها — والحدُّ ٥٠. سكربتٌ يرسل مئة طلب دفعةً
+       واحدة كان **يتجاوز الحصة بالكامل**، وهي البوابة الوحيدة على فاتورة
+       الموديلات بعد حذف الأكواد.
+    ⭐ المعاملة تُعيد المحاولة تلقائياً عند التصادم، فالقارئ الثاني يرى
+       الرقم بعد زيادة الأول لا قبلها.
+    ⚠️ ولا تُستبدل بـ`Increment` وحدها: الزيادة الذرّية تكتب ولا **تفحص**،
+       فتزيد بلا سقف.
+    """
     from firebase_admin import firestore as fs
+
     ref = db.collection("usage").document(key)
-    snap = ref.get()
-    used = (snap.to_dict() or {}).get("asks", 0) if snap.exists else 0
-    if used >= limit:
-        return False, 0
-    ref.set({"asks": fs.Increment(1), "updated_at": fs.SERVER_TIMESTAMP}, merge=True)
-    return True, max(0, limit - used - 1)
+    stamp = getattr(fs, "SERVER_TIMESTAMP", None)
+
+    # 🧪 المخازن البديلة (مخزن التطوير المحلي · وهميّ الاختبارات) بلا معاملات.
+    #    والفحص **قبل** التزيين لا داخل `try`: `@fs.transactional` يُقيَّم عند
+    #    تعريف الدالة، فكان `AttributeError` يقفز فوق كل حراسةٍ داخلية ويصل
+    #    إلى `except` العام في `check_and_consume` — أي **فشلٌ مفتوح صامت**:
+    #    الحصة تتوقف عن العمل كلياً ولا يظهر إلا سطرٌ في اللوج.
+    transactional = getattr(fs, "transactional", None)
+    if transactional is None or not hasattr(db, "transaction"):
+        snap = ref.get()
+        used = (snap.to_dict() or {}).get("asks", 0) if snap.exists else 0
+        if not isinstance(used, (int, float)):
+            used = 0
+        if used >= limit:
+            return False, 0
+        ref.set({"asks": int(used) + 1, "updated_at": stamp}, merge=True)
+        return True, max(0, limit - int(used) - 1)
+
+    @transactional
+    def _txn(transaction):
+        snap = ref.get(transaction=transaction)
+        used = (snap.to_dict() or {}).get("asks", 0) if snap.exists else 0
+        if not isinstance(used, (int, float)):
+            used = 0
+        if used >= limit:
+            return False, 0
+        transaction.set(ref, {"asks": int(used) + 1, "updated_at": stamp}, merge=True)
+        return True, max(0, limit - int(used) - 1)
+
+    return _txn(db.transaction())
 
 
 def _consume_memory(key: str, limit: int):
@@ -194,3 +231,37 @@ def reset_memory():
     """للاختبارات فقط."""
     with _lock:
         _memory.clear()
+
+
+# ══════════════ نسخٌ لا تحجب حلقة الأحداث ══════════════
+# ⚡ نداءات Firestore متزامنة، ومناداتها من `async def` تُجمّد الخادم لكل
+#    الطلاب طوال الرحلة الشبكية. هذه الأغلفة تنقلها لخيطٍ جانبي — وهي ما
+#    تُنادى من المسارات دائماً.
+
+async def acheck_and_consume(uid: str, is_guest: bool = False):
+    import asyncio
+    return await asyncio.to_thread(check_and_consume, uid, is_guest)
+
+
+def status(uid: str, is_guest: bool = False) -> dict:
+    """🎟️ حالة الحصة كاملةً للعرض في التطبيق: الحد · المستهلك · المتبقي.
+
+    ⭐ **لماذا تُعرض أصلاً:** بدونها يصطدم الطالب بالجدار فجأةً في منتصف
+       مذاكرته بلا إنذار — والرقم عندنا أصلاً، إخفاؤه كان قراراً لم يُتخذ.
+    """
+    limit = limit_for(is_guest, uid)
+    remaining = peek(uid, is_guest)
+    return {
+        "limit": limit,
+        "used": max(0, limit - remaining),
+        "remaining": remaining,
+        "is_guest": bool(is_guest),
+        # الزائر عدّاده تراكمي لا يومي — والواجهة تحتاج التفريق لتكتب
+        # «تتجدّد بعد منتصف الليل» أو «سجّل لتتابع».
+        "resets_daily": not is_guest,
+    }
+
+
+async def astatus(uid: str, is_guest: bool = False) -> dict:
+    import asyncio
+    return await asyncio.to_thread(status, uid, is_guest)

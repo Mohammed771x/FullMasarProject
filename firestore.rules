@@ -37,9 +37,36 @@ service cloud.firestore {
     ///    عبر `/me/device` لا العميل. سببان — `arrayUnion` من العميل لا
     ///    يمكن تحديدها بسقف فيُثقَل المستند بآلاف الرموز، ورمزُ الجهاز
     ///    مفتاحُ وصولٍ إلى جيب الطالب فلا يُترك لعميلٍ يُعدَّل.
+    ///
+    /// 🔴 **و`banned` و`quota_override` أُضيفا بعد ثغرةٍ حقيقية:** الخادم
+    ///    يقرأ الحقلين من **هذا المستند بعينه** — `banned` في
+    ///    `core/user_state.py` (بوابة الحظر في `_authenticate`)، و
+    ///    `quota_override` في `core/quota.py` (سقف الأسئلة اليومي). وكانت
+    ///    قاعدة التحديث تسمح لصاحب الحساب بالكتابة فيهما، فيكفي الطالبَ
+    ///    نداءٌ واحد من SDK مباشرةً:
+    ///
+    ///        updateDoc(doc(db,'users',myUid),
+    ///                  {banned:false, quota_override:999999,
+    ///                   name:'x', grade:3, track:'علمي'})
+    ///
+    ///    ليفكّ حظره ويمنح نفسه أسئلةً بلا حدّ. أي أن **نظامَي الحظر
+    ///    والحصص كانا معطَّلين فعلياً** — والحصة هي البوابة الوحيدة على
+    ///    فاتورة الموديلات بعد حذف أكواد التفعيل.
+    ///
+    /// ⚠️ ولا يكفي أن يمنعها الخادم: من يملك توكناً يكتب في Firestore
+    ///    **دون المرور بنا أصلاً**. القاعدة هنا هي الحماية الوحيدة.
     function keepsProtectedFields() {
       return !request.resource.data.diff(resource.data).affectedKeys()
-                .hasAny(['created_at', 'fcm_tokens']);
+                .hasAny(['created_at', 'fcm_tokens', 'banned', 'quota_override']);
+    }
+
+    /// الحقول الإدارية غائبةٌ تماماً عن مستندٍ **جديد**.
+    ///
+    /// ⚠️ حراسة التحديث وحدها لا تكفي: من أنشأ مستنده أول مرة وفيه
+    ///    `quota_override: 999999` لم «يُعدّل» شيئاً — و`keepsProtectedFields`
+    ///    تقارن بـ`resource.data` التي **لا وجود لها عند الإنشاء**.
+    function noAdminFieldsOnCreate() {
+      return !request.resource.data.keys().hasAny(['banned', 'quota_override']);
     }
 
     /// 🎭 الدور الذي يجوز لصاحب الحساب أن يكتبه — **قائمة مغلقة**.
@@ -99,8 +126,10 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdmin();
 
-      // الإنشاء: الدور من القائمة المغلقة (أو غائباً ⇒ طالب).
-      allow create: if isOwner(uid) && validProfile() && validRole();
+      // الإنشاء: الدور من القائمة المغلقة (أو غائباً ⇒ طالب)، ولا حقول
+      // إدارية إطلاقاً — راجع `noAdminFieldsOnCreate` أعلاه.
+      allow create: if isOwner(uid) && validProfile() && validRole()
+        && noAdminFieldsOnCreate();
 
       // التحديث: تاريخ الإنشاء ورموز الأجهزة محميّة دائماً، والدور يُبدَّل
       // بين طالبٍ ومعلّم فقط — ومن كان `admin` يبقى كما هو ولا يُنزَع منه

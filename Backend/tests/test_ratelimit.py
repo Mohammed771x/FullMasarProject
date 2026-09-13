@@ -44,3 +44,45 @@ def test_window_slides():
 
 def test_fail_open_on_broken_request():
     assert rl.check(object(), "u1")   # كائن ناقص → السماح لا الانهيار
+
+
+# ══════════════════════════════════════════════════
+# 🪣 دلاءٌ منفصلة لكل نطاق
+# ══════════════════════════════════════════════════
+
+def test_cheap_reads_do_not_consume_the_ask_budget():
+    """🔴 **العطل:** كان المفتاح `ip|uid` وحده، فيتشارك `/me/quota` (حدّه
+    ١٢٠) دلوَ `/ask` (حدّه ٢٠). فقراءةُ عدّاد الحصة تستهلك من رصيد الأسئلة،
+    ويُرفض سؤال الطالب بـ429 **لأن التطبيق قرأ حصته**.
+
+    والأثر مضاعف: كل إرسالٍ ناجح يتبعه تحديثٌ للعدّاد — فكلما استعمل الطالب
+    التطبيق اقترب من حظر نفسه.
+    """
+    rl._buckets.clear()
+    req = FakeReq("1.2.3.4")
+
+    # ٣٠ قراءةً رخيصة (ضمن حدّها ١٢٠)
+    for _ in range(30):
+        assert rl.check(req, "uid-1", rl.CONTENT_LIMIT, rl.CONTENT_WINDOW)
+
+    # ...ثم أول سؤال يجب أن يمرّ: دلوُه لم يُمسّ.
+    assert rl.check(req, "uid-1"), "قراءةُ الحصة أكلت رصيد الأسئلة"
+
+
+def test_ask_budget_is_still_enforced_within_its_own_bucket():
+    """⚠️ الفصل يجب ألّا يُلغي الحدّ نفسه."""
+    rl._buckets.clear()
+    req = FakeReq("1.2.3.5")
+    for _ in range(rl.ASK_LIMIT):
+        assert rl.check(req, "uid-2")
+    assert rl.check(req, "uid-2") is False
+
+
+def test_identity_still_separates_students_behind_one_ip():
+    """🏫 طلاب مدرسةٍ خلف بوابةٍ واحدة لا يحجب بعضهم بعضاً."""
+    rl._buckets.clear()
+    req = FakeReq("10.0.0.1")
+    for _ in range(rl.ASK_LIMIT):
+        rl.check(req, "student-a")
+    assert rl.check(req, "student-a") is False
+    assert rl.check(req, "student-b") is True

@@ -32,9 +32,84 @@ service cloud.firestore {
     }
 
     /// الحقول التي لا يجوز للطالب لمسها في مستنده إطلاقاً.
+    ///
+    /// 📲 `fcm_tokens` منها منذ وصلت الإشعارات: رمز الجهاز يكتبه **الخادم**
+    ///    عبر `/me/device` لا العميل. سببان — `arrayUnion` من العميل لا
+    ///    يمكن تحديدها بسقف فيُثقَل المستند بآلاف الرموز، ورمزُ الجهاز
+    ///    مفتاحُ وصولٍ إلى جيب الطالب فلا يُترك لعميلٍ يُعدَّل.
+    ///
+    /// 🔴 **و`banned` و`quota_override` أُضيفا بعد ثغرةٍ حقيقية:** الخادم
+    ///    يقرأ الحقلين من **هذا المستند بعينه** — `banned` في
+    ///    `core/user_state.py` (بوابة الحظر في `_authenticate`)، و
+    ///    `quota_override` في `core/quota.py` (سقف الأسئلة اليومي). وكانت
+    ///    قاعدة التحديث تسمح لصاحب الحساب بالكتابة فيهما، فيكفي الطالبَ
+    ///    نداءٌ واحد من SDK مباشرةً:
+    ///
+    ///        updateDoc(doc(db,'users',myUid),
+    ///                  {banned:false, quota_override:999999,
+    ///                   name:'x', grade:3, track:'علمي'})
+    ///
+    ///    ليفكّ حظره ويمنح نفسه أسئلةً بلا حدّ. أي أن **نظامَي الحظر
+    ///    والحصص كانا معطَّلين فعلياً** — والحصة هي البوابة الوحيدة على
+    ///    فاتورة الموديلات بعد حذف أكواد التفعيل.
+    ///
+    /// ⚠️ ولا يكفي أن يمنعها الخادم: من يملك توكناً يكتب في Firestore
+    ///    **دون المرور بنا أصلاً**. القاعدة هنا هي الحماية الوحيدة.
     function keepsProtectedFields() {
       return !request.resource.data.diff(resource.data).affectedKeys()
-                .hasAny(['role', 'created_at']);
+                .hasAny(['created_at', 'fcm_tokens', 'banned', 'quota_override']);
+    }
+
+    /// الحقول الإدارية غائبةٌ تماماً عن مستندٍ **جديد**.
+    ///
+    /// ⚠️ حراسة التحديث وحدها لا تكفي: من أنشأ مستنده أول مرة وفيه
+    ///    `quota_override: 999999` لم «يُعدّل» شيئاً — و`keepsProtectedFields`
+    ///    تقارن بـ`resource.data` التي **لا وجود لها عند الإنشاء**.
+    function noAdminFieldsOnCreate() {
+      return !request.resource.data.keys().hasAny(['banned', 'quota_override']);
+    }
+
+    /// 🎭 الدور الذي يجوز لصاحب الحساب أن يكتبه — **قائمة مغلقة**.
+    ///
+    /// `student` و`teacher` شكلا واجهةٍ يختارهما صاحب الحساب من الإعدادات،
+    /// أما `admin` فامتيازٌ يفتح مستندات كل الطلاب ([07§2]) — فلا يُكتب من
+    /// عميلٍ أبداً، بل من الكونسول أو خادمٍ بـAdmin SDK.
+    ///
+    /// ⚠️ وهي تُطبَّق على **الإنشاء والتحديث معاً**: لو حرسنا الإنشاء وحده
+    ///    لأنشأ المهاجم مستنده طالباً ثم حدّثه أدمن في النداء التالي.
+    function validRole() {
+      return !('role' in request.resource.data)
+        || request.resource.data.role in ['student', 'teacher'];
+    }
+
+    /// دور المستخدم **لم يتغيّر** في هذا التحديث؟
+    function roleUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+    }
+
+    /// تحقّق من شكل مستند المحادثة — يمنع بيانات مشوّهة أو حقولاً غريبة.
+    /// (الحجم نفسه يحرسه Firestore بحدّ 1 MiB، وسقف 200 KB يُطبَّق في التطبيق.)
+    function validConversation() {
+      let d = request.resource.data;
+      return d.messages is list
+        && d.messages.size() <= 400
+        && d.subject is string && d.subject.size() <= 64
+        && d.mode is string && d.mode.size() <= 32
+        && d.title is string && d.title.size() <= 120
+        && d.grade is int && d.grade >= 1 && d.grade <= 3
+        && d.track in ['عام', 'علمي', 'أدبي']
+        && d.scope_key is string && d.scope_key.size() <= 200;
+    }
+
+    /// شكل محادثة المنحة — نفس سقوف محادثة التعليم كي لا تنتفخ القاعدة.
+    /// ⚠️ يجب أن يطابق `maxCloudMessages` في `conversation_sync.dart`؛
+    ///    رفعُ أحدهما دون الآخر يُفشل المزامنة **صامتةً**.
+    function validScholarshipChat() {
+      let d = request.resource.data;
+      return d.messages is list
+        && d.messages.size() <= 400
+        && d.scholarship_id is string && d.scholarship_id.size() <= 64
+        && d.title is string && d.title.size() <= 120;
     }
 
     function validProfile() {
@@ -51,20 +126,34 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdmin();
 
-      // الإنشاء: الدور يجب أن يكون 'student' حرفياً (أو غائباً).
-      allow create: if isOwner(uid)
-        && validProfile()
-        && (!('role' in request.resource.data) || request.resource.data.role == 'student');
+      // الإنشاء: الدور من القائمة المغلقة (أو غائباً ⇒ طالب)، ولا حقول
+      // إدارية إطلاقاً — راجع `noAdminFieldsOnCreate` أعلاه.
+      allow create: if isOwner(uid) && validProfile() && validRole()
+        && noAdminFieldsOnCreate();
 
-      // التحديث: ممنوع تغيير الدور أو تاريخ الإنشاء.
-      allow update: if isOwner(uid) && validProfile() && keepsProtectedFields();
+      // التحديث: تاريخ الإنشاء ورموز الأجهزة محميّة دائماً، والدور يُبدَّل
+      // بين طالبٍ ومعلّم فقط — ومن كان `admin` يبقى كما هو ولا يُنزَع منه
+      // ولا يُمنح لأحد، لأن `roleUnchanged` هي البديل الوحيد لـ`validRole`.
+      allow update: if isOwner(uid)
+        && validProfile()
+        && keepsProtectedFields()
+        && (roleUnchanged() || validRole());
 
       allow delete: if isOwner(uid);   // «حذف حسابي» (إلزام Google Play)
 
       // ── فروع المستخدم: محادثاته ونتائجه ومحفوظاته ──
+      // ⚠️ نمط `/{col}/{docId}` مقصود: لا يطابق مستند المستخدم الأب.
+      match /conversations/{convId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validConversation();
+      }
+      // 🎓 محادثات مساعد المنح — مربوطة بالحساب وتعود معه على جهاز جديد ([32§5]).
+      match /scholarship_chats/{chatId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validScholarshipChat();
+      }
       match /{col}/{docId} {
-        allow read, write: if isOwner(uid)
-          && col in ['conversations', 'results', 'saved_answers'];
+        allow read, write: if isOwner(uid) && col in ['results', 'saved_answers'];
       }
     }
 

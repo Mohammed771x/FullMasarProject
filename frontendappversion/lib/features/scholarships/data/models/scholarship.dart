@@ -221,11 +221,12 @@ class Scholarship {
 }
 
 /// فلاتر شريط الشرائح أعلى القائمة.
-enum SchFilter { all, full, partial, openNow, closingSoon }
+enum SchFilter { all, favorites, full, partial, openNow, closingSoon }
 
 extension SchFilterX on SchFilter {
   String get label => switch (this) {
         SchFilter.all => "الكل",
+        SchFilter.favorites => "⭐ متابَعة",
         SchFilter.full => "ممولة بالكامل",
         SchFilter.partial => "جزئية",
         SchFilter.openNow => "مفتوحة الآن",
@@ -234,8 +235,13 @@ extension SchFilterX on SchFilter {
 
   /// «تُغلق قريباً» = مفتوحة وباقٍ لها ٣٠ يوماً أو أقل — الفلتر الذي
   /// ينقذ طالباً من تفويت موعد، لا مجرد تصنيف.
-  bool test(Scholarship s) => switch (this) {
+  ///
+  /// ⚠️ **«متابَعة» يحتاج [favoriteIds]** لأن المفضّلة حالةُ الطالب لا صفةٌ
+  ///    في المنحة. وتمريرُها اختياريٌّ كي لا ينكسر كلُّ مُنادٍ قديم — وحين
+  ///    تغيب يُرجع الفلتر لا شيء، وهو الصواب: «لا مفضّلة معروفة» ≠ «الكل».
+  bool test(Scholarship s, {Set<String> favoriteIds = const {}}) => switch (this) {
         SchFilter.all => true,
+        SchFilter.favorites => favoriteIds.contains(s.id),
         SchFilter.full => s.isFullyFunded,
         SchFilter.partial => !s.isFullyFunded,
         SchFilter.openNow => s.status == SchStatus.open,

@@ -10,6 +10,8 @@
 
 import asyncio
 
+from . import streaming
+
 from subjects.common import (
     system_prompt_strict_explain,
     system_prompt_strict_summary,
@@ -86,19 +88,18 @@ async def handle(req, clients: dict, prompts=None) -> dict:
     messages.append({"role": "user", "content": _user_message(req.mode, lesson_text, req.content)})
 
     try:
-        response = await asyncio.wait_for(
-            client.chat.completions.create(
-                model=model_name, messages=messages,
-                max_tokens=_MAX_TOKENS, temperature=0.1,
-            ),
-            timeout=_AI_TIMEOUT,
+        # 🌊 يبثّ حرفاً حرفاً إن كان الطلب على مسار البثّ، وإلا فنداءٌ عادي
+        #    حرفياً كما كان ([core/streaming.py]).
+        answer = await streaming.complete(
+            client, model=model_name, messages=messages,
+            sink=streaming.sink_of(req), timeout=_AI_TIMEOUT,
+            max_tokens=_MAX_TOKENS, temperature=0.1,
         )
-        answer = response.choices[0].message.content
     except asyncio.TimeoutError:
         answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."
     except Exception as e:
         answer = f"خطأ في التوليد: {str(e)}"
 
     refs = [f"{unit_name} › {req.lesson_name}".strip(" ›")]
-    return {"answer": strip_stray_latex(answer), "references": refs,
+    return {"answer": strip_stray_latex(answer, subject), "references": refs,
             "session_active": False}

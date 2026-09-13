@@ -35,8 +35,7 @@ def clean_prompt_cache():
 
 
 def _body(**over):
-    body = {"user_id": "u", "code": "SUPER_USER", "device_id": "d",
-            "tool": "plan", "generate": True,
+    body = {"tool": "plan", "generate": True,
             "subject": "فيزياء", "grade": 3, "track": "علمي",
             "unit_name": "الفيزياء الذرية", "lesson_name": "نظرية بوهر",
             "content": ""}

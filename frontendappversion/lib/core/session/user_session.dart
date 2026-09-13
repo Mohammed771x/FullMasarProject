@@ -7,6 +7,8 @@ import '../access/access_repository.dart';
 import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
 import '../notifications/notifications_repository.dart';
+import '../quota/quota_repository.dart';
+import '../../features/scholarships/data/scholarship_favorites.dart';
 import '../notifications/push_service.dart';
 import '../settings/app_settings.dart';
 import '../auth/auth_repository.dart';
@@ -536,6 +538,11 @@ class UserSession extends ChangeNotifier {
     // 📬 وصندوق الإشعارات يُفرَّغ معه: الجوّال المتشارَك يعني أن إعلانات
     //    من خرج تبقى معروضةً لمن دخل بعده — بنفس منطق فصلِ الجهاز أعلاه.
     await NotificationsRepository.I.clear();
+    // 🎟️⭐ وحالتان معروضتان تخصّان الحساب لا الجهاز: حصّةُ من خرج ومفضّلته.
+    //    بقاؤهما يعني أن من يدخل بعده يرى «متبقٍّ ٣ أسئلة» ونجومَ غيره —
+    //    نفس منطق إفراغ صندوق الإشعارات أعلاه.
+    QuotaRepository.I.clear();
+    ScholarshipFavorites.I.clear();
     await _auth.signOut();
     isGuest = false;
     name = 'طالب مسار';

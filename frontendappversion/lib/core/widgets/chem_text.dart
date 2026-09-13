@@ -204,10 +204,19 @@ ChemRing parseChemRing(String source) {
 
 // ══════════════════ الرسم — نصّ المجموعة ══════════════════
 
-/// يرسم `CH3` بالرقم منخفضاً: CH₃.
+/// يرسم `CH3` بالرقم منخفضاً: CH₃، و`Pb(s)` بحالتها منخفضة: Pb₍s₎.
 ///
 /// الأرقام وحدها تنخفض؛ ورقمُ **بداية** المقطع (مثل `2` في `2CH3`) يبقى
 /// عادياً لأنه معامل لا دليل.
+///
+/// ⚗️ **وحالةُ المادّة تنخفض كذلك** (من صفحة الكتاب التي أرسلها المالك
+///    2026-09-12): «Pb₍s₎ + SO₄²⁻₍aq₎ ⟶ PbSO₄₍s₎ + 2e⁻» — الحالةُ أصغرُ
+///    وأخفضُ من الصيغة، لا بحجمها.
+///
+/// ⚠️ **ولا يبلغها يونيكود**: لا وجودَ لـ«q» ولا «g» منخفضتين في يونيكود
+///    أصلاً، فلا سبيل إلا الرسم. ولذلك تبقى الحالةُ في النثر كما هي —
+///    وهو الصواب هناك: «عدد الكم الثانوي (l)» ليست حالةَ سائل.
+final RegExp _state = RegExp(r'^\((?:s|l|g|aq)\)');
 class ChemLabel extends StatelessWidget {
   const ChemLabel(this.text, {super.key, required this.style});
 
@@ -229,6 +238,22 @@ class ChemLabel extends StatelessWidget {
 
     for (var i = 0; i < text.length; i++) {
       final c = text[i];
+      // ⚗️ «(s)» · «(aq)» — حالةُ المادّة تنخفض كما في الكتاب.
+      final state = c == '(' ? _state.firstMatch(text.substring(i)) : null;
+      if (state != null) {
+        flush();
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.bottom,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: size * 0.02),
+            child: Text(state.group(0)!,
+                textDirection: TextDirection.ltr,
+                style: style.copyWith(fontSize: size * 0.7)),
+          ),
+        ));
+        i += state.group(0)!.length - 1;
+        continue;
+      }
       final isDigit = c.codeUnitAt(0) >= 0x30 && c.codeUnitAt(0) <= 0x39;
       final afterLetter = i > 0 && RegExp(r'[A-Za-z)\]]').hasMatch(text[i - 1]);
       if (isDigit && afterLetter) {
@@ -274,9 +299,21 @@ class ChemChainView extends StatelessWidget {
     final hasUp = chain.groups.any((g) => g.up.isNotEmpty);
     final hasDown = chain.groups.any((g) => g.down.isNotEmpty);
 
+    // 🛡️ **شبكةُ أمان ضد الفيضان.** السلسلة صفٌّ واحد لا ينكسر بطبعه،
+    //    فسلسلةٌ طويلة تتجاوز عرض الشاشة وتُظهر شريط
+    //    «RIGHT OVERFLOWED BY …» — رآه المالك على جهازه (2026-09-09).
+    //
+    // ⚖️ والتمريرُ الأفقيّ أصدقُ من القصّ: الصيغة تبقى كاملةً ويصل إليها
+    //    الطالب بإصبعه، بينما القصّ يُخفي ذرّاتٍ فيغيّر المركّب.
+    //
+    // ⚠️ والعلاجُ الجذريّ في الخادم ([core/chem.py]): `\chem{}` لا تغلّف
+    //    معادلةً كاملة. وهذا يحرس ما يفلت.
     return Directionality(
       textDirection: TextDirection.ltr,
-      child: Row(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const ClampingScrollPhysics(),
+        child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -304,6 +341,7 @@ class ChemChainView extends StatelessWidget {
               ),
           ],
         ],
+        ),
       ),
     );
   }

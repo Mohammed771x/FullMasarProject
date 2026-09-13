@@ -19,6 +19,8 @@ import re
 import os
 import random
 import asyncio
+
+from core import streaming
 import time
 
 
@@ -223,15 +225,16 @@ async def handle_arabic_explain(req: AskRequest, gemini_client):
             "content": f"المعلومات المستخرجة من الكتاب:\n{context_text}\n\nرسالة الطالب: {req.content}"
         })
         
-        response = await asyncio.wait_for(
-            gemini_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        raw_answer = await streaming.complete(
+            gemini_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gemini-3.1-flash-lite",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.2
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
-        
-        raw_answer = response.choices[0].message.content
-        clean_answer = format_arabic_math(raw_answer)
+            temperature=0.2,
+        )
+        clean_answer = format_arabic_math(raw_answer, "عربي")
         answer = clean_answer
     except asyncio.TimeoutError:
         # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
@@ -315,15 +318,16 @@ async def handle_arabic_summary(req: AskRequest, gemini_client):
 """
         })
         
-        response = await asyncio.wait_for(
-            gemini_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        raw_answer = await streaming.complete(
+            gemini_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gemini-3.1-flash-lite",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.15
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
-        
-        raw_answer = response.choices[0].message.content
-        clean_answer = format_arabic_math(raw_answer)
+            temperature=0.15,
+        )
+        clean_answer = format_arabic_math(raw_answer, "عربي")
         answer = clean_answer
     except asyncio.TimeoutError:    
         # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً
@@ -415,15 +419,16 @@ async def handle_arabic_question(req: AskRequest, gemini_client):
 """
         })
         
-        response = await asyncio.wait_for(
-            gemini_client.chat.completions.create(
+        # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
+        raw_answer = await streaming.complete(
+            gemini_client,
+            sink=streaming.sink_of(req),
+            timeout=50,
             model="gemini-3.1-flash-lite",
             messages=messages_for_ai, max_tokens=4000,
-            temperature=0.1
-        ), timeout=50)  # إضافة مهلة زمنية للتأكد من عدم الانتظار الطويل    
-        
-        raw_answer = response.choices[0].message.content
-        clean_answer = format_arabic_math(raw_answer)
+            temperature=0.1,
+        )
+        clean_answer = format_arabic_math(raw_answer, "عربي")
         answer = clean_answer
     except asyncio.TimeoutError:    
         # إذا تأخر الموديل المجاني، نرد بهذه الرسالة فوراً

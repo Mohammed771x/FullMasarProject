@@ -279,7 +279,7 @@ class _QuizResultScreenState extends State<QuizResultScreen>
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => QuizReviewScreen(controller: widget.controller)),
+                    builder: (_) => QuizReviewScreen.live(controller: widget.controller)),
               ),
               icon: const Icon(Icons.fact_check_rounded, size: 20),
               label: const Text("راجع إجاباتك 📋",

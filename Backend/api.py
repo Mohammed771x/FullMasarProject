@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response, Request, BackgroundTasks, UploadFile, File, Form
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import base64
 import json
@@ -23,7 +23,7 @@ import concurrent.futures
 
 # من الإعدادات والنماذج
 from config import GROQ_API_KEY, BASE_SUBJECTS_DIR, SUBJECT_NAMES, DEEPSEEK_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY
-from models import (AskRequest, VerificationRequest, VoiceCleanRequest, QuizRequest,
+from models import (AskRequest, VoiceCleanRequest, QuizRequest,
                     AdminBanRequest, AdminQuotaRequest,
                     ScholarshipAskRequest, ScholarshipUpsertRequest,
                     ScholarshipEnabledRequest, ScholarshipReorderRequest,
@@ -34,7 +34,6 @@ from models import (AskRequest, VerificationRequest, VoiceCleanRequest, QuizRequ
                     AccessSectionRequest, AccessRulesRequest,
                     NotificationPreviewRequest, NotificationCreateRequest,
                     DeviceTokenRequest)
-from auth import load_codes, save_codes, verify_code
 
 # من المواد
 from subjects.biology import handle_biology_request
@@ -62,6 +61,9 @@ from core import image_guard as v3_image_guard
 from core import vision as v3_vision
 from core import firebase_auth as v3_auth
 from core import quota as v3_quota
+from core import user_state as v3_user_state
+from core import idempotency as v3_idem
+from core import streaming as v3_stream
 from core import admin as v3_admin
 from core import audience as v3_audience
 from core import analytics as v3_analytics
@@ -148,12 +150,30 @@ async def root():
 
 
 
+# ══════════════════════════════════════════════════
+# 🌐 CORS — قائمةُ سماحٍ لا نجمة
+# ══════════════════════════════════════════════════
+# 🔴 كان `allow_origins=["*"]` مع `allow_credentials=True`، وهو **تركيبٌ
+#    غير صالح أصلاً** (المتصفحات ترفض الاعتماد مع النجمة) وفوق ذلك يفتح
+#    الـAPI لأي موقعٍ في العالم ينادينا من متصفح الطالب.
+#
+# 📱 وتضييقه **لا يمسّ التطبيق إطلاقاً**: CORS سياسةُ متصفحاتٍ وحدها،
+#    وطلبات أندرويد/iOS لا تمرّ بها. المتأثر هو نسخة الويب فقط.
+#
+# ⚙️ للإضافة بلا لمس كود: `CORS_ORIGINS=https://a.com,https://b.com`
+_DEFAULT_ORIGINS = [
+    "http://localhost:8000", "http://127.0.0.1:8000",
+    "http://localhost:5000", "http://127.0.0.1:5000",
+]
+_env_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_env_origins or _DEFAULT_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Admin-Key",
+                   "ngrok-skip-browser-warning"],
 )
 
 # =====================
@@ -252,11 +272,22 @@ async def global_exception_handler(request: Request, exc: Exception):
     
     
 # ==================================================
-# 🔐 بوابة التوثيق — توكن Firebase (والكود مؤقتاً)
+# 🔐 بوابة التوثيق — توكن Firebase وحده
 # ==================================================
-# الانتقال آمن: نقبل التوكن **والكود** معاً حتى تُحدَّث تطبيقات الطلاب،
-# ثم يُطفأ الكود بضبط AUTH_ALLOW_LEGACY_CODE=0 بلا لمس كود.
-AUTH_ALLOW_LEGACY_CODE = os.getenv("AUTH_ALLOW_LEGACY_CODE", "1") == "1"
+# 🗑️ **نظام أكواد التفعيل حُذف بالكامل** (قرار المالك · 2026-09-08). وما كان
+#    يبدو «مساراً انتقالياً» كان في الحقيقة أخطر ثغرة في المنصّة:
+#      • `SUPER_USER` كان مدفوناً في التطبيق ويُرسل مع كل طلب، ونوعه
+#        `master` ⇒ بلا ربط جهاز ⇒ يعمل على أي عدد من الأجهزة.
+#      • ومَن دخل به كان `legacy: True`، وكل مسارٍ يستهلك موديلاً كان
+#        مكتوباً فيه `if not identity.get("legacy")` ⇒ **بلا حصة، بلا حظر،
+#        بلا تحقق بريد، بلا Firebase أصلاً.**
+#      • واستخراجه لا يحتاج أكثر من `strings` على الـAPK — والتشويش
+#        (`--obfuscate`) لا يخفي النصوص الثابتة.
+#    فلم يكن الباب موارباً بل مفتوحاً على فاتورة الموديلات كلها.
+#
+# ⚖️ والآن: **لا هوية إلا من توكن موقَّع من جوجل.** لا بديل ولا استثناء ولا
+#    مفتاح بيئةٍ يعيد فتحه — الطريق الوحيد للعودة هو كتابة كودٍ جديد عن قصد،
+#    لا نسيانُ متغيّرٍ مضبوطٍ على "1".
 
 
 def _attach_image_text(result, image_text: str):
@@ -290,50 +321,81 @@ def _json_response(payload: dict, status: int = 200):
                     status_code=status, media_type="application/json")
 
 
-def _authenticate(request, req):
-    """يعيد (identity, error_response).
+def _remember(uid: str, request_id: str, result):
+    """يحفظ الجواب للإعادة — أو يُحرِّر الحجز إن تعذّر تحويله لقاموس.
 
-    الترتيب: توكن Firebase أولاً، فإن غاب فالكود القديم (مرحلة انتقالية).
-    identity = {uid, email, provider, is_guest, legacy}
+    ⚠️ تخزينُ `None` كان سيحبس الطالب على «امهل لحظات» حتى تنقضي المهلة؛
+       والتحرير يعيده إلى السلوك القديم (نداءٌ جديد) وهو الأسوأ المقبول.
+    """
+    payload = _as_payload(result)
+    if payload is None:
+        v3_idem.abandon(uid, request_id)
+        return
+    v3_idem.finish(uid, request_id, payload)
+
+
+def _as_payload(result):
+    """يحوّل ناتج أي معالج إلى قاموسٍ صالحٍ للتخزين في `idempotency`.
+
+    ⚠️ لازمٌ لأن المعالجات ترجع خليطاً: بعضها قاموساً وبعضها `Response`
+       مبنيّاً. وتخزينُ كائن `Response` كان سيُعيد **نفس الجسم المستهلَك**
+       في المحاولة الثانية.
+    """
+    if isinstance(result, dict):
+        return result
+    body = getattr(result, "body", None)
+    if body:
+        try:
+            parsed = json.loads(body)
+            if isinstance(parsed, dict):
+                return parsed
+        except (ValueError, TypeError):
+            pass
+    return None
+
+
+async def _authenticate(request, req=None):
+    """يعيد `(identity, error_response)` — **التوكن هو المصدر الوحيد للهوية**.
+
+    `identity = {uid, email, provider, is_guest, name, email_verified}`
+
+    🔐 وقبل الخروج تُكتب الهويةُ **فوق** `req.user_id` إن وُجد الحقل. وهذه
+       ليست تفصيلة: معالجات المواد تُمفتِح جلساتها به
+       (`sessions_math[req.user_id]` وأخواتها في فيزياء/كيمياء/أحياء/عربي/
+       إنجليزي)، وكان يصل **من جسم الطلب**. فمن عرف `user_id` طالبٍ آخر
+       قرأ جلسته وكتب فيها — أسئلةَ وزاريّه وحالةَ شرحه. الكتابة هنا تُغلق
+       ذلك في نقطةٍ واحدة بدل تعديل ستة ملفات، ولا يمكن نسيانها في مسار.
+
+    ⚡ وكلُّ قراءةٍ شبكية هنا في خيطٍ جانبي (`aget`) — لا تحجب حلقة الأحداث.
     """
     token = v3_auth.bearer_token(request)
-    if token:
-        ident = None
-        try:
-            ident = v3_auth.verify(token)
-        except v3_auth.AuthError as e:
-            # ⛑️ نشر ناقص (لا google-auth على الخادم) ⇒ لا نُسقط كل المستخدمين:
-            #    نعود للكود القديم ما دام مسموحاً، مع تحذير صريح في اللوج.
-            if v3_auth.available() or not AUTH_ALLOW_LEGACY_CODE:
-                return None, _json_response({"answer": str(e), "session_active": False}, 401)
-            print("⚠️ google-auth غير مثبّتة — تجاهلنا التوكن وعدنا للكود القديم.")
-
-        if ident is not None:
-            if v3_auth.requires_verified_email(ident):
-                return None, _json_response(
-                    {"answer": "📧 فعّل بريدك أولاً: افتح رابط التحقق المُرسل إليك ثم أعد المحاولة.",
-                     "session_active": False}, 403)
-            # 🚫 الحظر يُفرض هنا — عند أول طلب، لا في اللوحة وحدها.
-            if v3_admin.is_banned(ident.get("uid", "")):
-                return None, _json_response(
-                    {"answer": "⛔ حسابك موقوف. راسل الدعم إن كنت ترى هذا خطأً.",
-                     "session_active": False}, 403)
-            ident["legacy"] = False
-            return ident, None
-
-    if not AUTH_ALLOW_LEGACY_CODE:
+    if not token:
         return None, _json_response(
             {"answer": "⛔ الرجاء تسجيل الدخول أولاً.", "session_active": False}, 401)
 
-    # ── المسار القديم: كود التفعيل (يُحذف بعد انتقال المستخدمين) ──
-    codes_data = load_codes()
-    if req.code not in codes_data.get("active_codes", {}):
-        return None, _json_response({"answer": "⛔ كود التفعيل غير صالح."}, 401)
-    device_check = verify_code(req.code, req.device_id or "")
-    if device_check["status"] == "error":
-        return None, _json_response({"answer": device_check["message"]}, 401)
-    return {"uid": f"legacy:{req.user_id}", "email": "", "provider": "code",
-            "is_guest": False, "legacy": True}, None
+    try:
+        ident = v3_auth.verify(token)
+    except v3_auth.AuthError as e:
+        return None, _json_response({"answer": str(e), "session_active": False}, 401)
+
+    if v3_auth.requires_verified_email(ident):
+        return None, _json_response(
+            {"answer": "📧 فعّل بريدك أولاً: افتح رابط التحقق المُرسل إليك ثم أعد المحاولة.",
+             "session_active": False}, 403)
+
+    uid = ident.get("uid", "")
+
+    # 🚫 الحظر يُفرض هنا — عند أول طلب، لا في اللوحة وحدها.
+    state = await v3_user_state.aget(uid)
+    if state.get("banned"):
+        return None, _json_response(
+            {"answer": "⛔ حسابك موقوف. راسل الدعم إن كنت ترى هذا خطأً.",
+             "session_active": False}, 403)
+
+    if req is not None and hasattr(req, "user_id"):
+        req.user_id = uid
+
+    return ident, None
 
 
 # ==================================================
@@ -347,10 +409,17 @@ def _authenticate(request, req):
 # 🛟 ويفشل مفتوحاً: أي عطلٍ في القراءة يعني «مسموح» — نظام الإخفاء لا يجوز
 #    أن يصير سبباً في تعطيل الدراسة.
 
-def _section_gate(section: str, identity: dict, grade=None, track: str = ""):
-    """يعيد None عند السماح، أو ردَّ منعٍ جاهزاً برسالة اللوحة."""
+async def _section_gate(section: str, identity: dict, grade=None, track: str = ""):
+    """يعيد None عند السماح، أو ردَّ منعٍ جاهزاً برسالة اللوحة.
+
+    ⚡ القراءة عبر `user_state.aget` — الإصابةُ في الكاش بلا خيطٍ أصلاً،
+       والقراءةُ الفعلية في خيطٍ جانبي فلا تُجمّد الخادم لبقية الطلاب.
+    """
     try:
-        prof = v3_access.profile_for((identity or {}).get("uid", ""))
+        uid = (identity or {}).get("uid", "")
+        state = await v3_user_state.aget(uid)
+        prof = ({"grade": state["grade"], "track": state["track"], "role": state["role"]}
+                if state.get("exists") else None)
         if prof:
             grade = prof["grade"] if prof["grade"] is not None else grade
             track = prof["track"] or track
@@ -397,22 +466,6 @@ def _content_pending_response(subject: str, grade, track):
 # =====================
 # API Endpoints - التحقق والأمان
 # =====================
-
-@app.post("/verify-access")
-async def verify_access(req: VerificationRequest):
-    """
-    التحقق من صحة الكود والجهاز
-    """
-    result = verify_code(req.code, req.device_id)
-    
-    if result["status"] == "error":
-        return Response(
-            content=json.dumps(result),
-            status_code=401,
-            media_type="application/json"
-        )
-    
-    return result
 
 # =====================
 # API Endpoints - جلب البيانات
@@ -703,7 +756,7 @@ async def quiz_generate(req: QuizRequest, request: Request):
 
     الأسئلة لا تُخزَّن — تُولَّد وتُستهلك ([03§5]). المحفوظ هو النتيجة فقط.
     """
-    identity, auth_error = _authenticate(request, req)
+    identity, auth_error = await _authenticate(request, req)
     if auth_error is not None:
         return auth_error
 
@@ -711,25 +764,37 @@ async def quiz_generate(req: QuizRequest, request: Request):
                               v3_ratelimit.VOICE_LIMIT, v3_ratelimit.VOICE_WINDOW):
         return JSONResponse(status_code=429, content={"answer": v3_ratelimit.RATE_LIMIT_MESSAGE})
 
-    blocked = _section_gate("quiz", identity, req.grade, req.track)
+    blocked = await _section_gate("quiz", identity, req.grade, req.track)
     if blocked is not None:
         return blocked
 
+    # 🧾 إعادةُ المحاولة بعد مهلةٍ لا تولّد اختباراً ثانياً ولا تخصم مرتين.
+    state, cached = v3_idem.begin(identity["uid"], req.request_id)
+    if state == v3_idem.DONE and cached is not None:
+        return cached
+    if state == v3_idem.RUNNING:
+        return _json_response({"answer": v3_idem.IN_FLIGHT_MESSAGE, "questions": []}, 202)
+
     # 🎟️ الاختبار نداء واحد للموديل ⇒ يُحتسب من الحصة كسؤال واحد.
     #    الزائر يجرّبه ضمن أسئلته الخمس (قرار المالك) — وهو أقوى دعوة للتسجيل.
-    if not identity.get("legacy"):
-        allowed, _ = v3_quota.check_and_consume(identity["uid"], identity["is_guest"])
-        if not allowed:
-            return _json_response(
-                {"answer": v3_quota.message_for(identity["is_guest"]),
-                 "quota_exceeded": True, "is_guest": identity["is_guest"]}, 429)
+    allowed, _ = await v3_quota.acheck_and_consume(identity["uid"], identity["is_guest"])
+    if not allowed:
+        v3_idem.abandon(identity["uid"], req.request_id)
+        return _json_response(
+            {"answer": v3_quota.message_for(identity["is_guest"]),
+             "quota_exceeded": True, "is_guest": identity["is_guest"]}, 429)
 
     try:
         result = await v3_quiz.generate(
             req.grade, req.track, req.subject, req.unit, req.lessons, req.count, AI_CLIENTS)
     except v3_quiz.QuizError as e:
+        v3_idem.abandon(identity["uid"], req.request_id)
         return _json_response({"answer": str(e), "questions": []}, 200)
+    except Exception:
+        v3_idem.abandon(identity["uid"], req.request_id)
+        raise
 
+    v3_idem.finish(identity["uid"], req.request_id, result)
     return result
 
 
@@ -738,7 +803,7 @@ async def voice_clean(req: VoiceCleanRequest, request: Request):
     """🎤 تنظيف نص التسجيل الصوتي (إملاء + ترتيب) قبل عرضه للطالب.
     لا يجيب على الأسئلة — تصحيح نص فقط، والفشل يرجع النص الخام."""
     # نفس بوابة /ask: توكن Firebase أولاً ثم الكود (مرحلة انتقالية)
-    identity, auth_error = _authenticate(request, req)
+    identity, auth_error = await _authenticate(request, req)
     if auth_error is not None:
         return auth_error
 
@@ -749,63 +814,146 @@ async def voice_clean(req: VoiceCleanRequest, request: Request):
     return await v3_voice_clean.clean(req.text, AI_CLIENTS, req.subject)
 
 
-@app.post("/ask")
-async def ask(req: AskRequest, background_tasks: BackgroundTasks, request: Request):
-    background_tasks.add_task(cleanup_old_sessions)
-    """
-    🔥 الـ Endpoint الرئيسي
-    
-    استقبال طلب المستخدم ومعالجته حسب المادة والوضع
-    """
-    
+# ══════════════════════════════════════════════════
+# 🧭 التوجيه حسب المادة — **دالةٌ واحدة للمسارين**
+# ══════════════════════════════════════════════════
+# كانت داخلية في `/ask`؛ أُخرجت كي يستعملها `/ask/stream` بنفس المنطق
+# حرفياً. ونسخُها كان سيعني مادةً تُضاف لمسارٍ وتُنسى في الآخر.
+async def _dispatch_ask(req):
     # =====================
-    # 1️⃣ التوثيق: توكن Firebase (أو الكود مؤقتاً)
+    # 2️⃣ معالجة الطلب حسب المادة
     # =====================
-    identity, auth_error = _authenticate(request, req)
-    if auth_error is not None:
-        return auth_error
-    
-    # =====================
-    # 🚦 تحديد المعدل (يشمل القديم والجديد — حماية الفاتورة)
-    # =====================
-    # المفتاح = IP الحقيقي (خلف البروكسي) + user_id
-    if not v3_ratelimit.check(request, identity["uid"]):
+    subject = req.subject.strip()
+
+    # 🎓 بوابة المنهج لكل المواد: مادة غير مقررة على الصف/المسار تُرفض هنا،
+    #    قبل أن تلمس نظام الملفات.
+    if not v3_curriculum.is_valid_subject(req.grade, req.track, subject):
         return Response(
-            content=json.dumps({"answer": v3_ratelimit.RATE_LIMIT_MESSAGE, "session_active": False}),
-            status_code=429, media_type="application/json")
+            content=json.dumps({"answer": "❌ هذه المادة غير مقررة على صفك.", "session_active": False},
+                               ensure_ascii=False),
+            status_code=400, media_type="application/json")
+
+    # ── 🆕 المواد الجديدة: لكل واحدة ملف معالج مستقل ببرومبتاته ──
+    if subject in NEW_SUBJECT_HANDLERS:
+        return await NEW_SUBJECT_HANDLERS[subject](req, AI_CLIENTS)
+
+    # ── 🆕 مسارا النسخة الثالثة (اختياريان — لا يمسّان التدفق القديم) ──
+    # الرياضيات تبقى على معالجها الأصلي دائماً (هي وضع دروس بطبيعتها)
+    if req.content_mode == "lessons" and subject != "رياضيات" and req.mode != "وزاري":
+        return await v3_lesson_mode.handle(req, AI_CLIENTS)
+    if req.content_mode == "pages" and subject != "رياضيات" and req.mode != "وزاري":
+        # الأحياء (الثالث العلمي) لها معالجها الأصلي المجرّب — نبقيه كما هو
+        if not (subject == "احياء" and req.grade == 3 and req.track == "علمي"):
+            return await v3_pages_mode.handle(req, AI_CLIENTS)
+
+    # ══════════════════════════════════════════════════════════
+    # 🚧 حارس الصفوف: ما دون الثالث العلمي لا يُسلَّم للمعالجات القديمة
+    # ══════════════════════════════════════════════════════════
+    # (راجع LEGACY_CONTENT_SCOPE أعلاه). نحاول خدمته من طبقة v3 المحكومة
+    # بالصف — وإن لم يوجد ملف لصفّه، رسالة «قيد الإضافة» لا محتوى غيره.
+    if not _is_legacy_content_scope(req.grade, req.track):
+        if req.mode != "وزاري":
+            _g, _t = v3_curriculum.normalize_grade_track(req.grade, req.track)
+            _caps = v3_capabilities.describe(_g, _t, subject)
+            if _caps["lessons"]["available"]:
+                return await v3_lesson_mode.handle(req, AI_CLIENTS)
+            if _caps["pages"]["available"]:
+                return await v3_pages_mode.handle(req, AI_CLIENTS)
+        return _content_pending_response(subject, req.grade, req.track)
+
+    # 🧬 الأحياء
+    if subject == "احياء":
+        return await handle_biology_request(req, gemini_client)
+
+    # 🔬 الفيزياء
+    elif subject == "فيزياء":
+        return await handle_physics_request(req, openai_client)
+
+    # 🇬🇧 الإنجليزي
+    elif subject == "انجليزي":
+        return await handle_english_request(req, gemini_client)
+
+    # ⚛️ الكيمياء
+    elif subject == "كيمياء":
+        return await handle_chemistry_request(req, openai_client)
+    # 📚 العربي
+    elif subject == "عربي":
+        return await handle_arabic_request(req, gemini_client)
+
+    # 📐 الرياضيات
+    elif subject == "رياضيات":
+        return await handle_math_request(req, deepseek_client, groq_client)
+
+    # ❌ مادة غير معروفة
+    else:
+        return Response(
+            content=json.dumps({"answer": "❌ مادة غير معروفة"}),
+            status_code=400,
+            media_type="application/json"
+        )
+
+
+# ══════════════════════════════════════════════════
+# 🛂 سلسلة حرّاس `/ask` — **مصدرٌ واحد للمسارين**
+# ══════════════════════════════════════════════════
+# ⚠️ `/ask` و`/ask/stream` يجب أن يمرّا بنفس الحرّاس **حرفياً**: توثيق ثم
+#    معدّل ثم قسم ثم تكرار ثم حصة ثم صور. ونسخُها في مسارين كان أخطر ما
+#    يمكن فعله هنا — كلُّ حارسٍ يُنسى في أحدهما يصير باباً خلفياً كاملاً
+#    (وهو بالضبط ما فعله `legacy` سابقاً).
+#
+# تعيد `(identity, image_text, error_response)`؛ وجودُ `error_response`
+# يعني توقّف — يُرجعه المسار كما هو.
+
+async def _ask_guards(req, request: Request):
+    identity, auth_error = await _authenticate(request, req)
+    if auth_error is not None:
+        return None, "", auth_error
+
+    # 🚦 المفتاح = IP الحقيقي (خلف البروكسي) + هوية المستخدم.
+    if not v3_ratelimit.check(request, identity["uid"]):
+        return None, "", _json_response(
+            {"answer": v3_ratelimit.RATE_LIMIT_MESSAGE, "session_active": False}, 429)
 
     # 🔐 قاعدة الوصول قبل الحصة: لا يُخصم سؤالٌ من قسمٍ مقفل أصلاً.
-    blocked = _section_gate("education", identity, req.grade, req.track)
+    blocked = await _section_gate("education", identity, req.grade, req.track)
     if blocked is not None:
-        return blocked
+        return None, "", blocked
 
-    # =====================
-    # 🎟️ الحصة اليومية — بديل «الكود» في حماية فاتورة الـAI
-    # =====================
-    # المستخدمون القدامى (بالكود) خارجها حتى ينتقلوا، وإلا حُرموا فجأة.
-    if not identity.get("legacy"):
-        allowed, _remaining = v3_quota.check_and_consume(identity["uid"], identity["is_guest"])
-        if not allowed:
-            return _json_response(
-                {"answer": v3_quota.message_for(identity["is_guest"]),
-                 "references": [], "session_active": False,
-                 "quota_exceeded": True, "is_guest": identity["is_guest"]}, 429)
+    # 🧾 المحاولة المكرَّرة — قبل الحصة وقبل أي نداء موديل.
+    #
+    # 🔴 **العطل:** مهلة العميل والخادم قد لا تتطابقان، فالحصة تُخصم والجواب
+    #    يضيع والطالب يعيد السؤال ⇒ خصمٌ ثانٍ وفاتورة موديلٍ ثانية عن نفس
+    #    السؤال. وشبكات الطلاب متقطّعة فهذا يوميّ.
+    state, cached = v3_idem.begin(identity["uid"], req.request_id)
+    if state == v3_idem.DONE and cached is not None:
+        return identity, "", _json_response(cached)
+    if state == v3_idem.RUNNING:
+        return identity, "", _json_response(
+            {"answer": v3_idem.IN_FLIGHT_MESSAGE, "references": [],
+             "session_active": False, "in_flight": True}, 202)
 
-    # =====================
-    # 📷 الصورة → نص (Gemini لكل المواد) قبل أي توجيه
-    # =====================
-    _images = req.all_images()
-    _image_text = ""
-    if _images:
+    # 🎟️ الحصة — البوابة الوحيدة على فاتورة الـAI بعد حذف الأكواد.
+    allowed, _remaining = await v3_quota.acheck_and_consume(
+        identity["uid"], identity["is_guest"])
+    if not allowed:
+        v3_idem.abandon(identity["uid"], req.request_id)
+        return identity, "", _json_response(
+            {"answer": v3_quota.message_for(identity["is_guest"]),
+             "references": [], "session_active": False,
+             "quota_exceeded": True, "is_guest": identity["is_guest"]}, 429)
+
+    # 📷 الصورة → نص (Gemini لكل المواد) قبل أي توجيه.
+    image_text = ""
+    if req.all_images():
         try:
             extracted = []
-            for _img in _images:
-                _clean, _mime = v3_image_guard.validate(_img)
-                extracted.append(await v3_vision.image_to_text(_clean, _mime, AI_CLIENTS))
+            for img in req.all_images():
+                clean, mime = v3_image_guard.validate(img)
+                extracted.append(await v3_vision.image_to_text(clean, mime, AI_CLIENTS))
         except (v3_image_guard.ImageRejected, v3_vision.VisionFailed) as e:
-            return Response(
-                content=json.dumps({"answer": str(e), "references": [], "session_active": False}),
-                status_code=200, media_type="application/json")
+            v3_idem.abandon(identity["uid"], req.request_id)
+            return identity, "", _json_response(
+                {"answer": str(e), "references": [], "session_active": False}, 200)
         # النص المستخرج يحل محل محتوى الطلب، ثم يمضي المسار كالمعتاد.
         # ونحتفظ بنسختين إضافيتين: نظيفة للبحث، وأصلية لأرقام الصفحات.
         req.student_text = req.content or ""
@@ -813,87 +961,294 @@ async def ask(req: AskRequest, background_tasks: BackgroundTasks, request: Reque
         req.content = v3_vision.merge_into_question(extracted, req.content)
         # ⭐ ويعود للعميل كي **يخزّنه مع رسالة الطالب**: بدونه تُنسى الصورة
         #    في السؤال التالي، لأن التاريخ نصٌّ لا صور ([32§5]).
-        _image_text = v3_vision.history_text(extracted)
+        image_text = v3_vision.history_text(extracted)
         # لا نمرر الصور أبعد من هنا (ذاكرة + خصوصية)
         req.image_base64 = None
         req.images_base64 = None
 
-    # 📌 التوجيه في دالة داخلية كي نُرفق نص الصورة بأي رد مهما كان مساره.
-    async def _dispatch():
-        # =====================
-        # 2️⃣ معالجة الطلب حسب المادة
-        # =====================
-        subject = req.subject.strip()
-
-        # 🎓 بوابة المنهج لكل المواد: مادة غير مقررة على الصف/المسار تُرفض هنا،
-        #    قبل أن تلمس نظام الملفات.
-        if not v3_curriculum.is_valid_subject(req.grade, req.track, subject):
-            return Response(
-                content=json.dumps({"answer": "❌ هذه المادة غير مقررة على صفك.", "session_active": False},
-                                   ensure_ascii=False),
-                status_code=400, media_type="application/json")
-
-        # ── 🆕 المواد الجديدة: لكل واحدة ملف معالج مستقل ببرومبتاته ──
-        if subject in NEW_SUBJECT_HANDLERS:
-            return await NEW_SUBJECT_HANDLERS[subject](req, AI_CLIENTS)
-
-        # ── 🆕 مسارا النسخة الثالثة (اختياريان — لا يمسّان التدفق القديم) ──
-        # الرياضيات تبقى على معالجها الأصلي دائماً (هي وضع دروس بطبيعتها)
-        if req.content_mode == "lessons" and subject != "رياضيات" and req.mode != "وزاري":
-            return await v3_lesson_mode.handle(req, AI_CLIENTS)
-        if req.content_mode == "pages" and subject != "رياضيات" and req.mode != "وزاري":
-            # الأحياء (الثالث العلمي) لها معالجها الأصلي المجرّب — نبقيه كما هو
-            if not (subject == "احياء" and req.grade == 3 and req.track == "علمي"):
-                return await v3_pages_mode.handle(req, AI_CLIENTS)
-
-        # ══════════════════════════════════════════════════════════
-        # 🚧 حارس الصفوف: ما دون الثالث العلمي لا يُسلَّم للمعالجات القديمة
-        # ══════════════════════════════════════════════════════════
-        # (راجع LEGACY_CONTENT_SCOPE أعلاه). نحاول خدمته من طبقة v3 المحكومة
-        # بالصف — وإن لم يوجد ملف لصفّه، رسالة «قيد الإضافة» لا محتوى غيره.
-        if not _is_legacy_content_scope(req.grade, req.track):
-            if req.mode != "وزاري":
-                _g, _t = v3_curriculum.normalize_grade_track(req.grade, req.track)
-                _caps = v3_capabilities.describe(_g, _t, subject)
-                if _caps["lessons"]["available"]:
-                    return await v3_lesson_mode.handle(req, AI_CLIENTS)
-                if _caps["pages"]["available"]:
-                    return await v3_pages_mode.handle(req, AI_CLIENTS)
-            return _content_pending_response(subject, req.grade, req.track)
-
-        # 🧬 الأحياء
-        if subject == "احياء":
-            return await handle_biology_request(req, gemini_client)
-    
-        # 🔬 الفيزياء
-        elif subject == "فيزياء":
-            return await handle_physics_request(req, openai_client)
-    
-        # 🇬🇧 الإنجليزي
-        elif subject == "انجليزي":
-            return await handle_english_request(req, gemini_client)
-    
-        # ⚛️ الكيمياء
-        elif subject == "كيمياء":
-            return await handle_chemistry_request(req, openai_client)
-        # 📚 العربي
-        elif subject == "عربي":
-            return await handle_arabic_request(req, gemini_client)
-    
-        # 📐 الرياضيات
-        elif subject == "رياضيات":
-            return await handle_math_request(req, deepseek_client, groq_client)
-    
-        # ❌ مادة غير معروفة
-        else:
-            return Response(
-                content=json.dumps({"answer": "❌ مادة غير معروفة"}),
-                status_code=400,
-                media_type="application/json"
-            )
+    return identity, image_text, None
 
 
-    return _attach_image_text(await _dispatch(), _image_text)
+@app.post("/ask")
+async def ask(req: AskRequest, background_tasks: BackgroundTasks, request: Request):
+    """🔥 المسار الرئيسي — ردٌّ واحد كامل.
+
+    ⚠️ يبقى قائماً بعد إضافة البثّ: النسخ المنشورة تستعمله، وبوابةُ التحديث
+       الإلزامي (`/app/version`) هي ما ينقلها لا حذفُ المسار من تحتها.
+    """
+    background_tasks.add_task(cleanup_old_sessions)
+
+    identity, _image_text, denied = await _ask_guards(req, request)
+    if denied is not None:
+        return denied
+
+    # 🧾 الجواب يُحفظ للمحاولة نفسها: إعادةٌ بنفس `request_id` ترجعه بلا
+    #    نداء موديل ولا خصم. وأيُّ استثناء يُحرِّر الحجز وإلا بقي «يعمل».
+    try:
+        result = _attach_image_text(await _dispatch_ask(req), _image_text)
+    except Exception:
+        v3_idem.abandon(identity["uid"], req.request_id)
+        raise
+    _remember(identity["uid"], req.request_id, result)
+    return result
+
+
+
+
+# ══════════════════════════════════════════════════
+# 🛂 حرّاس المعلّم والمنح — **مصدرٌ واحد لمساري كلٍّ منهما**
+# ══════════════════════════════════════════════════
+# ⚠️ نفس سبب `_ask_guards`: صار لكلٍّ منهما مساران (عادي وبثّ)، ونسخُ
+#    سلسلة الحرّاس بينهما يعني حارساً يُنسى في أحدهما فيصير باباً خلفياً.
+
+async def _teacher_guards(req, request: Request):
+    """يعيد `(identity, error_response)`."""
+    identity, auth_error = await _authenticate(request, req)
+    if auth_error is not None:
+        return None, auth_error
+
+    if not v3_ratelimit.check(request, identity["uid"]):
+        return None, _json_response(
+            {"answer": v3_ratelimit.RATE_LIMIT_MESSAGE}, 429)
+
+    # 👨‍🏫 **لا حارس أقسامٍ ولا حارس دور** ([35§3][35§7]): «مساعد المعلم» صار
+    #    تطبيق المعلّم كلَّه لا قسماً فيه، والزائر يجرّب أدواته قبل أن يسجّل.
+    #    والفاتورة تحرسها الحصةُ أدناه وتحديدُ المعدل أعلاه.
+
+    state, cached = v3_idem.begin(identity["uid"], req.request_id)
+    if state == v3_idem.DONE and cached is not None:
+        return identity, _json_response(cached)
+    if state == v3_idem.RUNNING:
+        return identity, _json_response(
+            {"answer": v3_idem.IN_FLIGHT_MESSAGE, "references": [],
+             "session_active": False, "in_flight": True}, 202)
+
+    allowed, _ = await v3_quota.acheck_and_consume(identity["uid"], identity["is_guest"])
+    if not allowed:
+        v3_idem.abandon(identity["uid"], req.request_id)
+        return identity, _json_response(
+            {"answer": v3_quota.message_for(identity["is_guest"]), "references": [],
+             "session_active": False, "quota_exceeded": True,
+             "is_guest": identity["is_guest"]}, 429)
+
+    return identity, None
+
+
+async def _scholarship_guards(req, request: Request):
+    """يعيد `(identity, scholarship, error_response)`."""
+    identity, auth_error = await _authenticate(request, req)
+    if auth_error is not None:
+        return None, None, auth_error
+
+    if not v3_ratelimit.check(request, identity["uid"],
+                              v3_ratelimit.VOICE_LIMIT, v3_ratelimit.VOICE_WINDOW):
+        return None, None, _json_response(
+            {"answer": v3_ratelimit.RATE_LIMIT_MESSAGE}, 429)
+
+    blocked = await _section_gate("scholarships", identity)
+    if blocked is not None:
+        return identity, None, blocked
+
+    try:
+        sch = v3_scholarships.get_public(req.scholarship_id)
+    except v3_scholarships.ScholarshipError as e:
+        return identity, None, _json_response({"answer": str(e), "ok": False}, 404)
+
+    state, cached = v3_idem.begin(identity["uid"], req.request_id)
+    if state == v3_idem.DONE and cached is not None:
+        return identity, sch, _json_response(cached)
+    if state == v3_idem.RUNNING:
+        return identity, sch, _json_response(
+            {"answer": v3_idem.IN_FLIGHT_MESSAGE, "ok": False}, 202)
+
+    allowed, _ = await v3_quota.acheck_and_consume(identity["uid"], identity["is_guest"])
+    if not allowed:
+        v3_idem.abandon(identity["uid"], req.request_id)
+        return identity, sch, _json_response(
+            {"answer": v3_quota.message_for(identity["is_guest"]),
+             "quota_exceeded": True, "is_guest": identity["is_guest"], "ok": False}, 429)
+
+    return identity, sch, None
+
+
+# ══════════════════════════════════════════════════
+# 🌊 مولّد أحداث البثّ — **مصدرٌ واحد لكل المسارات**
+# ══════════════════════════════════════════════════
+# ⚠️ ثلاثة مسارات تبثّ الآن (تعليم · معلّم · منح)، ونسخُ منطق النبضة
+#    والإغلاق والحدث الختامي في كلٍّ منها يعني ثلاثةَ أماكن يُنسى في
+#    أحدها إصلاح. الفروق الحقيقية بينها ثلاثة معاملات لا أكثر.
+
+def _sse_stream(*, uid: str, request_id: str, sink, runner, image_text: str = "",
+                fallback: dict | None = None):
+    """يعيد `StreamingResponse` تبثّ ما يكتبه `runner` في `sink`."""
+
+    async def _run():
+        try:
+            return await runner()
+        finally:
+            await sink.close()
+
+    async def _events():
+        task = asyncio.create_task(_run())
+        streamed_any = False
+        try:
+            # 1️⃣ الأجزاء أولاً بأول، مع نبضةٍ تمنع البروكسيات من قطع الصمت.
+            drain = sink.drain().__aiter__()
+            while True:
+                try:
+                    piece = await asyncio.wait_for(
+                        drain.__anext__(), timeout=v3_stream.HEARTBEAT_SECONDS)
+                except StopAsyncIteration:
+                    break
+                except asyncio.TimeoutError:
+                    yield v3_stream.HEARTBEAT
+                    continue
+                streamed_any = True
+                yield v3_stream.delta_event(piece)
+
+            # 2️⃣ الحدث الختامي: النص **النهائي** بعد التنظيف + المراجع.
+            #    ⚠️ والعميل يستبدل ما بثّه به لا يُلحقه: المعالجات تُنقّي
+            #       الناتج بعد التوليد وقد تُلحق ملاحظة، فالمبثوث تقريبٌ
+            #       والنهائيُّ هو الحقيقة.
+            result = _attach_image_text(await task, image_text)
+            payload = _as_payload(result) or {
+                **(fallback or {}), "answer": sink.text}
+            _remember(uid, request_id, payload)
+            yield v3_stream.done_event(payload)
+
+        except asyncio.CancelledError:
+            # 🚪 الطالب أغلق الشاشة: نُلغي التوليد بدل أن يُكمل بلا قارئ.
+            task.cancel()
+            v3_idem.abandon(uid, request_id)
+            raise
+        except Exception as e:                       # noqa: BLE001
+            print(f"🔥 خطأ أثناء البثّ: {e}")
+            v3_idem.abandon(uid, request_id)
+            # ⚠️ ما وصل الطالبَ يبقى معروضاً؛ نُخبره بالانقطاع ولا نمسحه.
+            yield v3_stream.error_event(
+                "⚠️ انقطع الاتصال أثناء الإجابة. حاول مرة أخرى."
+                if streamed_any else
+                "⚠️ تعذّر توليد الإجابة الآن. حاول بعد قليل.")
+
+    return StreamingResponse(_events(), media_type="text/event-stream",
+                             headers=v3_stream.SSE_HEADERS)
+
+
+# ══════════════════════════════════════════════════
+# 🌊 `/ask/stream` — الجواب حرفاً بحرف
+# ══════════════════════════════════════════════════
+# 🔴 **ما يعالجه:** الطالب كان يحدّق في مؤشّر تحميل حتى ٦٠ ثانية ثم يظهر
+#    النص دفعةً واحدة. وشرحُ درسٍ كامل يستغرق ٢٠–٤٠ ثانية، فالانتظار
+#    الصامت هو التجربة الغالبة لا الاستثناء.
+#
+# ⚖️ **ونفس الحرّاس تماماً** (`_ask_guards`) — البثّ طريقةُ تسليمٍ لا بابٌ
+#    جانبي. والأخطاء تُرجَع **قبل** بدء البثّ برموز HTTP الصحيحة (401 · 429
+#    · 403)، لأن العميل لا يستطيع قراءة رمز الحالة بعد أن يبدأ التدفق.
+#
+# 🔁 **ومعالجٌ لا يعرف البثّ يعمل كما هو**: جوابه يُرسَل دفعةً واحدة في
+#    حدث `done`. فالعميل واحدٌ للجميع ولا يحتاج أن يعرف أيّ مادةٍ محوَّلة.
+
+@app.post("/ask/stream")
+async def ask_stream(req: AskRequest, background_tasks: BackgroundTasks,
+                     request: Request):
+    background_tasks.add_task(cleanup_old_sessions)
+
+    identity, image_text, denied = await _ask_guards(req, request)
+    if denied is not None:
+        return denied          # ← ردٌّ عاديّ برمز حالةٍ صحيح، لا بثّ
+
+    sink = v3_stream.StreamSink()
+    v3_stream.attach(req, sink)
+    return _sse_stream(
+        uid=identity["uid"], request_id=req.request_id, sink=sink,
+        image_text=image_text,
+        runner=lambda: _dispatch_ask(req),
+        fallback={"references": [], "session_active": False},
+    )
+
+
+# ══════════════════════════════════════════════════
+# 🌊 `/teacher/ask/stream` · `/scholarship/ask/stream`
+# ══════════════════════════════════════════════════
+# ⭐ **البثّ في كل مكان** (قرار المالك 2026-09-09): الشاشة واحدة في التطبيق،
+#    فلا سبب لأن يبثّ قسمُ الطالب ويتجمّد قسما المعلّم والمنح. والمعالجان
+#    كانا يقرآن المصرف أصلاً — الناقص كان المسارَين وحدهما.
+
+@app.post("/teacher/ask/stream")
+async def teacher_ask_stream(req: TeacherAskRequest, request: Request):
+    identity, denied = await _teacher_guards(req, request)
+    if denied is not None:
+        return denied
+
+    image_text = ""
+    if req.all_images():
+        try:
+            extracted = []
+            for img in req.all_images():
+                clean, mime = v3_image_guard.validate(img)
+                extracted.append(await v3_vision.image_to_text(clean, mime, AI_CLIENTS))
+        except (v3_image_guard.ImageRejected, v3_vision.VisionFailed) as e:
+            v3_idem.abandon(identity["uid"], req.request_id)
+            return _json_response({"answer": str(e), "references": [],
+                                   "session_active": False}, 200)
+        req.content = v3_vision.merge_into_question(extracted, req.content)
+        image_text = v3_vision.history_text(extracted)
+        req.images_base64 = None
+        req.image_base64 = None
+
+    sink = v3_stream.StreamSink()
+    v3_stream.attach(req, sink)
+
+    async def _run():
+        try:
+            return await v3_teacher.ask(req, AI_CLIENTS)
+        except v3_teacher.TeacherError as e:
+            # رسالة عربية جاهزة — تُعرض في الفقاعة كردٍّ لا كعطل شبكة.
+            return {"answer": str(e), "references": [], "session_active": False}
+
+    return _sse_stream(
+        uid=identity["uid"], request_id=req.request_id, sink=sink,
+        image_text=image_text, runner=_run,
+        fallback={"references": [], "session_active": False},
+    )
+
+
+@app.post("/scholarship/ask/stream")
+async def scholarship_ask_stream(req: ScholarshipAskRequest, request: Request):
+    identity, sch, denied = await _scholarship_guards(req, request)
+    if denied is not None:
+        return denied
+
+    question = req.question
+    image_text = ""
+    if req.all_images():
+        try:
+            extracted = []
+            for img in req.all_images():
+                clean, mime = v3_image_guard.validate(img)
+                extracted.append(await v3_vision.image_to_text(clean, mime, AI_CLIENTS))
+        except (v3_image_guard.ImageRejected, v3_vision.VisionFailed) as e:
+            v3_idem.abandon(identity["uid"], req.request_id)
+            return _json_response({"answer": str(e), "ok": False}, 200)
+        question = v3_vision.merge_into_question(extracted, req.question)
+        image_text = v3_vision.history_text(extracted)
+        req.images_base64 = None
+        req.image_base64 = None
+
+    if not (question or "").strip():
+        v3_idem.abandon(identity["uid"], req.request_id)
+        return _json_response(
+            {"answer": "اكتب سؤالك عن المنحة أو أرفق صورة 😊", "ok": False}, 200)
+
+    sink = v3_stream.StreamSink()
+    return _sse_stream(
+        uid=identity["uid"], request_id=req.request_id, sink=sink,
+        image_text=image_text,
+        runner=lambda: v3_sch_assistant.ask(
+            sch, question, req.chat_history, AI_CLIENTS, sink=sink),
+        fallback={"ok": True},
+    )
+
 
 
 # ══════════════════════════════════════════════════
@@ -948,7 +1303,7 @@ async def scholarship_ask(req: ScholarshipAskRequest, request: Request):
 
     🎟️ نداء موديل ⇒ يُحتسب من الحصة كسؤال واحد — تماماً كـ`/quiz/generate`.
     """
-    identity, auth_error = _authenticate(request, req)
+    identity, auth_error = await _authenticate(request, req)
     if auth_error is not None:
         return auth_error
 
@@ -956,7 +1311,7 @@ async def scholarship_ask(req: ScholarshipAskRequest, request: Request):
                               v3_ratelimit.VOICE_LIMIT, v3_ratelimit.VOICE_WINDOW):
         return JSONResponse(status_code=429, content={"answer": v3_ratelimit.RATE_LIMIT_MESSAGE})
 
-    blocked = _section_gate("scholarships", identity)
+    blocked = await _section_gate("scholarships", identity)
     if blocked is not None:
         return blocked
 
@@ -965,12 +1320,18 @@ async def scholarship_ask(req: ScholarshipAskRequest, request: Request):
     except v3_scholarships.ScholarshipError as e:
         return _json_response({"answer": str(e), "ok": False}, 404)
 
-    if not identity.get("legacy"):
-        allowed, _ = v3_quota.check_and_consume(identity["uid"], identity["is_guest"])
-        if not allowed:
-            return _json_response(
-                {"answer": v3_quota.message_for(identity["is_guest"]),
-                 "quota_exceeded": True, "is_guest": identity["is_guest"], "ok": False}, 429)
+    state, cached = v3_idem.begin(identity["uid"], req.request_id)
+    if state == v3_idem.DONE and cached is not None:
+        return _json_response(cached)
+    if state == v3_idem.RUNNING:
+        return _json_response({"answer": v3_idem.IN_FLIGHT_MESSAGE, "ok": False}, 202)
+
+    allowed, _ = await v3_quota.acheck_and_consume(identity["uid"], identity["is_guest"])
+    if not allowed:
+        v3_idem.abandon(identity["uid"], req.request_id)
+        return _json_response(
+            {"answer": v3_quota.message_for(identity["is_guest"]),
+             "quota_exceeded": True, "is_guest": identity["is_guest"], "ok": False}, 429)
 
     # 📷 الصورة → نص (نفس مسار `/ask` وحارسه): لقطة من موقع المنحة أو
     #    كشف درجات أو وثيقة. الصورة **لا تُحفظ ولا تُسجَّل** ولا تمضي أبعد
@@ -995,9 +1356,15 @@ async def scholarship_ask(req: ScholarshipAskRequest, request: Request):
         return _json_response(
             {"answer": "اكتب سؤالك عن المنحة أو أرفق صورة 😊", "ok": False}, 200)
 
-    return _json_response(_attach_image_text(
-        await v3_sch_assistant.ask(sch, question, req.chat_history, AI_CLIENTS),
-        image_text))
+    try:
+        payload = _attach_image_text(
+            await v3_sch_assistant.ask(sch, question, req.chat_history, AI_CLIENTS),
+            image_text)
+    except Exception:
+        v3_idem.abandon(identity["uid"], req.request_id)
+        raise
+    _remember(identity["uid"], req.request_id, payload)
+    return _json_response(payload)
 
 
 # ══════════════════════════════════════════════════
@@ -1030,7 +1397,7 @@ async def teacher_ask(req: TeacherAskRequest, request: Request):
     🎟️ نداء موديل ⇒ يُحتسب من الحصة كسؤال واحد — تماماً كـ`/ask`
        و`/quiz/generate` و`/scholarship/ask`. وإلا صار بابَاً خلفياً للفاتورة.
     """
-    identity, auth_error = _authenticate(request, req)
+    identity, auth_error = await _authenticate(request, req)
     if auth_error is not None:
         return auth_error
 
@@ -1046,13 +1413,21 @@ async def teacher_ask(req: TeacherAskRequest, request: Request):
     #    يسجّل ([35§3])، ولا مستند له يُقرأ منه دور. والفاتورة تحرسها الحصةُ
     #    أدناه وتحديدُ المعدل أعلاه، وهما ما يهمّ فعلاً.
 
-    if not identity.get("legacy"):
-        allowed, _ = v3_quota.check_and_consume(identity["uid"], identity["is_guest"])
-        if not allowed:
-            return _json_response(
-                {"answer": v3_quota.message_for(identity["is_guest"]), "references": [],
-                 "session_active": False, "quota_exceeded": True,
-                 "is_guest": identity["is_guest"]}, 429)
+    state, cached = v3_idem.begin(identity["uid"], req.request_id)
+    if state == v3_idem.DONE and cached is not None:
+        return _json_response(cached)
+    if state == v3_idem.RUNNING:
+        return _json_response(
+            {"answer": v3_idem.IN_FLIGHT_MESSAGE, "references": [],
+             "session_active": False, "in_flight": True}, 202)
+
+    allowed, _ = await v3_quota.acheck_and_consume(identity["uid"], identity["is_guest"])
+    if not allowed:
+        v3_idem.abandon(identity["uid"], req.request_id)
+        return _json_response(
+            {"answer": v3_quota.message_for(identity["is_guest"]), "references": [],
+             "session_active": False, "quota_exceeded": True,
+             "is_guest": identity["is_guest"]}, 429)
 
     # 📷 الصورة → نص: نفس مسار `/ask` وحارسه بلا ازدواج. الاستعمال الحقيقي
     #    هنا: صفحة كتاب مصوّرة · ورقة إجابة طالب · سؤال مكتوب بخط اليد.
@@ -1077,10 +1452,16 @@ async def teacher_ask(req: TeacherAskRequest, request: Request):
         result = await v3_teacher.ask(req, AI_CLIENTS)
     except v3_teacher.TeacherError as e:
         # رسالة عربية جاهزة — تُعرض في الفقاعة كردٍّ لا كعطل شبكة.
+        v3_idem.abandon(identity["uid"], req.request_id)
         return _json_response({"answer": str(e), "references": [],
                                "session_active": False}, 200)
+    except Exception:
+        v3_idem.abandon(identity["uid"], req.request_id)
+        raise
 
-    return _json_response(_attach_image_text(result, image_text))
+    payload = _attach_image_text(result, image_text)
+    _remember(identity["uid"], req.request_id, payload)
+    return _json_response(payload)
 
 
 # ══════════════════════════════════════════════════
@@ -1291,7 +1672,11 @@ _AVATAR_SAFE = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_
 
 
 def _avatar_key(uid: str) -> str:
-    """اسم ملف آمن من المعرّف — `legacy:٣` فيها نقطتان لا يقبلهما المسار."""
+    """اسم ملف آمن من المعرّف — تنقيةٌ دفاعية لا تُترك لشكل الـuid.
+
+    ⚠️ uid فايربيس أبجديّ رقميّ اليوم، لكن اسم الملف يُبنى منه ويُكتب على
+       القرص: قيدٌ يُفترض ولا يُفرض هو ثغرةُ مسارٍ تنتظر تغييراً في الأعلى.
+    """
     return "".join(c if c in _AVATAR_SAFE else "_" for c in uid)[:96]
 
 
@@ -1310,7 +1695,7 @@ async def me_avatar(request: Request, body: AvatarRequest):
                               v3_ratelimit.CONTENT_LIMIT, v3_ratelimit.CONTENT_WINDOW):
         return _json_response({"error": "⏳ محاولات كثيرة. انتظر قليلاً."}, 429)
 
-    identity, err = _authenticate(request, body)
+    identity, err = await _authenticate(request, body)
     if err:
         return err
     if identity.get("is_guest"):
@@ -1523,6 +1908,7 @@ async def admin_settings_get(request: Request):
                 "quota_guest": v3_quota.limit_for(True),
             },
             "ranges": {k: list(v) for k, v in v3_scholarships.SETTINGS_FIELDS.items()},
+            "text_fields": dict(v3_scholarships.SETTINGS_TEXT_FIELDS),
         }
     return _admin_run(request, _read)
 
@@ -1609,6 +1995,73 @@ async def app_access(request: Request, grade: int = 3, track: str = "علمي",
         print(f"⚠️ قراءة قواعد الوصول: {e}")
         # 🛟 فشلٌ مفتوح: عطلُ القواعد لا يُخفي المنصّة عن الطلاب.
         return _json_response({"sections": v3_access.resolve(None, "")})
+
+
+
+# ══════════════════════════════════════════════════
+# 🎟️ حصّة الطالب — رقمٌ يراه قبل أن يصطدم به
+# ══════════════════════════════════════════════════
+# 🔴 **ما كان يحدث:** `quota.peek()` موجودة في الخادم منذ البداية ولا
+#    مسارَ يعرضها. فالطالب يذاكر ثم يُمنع **فجأةً** في منتصف درسه بلا أي
+#    إنذار سابق. الرقم كان عندنا — إخفاؤه لم يكن قراراً، كان سهواً.
+
+@app.get("/me/quota")
+async def my_quota(request: Request):
+    """المتبقي من أسئلة اليوم لصاحب التوكن — قراءةٌ لا تخصم شيئاً."""
+    ident, denied = _identity_or_401(request)
+    if denied is not None:
+        return denied
+    if not v3_ratelimit.check(request, ident.get("uid", ""),
+                              v3_ratelimit.CONTENT_LIMIT, v3_ratelimit.CONTENT_WINDOW):
+        return _json_response({"error": "⏳ محاولات كثيرة. انتظر قليلاً."}, 429)
+    return _json_response(
+        await v3_quota.astatus(ident.get("uid", ""), ident.get("is_guest", False)))
+
+
+# ══════════════════════════════════════════════════
+# 📦 أدنى إصدارٍ مقبول — بوابةُ الإنقاذ الوحيدة بعد النشر
+# ══════════════════════════════════════════════════
+# ⭐ **تُضاف قبل أول نشر أو لا تُضاف أبداً.** يوم يتغيّر عقد الـAPI، النسخُ
+#    القديمة في جيوب الطلاب تنكسر صامتةً ولا وسيلة لمخاطبتها — إلا أن تكون
+#    قد علّمتها **من قبل** أن تسأل. وبعد النشر لا يمكن تعليمها.
+#
+# 🔓 عامٌّ بلا توثيق عمداً: يُنادى **قبل** تسجيل الدخول، وطلبُ توكنٍ له يعني
+#    أن النسخة المكسورة لا تستطيع حتى أن تعرف أنها مكسورة.
+# 🛟 ويفشل مفتوحاً: أي عطلٍ يعني «لا تحديث مطلوب» — قاعدةُ تحديثٍ معطوبة
+#    لا يجوز أن تحجب التطبيق عن الطلاب.
+
+@app.get("/app/version")
+async def app_version(request: Request, platform: str = "", build: int = 0):
+    """أدنى بناءٍ مدعوم + الأحدث المتاح، مع رسالةٍ ووجهةٍ للتحديث."""
+    if not v3_ratelimit.check(request, "version",
+                              v3_ratelimit.CONTENT_LIMIT, v3_ratelimit.CONTENT_WINDOW):
+        return _json_response({"update_required": False}, 200)
+    try:
+        settings = v3_scholarships.get_settings()
+    except Exception:
+        settings = {}
+
+    def _int(key, fallback=0):
+        value = settings.get(key)
+        return int(value) if isinstance(value, (int, float)) else fallback
+
+    min_build = _int("min_build", 0)
+    latest_build = _int("latest_build", 0)
+    store_url = str(settings.get("store_url") or "")
+    message = str(settings.get("update_message") or
+                  "📦 صدر تحديثٌ مهم لمسار — حدّث التطبيق لتتابع بلا مشاكل.")
+
+    return _json_response({
+        "min_build": min_build,
+        "latest_build": latest_build,
+        # الإلزام يُحسَب في الخادم لا في التطبيق: نسخةٌ قديمة قد تحسبه خطأً،
+        # وهي بالضبط النسخة التي نريد إلزامها.
+        "update_required": bool(build and min_build and build < min_build),
+        "update_available": bool(build and latest_build and build < latest_build),
+        "message": message,
+        "store_url": store_url,
+        "platform": (platform or "")[:16],
+    })
 
 
 # ══════════════════════════════════════════════════

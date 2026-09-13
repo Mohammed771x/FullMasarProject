@@ -230,41 +230,36 @@ _profiles: dict = {}
 
 
 def profile_for(uid: str):
-    """`{grade, track, role}` من مستند المستخدم — أو `None` إن تعذّر."""
+    """`{grade, track, role}` من مستند المستخدم — أو `None` إن تعذّر.
+
+    ⚡ **مصدرٌ واحد لا ثلاثة:** كان هذا يقرأ `users/{uid}` بنفسه، بينما
+       `admin.is_banned` و`quota._override_for` يقرآن **نفس المستند** في
+       **نفس الطلب**. صارت الثلاثة تُغذَّى من `user_state` بقراءةٍ واحدة
+       مُكاشة — والكاش هناك أقصر (٦٠ث بدل ١٢٠) فالحظر أسرع سرياناً لا أبطأ.
+    """
     if not uid:
         return None
-    now = time.time()
-    with _lock:
-        hit = _profiles.get(uid)
-        if hit and now - hit[0] < _PROFILE_TTL:
-            return hit[1]
-    try:
-        db = quota._firestore()
-        if db is None:
-            return None
-        snap = db.collection("users").document(uid).get()
-        if not snap.exists:
-            return None
-        d = snap.to_dict() or {}
-        prof = {"grade": d.get("grade") if isinstance(d.get("grade"), int) else None,
-                "track": str(d.get("track") or ""),
-                "role": d.get("role", "student")}
-    except Exception:
+    from . import user_state
+    state = user_state.get(uid)
+    if not state.get("exists"):
         return None
-    with _lock:
-        if len(_profiles) > 5000:
-            _profiles.clear()
-        _profiles[uid] = (now, prof)
-    return prof
+    return {"grade": state["grade"], "track": state["track"], "role": state["role"]}
 
 
 def forget_profile(uid: str = ""):
     """يُنادى بعد تغيير دور مستخدم أو صفّه — وبلا معرّف يمسح الكل."""
+    from . import user_state
     with _lock:
         if uid:
             _profiles.pop(uid, None)
         else:
             _profiles.clear()
+    # ⚠️ ولا يكفي مسحُ الكاش المحلي: مصدر الحقيقة صار `user_state`، ونسيانُ
+    #    أحدهما دون الآخر يعني تحويلاً لا يسري وطالباً يظنّ الإعداد معطوباً.
+    if uid:
+        user_state.forget(uid)
+    else:
+        user_state.reset()
 
 
 # ══════════════ الكتابة من اللوحة ══════════════

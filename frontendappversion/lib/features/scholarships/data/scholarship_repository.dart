@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
+import '../../chat/data/repositories/ask_stream.dart';
 import '../../../core/network/api_endpoints.dart';
 import 'models/scholarship.dart';
 
@@ -56,6 +57,16 @@ class ScholarshipRepository {
   /// عميل مُدخَل من الاختبارات — **لا يُغلق أبداً**: إغلاقه يُعطّل بقية
   /// الاختبار، والإلغاء في الاختبار يحرسه حارس التسلسل لا قطع الاتصال.
   final http.Client? _injected;
+
+  /// العميل المحقون — أو `null` في الإنتاج.
+  ///
+  /// ⭐ **نقطة حقنٍ واحدة**: `SchAskStream` يبني عميله من هذا، فحقنُ
+  ///    `repository` يغطّي المسارين — العاديّ والبثّ — معاً. وبدونه كان
+  ///    اختبار «الإيقاف» يحقن المستودع بينما البثّ يفتح اتصالاً حقيقياً،
+  ///    فيقيس شيئاً آخر ويمرّ وهو لا يحرس شيئاً.
+  ///
+  /// ⚠️ وليست `@visibleForTesting`: الإنتاج يستعملها فعلاً لربط البثّ.
+  http.Client? get injectedClient => _injected;
 
   /// 🛑 عميل مستقل لطلب المساعد وحده — كي يُغلق عند الإيقاف فيُقطع الاتصال
   /// **فعلياً**. تجاهل الرد وحده لا يكفي: الطلب يبقى معلّقاً على الخادم
@@ -216,7 +227,7 @@ class ScholarshipRepository {
     List<String> imagesBase64 = const [],
     String? idToken,
     String userId = "",
-    String deviceId = "",
+    String requestId = "",
   }) async {
     // عميل جديد لكل طلب: إغلاق السابق يقطعه ولا يُعطّل ما بعده.
     // (وفي الاختبارات نستعمل المُدخَل كما هو — راجع `_injected`.)
@@ -231,8 +242,7 @@ class ScholarshipRepository {
             headers: ApiClient.authHeaders(idToken),
             body: jsonEncode({
               "user_id": userId,
-              "code": AppConfig.accessCode,
-              "device_id": deviceId,
+              "request_id": requestId,
               "scholarship_id": scholarshipId,
               "question": question,
               "chat_history": history,
@@ -319,7 +329,6 @@ class ScholarshipRepository {
             headers: ApiClient.authHeaders(idToken),
             body: jsonEncode({
               "user_id": userId,
-              "code": AppConfig.accessCode,
               "text": rawText,
               // 📚 القرينة تُرجّح مصطلحات المنح («الابتعاث» · «خطاب الدافع»)
               "subject": "منح دراسية",
@@ -336,6 +345,11 @@ class ScholarshipRepository {
   }
 }
 
+/// 🌊 بثّ ردّ مساعد المنحة — نفس بروتوكول قسم التعليم حرفياً.
+///
+/// ⚠️ يُعيد استعمال [AskStream] بدل عميلٍ ثانٍ: البروتوكول واحد (SSE
+///    بأحداث `delta`/`done`/`error`)، ونسخُ فكّ الترميز كان يعني مكانين
+///    يُصلَح فخّ التقطيع في أحدهما وحده.
 class SchAnswer {
   final String text;
   final bool ok;
@@ -352,4 +366,71 @@ class SchAnswer {
     this.isGuest = false,
     this.imageText = "",
   });
+}
+
+
+// ══════════════════════════════════════════════════
+// 🌊 بثّ ردّ مساعد المنحة
+// ══════════════════════════════════════════════════
+class SchAskStream {
+  SchAskStream([http.Client? client]) : _stream = AskStream(client);
+
+  final AskStream _stream;
+
+  /// يبثّ الرد. `onDelta` تُنادى مع كل جزء، والقيمة المعادة هي الرد النهائي.
+  ///
+  /// 🛟 لا يرمي: الانقطاع يعود كـ`SchAnswer(ok: false)` برسالةٍ عربية،
+  ///    فيتعامل معه المتحكّم كأي ردٍّ غير ناجح بلا `try/catch` إضافي.
+  Future<SchAnswer> ask({
+    required String scholarshipId,
+    required String question,
+    required List<Map<String, String>> history,
+    required void Function(String) onDelta,
+    List<String> imagesBase64 = const [],
+    String? idToken,
+    String userId = "",
+    String requestId = "",
+  }) async {
+    Map<String, dynamic>? done;
+    String? failure;
+
+    await for (final ev in _stream.open(
+      url: Uri.parse(ApiEndpoints.scholarshipAskStream()),
+      headers: ApiClient.authHeaders(idToken),
+      timeout: Duration(seconds: imagesBase64.isEmpty ? 90 : 120),
+      body: {
+        "user_id": userId,
+        "request_id": requestId,
+        "scholarship_id": scholarshipId,
+        "question": question,
+        "chat_history": history,
+        // 📷 الصورة تُقرأ على الخادم ثم تُنسى — لا تُحفظ ولا تُسجَّل.
+        if (imagesBase64.isNotEmpty) "images_base64": imagesBase64,
+      },
+    )) {
+      switch (ev) {
+        case AskDelta(text: final piece):
+          onDelta(piece);
+        case AskDone(payload: final p):
+          done = p;
+        case AskFailure(message: final m):
+          failure = m;
+      }
+    }
+
+    if (done == null) {
+      return SchAnswer(
+          text: failure ?? "⚠️ تعذّر الوصول للمساعد الآن. حاول بعد قليل.",
+          ok: false);
+    }
+    return SchAnswer(
+      text: (done["answer"] ?? "").toString(),
+      ok: done["ok"] != false,
+      quotaExceeded: done["quota_exceeded"] == true,
+      isGuest: done["is_guest"] == true,
+      imageText: (done["extracted_text"] ?? "").toString(),
+    );
+  }
+
+  void cancel() => _stream.cancel();
 }

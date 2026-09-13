@@ -20,6 +20,16 @@ class SubjectCapabilities {
   final List<LessonsUnit> lessonsUnits;
   final List<String> pagesUnits;
 
+  /// 📄 أرقام صفحات كل وحدة — تصل مع القدرات في **النداء نفسه**.
+  ///
+  /// ⭐ ولو جُلبت بنداءٍ ثانٍ لظهر المُنتقي فارغاً لحظةً ثم امتلأ، وتلك
+  ///    اللحظة هي كل تجربة الطالب حين يفتح الإعدادات.
+  final Map<String, List<int>> unitPages;
+
+  /// أقصى ما يُختار في المرّة الواحدة — **من الخادم لا رقماً مكتوباً هنا**،
+  /// كي لا يتناقض ما تمنعه الواجهة مع ما يرفضه الخادم.
+  final int maxSelectablePages;
+
   /// 📝 بنك وزاري لهذا الصف/المسار — الوزاري امتحان وطني للثالث،
   ///    فشريحته لا تظهر للأول والثاني ([31§3]).
   final bool examsAvailable;
@@ -33,6 +43,8 @@ class SubjectCapabilities {
     required this.pagesAvailable,
     required this.lessonsUnits,
     required this.pagesUnits,
+    this.unitPages = const {},
+    this.maxSelectablePages = 3,
     this.examsAvailable = false,
     this.quizAvailable = false,
   });
@@ -49,6 +61,12 @@ class SubjectCapabilities {
           .map(LessonsUnit.fromJson)
           .toList(),
       pagesUnits: List<String>.from(pages['units'] ?? const []),
+      unitPages: {
+        for (final e in ((pages['unit_pages'] ?? const {}) as Map).entries)
+          e.key.toString(): List<int>.from(
+              (e.value as List? ?? const []).map((n) => (n as num).toInt())),
+      },
+      maxSelectablePages: (pages['max_selectable'] as num?)?.toInt() ?? 3,
       // ⚠️ خادم أقدم لا يرسل هذين المفتاحين. الغياب ليس «غير متاح»:
       //    نستنتج الاختبارات من وجود الدروس، ونُبقي الوزاري ظاهراً كما كان.
       //    (بدون هذا الاحتياط ظهرت «لا توجد دروس» لمادة دروسها موجودة فعلاً.)
@@ -71,6 +89,21 @@ class SubjectCapabilities {
       if (u.unit == unit) return u.lessons;
     }
     return const [];
+  }
+
+  /// 📄 صفحات وحدةٍ بعينها، و«الكل» تجمع صفحات المنهج كلّه مرتّبةً.
+  ///
+  /// ⚠️ والدمجُ يزيل التكرار: صفحةٌ قد ترد في وحدتين متجاورتين، وتكرارُها
+  ///    في المُنتقي يجعل الطالب يظنّ أنه أضاف اثنتين وهو أضاف واحدة.
+  List<int> pagesIn(String unit) {
+    if (unit.isEmpty || unit == 'الكل') {
+      final all = <int>{};
+      for (final v in unitPages.values) {
+        all.addAll(v);
+      }
+      return all.toList()..sort();
+    }
+    return unitPages[unit] ?? const [];
   }
 
   /// وحدة درسٍ بعينه — أو `null` إن لم يكن في هذه المادة.

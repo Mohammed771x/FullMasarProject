@@ -1,5 +1,6 @@
 import 'dart:io';
 import '../../../../core/widgets/masar_markdown.dart';
+import '../../../../core/widgets/streaming_text.dart';
 
 import 'package:flutter/material.dart';
 
@@ -31,6 +32,37 @@ class ChatListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final messages = controller.messages;
+
+    // ══════════════════════════════════════════════════
+    // 📌 تمرير الطالب **بنفسه** هو الإشارة الوحيدة
+    // ══════════════════════════════════════════════════
+    // 🔴 **الفرق الذي تقوم عليه الميزة كلها:** نموّ النصّ أثناء البثّ يزيد
+    //    `maxScrollExtent` فتكبر المسافة إلى القاع **بلا أن يلمس الطالب
+    //    شيئاً**. ولو عاملنا ذلك «صعوداً» لفُكّ الالتصاق من تلقاء نفسه في
+    //    أول جزء — أي أن الميزة تتعطّل بالضبط حين تلزم.
+    //
+    // ✅ ولذلك نستمع لـ`ScrollUpdateNotification` **ذات `dragDetails`**
+    //    وحدها: هي التي تعني إصبعاً على الشاشة. أما `ScrollMetricsNotification`
+    //    (تغيّر المقاسات) فنتجاهلها تماماً.
+    return NotificationListener<ScrollNotification>(
+      onNotification: (n) {
+        if (n is ScrollStartNotification && n.dragDetails != null) {
+          // 👆 **لحظة اللمس**: الطالب أخذ الشاشة. نفكّ الالتصاق فوراً بلا
+          //    انتظار عتبة، وإلا ابتلع القفزُ التالي سحبتَه قبل أن تبلغها.
+          controller.onUserDragStart();
+        } else if (n is ScrollUpdateNotification && n.dragDetails != null) {
+          controller.onUserScroll(n.metrics);
+        } else if (n is ScrollEndNotification) {
+          // ✋ رُفع الإصبع واستقرّت اللفّة — والموضع النهائي هو ما يعنينا.
+          controller.onUserDragEnd(n.metrics);
+        }
+        return false;
+      },
+      child: _buildList(context, messages),
+    );
+  }
+
+  Widget _buildList(BuildContext context, List<Map<String, dynamic>> messages) {
     return ListView.builder(
       controller: controller.scrollController,
       padding: EdgeInsets.only(
@@ -111,7 +143,36 @@ class ChatListView extends StatelessWidget {
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: Text("مسار AI", style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold)),
                               ),
-                            if (msg["animating"] == true && !controller.isLoading)
+                            // 🌊 **البثّ جارٍ**: النصّ ينمو، وحافته السفلى
+                            //    تتلاشى فينبثق الجديد بهدوء بدل أن يقفز،
+                            //    ومؤشّرٌ يقول «ما زال يكتب» ([StreamingText]).
+                            if (msg["streaming"] == true)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  StreamingText(
+                                    streaming: true,
+                                    child: MasarMarkdown(
+                                      data: (msg["text"] ?? "").toString(),
+                                      selectable: false,
+                                      // 🧪 رسّامُ الكيمياء في الكيمياء وحدها
+                                      subject: controller.selectedSubject,
+                                      styleSheet: MarkdownStyleSheet(
+                                        p: TextStyle(
+                                            color: AppColors.textPrimary,
+                                            fontSize: AppSettings.I.answerFontSize,
+                                            fontWeight: FontWeight.w500,
+                                            height: 1.6),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: TypingCaret(color: AppColors.primary),
+                                  ),
+                                ],
+                              )
+                            else if (msg["animating"] == true && !controller.isLoading)
                               TypewriterText(
                                 text: msg["fullText"] ?? msg["text"],
                                 stopNotifier: controller.stopTypingNotifier,
@@ -136,6 +197,7 @@ class ChatListView extends StatelessWidget {
                               MasarMarkdown(
                                 data: msg["text"],
                                 selectable: true,
+                                subject: controller.selectedSubject,
                                 styleSheet: MarkdownStyleSheet(
                                   p: TextStyle(color: isUser ? Colors.white : AppColors.textPrimary, fontSize: AppSettings.I.answerFontSize, fontWeight: FontWeight.w500, height: 1.6),
                                 ),

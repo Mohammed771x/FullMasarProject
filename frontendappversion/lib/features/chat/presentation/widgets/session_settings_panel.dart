@@ -5,6 +5,7 @@ import '../../../quiz/presentation/quiz_setup_screen.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/modern_dropdown.dart';
 import '../controllers/chat_controller.dart';
+import 'page_picker.dart';
 import '../../../teacher/presentation/widgets/teacher_settings_panel.dart';
 
 // ==========================================
@@ -76,6 +77,12 @@ class SessionSettingsPanel extends StatelessWidget {
             if (c.selectedMode == "تلخيص" && c.selectedSubject != "رياضيات") _summarySlider(),
             if (c.selectedSubject != "رياضيات" && c.selectedMode != "سؤال" && c.selectedMode != "وزاري" &&
                 (!c.usesContentModes || c.contentMode == "pages")) _inputTypeSelector(),
+            // 📄 **المُنتقي تحت المحدّد مباشرةً**: من ضغط «صفحة» يرى الصفحات
+            //    في اللحظة نفسها — لا يبحث عن مكانٍ ثالثٍ يختار منه.
+            if (c.canPickPages) ...[
+              const SizedBox(height: 16),
+              PagePicker(c),
+            ],
           ],
         ),
       ),

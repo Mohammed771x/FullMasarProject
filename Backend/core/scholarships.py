@@ -573,6 +573,17 @@ def get_cover(sch_id: str) -> str:
 SETTINGS_FIELDS = {
     "quota_ask": (1, 1000),        # حدّ الطالب المسجَّل يومياً
     "quota_guest": (0, 100),       # تجربة الزائر (تراكمية لا يومية)
+    # 📦 بوابة التحديث الإلزامي — يقرؤها `/app/version` ([api.py]).
+    #    `min_build` هو **السلاح الوحيد** لإنقاذ نسخةٍ كُسرت بعد النشر،
+    #    ورفعُه من اللوحة يعني بلا إصدارٍ جديد ولا انتظار مراجعة متجر.
+    "min_build": (0, 100000),      # أدنى بناء مدعوم — دونه تحديثٌ إلزامي
+    "latest_build": (0, 100000),   # أحدث بناء منشور — دونه تحديثٌ مقترح
+}
+
+# حقولٌ نصّية (لا مدى رقمي لها) — تُحفظ بسقف طول.
+SETTINGS_TEXT_FIELDS = {
+    "store_url": 300,              # رابط المتجر لزرّ «حدّث الآن»
+    "update_message": 300,         # ما يُقال للطالب في شاشة التحديث
 }
 
 _settings_cache = {"data": None, "ts": 0.0}
@@ -610,6 +621,14 @@ def set_settings(values: dict) -> dict:
         if not (low <= number <= high):
             raise ScholarshipError(f"❌ «{key}» خارج المدى المسموح ({low}–{high}).")
         clean[key] = number
+
+    for key, max_len in SETTINGS_TEXT_FIELDS.items():
+        if key not in (values or {}):
+            continue
+        text = str(values[key] or "").strip()
+        if len(text) > max_len:
+            raise ScholarshipError(f"❌ «{key}» أطول من {max_len} حرفاً.")
+        clean[key] = text
 
     if not clean:
         raise ScholarshipError("❌ لا شيء لحفظه.")

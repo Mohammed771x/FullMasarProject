@@ -1,25 +1,28 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/config/app_constants.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/config/curriculum.dart';
 import '../../../../core/services/image_service.dart';
 import '../../../../core/services/stt_service.dart';
 import '../../../../core/services/voice_text_merge.dart';
+import '../../../../core/quota/quota_repository.dart';
 import '../../../../core/session/user_session.dart';
 import '../../../../core/error/error_messages.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/storage/chat_storage.dart';
-import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/sync/sync_service.dart';
 import '../../data/models/ask_response.dart';
 import '../../data/models/chat_model.dart';
 import '../../data/models/subject_capabilities.dart';
+import '../../data/repositories/ask_stream.dart';
 import '../../data/repositories/chat_repository.dart';
+import 'stick_to_bottom.dart';
 import '../../data/repositories/tutor_content_repository.dart';
 import '../../../teacher/data/teacher_tool.dart';
 
@@ -33,8 +36,11 @@ class ChatController extends ChangeNotifier {
   ChatController({
     ChatRepository? chatRepository,
     TutorContentRepository? contentRepository,
+    // 🧪 يُحقن في الاختبارات وحدها — الإنتاج لا يمرّر شيئاً.
+    AskStream? askStream,
   })  : _chat = chatRepository ?? ChatRepository(),
-        _content = contentRepository ?? TutorContentRepository();
+        _content = contentRepository ?? TutorContentRepository(),
+        _stream = askStream ?? AskStream();
 
   final ChatRepository _chat;
   final TutorContentRepository _content;
@@ -59,10 +65,86 @@ class ChatController extends ChangeNotifier {
   final ValueNotifier<bool> stopTypingNotifier = ValueNotifier(false);
 
   // ===== الحالة (نفس متغيرات الكود الأصلي) =====
-  final String userId = const Uuid().v4();
+
+  /// 🔴 **كان `const Uuid().v4()` — معرّفاً جديداً في كل فتحةِ شاشة.**
+  ///
+  /// و`MainChatScreen` ينشئ المتحكّم في `initState`، أي أن كل خروجٍ ورجوع
+  /// كان يولّد هويةً جديدة تماماً. وثلاث نتائج تتبع ذلك:
+  ///   1. **جلسة الرياضيات تنقطع**: الخادم يُمفتِح جلسات «وزاري» و«شرح»
+  ///      بـ`user_id` (`sessions_math`). فطالبٌ في منتصف تسلسلٍ متعدد
+  ///      الخطوات يخرج للرئيسية ويعود ⇒ يبدأ من الصفر بلا سبب ظاهر.
+  ///   2. مفتاح تحديد المعدل كان يتغيّر معه ⇒ الحماية تُلتفّ عليها بمجرد
+  ///      إعادة فتح الشاشة.
+  ///   3. جداول الجلسات على الخادم تنتفخ بمفاتيح ميتة لا يعود إليها أحد.
+  ///
+  /// ✅ والآن هوية الحساب: ثابتةٌ عبر الشاشات والجلسات وحتى إعادة التثبيت.
+  ///    (والخادم يكتبها فوق ما نرسله على أي حال — راجع `_authenticate`.)
+  String get userId => UserSession.I.uid;
+
   final Map<String, List<Map<String, dynamic>>> _allChatsHistory = {};
 
-  String _deviceId = "";
+  // ══════════════════════════════════════════════════
+  // 🌊 البثّ + 📌 الالتصاق بالأسفل
+  // ══════════════════════════════════════════════════
+
+  /// عميل البثّ — يُغلق عند المغادرة كما يُغلق عميل الطلب العادي.
+  final AskStream _stream;
+
+  /// 📌 قرار «هل نتبع الأسفل؟» — منطقٌ خالص يُختبر وحده
+  /// ([stick_to_bottom.dart]).
+  final StickToBottom stick = StickToBottom();
+
+  /// هل يُكتب ردٌّ الآن؟ (تراه الفقاعة لتُظهر التلاشي والمؤشّر)
+  bool isStreaming = false;
+
+  /// 👆 لمس الطالب الشاشة — يفكّ الالتصاق فوراً ويمنع أي قفزٍ حتى يرفع.
+  void onUserDragStart() {
+    final was = stick.isStuck;
+    stick.beginUserDrag();
+    if (was) _safeNotify();     // يظهر زرّ «انزل للأسفل»
+  }
+
+  /// ✋ رفع الطالب إصبعه واستقرّت اللفّة — يُعاد الحكم من موضعه النهائي.
+  void onUserDragEnd(ScrollMetrics metrics) {
+    final was = stick.isStuck;
+    stick.endUserDrag(metrics);
+    if (was != stick.isStuck) _safeNotify();
+  }
+
+  /// يُنادى من الويدجت حين **يمرّر الطالب بنفسه** لا حين ينمو النص.
+  void onUserScroll(ScrollMetrics metrics) {
+    final was = stick.isStuck;
+    stick.onUserScroll(metrics);
+    // نُعلم الواجهة فقط عند تغيّر الحالة — زرّ «انزل للأسفل» يظهر ويختفي.
+    if (was != stick.isStuck) _safeNotify();
+  }
+
+  /// زرّ «انزل للأسفل» — يعيد الالتصاق وينزل بحركةٍ ناعمة.
+  void jumpToBottomAndStick() {
+    stick.stick();
+    if (scrollController.hasClients) {
+      scrollController.animateTo(
+        scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
+    _safeNotify();
+  }
+
+  /// ⏸️ ضغط الطالب «إيقاف» بينما الردّ في الطريق.
+  ///
+  /// الطلب يُكمل، والجواب حين يصل يُضاف **بلا أنيميشن** ويُحفظ: الحصة
+  /// دُفعت فلا يُرمى ما اشترته. راجع [stopCurrentRequest].
+  bool _quietlyAwaitingAnswer = false;
+
+  /// 🧾 معرّف **المحاولة الجارية** — لا معرّف الرسالة ولا الجلسة.
+  ///
+  /// يُولَّد مرةً واحدة عند بدء الإرسال ويبقى ثابتاً عبر إعادات المحاولة
+  /// التلقائية، فيعرف الخادم أنها **نفس** المحاولة فلا يخصم مرتين
+  /// ([Backend/core/idempotency.py]). ورسالةٌ جديدة تعني معرّفاً جديداً.
+  String _requestId = "";
+
   bool _disposed = false;
 
   String? currentConversationId;
@@ -126,8 +208,21 @@ class ChatController extends ChangeNotifier {
   ///    «✅ اضغط إرسال مباشرة لشرح الدرس كاملاً»، و`processRequest` تدعمها
   ///    فعلاً — لكن زرّ الإرسال كان مشروطاً بنصٍّ مكتوب وحده، فالوعد لا
   ///    يتحقّق والزرّ يبقى رمادياً. المنطق موجود، والبوّابة وحدها كانت مغلقة.
+  /// يُنبّه أن وضع الصفحات يحتاج اختياراً — تملؤه الشاشة.
+  void Function()? onShowPagesRequired;
+
   bool get canSendWithoutText =>
-      !isTeacher && effectiveContentMode == "lessons" && selectedV3Lesson.isNotEmpty;
+      !isTeacher &&
+      ((effectiveContentMode == "lessons" && selectedV3Lesson.isNotEmpty) ||
+          // 📄 صفحاتٌ مختارة = طلبٌ كامل بذاته. طلبُ المالك: «الزر يكون
+          //    دايركت — لو ضغطت عليه يقول له اشرح الصفحات الآتية».
+          (canPickPages && selectedPages.isNotEmpty));
+
+  /// ما يُرسل حين تُختار صفحات ولا يكتب الطالب شيئاً.
+  String get _defaultPagesPrompt {
+    final verb = {"تلخيص": "لخّص", "سؤال": "أجب من"}[selectedMode] ?? "اشرح";
+    return "$verb الصفحات الآتية.";
+  }
 
   /// هل الأداة جاهزة للتوليد؟ (الدرس + ما تطلبه الأداة من حقول)
   bool get canGenerateTeacher {
@@ -156,10 +251,100 @@ class ChatController extends ChangeNotifier {
   /// القيمة المُرسلة للخادم — null يعني «المسار القديم كما هو».
   String? get effectiveContentMode => usesContentModes ? contentMode : null;
 
-  String inputType = "برومت";
+  String _inputType = "برومت";
+
+  String get inputType => _inputType;
+
+  /// 🛡️ **مُسنِدٌ لا حقلٌ عارٍ** — والسببُ عطلٌ وقع فعلاً:
+  ///
+  /// «صفحة» تُنسى مُسنَدةً حين يخرج الطالب من وضع الوحدات، فتبقى حالةً
+  /// **مخفيّة** (اللوحة لا تعرض محدّدها هناك) تحكم سلوكاً ظاهراً. وتصفيرُها
+  /// في كل موضعٍ يخرج منه يعني ستة مواضع تُنسى إحداها يوماً.
+  ///
+  /// ⭐ فالخروج من «صفحة» يُسقط ما اختير معه — هنا، مرّةً واحدة، لكل
+  ///    المواضع الحالية وما يُضاف بعدها.
+  set inputType(String value) {
+    if (_inputType == value) return;
+    _inputType = value;
+    if (value != "صفحة") selectedPages.clear();
+  }
+
+  // ══════════════════════════════════════════════════
+  // 📄 الصفحات المختارة — ترتفع مع البرومبت لا معه مرّةً واحدة
+  // ══════════════════════════════════════════════════
+  // 🔴 كان الطالب يكتب «13، 14، 15» داخل سؤاله، فيخلط الرقمَ المقصود
+  //    بالرقم العابر، **ويفقد صفحاته في السؤال التالي** لأن الرقم كان في
+  //    نصّ الرسالة السابقة لا في حالة الجلسة.
+  //
+  // ⭐ فصارت حالةً مستقلة: تبقى ظاهرةً فوق حقل الكتابة وتُرسل مع كل رسالة
+  //    حتى يرفعها الطالب بنفسه (قرار المالك 2026-09-09).
+  final List<int> selectedPages = [];
+
+  int get maxPages => caps?.maxSelectablePages ?? 3;
+
+  /// 🚦 **البوّابة الوحيدة لوضع الصفحات** — عليها يتوقّف كلُّ شيء: ظهور
+  /// المُنتقي، وشرائحُ الصفحات فوق حقل الكتابة، وإرسالُ `selected_pages`،
+  /// والمنعُ من الإرسال بلا اختيار.
+  ///
+  /// 🔴 **العطل الذي كشفه المالك (2026-09-09):** كانت تسأل عن «صفحة/برومت»
+  ///    وحدها ولا تسأل عن **مصدر المحتوى**. فمن اختار صفحاتٍ في وضع
+  ///    الوحدات ثم رجع إلى وضع الدروس بقي `inputType == "صفحة"` مخفياً
+  ///    (اللوحة تُخفي محدّده في وضع الدروس ولا تُصفّره)، فظهر المُنتقي في
+  ///    وضع الدروس **وأُرسلت الصفحات مع الدرس معاً** — طلبٌ مختلط لا يعرف
+  ///    الخادمُ أيَّهما يخدم.
+  ///
+  /// ⚖️ وجمعُ الشروط في *مشتقٍّ واحد* لا نسخِها في كل موضع: أيُّ موضعٍ
+  ///    يُنسى هو عودةٌ لنفس العطل.
+  bool get canPickPages =>
+      !isTeacher &&
+      effectiveContentMode == "pages" &&   // 👈 وضع الوحدات حصراً
+      inputType == "صفحة" &&
+      (caps?.pagesAvailable ?? false);
+
+  /// صفحات النطاق الحالي — الوحدة المختارة، أو المنهج كلّه عند «الكل».
+  List<int> get availablePages =>
+      caps?.pagesIn(selectedUnit) ?? const <int>[];
+
+  /// يضيف صفحةً ويعيد سبب الرفض إن رُفضت — **رسالةٌ لا صمت**.
+  String? addPage(int page) {
+    if (selectedPages.contains(page)) return "الصفحة $page مضافة أصلاً.";
+    if (selectedPages.length >= maxPages) {
+      return "الصفحات زائدة — الحد $maxPages صفحات في المرة الواحدة.";
+    }
+    selectedPages.add(page);
+    selectedPages.sort();
+    notifyListeners();
+    return null;
+  }
+
+  void removePage(int page) {
+    selectedPages.remove(page);
+    notifyListeners();
+  }
+
+  void clearPages() {
+    if (selectedPages.isEmpty) return;
+    selectedPages.clear();
+    notifyListeners();
+  }
   int summaryLevel = 3;
   String selectedUnitName = "الكل";
   bool isLoading = false;
+
+  /// 🚦 **مشغولٌ الآن؟ — التحميلُ والبثُّ معاً.**
+  ///
+  /// 🔴 **العطل الذي كشفه المالك (2026-09-13):** أوّلُ جزءٍ يصل من البثّ
+  ///    يُطفئ `isLoading` عمداً (لتختفي دائرة الانتظار وتظهر الفقاعة).
+  ///    فمن سأل `isLoading` وحده ظنّ الشاشة فارغةً **والطلبُ ما زال في
+  ///    الطريق**: زرّ الإرسال يعود سهماً، وزرّ الكاميرا يظهر، فيُرفق
+  ///    الطالب صورةً ويضغط إرسال — فيُطلق طلباً ثانياً فوق الأول:
+  ///    **الصورة تُفرَّغ ولا تصل، والفقاعة تختلط بجوابين**. وهو بالضبط
+  ///    ما وصفه: «المحادثة فيها كلام… أضغط إرسال ما يضبط وتختفي الصورة».
+  ///
+  /// ⚖️ فصار سؤالُ «هل أنا مشغول؟» **مشتقّاً واحداً** لا حقلاً عارياً:
+  ///    كلُّ موضعٍ ينسى `isStreaming` هو عودةٌ لنفس العطل.
+  bool get isBusy => isLoading || isStreaming;
+
   bool sessionActive = false;
   /// جاري جلب سنوات الوزاري — تميّز «لم تصل بعد» عن «لا يوجد بنك لهذا الصف».
   bool yearsLoading = false;
@@ -195,9 +380,11 @@ class ChatController extends ChangeNotifier {
   }) async {
     teacherTool = teacher;
     if (teacher != null) contentMode = "lessons";
-    _deviceId = await SecureStorage.getOrCreateDeviceId();
 
     // الصف والمسار من حساب الطالب (يُختاران عند إنشاء الحساب ويُعدَّلان من الإعدادات).
+    // 🎟️ رقمٌ حقيقيّ عند فتح الشاشة (لا يؤخّرها — بلا انتظار).
+    unawaited(QuotaRepository.I.refresh());
+
     grade = UserSession.I.grade;
     track = Curriculum.normalizeTrack(grade, TrackLabel.fromKey(UserSession.I.track));
     selectedSubject = Curriculum.defaultSubject(grade, track);
@@ -323,6 +510,9 @@ class ChatController extends ChangeNotifier {
     }
     selectedUnit = "الكل";
     selectedUnitName = "الكل";
+    // 📄 صفحاتُ وحدةٍ لا معنى لها في مادةٍ أخرى — وإبقاؤها كان سيُرسل
+    //    أرقاماً تخصّ كتاباً آخر فيردّ الخادم «لم أجد هذه الصفحات».
+    selectedPages.clear();
     availableUnits = [];
     availableYears = [];
     selectedExamYear = "";
@@ -373,8 +563,29 @@ class ChatController extends ChangeNotifier {
 
   bool get canAttachMore => attachedImages.length < maxImages;
 
+  /// 📷 هل في خانة الإرفاق صورةٌ تنتظر الإرسال؟
+  ///
+  /// ⭐ **والصورةُ وحدها طلبٌ كامل** — «اقرأ لي هذه» ضمنيةٌ فيها. وعليها
+  ///    تُفتح بوّابة الإرسال كما في مساعد المنح تماماً ([ChatInputArea]).
+  bool get hasAttachments => attachedImages.isNotEmpty;
+
+  /// 🧹 يُفرغ المرفقات المعلّقة ويحذف ملفاتها.
+  ///
+  /// 🔴 **علّة مرصودة:** المرفق كان يبقى عبر تبديل المحادثات والمواد —
+  ///    فمن صوّر صفحة أحياء ثم فتح محادثة رياضيات وأرسل، ذهبت صورةُ
+  ///    الأحياء مع سؤال الرياضيات. والمرفق سياقُ **هذه** المحادثة لا غيرها.
+  void clearAttachments() {
+    if (attachedImages.isEmpty) return;
+    final gone = List<PickedImage>.of(attachedImages);
+    attachedImages.clear();
+    for (final img in gone) {
+      unawaited(ImageService.I.delete(img.path));
+    }
+  }
+
   Future<void> attachImage({required bool fromCamera}) async {
-    if (isLoading) {
+    // 🚦 البثُّ طلبٌ جارٍ وإن أطفأ `isLoading` — راجع [isBusy].
+    if (isBusy) {
       onShowBusyWarning?.call();
       return;
     }
@@ -423,7 +634,8 @@ class ChatController extends ChangeNotifier {
   /// بدء التسجيل (زر المايك).
   Future<void> startVoiceRecording() async {
     if (isRecording) return;
-    if (isLoading) {
+    // 🚦 «إرسال مباشر» ينتهي بـ`processRequest` — فحارسُه حارسُها ([isBusy]).
+    if (isBusy) {
       onShowBusyWarning?.call();
       return;
     }
@@ -487,10 +699,9 @@ class ChatController extends ChangeNotifier {
 
     final cleaned = await _chat.cleanVoiceText(
       userId: userId,
-      code: AppConfig.accessCode,
       subject: selectedSubject,
-      deviceId: _deviceId,
       rawText: raw,
+      idToken: await UserSession.I.idToken(),
     );
 
     isCleaningVoice = false;
@@ -547,6 +758,10 @@ class ChatController extends ChangeNotifier {
       selectedUnit = "الكل";
       selectedUnitName = "الكل";
     }
+    // ⚠️ وما اختير من صفحاتٍ خارج النطاق الجديد يسقط — لا يبقى معلّقاً
+    //    في شريطٍ يراه الطالب ولا يجده الخادم.
+    final ok = caps?.pagesIn(selectedUnit) ?? const <int>[];
+    selectedPages.removeWhere((p) => !ok.contains(p));
   }
 
   void _resetV3Selection() {
@@ -559,7 +774,15 @@ class ChatController extends ChangeNotifier {
   void setContentMode(String mode) {
     if (mode == contentMode) return;
     contentMode = mode;
-    if (mode == "lessons") _resetV3Selection();
+    if (mode == "lessons") {
+      _resetV3Selection();
+      // 📄 ولا تبقى صفحاتٌ معلّقة من وضعٍ آخر: الشرائح تختفي من فوق حقل
+      //    الكتابة، فبقاؤها في الحالة يعني إرسالَ أرقامٍ لا يراها الطالب.
+      selectedPages.clear();
+      // ↩️ و«صفحة» لا معنى لها خارج وضع الوحدات — واللوحة تُخفي محدّدها
+      //    هنا، فتركُها يجعل حالةً مخفيّةً تحكم سلوكاً ظاهراً.
+      inputType = "برومت";
+    }
     _safeNotify();
   }
 
@@ -598,21 +821,59 @@ class ChatController extends ChangeNotifier {
   String getCurrentChatKey() => currentScopeKey;
 
   // ========== إيقاف الطلب الجاري ==========
+  //
+  // 🔴 **ما كان يحدث:** الضغط على «إيقاف» أثناء التحميل كان يقطع الاتصال
+  //    ويرمي الردّ. لكن الخادم **لا يتوقف**: الحصة خُصمت بالفعل ونداءُ
+  //    الموديل يمضي إلى نهايته ويُدفع ثمنه كاملاً — ثم يُلقى في القمامة.
+  //    طالبٌ يضغط إيقاف عشر مرات = عشر مكالماتٍ مدفوعة بلا فائدة لأحد،
+  //    وعشرُ حصصٍ خُصمت من يومه بلا أن يقرأ حرفاً.
+  //
+  // ✅ **والتفريق بين ثلاث حالاتٍ مختلفةٍ حقاً:**
+  //    • أثناء **الأنيميشن** (الردّ وصل): إيقافٌ فوريّ للكتابة — النصّ
+  //      كاملٌ أمامه أصلاً، وهذا هو الاستعمال الغالب للزر.
+  //    • أثناء **التحميل** (الردّ لم يصل): لا نقطع الاتصال. نُخفي مؤشّر
+  //      الانتظار ونترك الطلب يُكمل، فإذا وصل الجواب ظهر بلا أنيميشن
+  //      وحُفظ. الحصةُ التي دُفعت تُشترى بها إجابة، لا فراغ.
+  //    • أثناء **البثّ** (الردّ يصل الآن): نُثبّت ما وصل ونقطع — وهذه
+  //      الحالة لم تكن محسوبة هنا أصلاً (راجع الشرح في المتن).
   void stopCurrentRequest() {
-    bool isAnimating = messages.isNotEmpty && messages.last["animating"] == true;
-    if (!isLoading && !isAnimating) return;
+    final bool isAnimating = messages.isNotEmpty && messages.last["animating"] == true;
+    if (!isLoading && !isStreaming && !isAnimating) return;
 
-    // 1. أوقف الـ HTTP request إذا كان لا يزال يحمل
-    _chat.cancel();
-
-    // 2. إطلاق رصاصة الإيقاف للأنيميشن (يوقف عند نفس الحرف)
+    // 1️⃣ الأنيميشن يتوقف فوراً في الحالتين (رصاصة الإيقاف).
     stopTypingNotifier.value = true;
 
-    isLoading = false;
-    _isResponseCancelled = true;
-    _safeNotify();
+    // 🌊 **البثُّ جارٍ** — حالةٌ ثالثة لم تكن محسوبة هنا إطلاقاً:
+    //    `isLoading` مُطفأ منذ أول جزء، فكان الشرط أعلاه يخرج فوراً
+    //    **ولا يوقف شيئاً**. أي أن الردّ المبثوث لم يكن يُوقَف أبداً.
+    //
+    // ✅ ونُثبّت ما وصل ولا نمحوه: الحصةُ دُفعت، والنصُّ الذي قرأه
+    //    الطالب حتى الآن ملكُه. ثم نُغلق الاتصال فلا شيء بعده يُنتظر.
+    if (isStreaming) {
+      _isResponseCancelled = true;      // فلا يُكتب الجواب فوق ما ثبّتناه
+      _quietlyAwaitingAnswer = false;
+      _stream.cancel();
+      _finalizePartialStream(suffix: "\n\n⏹️ *تم الإيقاف*");
+      isLoading = false;
+      _safeNotify();
+      unawaited(saveCurrentConversation());
+      onShowStopConfirmation?.call();
+      return;
+    }
 
-    // 3. عرض رسالة تأكيد للمستخدم
+    if (isLoading) {
+      // 2️⃣ التحميل: نُسكت الواجهة ولا نقتل الطلب — راجع الشرح أعلاه.
+      //    `_isResponseCancelled` يبقى `false` كي يُقبل الجواب حين يصل.
+      _quietlyAwaitingAnswer = true;
+      isLoading = false;
+      _safeNotify();
+      onShowStopConfirmation?.call();
+      return;
+    }
+
+    // 3️⃣ الأنيميشن وحده: النصّ مكتملٌ في `fullText` فلا شيء يُنتظر.
+    isLoading = false;
+    _safeNotify();
     onShowStopConfirmation?.call();
   }
 
@@ -706,6 +967,8 @@ class ChatController extends ChangeNotifier {
   }
 
   void createNewConversation() {
+    // 📷 المرفق سياقُ المحادثة التي التُقط فيها — لا يعبر إلى غيرها.
+    clearAttachments();
     currentConversationId = const Uuid().v4();
     messages = [];
     sessionActive = false;
@@ -713,8 +976,65 @@ class ChatController extends ChangeNotifier {
     _safeNotify();
   }
 
+  /// 🔎 يفتح نتيجة بحثٍ قد تكون **من نطاقٍ آخر** (مادة/صف/وضع مختلف).
+  ///
+  /// 🔴 **ولماذا لا تكفي [loadConversation] وحدها:** هي تستعيد الرسائل
+  ///    و`selectedMode` فقط، وتترك المادة والصف والمسار والفرع على ما كانت
+  ///    عليه الشاشة. فطالبٌ يفتح — من نتيجة بحث — محادثة كيمياء وهو في
+  ///    الفيزياء كان يرى رسائل الكيمياء بينما الشاشة تقول «فيزياء»؛ وأول
+  ///    رسالةٍ يكتبها بعدها تُرسَل **بمادةٍ خاطئة** وتُحفظ في **نطاقٍ
+  ///    خاطئ** — أي أن المحادثتين تختلطان بلا رجعة.
+  ///
+  /// ⚠️ ولذلك يُضبط النطاق **قبل** الاستعادة: `currentScopeKey` مشتقٌّ من
+  ///    هذه الحقول، وهو ما يُحفظ به الرد التالي.
+  Future<void> openFromSearch(ChatConversation conversation) async {
+    // 1️⃣ احفظ ما هو مفتوح الآن قبل مغادرة نطاقه (وإلا ضاعت رسائل غير محفوظة).
+    if (messages.isNotEmpty) await saveCurrentConversation();
+
+    // 2️⃣ انقل الشاشة إلى نطاق المحادثة المطلوبة.
+    grade = conversation.grade;
+    track = Curriculum.normalizeTrack(grade, TrackLabel.fromKey(conversation.track));
+    if (Curriculum.subjectsFor(grade, track).contains(conversation.subject)) {
+      selectedSubject = conversation.subject;
+    }
+    if (conversation.subject == "رياضيات") {
+      selectedMathBranch = conversation.branch;
+      mathMode = conversation.mode;
+    } else {
+      selectedMode = conversation.mode;
+    }
+
+    // 3️⃣ أعد بناء قائمة المحادثات للنطاق الجديد ثم استعد المطلوبة.
+    loadConversations();
+    loadConversation(conversation);
+
+    // 4️⃣ قوائم الوحدات/الدروس تتبع المادة — بلا هذا تبقى قوائم المادة السابقة.
+    //    ⚠️ و**تُنتظَر** لا تُطلق: القرار في الخطوة ٥ يعتمد على نتيجتها.
+    await loadCapabilities();
+    if (_disposed) return;
+
+    // 5️⃣ 🔴 **الدرس لا يُستعاد — لأن المحادثة لا تحفظه أصلاً.**
+    //
+    //    `ChatConversation` تحفظ (الصف · المسار · المادة · الفرع · الوضع)
+    //    ولا تحفظ الوحدة ولا الدرس. فمحادثةٌ في «وضع الدروس» تعود بمادتها
+    //    صحيحةً و`selectedV3Lesson` **فارغاً** (يمسحه `_resetV3Selection`).
+    //
+    //    ورأيتُ أثر ذلك في المحاكي: الطالب يفتح نتيجة بحثٍ من مادة أخرى،
+    //    فتظهر البوصلة «انجليزي • القواعد» بلا درس — ولو أرسل رسالةً لذهبت
+    //    باسم درسٍ فارغ، فيردّ الخادم «قيد الإضافة» على مادةٍ محتواها موجود.
+    //    وهو أسوأ أنواع الأعطال: كل شيء يبدو سليماً والجواب وحده خاطئ.
+    //
+    // ✅ فنفتح لوحة الإعدادات ليختار درسه — تماماً كما تُفتح لمحادثةٍ جديدة
+    //    في تلك المادة. سطرٌ واحد يحوّل حالةً مكسورة إلى خطوةٍ مفهومة.
+    if (!isTeacher && effectiveContentMode == "lessons" && selectedV3Lesson.isEmpty) {
+      showSettingsPanel = true;
+      _safeNotify();
+    }
+  }
+
   /// يحمّل محادثة محفوظة (إغلاق الـ Drawer يتم في طبقة الويدجت).
   void loadConversation(ChatConversation conversation) {
+    clearAttachments();     // 📷 صورةُ محادثةٍ لا تُرسل في أخرى
     currentConversationId = conversation.id;
     messages = conversation.messages
         .map((m) => {
@@ -732,7 +1052,9 @@ class ChatController extends ChangeNotifier {
     showSettingsPanel = false;
     _safeNotify();
     ChatStorage.updateLastUsed(conversation.id);
-    scrollToBottom();
+    // محادثةٌ فُتحت للتوّ ⇒ ابدأ من آخرها حتماً، ثم الالتصاق من جديد.
+    stick.stick();
+    scrollToBottom(force: true);
   }
 
   Future<void> saveCurrentConversation() async {
@@ -767,6 +1089,16 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> deleteConversation(String id) async {
+    // 🧹 صورُ المحادثة تُحذف معها.
+    //
+    // 🔴 **تسريبٌ صامت:** الصور تُحفظ في `chat_images` على الجوال وحده،
+    //    ولا أحد يحذفها. فمحادثةٌ حُذفت تترك ميجاباياتٍ من صور صفحاتٍ لا
+    //    يراها أحد ولا يصل إليها شيء — تتراكم حتى يمتلئ جوال الطالب.
+    for (final path in ChatStorage.getConversation(id)?.messages
+            .expand((m) => m.allImages) ??
+        const <String>[]) {
+      unawaited(ImageService.I.delete(path));
+    }
     await ChatStorage.deleteConversation(id);
     SyncService.I.deleteConversation(id);
     if (currentConversationId == id) createNewConversation();
@@ -980,30 +1312,53 @@ class ChatController extends ChangeNotifier {
   // ========== معالجة الطلب (إرسال السؤال للسيرفر) ==========
   Future<void> processRequest({String? customText, bool teacherGenerate = false}) async {
     // ✅ حماية 1: تحقق من الشروط الأساسية
-    final text = customText ?? inputController.text.trim();
+    var text = customText ?? inputController.text.trim();
+
+    final bool hasImage = hasAttachments;
+
+    // 📄 وضعُ الصفحات: لا إرسال بلا اختيار — **ورسالةٌ تقول لماذا**.
+    //    (طلب المالك: «إذا ما اخترت صفحات يقول له ما اخترت شي صفحات»)
+    //
+    // 📷 **إلا مع صورة:** من صوّر الصفحة بكاميرته لم ينسَ اختيارها — هو
+    //    استغنى عنه. ورفضُه هنا كان يعني «اختر الصفحات أولاً» في وجه
+    //    طالبٍ صفحتُه بين يديه بالفعل.
+    if (canPickPages && selectedPages.isEmpty && customText == null && !hasImage) {
+      onShowPagesRequired?.call();
+      return;
+    }
+    // وضغطُ الإرسال بلا كتابةٍ طلبٌ كامل: «اشرح الصفحات الآتية».
+    if (text.isEmpty && customText == null && !hasImage &&
+        canPickPages && selectedPages.isNotEmpty) {
+      text = _defaultPagesPrompt;
+    }
 
     bool isMathExplain = selectedSubject == "رياضيات" && mathMode == "شرح" && selectedLesson.isNotEmpty;
     // 🆕 وضع الدروس: اختيار الدرس يكفي لبدء الشرح بلا كتابة
     bool isV3LessonReady = effectiveContentMode == "lessons" && selectedV3Lesson.isNotEmpty;
 
-    final bool hasImage = attachedImages.isNotEmpty;
-    // ★ نلتقط نسخة ونُفرغ المرفق **فوراً** — لا ينتظر رد الخادم.
-    //   (العلّة السابقة: كان التفريغ بعد await فتبقى المعاينة ظاهرة طوال الطلب)
-    final List<PickedImage> sendingImages = List.of(attachedImages);
-    if (hasImage) {
-      attachedImages.clear();
-    }
     // 👨‍🏫 ضغطُ زرّ الأداة طلبٌ كامل بلا نصّ مكتوب — كما «ابدأ الشرح» للطالب.
     if (text.isEmpty && customText == null && !isMathExplain && !isV3LessonReady
         && !hasImage && !teacherGenerate) {
       return;
     }
 
-    // ✅ حماية 2: لا تسمح بطلبين معاً
-    if (isLoading) {
+    // ✅ حماية 2: لا تسمح بطلبين معاً — **والبثُّ طلبٌ جارٍ** ([isBusy]).
+    if (isBusy) {
       onShowBusyWarning?.call();
       return;
     }
+
+    // ══════════════════════════════════════════════════
+    // 📷 من هنا فقط تُفرَّغ خانة الإرفاق — **بعد أن يُقطع بالإرسال**
+    // ══════════════════════════════════════════════════
+    // 🔴 **العطل:** كان التفريغ يسبق حارسَي «مشغول» و«لا نصّ»، فكلُّ ضغطةٍ
+    //    مرفوضة تبتلع الصورة: يضغط الطالب، لا يحدث شيء، **وتختفي صورته**
+    //    فيعود إلى المعرض من أوّله. الآن: إن رُفض الطلب بقي المرفق مكانه.
+    //
+    // ★ وحين يمضي الطلب يُفرَّغ **فوراً** لا بعد `await` — وإلا بقيت
+    //   المعاينة معلّقةً فوق حقل الكتابة طوال الانتظار (علّةٌ سابقة).
+    final List<PickedImage> sendingImages = List<PickedImage>.of(attachedImages);
+    attachedImages.clear();
 
     if (currentConversationId == null) createNewConversation();
     stopTypingNotifier.value = false;
@@ -1045,12 +1400,24 @@ class ChatController extends ChangeNotifier {
 
     inputController.clear();
     isLoading = true;
+    // 🧾 معرّف هذه المحاولة — يثبت عبر إعادات المحاولة فلا تُخصم الحصة مرتين.
+    _requestId = const Uuid().v4();
+    // 📌 **الإرسال لا يسحب الشاشة** (قرار المالك 2026-09-09 — صريح):
+    //
+    //    كان هنا `stick.stick()` بحجّة أن «من كتب سؤالاً يريد أن يرى جوابه».
+    //    وهو خطأ: الطالب يقرأ فقرةً في أعلى المحادثة، يخطر له سؤال، يكتبه
+    //    ويرسله — فتقفز به الشاشة إلى الأسفل **وتضيع منه الفقرة التي كان
+    //    فيها**. أي أن الإرسال يعاقبه على السؤال.
+    //
+    // ✅ فالسؤال ينزل أسفل، والجواب يُبثّ أسفل، **وهو يبقى حيث هو يقرأ**.
+    //    وزرّ «الرد يُكتب…» يخبره أن في الأسفل جديداً، فينزل متى شاء.
+    //    ومن كان في الأسفل أصلاً يتبع البثّ كالمعتاد — بلا تغيير.
     _safeNotify();
 
     scrollToBottom();
 
     // ==================================================
-    // 🚀 محاولة واحدة فقط (بدون Loop) بحد أقصى دقيقة
+    // 🚀 الإرسال — بمحاولةٍ ثانيةٍ واحدة عند عطل شبكةٍ عابر
     // ==================================================
     try {
       final chatHistory = buildChatHistory();
@@ -1071,51 +1438,54 @@ class ChatController extends ChangeNotifier {
         finalContentToSend = "$selectedExamYear,$text";
       }
 
-      // تأكيد توفّر معرّف الجهاز (يُحمّل بأمان مرة واحدة)
-      if (_deviceId.isEmpty) {
-        _deviceId = await SecureStorage.getOrCreateDeviceId();
-      }
-
+      // ══════════════════════════════════════════════════
+      // 🌊 **البثّ في المسارين** — الشاشة واحدة فلا تجربتان
+      // ══════════════════════════════════════════════════
+      // قسم المعلّم يستعمل نفس شاشة الشات ونفس المتحكّم، فبقاؤه على الردّ
+      // الواحد كان يعني معلّماً يحدّق في مؤشّرٍ صامت بينما الطالب يقرأ
+      // جوابه ينساب. الفرق بينهما الآن الوجهةُ والحمولة لا غير.
       final AskResponse response = isTeacher
-          ? await _chat.teacherAsk(
-              userId: userId,
-              code: AppConfig.accessCode,
-              deviceId: _deviceId,
-              tool: teacherTool!.id,
-              generate: teacherGenerate,
-              subject: selectedSubject,
-              grade: grade,
-              track: track.key,
-              unitName: selectedV3Unit,
-              lessonName: selectedV3Lesson,
-              content: teacherGenerate ? "" : finalContentToSend,
-              concept: conceptController.text.trim(),
-              difficulty: teacherDifficulty,
-              count: teacherCount,
-              chatHistory: chatHistory,
+          ? await _askStreaming(
+              url: ApiEndpoints.teacherAskStream(),
+              requestId: _requestId,
+              body: {
+                "tool": teacherTool!.id,
+                "generate": teacherGenerate,
+                "subject": selectedSubject,
+                "unit_name": selectedV3Unit,
+                "lesson_name": selectedV3Lesson,
+                "content": teacherGenerate ? "" : finalContentToSend,
+                "concept": conceptController.text.trim(),
+                "difficulty": teacherDifficulty,
+                "count": teacherCount,
+                "chat_history": chatHistory,
+              },
               imagesBase64: sendingImages.map((e) => e.base64Data).toList(),
-              idToken: await UserSession.I.idToken(),
             )
-          : await _chat.ask(
-        userId: userId,
-        code: AppConfig.accessCode, // 🔑 ثابت SUPER_USER (لمطابقة الباك)
-        deviceId: _deviceId,
-        subject: selectedSubject,
-        mode: selectedMode,
-        inputType: inputType,
-        summaryLevel: summaryLevel,
-        lessonName: finalLessonName,
-        content: finalContentToSend,
-        unitName: (selectedSubject == "رياضيات")
-            ? selectedMathBranch
-            : (cMode == "lessons" ? selectedV3Unit : selectedUnit),
-        chatHistory: chatHistory,
-        grade: grade,
-        track: track.key,
-        contentMode: cMode,
-        imagesBase64: sendingImages.map((e) => e.base64Data).toList(),
-        idToken: await UserSession.I.idToken(),
-      );
+          : await _askStreaming(
+              url: ApiEndpoints.askStream(),
+              requestId: _requestId,
+              body: {
+                "subject": selectedSubject,
+                "mode": selectedMode,
+                "input_type": inputType,
+                "summary_level": summaryLevel,
+                "lesson_name": finalLessonName,
+                "content": finalContentToSend,
+                "unit_name": (selectedSubject == "رياضيات")
+                    ? selectedMathBranch
+                    : (cMode == "lessons" ? selectedV3Unit : selectedUnit),
+                "chat_history": chatHistory,
+                if (cMode != null) "content_mode": cMode,
+                // 📄 مفصولةً عن نصّ الطالب — فلا يلتقط الخادم رقماً عابراً
+                //    من سؤاله ولا تضيع صفحاته في الرسالة التالية.
+                // ⚠️ بالبوّابة لا بـ«القائمة غير فارغة»: الأخيرة تُرسل
+                //    صفحاتٍ بقيت من وضعٍ سابق مع درسٍ لا علاقة له بها.
+                if (canPickPages && selectedPages.isNotEmpty)
+                  "selected_pages": selectedPages,
+              },
+              imagesBase64: sendingImages.map((e) => e.base64Data).toList(),
+            );
 
       // إذا ضغط المستخدم على إيقاف أثناء التحميل
       if (_isResponseCancelled || _disposed) return;
@@ -1133,56 +1503,89 @@ class ChatController extends ChangeNotifier {
 
       // ✅ حالة النجاح
       isLoading = false;
-      messages.add({
-        "role": "ai",
-        "text": response.answer,
-        "refs": response.references,
-        "animating": true,
-        "fullText": response.answer,
-      });
+      // ⏸️ إن كان الطالب قد ضغط «إيقاف» أثناء الانتظار، يظهر الجواب
+      //    مكتملاً بلا أنيميشن: هو لم يطلب حذفه بل طلب ألّا ينتظر.
+      final bool quiet = _quietlyAwaitingAnswer;
+      _quietlyAwaitingAnswer = false;
+
+      // ⚡ آخر دفعةٍ لم يحن موعد سكبها بعد — تُسكب قبل التثبيت وإلا
+      //    ضاعت الأحرف الأخيرة بين آخر سكبٍ ووصول `done`.
+      _drainPending();
+
+      if (_streamIndex != null) {
+        // 🌊 **الفقاعة موجودة أصلاً** — أنشأها البثّ ونمت أمام الطالب.
+        //    نُثبّت فيها النصّ **النهائي** (بعد تنظيف الخادم) والمراجع.
+        //    ⚠️ ولا `messages.add` هنا: كانت ستُظهر الجواب **مرتين**.
+        final m = messages[_streamIndex!];
+        m["text"] = response.answer;
+        m["fullText"] = response.answer;
+        m["refs"] = response.references;
+        m["streaming"] = false;
+        m["animating"] = false;      // البثّ بديلٌ عن الطابعة لا يجتمعان
+        _streamIndex = null;
+        isStreaming = false;
+      } else {
+        messages.add({
+          "role": "ai",
+          "text": response.answer,
+          "refs": response.references,
+          "animating": !quiet,
+          "fullText": response.answer,
+        });
+      }
       sessionActive = response.sessionActive;
       _safeNotify();
       await saveCurrentConversation();
       scrollToBottom();
-      if (response.quotaExceeded) onQuotaExceeded?.call(response.isGuest);
-    } on TimeoutException catch (_) {
-      // ⏱️ انتهت المهلة
-      if (!_disposed && !_isResponseCancelled) {
-        isLoading = false;
-        messages.add({
-          "role": "ai",
-          "text": ErrorMessages.askTimeout,
-          "refs": [],
-          "animating": false,
-          "isError": true,
-        });
-        _safeNotify();
-        scrollToBottom();
-      }
-    } on SocketException catch (_) {
-      // 📡 انقطع الإنترنت
-      if (!_disposed && !_isResponseCancelled) {
-        isLoading = false;
-        messages.add({
-          "role": "ai",
-          "text": ErrorMessages.askNoConnection,
-          "refs": [],
-          "animating": false,
-          "isError": true,
-        });
-        _safeNotify();
-        scrollToBottom();
+
+      // 🎟️ العدّاد يتحرّك فور نجاح السؤال — تقديرٌ محليّ بلا رحلة شبكة.
+      //    وعند تجاوز الحصة نسأل الخادم فوراً كي يظهر «٠» لا رقمٌ قديم.
+      if (response.quotaExceeded) {
+        unawaited(QuotaRepository.I.refresh(force: true));
+        onQuotaExceeded?.call(response.isGuest);
+      } else {
+        QuotaRepository.I.consumeOne();
       }
     } catch (e) {
-      // ❌ أخطاء أخرى
+      // ══════════════════════════════════════════════
+      // ❌ التصنيف: عطلُ شبكةٍ أم انقطاعُ نت أم غير ذلك؟
+      // ══════════════════════════════════════════════
+      // 🔴 **علّة حقيقية كانت هنا:** الصيغة السابقة أمسكت `SocketException`
+      //    وحدها لرسالة «لا يوجد اتصال». لكن حزمة `http` على أندرويد ترمي
+      //    `ClientException` في **معظم** أعطال الشبكة الفعلية — فكان الطالب
+      //    الذي انقطع نتُّه يرى «حدث خطأ غير متوقع»، فيظنّ التطبيق معطوباً
+      //    ويعيد المحاولة بلا أن يتفقّد اتصاله. `describeNetworkFailure`
+      //    توحّد التصنيف في مكانٍ واحد ([ErrorMessages]).
+      _quietlyAwaitingAnswer = false;
+      // 🌊 فقاعةٌ بدأت ولم تكتمل: نُغلق حالتها فلا يبقى المؤشّر يومض إلى
+      //    الأبد على ردٍّ توقّف — والنصّ الواصل يبقى معروضاً.
+      _finalizePartialStream();
       if (!_disposed && !_isResponseCancelled) {
         isLoading = false;
+        // 📷 **الصورة تعود إلى خانة الإرفاق** عند فشل الإرسال.
+        //
+        //    شبكةُ الطالب تتقطّع كثيراً، وكان كلُّ انقطاعٍ يعني رحلةً
+        //    جديدة إلى الكاميرا أو المعرض. الآن: إعادةُ المحاولة ضغطةٌ
+        //    واحدة. ونرفعها من الفقاعة الفاشلة في الوقت نفسه كي لا يبقى
+        //    للملف مالكان — فلو حذفها من خانة الإرفاق بقيت الفقاعة
+        //    تعرض ملفاً محذوفاً.
+        if (sendingImages.isNotEmpty && attachedImages.isEmpty) {
+          attachedImages.addAll(sendingImages);
+          for (var i = messages.length - 1; i >= 0; i--) {
+            if (messages[i]["role"] == "user") {
+              messages[i].remove("images");
+              break;
+            }
+          }
+        }
         messages.add({
           "role": "ai",
-          "text": ErrorMessages.askUnexpected,
+          "text": ErrorMessages.forSendFailure(e),
           "refs": [],
           "animating": false,
           "isError": true,
+          // ★ يسمح للواجهة بعرض زرّ «أعد المحاولة» على هذه الفقاعة وحدها.
+          "canRetry": ErrorMessages.isRetryable(e),
         });
         _safeNotify();
         scrollToBottom();
@@ -1190,6 +1593,8 @@ class ChatController extends ChangeNotifier {
     } finally {
       // 🔪 تحرير موارد الاتصال
       _chat.cancel();
+      _quietlyAwaitingAnswer = false;
+      isStreaming = false;
       if (!_disposed) {
         isLoading = false;
         _safeNotify();
@@ -1197,16 +1602,189 @@ class ChatController extends ChangeNotifier {
     }
   }
 
-  // ========== التمرير للأسفل ==========
-  void scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (scrollController.hasClients) {
-        scrollController.animateTo(
-          scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
+
+  // ══════════════════════════════════════════════════
+  // 🌊 الإرسال بالبثّ — الفقاعة تنمو أمام الطالب
+  // ══════════════════════════════════════════════════
+  // 🔴 **ما كان يحدث:** مؤشّر تحميل صامت حتى ٦٠ ثانية ثم النص دفعةً واحدة.
+  //    وشرحُ درسٍ كامل يستغرق ٢٠–٤٠ ثانية، فالانتظار الصامت هو التجربة
+  //    الغالبة لا الاستثناء.
+  //
+  // 📌 **والتمرير لا يُجبَر:** ننزل مع البثّ فقط إن كان الطالب في الأسفل
+  //    أصلاً ([StickToBottom]). من صعد ليقرأ تبقى شاشته ساكنة تماماً.
+
+  /// موضع فقاعة البثّ في [messages] — `null` حين لا بثّ جارٍ.
+  int? _streamIndex;
+
+  Future<AskResponse> _askStreaming({
+    required String url,
+    required String requestId,
+    required Map<String, dynamic> body,
+    List<String> imagesBase64 = const [],
+  }) async {
+    final token = await UserSession.I.idToken();
+
+    Map<String, dynamic>? finished;
+    String? failure;
+
+    await for (final ev in _stream.open(
+      url: Uri.parse(url),
+      headers: ApiClient.authHeaders(token),
+      timeout: AppConfig.askTimeout,
+      body: {
+        // 🔐 الهوية والنطاق يُضافان هنا لا في المُنادي — حقولٌ يجب أن
+        //    ترافق **كل** طلب، ونسيانها في مسارٍ عطلٌ صامت.
+        //    (والخادم يكتب `user_id` فوق ما نرسله على أي حال.)
+        "user_id": userId,
+        "request_id": requestId,
+        "grade": grade,
+        "track": track.key,
+        ...body,
+        if (imagesBase64.isNotEmpty) "images_base64": imagesBase64,
+      },
+    )) {
+      if (_disposed) break;
+
+      switch (ev) {
+        case AskDelta(text: final piece):
+          _appendStreamDelta(piece);
+        case AskDone(payload: final p):
+          finished = p;
+        case AskFailure(message: final m):
+          failure = m;
+      }
+    }
+
+    if (failure != null && finished == null) {
+      // 🛟 انقطاعٌ **بعد** وصول جزءٍ من الشرح: نُبقي ما وصل ونُلحق سبب
+      //    التوقّف. حذفُه كان سيمحو نصّاً دُفع ثمنه وقرأه الطالب فعلاً.
+      final partial = _streamIndex == null
+          ? ""
+          : (messages[_streamIndex!]["text"] ?? "").toString();
+      if (partial.trim().isNotEmpty) {
+        _finalizePartialStream(suffix: "\n\n$failure");
+        return AskResponse(
+          answer: messages.last["text"].toString(),
+          references: const [],
+          sessionActive: false,
         );
       }
+      _finalizePartialStream();
+      throw StreamInterrupted(failure);
+    }
+
+    return AskResponse.fromJson(finished ?? const {});
+  }
+
+  // ══════════════════════════════════════════════════
+  // ⚡ تجميع الأجزاء — سببُ نعومة العرض
+  // ══════════════════════════════════════════════════
+  // 🔴 **علّة الأداء التي كانت تُحدث «تعليقاً» أثناء البثّ:** كل جزءٍ يصل
+  //    كان يستدعي `notifyListeners` فوراً. والجزء الواحد من الموديل قد
+  //    يكون **حرفين**، فشرحٌ من ٤٠٠٠ حرف يعني ~٥٠٠ إعادة بناء — وفي كل
+  //    واحدة يُعيد `MasarMarkdown` تحليل **النصّ كاملاً** (وهو ينمو).
+  //    فالكلفة تربيعية: ٥٠٠ × متوسط ٢٠٠٠ حرف = مليون حرف تُحلَّل، ومعها
+  //    `jumpTo` خمسمئة مرة. النتيجة تلعثمٌ يزداد كلما طال الجواب.
+  //
+  // ✅ **الحل: نُجمّع ونرسم كل ٥٠ملّي** (~٢٠ إطاراً/ثانية). العين لا تفرّق
+  //    — القراءة أبطأ من ذلك بكثير — والعمل ينخفض عشرة أضعاف.
+  //
+  // ⚠️ ولا نُطيلها أكثر: فوق ~١٠٠ملّي يبدأ النصّ يظهر «دفعات» لا انسياباً،
+  //    فنخسر الإحساس الذي بُنيت الميزة لأجله.
+  static const Duration _flushEvery = Duration(milliseconds: 50);
+
+  final StringBuffer _pending = StringBuffer();
+  Timer? _flushTimer;
+
+  /// يُلغي المؤقّت ويسكب ما تبقّى فوراً.
+  void _drainPending() {
+    _flushTimer?.cancel();
+    _flushTimer = null;
+    if (_streamIndex == null || _pending.isEmpty) {
+      _pending.clear();
+      return;
+    }
+    messages[_streamIndex!]["text"] =
+        "${messages[_streamIndex!]["text"] ?? ""}${_pending.toString()}";
+    _pending.clear();
+  }
+
+  /// يُلحق جزءاً جديداً بفقاعة البثّ — ويُنشئها عند أول جزء.
+  void _appendStreamDelta(String piece) {
+    if (piece.isEmpty) return;
+
+    if (_streamIndex == null) {
+      // ⏳ أول جزءٍ يصل ⇒ ينتهي الانتظار وتبدأ القراءة. ومن هنا يشعر
+      //    الطالب أن الرد «بدأ» — وهي اللحظة التي كانت غائبة تماماً.
+      //    وهذه وحدها تُرسم فوراً بلا تجميع: تأخيرُ ظهور الفقاعة يُبقي
+      //    مؤشّر الانتظار لحظةً زائدة بلا سبب.
+      isLoading = false;
+      isStreaming = true;
+      messages.add({
+        "role": "ai",
+        "text": "",
+        "refs": const <String>[],
+        "streaming": true,
+        "animating": false,
+      });
+      _streamIndex = messages.length - 1;
+      _safeNotify();
+    }
+
+    _pending.write(piece);
+    _flushTimer ??= Timer(_flushEvery, _flushStream);
+  }
+
+  /// يسكب المتراكم في الفقاعة ويرسم مرةً واحدة.
+  void _flushStream() {
+    _flushTimer = null;
+    if (_disposed || _streamIndex == null || _pending.isEmpty) return;
+
+    messages[_streamIndex!]["text"] =
+        "${messages[_streamIndex!]["text"] ?? ""}${_pending.toString()}";
+    _pending.clear();
+    _safeNotify();
+
+    // 📌 هنا القرار كله: نتبع الأسفل **إن كان الطالب هناك**، وإلا لا نلمس
+    //    موضعه. و`jumpTo` لا `animateTo`: أنيميشن مع كل دفعةٍ يُلغي سابقه
+    //    فيهتزّ العرض بلا توقّف.
+    //
+    // ⏱️ وبعد إطارٍ واحد: `maxScrollExtent` لا يعرف النصّ الجديد قبل أن
+    //    يُخطَّط، فالقفز الفوري يقف **دون** آخر سطرٍ وصل ويتخلّف تدريجياً.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_disposed) scrollController.followBottom(stick);
+    });
+  }
+
+  /// يُغلق فقاعة بثٍّ لم تكتمل — يوقف المؤشّر ويُبقي ما وصل.
+  void _finalizePartialStream({String suffix = ""}) {
+    _drainPending();
+    isStreaming = false;
+    final i = _streamIndex;
+    _streamIndex = null;
+    if (i == null || i >= messages.length) return;
+
+    final m = messages[i];
+    m["streaming"] = false;
+    if (suffix.isNotEmpty) m["text"] = "${m["text"] ?? ""}$suffix";
+    m["fullText"] = m["text"];
+    _safeNotify();
+  }
+
+  // ========== التمرير للأسفل ==========
+  //
+  // 📌 **يحترم الالتصاق**: هذه تُنادى بعد كل رسالة وبعد الاستعادة، وكانت
+  //    تنزل **دائماً**. مع البثّ صار ذلك يسحب الشاشة من تحت طالبٍ يقرأ
+  //    في الأعلى — وهو بالضبط ما لا نريده.
+  void scrollToBottom({bool force = false}) {
+    if (!force && !stick.isStuck) return;
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_disposed || !scrollController.hasClients) return;
+      scrollController.animateTo(
+        scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
     });
   }
 
@@ -1238,8 +1816,10 @@ class ChatController extends ChangeNotifier {
       if (currentConversationId != null && messages.isNotEmpty) {
         saveCurrentConversation();
       }
-      // 2. ألغِ أي طلب شغال وأغلق الاتصال
+      // 2. ألغِ أي طلب شغال وأغلق الاتصال (العادي **والبثّ** معاً)
+      _flushTimer?.cancel();
       _chat.cancel();
+      _stream.cancel();
       // 3. أغلق الـ ValueNotifiers والـ Controllers
       stopTypingNotifier.dispose();
       inputController.dispose();

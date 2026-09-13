@@ -41,6 +41,7 @@ void main() {
           color: Colors.white,
           padding: const EdgeInsets.all(18),
           child: SingleChildScrollView(
+            key: const Key('sheet'),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -65,7 +66,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await expectLater(
-      find.byType(SingleChildScrollView),
+      // 🔑 بالمفتاح لا بالنوع: صار داخل اللوحة ١٣ ممرّراً بعد أن
+      //    غُلّفت كل سلسلةٍ بتمريرٍ أفقيّ يمنع الفيضان.
+      find.byKey(const Key('sheet')),
+      // 📌 حُدِّثت الصورة المرجعية 2026-09-09 بفارق **بكسل واحد (0.00٪)**
+      //    — إزاحةُ تقريبٍ لا غير، سبّبها تغليفُ كل سلسلة بتمريرٍ أفقيّ
+      //    يمنع فيضان الشاشة. والرسم نفسه لم يتغيّر (تغيّرُ الرسم يُظهر
+      //    آلاف البكسلات لا واحداً).
       matchesGoldenFile('goldens/chem_sheet.png'),
     );
   });

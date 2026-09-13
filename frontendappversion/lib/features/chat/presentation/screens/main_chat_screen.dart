@@ -63,6 +63,7 @@ class _MainChatScreenState extends State<MainChatScreen> with TickerProviderStat
     _c.onShowDataError = _showDataErrorSnackBar;
     _c.onShowStopConfirmation = _showStopConfirmation;
     _c.onShowBusyWarning = _showBusyWarning;
+    _c.onShowPagesRequired = _showPagesRequired;
     _c.onVoiceNotice = (msg) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -192,8 +193,37 @@ class _MainChatScreenState extends State<MainChatScreen> with TickerProviderStat
     );
   }
 
+  /// 📄 وضعُ الصفحات بلا اختيار — **الصمت هنا يبدو عطلاً**: الطالب يضغط
+  ///    الإرسال فلا يحدث شيء ولا يعرف لماذا. (طلب المالك 2026-09-09)
+  void _showPagesRequired() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text("اختر الصفحات أولاً من إعدادات الجلسة 📄",
+              style: TextStyle(fontFamily: 'Cairo')),
+          backgroundColor: Colors.orange.shade600,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: "افتح",
+            textColor: Colors.white,
+            onPressed: () =>
+                _c.update(() => _c.showSettingsPanel = true),
+          ),
+        ),
+      );
+  }
+
   void _showEmptyWarning() {
     if (!mounted) return;
+    // 📄 في وضع الصفحات العائقُ ليس النصّ بل الاختيار — و«اكتب سؤالك أولاً»
+    //    تُرسل الطالب يكتب ثم يُرفض ثانيةً. فنقول له ما يمنعه فعلاً.
+    if (_c.canPickPages && _c.selectedPages.isEmpty) {
+      _showPagesRequired();
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("اكتب سؤالك أولاً ✍️", style: TextStyle(fontFamily: 'Cairo')),
@@ -237,6 +267,28 @@ class _MainChatScreenState extends State<MainChatScreen> with TickerProviderStat
             children: [
               // قائمة المحادثة (تملأ الشاشة)
               Positioned.fill(child: ChatListView(controller: _c, bottomExtra: bottomExtra)),
+
+              // ══════════════════════════════════════════════════
+              // 🔽 «انزل للأسفل» — لا يظهر إلا حين يلزم
+              // ══════════════════════════════════════════════════
+              // 📌 الشاشة **لا تتحرك** حين يصعد الطالب ليقرأ (قرار المالك).
+              //    ولذلك يلزمه طريقٌ صريحٌ للعودة، وإلا وجد نفسه يمرّر
+              //    يدوياً خلف نصٍّ ينمو أسرع منه.
+              //
+              // ⚠️ ويختفي حين يكون في الأسفل أصلاً: زرٌّ دائم يحجب سطراً من
+              //    كل إجابة مقابل لا شيء.
+              if (!_c.stick.isStuck && _c.messages.isNotEmpty)
+                Positioned(
+                  bottom: 150 + bottomExtra,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: _ScrollToBottomButton(
+                      streaming: _c.isStreaming,
+                      onTap: _c.jumpToBottomAndStick,
+                    ),
+                  ),
+                ),
 
               // خانة الكتابة وأزرار التحكم (مثبتة في الأسفل)
               Positioned(
@@ -376,6 +428,58 @@ class _MainChatScreenState extends State<MainChatScreen> with TickerProviderStat
           ),
         ),
       ],
+    );
+  }
+}
+
+
+// ══════════════════════════════════════════════════
+// 🔽 زرّ العودة إلى أسفل المحادثة
+// ══════════════════════════════════════════════════
+// ⭐ نصُّه يتغيّر بالحالة: أثناء البثّ يقول «الرد يُكتب…» فيعرف الطالب أن
+//    في الأسفل جديداً يستحق النزول — لا مجرد نهاية قائمة.
+class _ScrollToBottomButton extends StatelessWidget {
+  const _ScrollToBottomButton({required this.streaming, required this.onTap});
+
+  final bool streaming;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            color: streaming ? AppColors.primary : AppColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: AppColors.softShadow,
+            border: Border.all(
+                color: AppColors.textPrimary.withValues(alpha: 0.06)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.arrow_downward_rounded,
+                  size: 16,
+                  color: streaming ? Colors.white : AppColors.textSecondary),
+              const SizedBox(width: 6),
+              Text(
+                streaming ? "الرد يُكتب…" : "انزل للأسفل",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: streaming ? Colors.white : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

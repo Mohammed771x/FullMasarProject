@@ -1,4 +1,5 @@
 from .fractions import to_frac
+from .arabic_digits import for_subject as _arabic_digits
 from .chem import (
     for_subject as _chem_for_subject,
     chem_from_name,
@@ -75,6 +76,10 @@ def serialize_lesson(lesson: dict, unit_name: str = "", subject=None) -> str:
     #    القانون حرفياً (كما يأمره البرومبت) ينقله مرسوماً لا بشرطة.
     # ⚗️ ومعها الصيغ البنائية — نفس المبدأ: الكتاب يُصلَح قبل الموديل.
     text = header + to_frac(to_text(lesson, subject=subject))
+    # ٠١٢ وأرقامُ الكتاب عربية في مادّتها — **قبل أن يراها الموديل**، فهو
+    #     مأمورٌ بالنقل حرفياً فينقلها عربيةً وحدَه. نفس ما تفعله
+    #     `format_lesson_safely` في الرياضيات ([core/arabic_digits.py]).
+    text = _arabic_digits(text, subject)
     if len(text) > MAX_LESSON_CHARS:
         text = text[:MAX_LESSON_CHARS] + _TRUNCATION_NOTE
     return text

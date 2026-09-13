@@ -13,6 +13,7 @@ import '../../../core/media/image_viewer_screen.dart';
 import '../../../core/services/image_service.dart';
 import '../../../core/services/voice_text_merge.dart';
 import '../../../core/widgets/masar_markdown.dart';
+import '../../../core/widgets/streaming_text.dart';
 import '../../../core/widgets/voice_recording_bar.dart';
 import '../../../core/widgets/typing_indicator.dart';
 import '../data/models/scholarship.dart';
@@ -258,7 +259,9 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
             child: Align(alignment: Alignment.centerRight, child: TypingIndicator()),
           );
         }
-        return _bubble(msgs[i]);
+        // 🌊 الفقاعة الأخيرة وحدها هي التي تُبثّ — وما قبلها مكتملٌ ثابت.
+        return _bubble(msgs[i],
+            streaming: _c.isStreaming && i == msgs.length - 1 && !msgs[i].isUser);
       },
     );
   }
@@ -352,7 +355,7 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
     );
   }
 
-  Widget _bubble(SchMessage m) {
+  Widget _bubble(SchMessage m, {bool streaming = false}) {
     final isUser = m.isUser;
     return Align(
       alignment: isUser ? Alignment.centerLeft : Alignment.centerRight,
@@ -399,18 +402,36 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                     // 🚫 بلا رسّام رياضيات: المنح لا رياضيات فيها، ورفعُ
                     //    «رقم/رقم» إلى كسر يحوّل تاريخاً (20/02/2026) إلى
                     //    كسرٍ مرسوم على شاشة الطالب.
-                    : MasarMarkdown(
-                        data: m.text,
-                        selectable: true,
-                        math: false,
-                        styleSheet: MarkdownStyleSheet(
-                          p: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: AppSettings.I.answerFontSize,
-                            fontWeight: FontWeight.w500,
-                            height: 1.6,
+                    // 🌊 أثناء البثّ: حافةٌ متلاشية ومؤشّر كتابة — نفس
+                    //    إحساس قسم التعليم حرفياً ([StreamingText]).
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          StreamingText(
+                            streaming: streaming,
+                            child: MasarMarkdown(
+                              data: m.text,
+                              // ⚠️ التحديد يُعطَّل أثناء البثّ: النصّ يتغيّر
+                              //    تحت الإصبع فينفكّ التحديد ويرتجّ العرض.
+                              selectable: !streaming,
+                              math: false,
+                              styleSheet: MarkdownStyleSheet(
+                                p: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: AppSettings.I.answerFontSize,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.6,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          if (streaming)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: TypingCaret(color: AppColors.primary),
+                            ),
+                        ],
                       ),
               ),
             ),
@@ -730,7 +751,7 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
             const SizedBox(width: 8),
             // 📷 إرفاق صورة — لقطة من موقع المنحة أو وثيقة يسأل عنها
             InkWell(
-              onTap: _c.isSending ? null : _pickImage,
+              onTap: _c.isBusy ? null : _pickImage,
               borderRadius: BorderRadius.circular(22),
               child: Container(
                 width: 42,
@@ -780,21 +801,22 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
             //    ⚠️ الإيقاف يقطع الاتصال فعلاً (لا يتجاهل الرد فقط)، وإلا
             //       بقي الطلب معلّقاً على الخادم واستهلك نداء موديل كاملاً.
             InkWell(
-              onTap: _c.isSending ? _c.stop : _send,
+              // 🛑 أثناء البثّ أيضاً — لا في لحظة الانتظار وحدها ([isBusy]).
+              onTap: _c.isBusy ? _c.stop : _send,
               borderRadius: BorderRadius.circular(22),
               child: Container(
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  gradient: _c.isSending ? null : AppColors.mainGradient,
-                  color: _c.isSending ? Colors.redAccent : null,
+                  gradient: _c.isBusy ? null : AppColors.mainGradient,
+                  color: _c.isBusy ? Colors.redAccent : null,
                   shape: BoxShape.circle,
                   boxShadow: AppColors.softShadow,
                 ),
                 child: Icon(
-                    _c.isSending ? Icons.stop_rounded : Icons.send_rounded,
+                    _c.isBusy ? Icons.stop_rounded : Icons.send_rounded,
                     color: Colors.white,
-                    size: _c.isSending ? 22 : 21),
+                    size: _c.isBusy ? 22 : 21),
               ),
             ),
           ],

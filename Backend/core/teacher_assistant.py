@@ -28,6 +28,8 @@
 #      نفس العلاج الذي أنهى «أهلاً بك يا بطل» سبعين مرة في قسم المنح ([32§5]).
 
 import asyncio
+
+from . import streaming
 import re
 import threading
 import time
@@ -459,14 +461,12 @@ async def ask(req, clients: dict) -> dict:
     messages.append({"role": "user", "content": user_message})
 
     try:
-        response = await asyncio.wait_for(
-            client.chat.completions.create(
-                model=model_name, messages=messages,
-                max_tokens=_MAX_TOKENS, temperature=0.3,
-            ),
-            timeout=_AI_TIMEOUT,
+        # 🌊 نفس بثّ قسم الطالب — الشاشة واحدة فلا سبب لتجربتين مختلفتين.
+        answer = await streaming.complete(
+            client, model=model_name, messages=messages,
+            sink=streaming.sink_of(req), timeout=_AI_TIMEOUT,
+            max_tokens=_MAX_TOKENS, temperature=0.3,
         )
-        answer = response.choices[0].message.content
     except asyncio.TimeoutError:
         answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً. حاول مرة ثانية."
     except Exception as e:

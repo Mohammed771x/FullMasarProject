@@ -28,11 +28,25 @@ _lock = threading.Lock()
 _last_sweep = 0.0
 
 
-def _client_key(request, user_id: str) -> str:
+def _client_key(request, user_id: str, scope: str = "") -> str:
+    """مفتاح الدلو: IP + هوية + **نطاق**.
+
+    🔴 **علّة حقيقية أوجبت النطاق (2026-09-09):** كان المفتاح `ip|uid` وحده،
+       فيتشارك **كل** مسارٍ يُمفتِح بالهوية دلواً واحداً — و`check` تُنادى
+       بحدودٍ مختلفة على نفس الدلو. فصار `/me/quota` (قراءةٌ رخيصة، حدّها
+       ١٢٠) يملأ الدلو الذي يقرأه `/ask` بحدّ ٢٠، فيُرفض سؤال الطالب بـ429
+       **بسبب أن التطبيق قرأ عدّاد حصته**.
+
+       والأثر مضاعف: كل إرسالٍ ناجح يتبعه تحديثٌ للعدّاد، فكلما استعمل
+       الطالب التطبيق **اقترب من حظر نفسه**.
+
+    ⚠️ ولا يجوز إسقاط الهوية من المفتاح: الـIP وحده يخلط طلاب مدرسةٍ خلف
+       بوابةٍ واحدة.
+    """
     # خلف بروكسي HF/Render يصل IP الحقيقي في X-Forwarded-For (أول قيمة)
     fwd = request.headers.get("x-forwarded-for", "")
     ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "?")
-    return f"{ip}|{(user_id or '')[:64]}"
+    return f"{ip}|{(user_id or '')[:64]}|{scope}"
 
 
 def _sweep(now: float, window: float):
@@ -46,11 +60,17 @@ def _sweep(now: float, window: float):
         _buckets.pop(k, None)
 
 
-def check(request, user_id: str, limit: int = ASK_LIMIT, window: float = ASK_WINDOW) -> bool:
-    """True = مسموح، False = تجاوز الحد."""
+def check(request, user_id: str, limit: int = ASK_LIMIT, window: float = ASK_WINDOW,
+          scope: str = "") -> bool:
+    """True = مسموح، False = تجاوز الحد.
+
+    [scope] يفصل دلاء المسارات المختلفة — راجع [_client_key]. وحين يُترك
+    فارغاً يُشتقّ من الحدّ نفسه، فمسارٌ بحدٍّ مختلف يحصل على دلوٍ مختلف
+    تلقائياً ولو نسي المُنادي تمريره.
+    """
     try:
         now = time.time()
-        key = _client_key(request, user_id)
+        key = _client_key(request, user_id, scope or f"L{limit}")
         with _lock:
             _sweep(now, window)
             if key not in _buckets and len(_buckets) >= _MAX_KEYS:

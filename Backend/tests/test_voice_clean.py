@@ -17,7 +17,7 @@ def client(no_real_api_calls):
 
 
 def _body(**over):
-    b = {"user_id": "vc-user", "code": "SUPER_USER", "device_id": "d", "text": "اشرح لي درس الخليه"}
+    b = {"text": "اشرح لي درس الخليه"}
     b.update(over)
     return b
 
@@ -29,8 +29,8 @@ def test_clean_returns_cleaned_text(client):
     assert d["cleaned"] is True
     assert "GEMINI::" in d["text"]
 
-def test_invalid_code_401(client):
-    assert client.post("/voice/clean", json=_body(code="bad")).status_code == 401
+def test_without_token_401(client, anonymous):
+    assert client.post("/voice/clean", json=_body()).status_code == 401
 
 def test_empty_text_ok(client):
     d = client.post("/voice/clean", json=_body(text="   ")).json()

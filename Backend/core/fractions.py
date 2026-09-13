@@ -35,8 +35,20 @@ _LATIN_UNITS = {
     "KJ", "kJ", "kj", "kcal", "cal", "atm", "ppm", "M", "rpm",
 }
 
-# ما يُلحق بالوحدة فيُهمل عند المقارنة: أُسّ · نقطة · مسافة
+# ما يُلحق بالمقدار فيُهمل عند المقارنة: أُسّ · نقطة · مسافة
 _STRIP = re.compile(r"[\^].*$|[.،,]+$|^[.،,]+")
+
+# 🔴 **وللوحدة تجريدٌ أوسع**: الكتاب يكتب الأُسّ رقماً ملاصقاً — «م/ث2»
+#    و«كجم/م3» بلا «^» — فـ«ث2» ليست «ث» فلا تُعدّ وحدة، وصارت
+#    «١٠ م / ث2» كسراً مرسوماً وسط الجملة (**٨٣ موضعاً في الفيزياء**).
+#
+# ⚠️ **ولا يجوز توسيعُ `_bare` نفسِها**: تستعملها `is_mathy` كذلك، فحذفُ
+#    الأرقام اللاحقة يجعل «٤» فارغةً فتسقط «٣/٤» — وقع فعلاً في أول محاولة.
+_UNIT_TAIL = re.compile(r"[0-9٠-٩⁰¹²³⁴⁵⁶⁷⁸⁹]+$")
+
+
+def _unit_bare(token: str) -> str:
+    return _UNIT_TAIL.sub("", _bare(token)).strip()
 
 
 def _bare(token: str) -> str:
@@ -49,14 +61,20 @@ def _bare(token: str) -> str:
 #    «1 / م سع» تصير كسراً). أمّا «كم» و«كولوم» و«m» فتمنع وحدها.
 _WEAK_UNITS = {"م", "ث", "د", "ثا"}
 
+# ما يسبق الوحدةَ فيجعلها جزءَ كميةٍ أو وحدةٍ مركّبة لا بسطاً:
+#   • رقمٌ  — «١٠٠ م»
+#   • «/»   — «م / ث / ١٠ ث»: الثانيةُ مقامُ وحدةٍ مركّبة لا بسطُ كسر
+#   • حرفٌ عربيّ — «ب د / أ د»
+_NUM_BEFORE = re.compile(r"[0-9٠-٩ء-ي/]\s*$")
+
 
 def is_weak_unit(token: str) -> bool:
-    return _bare(token) in _WEAK_UNITS
+    return _unit_bare(token) in _WEAK_UNITS
 
 
 def is_unit(token: str) -> bool:
     """هل هذا المقدار وحدة قياس؟ (تُهمل الأُسس والنقاط)"""
-    t = _bare(token)
+    t = _unit_bare(token)
     if not t:
         return False
     return t in _ARABIC_UNITS or t in _LATIN_UNITS
@@ -68,6 +86,24 @@ def is_unit(token: str) -> bool:
 #    فطرفاه **كلمتان**. فنشترط أن يكون الطرفان رياضيَّين معاً.
 _DIGITS = set("0123456789٠١٢٣٤٥٦٧٨٩")
 
+# ══════════ مفرداتٌ رياضية يتوقّف عليها التمييز ══════════
+# 📊 كشفها تصنيفُ كل شرطةٍ باقية في ٦٤ درساً: ٣٩ شرطةً منها **كسورٌ حقيقية**
+#    فاتت لأن المُميِّز كان يقيس **طول** الرمز فقط (حرفان فأقل)، فيرفض
+#    «جتا س» و«جذر ٢» و«باي» — وهي مقاديرُ رياضية لا كلماتُ نثر.
+#
+# ⚠️ والقائمة **مغلقة عمداً** كقائمة الوحدات: توسيعها بقاعدةٍ عامة («أي
+#    كلمةٍ قصيرة») كان سيبتلع نثراً مثل «فرق الصادات / فرق السينات».
+_FUNCS = {"جا", "جتا", "ظا", "ظتا", "قا", "قتا", "جذر", "لو", "لوغا",
+          "نهـ", "نها", "حـا", "هـا", "مج", "تفا"}
+_CONSTS = {"باي", "ط", "π", "هـ", "e"}
+
+_SIGNS = "-−+"
+
+# ☝️ علامةُ المتمّمة في الاحتمالات فتحةٌ لاحقة: «(أ ∪ ب)َ». وهي حرفُ
+#    تشكيلٍ لا يقطع المقدار — وإهمالُها كان يقطع القوسَ عن اسمه فيخرج
+#    «حـا\frac{(أ ∪ ب)َ}{…}»: اسمُ الاحتمال خارج الكسر ومتمّمتُه داخله.
+_MARKS = set("\u064b\u064c\u064d\u064e\u064f\u0650\u0651\u0652\u0670")
+
 
 def is_mathy(token: str, parenthesized: bool = False) -> bool:
     """هل هذا المقدار رياضي؟ (قوس · رقم · رمز قصير) لا كلمةً في جملة."""
@@ -78,12 +114,36 @@ def is_mathy(token: str, parenthesized: bool = False) -> bool:
         return False
     if any(c in _DIGITS for c in t):
         return True
+    head = t.lstrip(_SIGNS).strip()
+    if head in _CONSTS:
+        return True
+    # 📐 «جتا س» · «جذر ٢» — دالّةٌ ومقدارُها مقدارٌ واحد لا كلمتان
+    parts = head.split()
+    if parts and parts[0] in _FUNCS:
+        return True
     # الرموز في المنهج حرف أو حرفان («س» · «ع» · «نق» · «λ»)، والكلمات أطول
-    return len(t.replace(" ", "")) <= 2
+    return len(head.replace(" ", "")) <= 2
 
 
 # ما يقطع المقدار حول الشرطة. الأُسّ `^` لا يقطع كي تبقى `ن^2` مقداراً واحداً.
 _BREAK = set(" +-−=×*(),،؛;:[]{}\n\t")
+
+
+def _breaks(src: str, k: int) -> bool:
+    """هل الحرف عند `k` يقطع المقدار؟
+
+    🔴 **الفاصلة العشرية عربيةٌ بالفاصلة لا بالنقطة**: كتاب الكيمياء يكتب
+       «37,3000 / 3,1000». وقطعُ المقدار عندها أخرج «37,\frac{3000}{3},1000»
+       — عددان مقطوعان وكسرٌ مخترَع بينهما. فالفاصلة **بين رقمين** جزءٌ من
+       العدد، وبين غيرهما فاصلُ تعداد.
+    """
+    ch = src[k]
+    if ch not in _BREAK:
+        return False
+    if ch in ",،" and 0 < k < len(src) - 1 \
+            and src[k - 1] in _DIGITS and src[k + 1] in _DIGITS:
+        return False
+    return True
 
 
 # الأقواس الثلاثة تُستعمل للتجميع في نصّ الكتاب: ( ) و [ ] و { }
@@ -118,6 +178,12 @@ def _left_atom(sofar: str):
     if end == 0:
         return None
 
+    tail = end                      # ما يشمله المقدار فعلاً (بالتشكيل)
+    while end > 0 and sofar[end - 1] in _MARKS:
+        end -= 1
+    if end == 0:
+        return None
+
     if sofar[end - 1] in _OPEN:
         close = sofar[end - 1]
         opn = _OPEN[close]
@@ -128,14 +194,52 @@ def _left_atom(sofar: str):
             elif sofar[k] == opn:
                 depth -= 1
                 if depth == 0:
+                    # 🔴 **اسم الدالة قبل القوس جزءٌ من المقدار.**
+                    #
+                    #    «د(س) / هـ(ص)» كانت تُقرأ بسطاً = «س» فتخرج
+                    #    `د\frac{س}{هـ(ص)}` — أي أن اسم الدالة يبقى **خارج**
+                    #    الكسر فينفصل عن قوسه. وذلك تلفٌ أسوأ من الشرطة
+                    #    نفسها: الشرطة تُقرأ، وهذا يُغيّر المعنى.
+                    #
+                    # ⚠️ ويشمل الحروف العربية والأسّ الملاصق («د²(س)»).
+                    j = k
+                    while j > 0 and sofar[j - 1] not in _BREAK \
+                            and sofar[j - 1] not in _OPEN.values() \
+                            and sofar[j - 1] not in _OPEN:
+                        j -= 1
+                    if j < k:
+                        return sofar[j:tail], j, True
+                    if tail > end:      # تشكيلٌ لاحق ⇒ نُبقي القوسين معه
+                        return sofar[k:tail], k, True
                     return sofar[k + 1:end - 1], k, True
         return None
 
     start = end
-    while start > 0 and sofar[start - 1] not in _BREAK:
+    while start > 0 and not _breaks(sofar, start - 1):
         start -= 1
     if start == end:
         return None
+
+    # 📐 اسم الدالّة قبل وسيطها العاري: «جا س / جتا س» بسطُها «جا س» لا «س».
+    #    ⚠️ وبغير هذا يخرج «جا \frac{س}{جتا س}» — اسمٌ خارج الكسر ووسيطُه
+    #       داخله، وهو تشويهٌ للمعنى لا مجرّد شكل.
+    j = start
+    while j > 0 and sofar[j - 1] == " ":
+        j -= 1
+    k = j
+    while k > 0 and sofar[k - 1] not in _BREAK:
+        k -= 1
+    # ⚠️ **إلا أن يكون الوسيط ثابتاً**: «جتا ط/٤» زاويةٌ قياسية معناها
+    #    جتا(ط/٤) — فابتلاعُ الاسم يُخرج «\frac{جتا ط}{٤}» أي (جتا ط)÷٤،
+    #    وهي **قيمةٌ أخرى**. والفارق أن الثابت لا يُقسَم على عددٍ إلا ليصنع
+    #    زاوية، بينما المتغيّر يُقسَم فعلاً («جا س / س»).
+    if k < j and sofar[k:j] in _FUNCS and sofar[j:end].strip() not in _CONSTS:
+        start = k
+
+    # ➖ **والإشارة تبقى خارج الكسر عمداً**: «-٣/٢» تُرسم «−» ثم ثلاثةٌ على
+    #    اثنين، وهو عرفُ الكتاب وأوضحُ للعين من سالبٍ داخل البسط. وضمُّها
+    #    لا يصحّح شيئاً — القيمة واحدة — بل يُقبّح ١٥ موضعاً في الدروس.
+    #    أمّا إشارةُ **المقام** فتُضمّ ([_right_atom])، إذ لا موضع لها خارجه.
 
     # «(س+1)^2» — المقدار ملاصق لقوسٍ مغلق قبله، فنضمّ القوس كله معه
     if start >= 1 and sofar[start - 1] in _OPEN:
@@ -160,6 +264,15 @@ def _right_atom(src: str, frm: int):
     if start >= len(src):
         return None
 
+    # ➖ إشارةٌ بعد الشرطة أحاديةٌ دائماً: «٢ / -١» مقامُها سالبٌ لا طرح.
+    sign_at = start
+    if src[start] in _SIGNS:
+        start += 1
+        while start < len(src) and src[start] == " ":
+            start += 1
+        if start >= len(src):
+            return None
+
     for opn, close in (("(", ")"), ("[", "]"), ("{", "}")):
         if src[start] == opn:
             depth = 0
@@ -175,28 +288,137 @@ def _right_atom(src: str, frm: int):
             return None
 
     end = start
-    while end < len(src) and src[end] not in _BREAK and src[end] != "/":
+    while end < len(src) and not _breaks(src, end) and src[end] != "/":
         end += 1
     if end == start:
         return None
 
-    # 📐 دالّة بأقواس: «جذر(2)» و«جا(س)» مقدار واحد لا رمز مبتور
-    if end < len(src) and src[end] == "(":
-        depth = 0
-        for k in range(end, len(src)):
-            if src[k] == "(":
-                depth += 1
-            elif src[k] == ")":
-                depth -= 1
-                if depth == 0:
-                    return src[start:k + 1], k + 1, True
-    return src[start:end], end, False
+    # 📐 دالّة بأقواس: «جذر(2)» و«جا(س)» مقدار واحد لا رمز مبتور.
+    #    ⚠️ ويشمل المعقوف: «حـا{(٢ ، ف)}» في دروس الاحتمالات.
+    for opn, close in (("(", ")"), ("{", "}"), ("[", "]")):
+        if end < len(src) and src[end] == opn:
+            depth = 0
+            for k in range(end, len(src)):
+                if src[k] == opn:
+                    depth += 1
+                elif src[k] == close:
+                    depth -= 1
+                    if depth == 0:
+                        return src[sign_at:k + 1], k + 1, True
+
+    # 📐 دالّة بوسيطٍ عارٍ: «جتا س» و«جذر ٢» — الفراغُ لا يفصلهما.
+    if src[start:end] in _FUNCS:
+        k = end
+        while k < len(src) and src[k] == " ":
+            k += 1
+        arg_start = k
+        while k < len(src) and src[k] not in _BREAK and src[k] != "/":
+            k += 1
+        if k > arg_start:
+            return src[sign_at:k], k, False
+
+    return src[sign_at:end], end, False
+
+
+# ══════════ مناطقُ لا تُقرأ فيها الشرطة قسمةً أبداً ══════════
+# 🔴 كشفها مسحُ كل نصوص الكيمياء (2026-09-09) بعد أن رأى المالك معادلةً
+#    مشوّهة على الشاشة:
+#
+#  ١) **شرط التفاعل فوق السهم**: «--[Cu / 200-300 م]-->» شرطُه «نحاسٌ عند
+#     ٢٠٠-٣٠٠ درجة»، والشرطة فيه بمعنى «مع». وتحويلها أخرج
+#     «\frac{Cu}{200}-300» — كسرٌ يبتلع النحاس ويقطع مدى الحرارة.
+#     ⚠️ وللشرط صورتان: بأقواس «--[…]-->» وبلا أقواس «--725م/Ni-->».
+#
+#  ٢) **تاريخٌ هجريّ وميلاديّ**: «( ٧٤٣هـ / ١٣٤٢م )» في تراجم علماء العرب
+#     بكيمياء الأول. صارت «\frac{٧٤٣هـ}{١٣٤٢م}» — أي أن الجلدكيّ وُلد
+#     كسراً. سبعة مواضع.
+#
+#  ٣) **أثر أداة الاستخراج** «[cite: 1]» الملتصق بالمقام.
+# ⚠️ **وأيُّ شيءٍ بين «--» و«-->»**: صيغُ الشرط في الكتاب أربعٌ على الأقل —
+#    «--[Cu]-->» و«--[H2SO4 مركز] / 140 م-->» (الشرطة **خارج** القوس!)
+#    و«--725م/Ni-->» و«--حرارة-->». وحصرُها في صيغتين ترك الثالثة تتسرّب،
+#    فخرج «\frac{H2SO4}{140}» على شاشة الطالب. غير الجشع يقف عند أول سهم.
+_ARROW_ZONE = re.compile(r"--+[^>\n]*?--+>")
+
+# 🔴🔴 **«حـا(أ / ب)» احتمالٌ شرطيّ لا كسر** — «احتمال أ **بشرط** ب».
+#      وقعت فعلاً في ٢٣ موضعاً بدرس الاحتمال الشرطي، وأخرجت على الشاشة
+#      «حـا(أ فوق ب)» — وهو **خطأٌ رياضيّ** لا تشويهُ شكل: يمينُ السطر
+#      نفسِه يقول «حـا(أ/ب) = حـا(أ ب) / حـا(ب)»، فالأولى شرطٌ والثانية
+#      قسمةٌ حقيقية. ولا يفرّق بينهما إلا **دالّةُ الاحتمال حولهما**.
+#      ⚠️ **والدرعُ يشترط «/» داخل القوس**: أوّلُ صياغةٍ درعت كلَّ
+#         «حـا(…)» فابتلعت طرفَي الكسر الحقيقيّ في السطر نفسِه، فضاع
+#         «حـا(أ ب) / حـا(ب)» أيضاً. المطلوبُ حمايةُ الشرط وحدَه.
+_PROB_COND = re.compile(r"حـ?ا\s*[({][^(){}/]{1,40}/[^(){}/]{1,40}[)}]")
+# التاريخ الهجريّ يُكتب ملاصقاً «٧٤٣هـ» ومفصولاً «٧٤٣ هـ» — فالطرف قد يكون
+# «هـ» وحده. ويُشترط أن يقابله عامٌ ميلاديّ كي لا نمسّ «هـ» رمزَ الأُسّ.
+_HIJRI = re.compile(r"(?:[٠-٩0-9]+\s*)?هـ\s*$|^\s*هـ")
+# ⚠️ والسنة الميلادية قد تأتي مدىً «٦٨٠-٦٨١م»، فيقف المقدارُ عند الشرطة
+#    بلا «م». و«هـ» في الطرف الآخر علامةٌ كافية، فيكفي أن يكون عاماً.
+_GREGORIAN = re.compile(r"^[٠-٩0-9]{2,4}\s*م?\s*$")
+_CITE = re.compile(r"\[\s*cite[^\]]*\]")
+
+# 🧪 صيغةٌ كيميائية: «R2O» · «RCl2» · «CaCO3». وصفٌّ في الجدول الدوري يسرد
+#    «صيغ الأكاسيد والكلوريدات | R2O / RCl» — أي هذه **أو** تلك، لا قسمة.
+#    ويُشترط أن يكون الطرفان صيغتين وأن يحمل أحدهما رقماً أو حرفين فأكثر،
+#    كي لا يُمنع «ط/د» ولا رمزٌ فيزيائيّ مفرد.
+# ⚠️ ويشمل الأليلات في الوراثة: «AB/AB × ab/ab» زوجُ جينات على كروموسومين
+#    متماثلين، لا قسمة. ولذلك يُقبل البدء بحرفٍ صغير أيضاً.
+_FORMULA = re.compile(r"^[A-Za-z][A-Za-z]*[0-9]*[A-Za-z0-9]*$")
+
+
+# 🔴 **رمزُ نصف الخلية: «Zn(s) / Zn+2(aq)»** — الشرطةُ **حدُّ طور** بين
+#    الفلزّ ومحلوله، لا قسمة. رآها المالك 2026-09-12 في الكهروكيميائية،
+#    وكانت تخرج `\frac{Zn(s)}{Zn}+2(aq)` — تقطع الصيغةَ نصفين أيضاً.
+#    ونظيرتُها «H2SO4 / -H2O» شرطُ تفاعلٍ يُكتب فوق السهم وتحته.
+#
+# ⚖️ والعلامةُ الفارقة **مؤشّرٌ كيميائيّ صريح**: رقمٌ في الصيغة، أو حالةٌ
+#    `(s)(l)(g)(aq)`، أو شحنة. ولولاه لَحجب «V / I» في الفيزياء وهي قسمةٌ
+#    حقيقية — فحرفٌ لاتينيّ مفردٌ وحده ليس صيغةً كيميائية.
+_CHEM_SPECIES = re.compile(
+    r"^[+-]?(?:[A-Z][a-z]?\d*|\([slgaq]+\)|[A-Za-z]\d+)+"
+    r"(?:[+-]\d*)?(?:\((?:s|l|g|aq)\))?(?:[+-]\d*)?$")
+_CHEM_MARK = re.compile(r"\d|\((?:s|l|g|aq)\)|[+-]")
+
+
+def is_chem_species(token: str) -> bool:
+    t = _bare(token)
+    if not t or not _CHEM_SPECIES.match(t):
+        return False
+    return bool(_CHEM_MARK.search(t))
+
+
+def _both_formulas(a: str, b: str) -> bool:
+    # ⚠️ بـ`_bare` لا بـ`strip`: نقطةُ نهاية الجملة تلتصق بالطرف («ab.»)
+    #    فتُسقط المطابقة ويعود العطل من باب النقطة.
+    a, b = _bare(a), _bare(b)
+    if not (_FORMULA.match(a) and _FORMULA.match(b)):
+        return False
+    return max(len(a), len(b)) >= 2
 
 
 def to_frac(text: str) -> str:
     """يحوّل كسور النصّ إلى `\\frac{بسط}{مقام}` ويترك وحدات القياس كما هي."""
     if not text or "/" not in text:
         return text
+
+    # ⛓️ **الشرطة المزدوجة تعني شيئاً آخر دائماً** — في كل مواد المنهج:
+    #    «Fe / Fe3+ // 3Ag+ / 3Ag» قنطرةٌ ملحية في خلية جلفانية، و«ل١ // ل٢»
+    #    توازٍ، و«Same + Noun // as + adj» فاصلٌ في قواعد الإنجليزي.
+    #    مسحُ كل البيانات: ١٧ سطراً فيها «//»، ولا واحدٌ منها كسر.
+    if "//" in text:
+        return text
+
+    # 🛡️ اعزل مناطق السهم قبل المسح — لا داخلها شرطةُ قسمة.
+    shielded: list[str] = []
+
+    def _shield(m):
+        shielded.append(m.group(0))
+        return "\x01" * len(m.group(0))
+
+    if "--" in text:
+        text = _ARROW_ZONE.sub(_shield, text)
+    if "حـا" in text or "حا(" in text:
+        text = _PROB_COND.sub(_shield, text)
 
     # ⚠️ المخزن نصٌّ لا قائمة: كنّا نحذف بفهرس نصّي من قائمةِ عناصر
     #    متعددة الأحرف بعد إدراج `\\frac{...}`، فتتزحزح الفهارس ويتكرر
@@ -221,6 +443,33 @@ def to_frac(text: str) -> str:
         left_text, left_start, left_paren = left
         right_text, right_end, right_paren = right
 
+        # ⛔ تاريخٌ هجريّ/ميلاديّ · وأثرُ أداة استخراج — ليسا كسراً.
+        hijri_pair = (_HIJRI.search(left_text) and _GREGORIAN.match(right_text.strip())) \
+            or (_HIJRI.search(right_text) and _GREGORIAN.match(left_text.strip()))
+        if hijri_pair or _both_formulas(left_text, right_text) \
+                or _CITE.search(right_text) or _CITE.search(left_text):
+            out += ch
+            i += 1
+            continue
+
+        # 🔴 **شرطةٌ لا تكون طرفاً في كسر — أبداً.**
+        #
+        #    كشفه مسحُ ٦٤ درساً: الموديل كتب «(ل1 // ل2)» بمعنى **التوازي**،
+        #    فأخذت الشرطة الثانية أختَها بسطاً وأخرجت `ل1 \frac{/}{ل2}` —
+        #    كسرٌ بسطه شرطة. وهو تلفٌ مرئيّ على شاشة الطالب، وأسوأ من
+        #    الشرطة التي جئنا نُصلحها.
+        #
+        # ⚠️ والشرط **على الطرف نفسه لا على ما يحويه**: «أيُّ طرفٍ فيه شرطة»
+        #    كان يكنس معه كسوراً مشروعة — «( جا س - جتا س ) / ( س - ط/4 )»
+        #    طرفُها الأيمن يحوي شرطةً داخلية، فتُترك الشرطة الكبرى كما هي
+        #    ويبقى نصفُ التعبير مرسوماً ونصفُه بشرطة. والداخليّ يُعالَج
+        #    بالاستدعاء الذاتي أسفلُ، فلا حاجة لتخطّي الخارجي.
+        if set(left_text.strip()) <= {"/"} or set(right_text.strip()) <= {"/"}:
+            out += ch
+            i += 1
+            continue
+
+
         # 🛡️ قاعدة الوحدات:
         #    • الطرفان وحدتان        ⇒ وحدة مركّبة («م/ث») فلا تُمسّ
         #    • طرف وحدة **قوية**     ⇒ وحدة («1/m» · «72 كم/ساعة») فلا تُمسّ
@@ -236,7 +485,14 @@ def to_frac(text: str) -> str:
         both = left_u and right_u
         strong = (left_u and not is_weak_unit(left_text)) or \
                  (right_u and not is_weak_unit(right_text))
-        if both or strong:
+
+        # 🔴 **وحدةٌ مسبوقةٌ برقمٍ كميّةٌ مقيسة لا بسط.** «١٠٠ م / ٥ ث»
+        #    أخرجت `\frac{م}{5}` — فصلت الوحدةَ عن عددها والعددَ عن وحدته،
+        #    فخرج على الشاشة «م فوق ٥» ثم «ث» سائبة. والفارقُ ما **قبل**
+        #    الطرف: رقمٌ ⇒ كمية، وإلا فمقدارٌ حقيقيّ («١ / م سع»).
+        measured = left_u and _NUM_BEFORE.search(out[:left_start])
+        chem = is_chem_species(left_text) or is_chem_species(right_text)
+        if both or strong or measured or chem:
             out += ch
             i += 1
             continue
@@ -245,4 +501,8 @@ def to_frac(text: str) -> str:
             to_frac(left_text.strip()), to_frac(right_text.strip()))
         i = right_end
 
+        # ↩️ أعد مناطق السهم كما كانت حرفاً بحرف
+    if shielded:
+        it = iter(shielded)
+        out = re.sub(r"\x01+", lambda _m: next(it), out)
     return out

@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/config/curriculum.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/masar_brand.dart';
+import '../../../../core/session/user_session.dart';
+import '../../../../core/storage/chat_storage.dart';
+import '../../data/conversation_search.dart';
+import '../../data/models/chat_model.dart';
 import '../controllers/chat_controller.dart';
 import '../../../teacher/data/teacher_tool.dart';
 import 'chat_dialogs.dart';
@@ -13,10 +17,39 @@ import 'chat_dialogs.dart';
 // الترتيب: الشعار → محادثة جديدة → الصف → المسار → المواد → المحادثات.
 // 🔻 نُقل إلى الإعدادات: "المطور" و"الوضع الداكن".
 // 🔻 حُذف: "تحديث الكود" (لم يعد هناك نظام أكواد).
-class ChatDrawer extends StatelessWidget {
+class ChatDrawer extends StatefulWidget {
   final ChatController controller;
 
   const ChatDrawer({super.key, required this.controller});
+
+  @override
+  State<ChatDrawer> createState() => _ChatDrawerState();
+}
+
+class _ChatDrawerState extends State<ChatDrawer> {
+  // 🔎 نصّ البحث الحالي — فارغٌ يعني «اعرض محادثات هذا القسم كالمعتاد».
+  final TextEditingController _search = TextEditingController();
+  String _query = "";
+
+  ChatController get controller => widget.controller;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  /// 🌍 **البحث يتخطّى نطاق الشاشة عمداً.**
+  ///
+  /// القائمة العادية تعرض محادثات (الصف · المادة · الوضع) الحالي وحدها —
+  /// وهذا صحيحٌ للتصفّح. لكن الطالب الباحث عن «الأكسدة» **لا يتذكّر في أي
+  /// مادةٍ سألها**، وحصرُ البحث في القسم المفتوح كان سيُرجع «لا نتائج» عن
+  /// محادثةٍ موجودةٍ عنده فعلاً. فالبحث على كل محادثات الحساب.
+  List<ChatConversation> get _visibleConversations {
+    if (_query.trim().isEmpty) return controller.conversations;
+    final all = ChatStorage.getAllConversations(UserSession.I.uid);
+    return ConversationSearch.filter(all, _query);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,24 +71,37 @@ class ChatDrawer extends StatelessWidget {
               Navigator.pop(context);
               ChatDialogs.showResources(context, grade: c.grade, track: c.track);
             }),
-            const SizedBox(height: 6),
+
+            // ══════════════════════════════════════════════════
+            // 🔎 البحث **ثابتٌ في الأعلى** لا داخل القائمة
+            // ══════════════════════════════════════════════════
+            // 🔴 **علّة رآها المالك:** كان أسفل القائمة، فيلزم تمريرٌ طويل
+            //    للوصول إليه — ثم يفتح الكيبورد **فيغطّيه هو ونتائجه**،
+            //    فيكتب الطالب في حقلٍ لا يراه ويقرأ نتائج لا تظهر.
+            //
+            // ✅ خارج `ListView` فلا يتحرّك، وفوق النتائج فيراهما معاً،
+            //    والكيبورد يقضم من أسفل القائمة لا من الحقل.
+            _searchField(),
 
             // القوائم القابلة للتمرير
             Expanded(
               child: ListView(
-                padding: EdgeInsets.zero,
+                padding: EdgeInsets.only(
+                  // ⌨️ ارتفاع الكيبورد يُضاف كحشوة سفلية: بدونه تبقى آخر
+                  //    نتيجتين خلفه ولا سبيل للوصول إليهما.
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                ),
                 children: [
-                  _sectionLabel("الصف الدراسي"),
-                  _gradeSelector(context),
-
-                  if (Curriculum.hasTracks(c.grade)) ...[
-                    const SizedBox(height: 12),
-                    _sectionLabel("المسار"),
-                    _trackSelector(context),
-                  ],
-
-                  const SizedBox(height: 12),
-                  _divider(),
+                  // ══════════════════════════════════════════════════
+                  // 🎓 لا مُبدِّل صفٍّ ولا مسارٍ هنا (قرار المالك 2026-09-09)
+                  // ══════════════════════════════════════════════════
+                  // طالبُ الأول الثانوي لا يعنيه «الثاني» و«الثالث»، ولا
+                  // «علمي/أدبي». والصفُّ يُختار مرةً في **الإعدادات** ويرافق
+                  // الحساب، فتكرارُه هنا زحمةٌ في قائمةٍ تُفتح عشرات المرات
+                  // يومياً — ويُغري بتبديلٍ عرَضيّ يقلب المحتوى كلَّه.
+                  //
+                  // 📚 وتُعرض **مواد صفّه وحدها** — وهي معروضة أصلاً، لأن
+                  //    `_subjectList` تشتقّها من `c.grade` و`c.track`.
                   _sectionLabel("المواد الدراسية"),
                   _subjectList(context),
 
@@ -122,86 +168,6 @@ class ChatDrawer extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // ──────────────────────── الصف ────────────────────────
-  Widget _gradeSelector(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(
-        children: List.generate(3, (i) {
-          final g = i + 1;
-          final sel = g == controller.grade;
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(left: i < 2 ? 7 : 0),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(13),
-                // ★ لا نغلق القائمة: الطالب يختار الصف ثم المسار ثم المادة
-                //   على التوالي، والعودة للمحادثة تحدث عند اختيار المادة فقط.
-                onTap: () => controller.setGrade(g),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 11),
-                  decoration: BoxDecoration(
-                    color: sel ? AppColors.primary : AppColors.softSurface,
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: Center(
-                    child: Text(Curriculum.gradeShort(g),
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.bold,
-                            color: sel ? Colors.white : AppColors.textSecondary)),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  // ──────────────────────── المسار ────────────────────────
-  Widget _trackSelector(BuildContext context) {
-    final tracks = Curriculum.tracksFor(controller.grade);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(
-        children: List.generate(tracks.length, (i) {
-          final t = tracks[i];
-          final sel = t == controller.track;
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(left: i < tracks.length - 1 ? 7 : 0),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(13),
-                // ★ يبقى داخل القائمة أيضاً — راجع تعليق شرائح الصف.
-                onTap: () => controller.setTrack(t),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 11),
-                  decoration: BoxDecoration(
-                    color: sel ? AppColors.secondary.withValues(alpha: 0.14) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(
-                        color: sel ? AppColors.secondary.withValues(alpha: 0.5) : AppColors.softSurface, width: 1.4),
-                  ),
-                  child: Center(
-                    child: Text(t.label,
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.bold,
-                            color: sel ? AppColors.secondary : AppColors.textSecondary)),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
       ),
     );
   }
@@ -308,16 +274,60 @@ class ChatDrawer extends StatelessWidget {
     );
   }
 
+  // ──────────────────────── 🔎 البحث ────────────────────────
+  Widget _searchField() {
+    final searching = _query.trim().isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: TextField(
+        controller: _search,
+        onChanged: (v) => setState(() => _query = v),
+        textInputAction: TextInputAction.search,
+        style: TextStyle(fontSize: 13, color: AppColors.textPrimary),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: "ابحث في كل محادثاتك…",
+          hintStyle: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+          prefixIcon: Icon(Icons.search_rounded, size: 18, color: AppColors.textSecondary),
+          suffixIcon: searching
+              ? IconButton(
+                  icon: Icon(Icons.close_rounded, size: 17, color: AppColors.textSecondary),
+                  splashRadius: 18,
+                  onPressed: () {
+                    _search.clear();
+                    setState(() => _query = "");
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: AppColors.softSurface,
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _conversationsList(BuildContext context) {
-    final convs = controller.conversations;
+    final searching = _query.trim().isNotEmpty;
+    final convs = _visibleConversations;
     if (convs.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
         child: Column(
           children: [
-            Icon(Icons.forum_outlined, size: 30, color: AppColors.textSecondary.withValues(alpha: 0.4)),
+            Icon(searching ? Icons.search_off_rounded : Icons.forum_outlined,
+                size: 30, color: AppColors.textSecondary.withValues(alpha: 0.4)),
             const SizedBox(height: 10),
-            Text("لا توجد محادثات في هذا القسم بعد.",
+            // ⚠️ رسالتان لا واحدة: «لا محادثات بعد» على نتيجةِ بحثٍ فارغة
+            //    تُوهم الطالب أن محادثاته ضاعت — وهي موجودة ولا تطابق فقط.
+            Text(
+                searching
+                    ? "لا توجد محادثة تطابق «${_query.trim()}»."
+                    : "لا توجد محادثات في هذا القسم بعد.",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5, fontWeight: FontWeight.w600)),
           ],
@@ -335,7 +345,13 @@ class ChatDrawer extends StatelessWidget {
         final isActive = conv.id == controller.currentConversationId;
         return InkWell(
           onTap: () {
-            controller.loadConversation(conv);
+            // 🔎 نتيجةُ بحثٍ قد تكون من مادةٍ أو صفٍّ آخر ⇒ يُنقَل النطاق
+            //    معها. أما التصفّح العادي فداخل النطاق أصلاً.
+            if (searching) {
+              controller.openFromSearch(conv);
+            } else {
+              controller.loadConversation(conv);
+            }
             Navigator.pop(context);
           },
           child: Container(
@@ -347,14 +363,34 @@ class ChatDrawer extends StatelessWidget {
                     size: 17, color: isActive ? AppColors.primary : AppColors.textSecondary),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    conv.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                        color: isActive ? AppColors.primary : AppColors.textPrimary),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        conv.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                            color: isActive ? AppColors.primary : AppColors.textPrimary),
+                      ),
+                      // 📄 أثناء البحث: أين وُجدت الكلمة + من أي مادة —
+                      //    فالنتائج تأتي من كل الأقسام وعناوينها متشابهة.
+                      if (searching) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          _resultSubtitle(conv),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 10.5,
+                              height: 1.35,
+                              color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 IconButton(
@@ -378,6 +414,13 @@ class ChatDrawer extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// سطر النتيجة: المادة ثم مقتطف الكلمة إن وُجدت في متن المحادثة.
+  String _resultSubtitle(ChatConversation conv) {
+    final snippet = ConversationSearch.snippet(conv, _query);
+    final where = "${conv.subject} · ${Curriculum.gradeShort(conv.grade)}";
+    return snippet.isEmpty ? where : "$where — $snippet";
   }
 
   // ──────────────────────── مساعدات ────────────────────────

@@ -331,6 +331,16 @@ def _refresh_analytics():
         pass
 
 
+def _forget_cached(uid: str) -> None:
+    """يُسقط كاش هذا المستخدم في كل الطبقات بعد تعديلٍ إداري."""
+    try:
+        from . import user_state, access
+        user_state.forget(uid)
+        access.forget_profile(uid)
+    except Exception:
+        pass
+
+
 def set_banned(uid: str, banned: bool) -> dict:
     """حظر مستخدم أو رفع الحظر.
 
@@ -342,6 +352,9 @@ def set_banned(uid: str, banned: bool) -> dict:
     if not ref.get().exists:
         raise AdminError(f"❌ لا يوجد مستخدم بالمعرّف «{uid}».")
     ref.set({"banned": bool(banned)}, merge=True)
+    # ⚡ يسري **فوراً** لا بعد دقيقة: الأدمن يحظر ثم يتحقق في ثوانٍ، وكاشٌ
+    #    لا يُسقَط هنا يجعله يظن الحظر لم يعمل فيضغط الزر مراراً.
+    _forget_cached(uid)
     _refresh_analytics()
     return {"uid": uid, "banned": bool(banned)}
 
@@ -355,6 +368,7 @@ def set_quota(uid: str, limit) -> dict:
 
     if limit is None:
         ref.set({"quota_override": None}, merge=True)
+        _forget_cached(uid)
         _refresh_analytics()
         return {"uid": uid, "quota_override": None}
 
@@ -366,19 +380,18 @@ def set_quota(uid: str, limit) -> dict:
         raise AdminError("❌ الحدّ خارج المدى المسموح (0 إلى 100000).")
 
     ref.set({"quota_override": value}, merge=True)
+    _forget_cached(uid)
     _refresh_analytics()
     return {"uid": uid, "quota_override": value}
 
 
 def is_banned(uid: str) -> bool:
-    """يستدعيها التوثيق عند كل طلب — تفشل مفتوحةً كي لا يعطّل عطلٌ الخدمةَ."""
+    """يستدعيها التوثيق عند كل طلب — تفشل مفتوحةً كي لا يعطّل عطلٌ الخدمةَ.
+
+    ⚡ **كانت قراءة Firestore بلا كاش في كل طلب** — نداءٌ شبكيّ حاجب على
+       مستندٍ يُقرأ في نفس الطلب مرتين أخريين. صارت من `user_state`.
+    """
     if not uid:
         return False
-    try:
-        db = quota._firestore()
-        if db is None:
-            return False
-        snap = db.collection("users").document(uid).get()
-        return (snap.to_dict() or {}).get("banned") is True if snap.exists else False
-    except Exception:
-        return False
+    from . import user_state
+    return user_state.get(uid).get("banned") is True

@@ -12,6 +12,7 @@ import '../../../core/widgets/screen_tip.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../chat/presentation/screens/main_chat_screen.dart';
 import '../../future_masar/presentation/screens/notifications_screen.dart';
+import '../../saved/presentation/saved_screen.dart';
 import '../../future_masar/presentation/screens/settings_screen.dart';
 import '../data/teacher_tool.dart';
 
@@ -153,6 +154,13 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               ],
             ),
           ),
+          // 💾 **بنك المعلّم.** `SavedStorage` كانت تختم المحفوظ بـ
+          //    `section: "teacher"` منذ البداية ([chat_list_view.dart])،
+          //    لكن **لا منفذ في رئيسية المعلّم يفتحها** — فكان يولّد خطة
+          //    درسٍ أو ورقة أسئلة، يحفظها، ثم لا يجد إليها سبيلاً أبداً.
+          //    المخزن كان جاهزاً؛ الناقص بابٌ واحد.
+          _circleBtn(Icons.bookmark_rounded, () => _go(const SavedScreen())),
+          const SizedBox(width: 10),
           ListenableBuilder(
             listenable: NotificationsRepository.I,
             builder: (_, _) => _circleBtn(

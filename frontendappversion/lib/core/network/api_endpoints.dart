@@ -11,6 +11,10 @@ class ApiEndpoints {
   // المحادثة الرئيسية
   static String ask() => "$_base/ask";
 
+  /// 🌊 نفس `/ask` لكن يبثّ الجواب حرفاً حرفاً (SSE).
+  /// نفس الحرّاس تماماً — البثّ طريقةُ تسليمٍ لا بابٌ جانبي.
+  static String askStream() => "$_base/ask/stream";
+
   // 🎤 تنظيف نص التسجيل الصوتي
   static String voiceClean() => "$_base/voice/clean";
 
@@ -74,12 +78,18 @@ class ApiEndpoints {
   static String scholarshipCover(String id) => "$_base/scholarships/$id/cover";
 
   // 💬 مساعد المنحة
+  static String scholarshipAskStream() =>
+      "$_base/scholarship/ask/stream";
+
   static String scholarshipAsk() => "$_base/scholarship/ask";
 
   // 👨‍🏫 مساعد المعلم — أدوات المعلم ومحادثاتها.
   //    نقطة واحدة للتوليد والمتابعة معاً؛ الفرق حقلٌ في الجسم (`generate`)
   //    لا مسارٌ ثانٍ — فالمحادثة واحدة والسياق واحد.
   static String teacherAsk() => "$_base/teacher/ask";
+
+  /// 🌊 نسخة البثّ — نفس الحرّاس، والشاشة واحدة فلا سبب لتجربتين.
+  static String teacherAskStream() => "$_base/teacher/ask/stream";
 
   // الرياضيات
   static String mathLessons(String branch, int grade, String track) =>

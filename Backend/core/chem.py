@@ -26,6 +26,14 @@ import re
 # ما لم تُذكر المادة صراحةً، يمرّ نصّها كما هو حرفياً بلا لمسة.
 ORGANIC_SUBJECTS = frozenset({"كيمياء"})
 
+# ⚗️ ومعادلاتُ التفاعل أوسع قليلاً: البناءُ الضوئي والتنفّسُ الخلوي في
+#    الأحياء معادلاتٌ حقيقية تستحقّ الرسم.
+#
+# 🔒 **وهذه المجموعة تطابق `chemSubjects` في `masar_markdown.dart` عمداً**:
+#    لا معنى لأن نأمر الموديلَ بصيغةٍ في مادةٍ لا يرسمها التطبيق. فإن
+#    تغيّرت إحداهما فلتتغيّر الأخرى معها.
+REACTION_SUBJECTS = frozenset({"كيمياء", "احياء"})
+
 
 def is_organic_subject(subject) -> bool:
     return (subject or "").strip() in ORGANIC_SUBJECTS
@@ -379,3 +387,47 @@ def chem_from_name(name: str):
         nitrogen = "N(" + _alkyl_chain(subs[0]) + ")-" + _alkyl_chain(subs[1])
 
     return "\\chem{" + _acyl_chain(carbons) + "-" + nitrogen + "}"
+
+# ══════════════════════════════════════════════════
+# 🩹 `\chem{}` للبنية الواحدة — لا للمعادلة كاملة
+# ══════════════════════════════════════════════════
+# 🔴 **ما رآه المالك (2026-09-09):** شريطٌ أحمر «RIGHT OVERFLOWED BY 140
+#    PIXELS» فوق معادلةٍ في درس الإيثرات، ومعه قوسٌ شاردٌ «}» في آخر السطر.
+#
+# ⚖️ **والسبب أن الموديل غلّف المعادلة كلَّها**:
+#       \chem{CH3CH2-O-CH2CH3 + 2HBr --[H2SO4] / 120 م--> 2CH3CH2Br + H2O}
+#    و`\chem` تعني «ارسم سلسلةً واحدة»، فيبني الرسّام صفّاً واحداً لا ينكسر
+#    عرضُه أضعافُ الشاشة. وهو خطأُ استعمالٍ لا خطأُ رسم.
+#
+# ⭐ والعلاج **نزعُ الغلاف وإبقاء المحتوى حرفاً بحرف** — فتصير معادلةً
+#    يرسمها `ChemEquation` بأسهمها وشروطها، ولا يتغيّر حرفٌ من المحتوى.
+_EQUATION_INSIDE = re.compile(r"--+>|<--+|<=+>|⇌|\+")
+
+
+def unwrap_equation_chem(text: str) -> str:
+    r"""يفكّ `\chem{}` إذا كان يغلّف **معادلة** لا بنيةً واحدة."""
+    if not text or "\\chem{" not in text:
+        return text
+
+    out, i = [], 0
+    while True:
+        j = text.find("\\chem{", i)
+        if j < 0:
+            out.append(text[i:])
+            break
+        out.append(text[i:j])
+        k, depth = j + 6, 1
+        while k < len(text) and depth:
+            if text[k] == "{":
+                depth += 1
+            elif text[k] == "}":
+                depth -= 1
+            k += 1
+        body = text[j + 6:k - 1] if depth == 0 else text[j + 6:]
+        # سهمٌ أو «+» بين متفاعلات ⇒ معادلة، فيُنزع الغلاف.
+        out.append(body if _EQUATION_INSIDE.search(body) else text[j:k])
+        i = k
+        if depth:
+            break
+    return "".join(out)
+

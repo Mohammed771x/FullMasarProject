@@ -31,11 +31,20 @@ class ScholarshipChatController extends ChangeNotifier {
   ScholarshipChatController({
     required this.scholarship,
     ScholarshipRepository? repository,
-  }) : _repo = repository ?? ScholarshipRepository();
+  }) : _repo = repository ?? ScholarshipRepository() {
+    // 🌊 البثّ يشارك عميل المستودع — نقطةُ حقنٍ واحدة للاختبارات.
+    _stream = SchAskStream(_repo.injectedClient);
+  }
 
   final Scholarship scholarship;
   final ScholarshipRepository _repo;
   final _uuid = const Uuid();
+
+  /// 🌊 عميل البثّ — يُلغى مع بقية الموارد عند مغادرة الشاشة.
+  late final SchAskStream _stream;
+
+  /// هل يُكتب ردٌّ الآن؟ (تقرؤه الفقاعة لتُظهر التلاشي والمؤشّر)
+  bool isStreaming = false;
 
   SchConversation? _current;
   bool _sending = false;
@@ -49,7 +58,7 @@ class ScholarshipChatController extends ChangeNotifier {
   ///    خاطئة ولا يُلصق فوق محادثة انتقل عنها الطالب.
   int _seq = 0;
 
-  bool get canStop => _sending;
+  bool get canStop => isBusy;
 
   // 📷 المرفقات — نفس سقف قسم التعليم (صورتان).
   //    الاستعمال هنا: لقطة من موقع المنحة · كشف درجات · وثيقة يسأل عنها.
@@ -60,6 +69,15 @@ class ScholarshipChatController extends ChangeNotifier {
   SchConversation? get conversation => _current;
   List<SchMessage> get messages => _current?.messages ?? const [];
   bool get isSending => _sending;
+
+  /// 🚦 **مشغولٌ الآن؟ — الانتظارُ والبثُّ معاً.**
+  ///
+  /// 🔴 `_sending` يُطفأ عمداً عند أول جزءٍ يصل (لينتهي مؤشّر الانتظار
+  ///    وتظهر الفقاعة). فبقي **طلبٌ جارٍ والواجهةُ تحسبه منتهياً**: زرّ
+  ///    الإيقاف يختفي في منتصف الردّ، وضغطةُ إرسالٍ ثانية تمرّ فوق الأولى
+  ///    **فتُفرَّغ الصورة المرفقة ويُطرح الجواب الأول كاملاً**.
+  ///    (نفس علّة قسم التعليم — [ChatController.isBusy].)
+  bool get isBusy => _sending || isStreaming;
 
   /// رسالة حالة تُعرض فوق حقل الكتابة (انتهت الحصة · دعوة تسجيل).
   String? get notice => _notice;
@@ -133,10 +151,14 @@ class ScholarshipChatController extends ChangeNotifier {
   ///   ② إغلاق الاتصال ⇒ الخادم يرى القطع ولا يبقى الطلب معلّقاً.
   ///   ③ تفريغ حالة الإرسال ⇒ الواجهة تعود قابلة للاستعمال فوراً.
   void stop() {
-    if (!_sending) return;
+    // 🌊 والبثُّ أيضاً: كان `_sending` مُطفأً وقتها فتخرج الدالة بلا عمل،
+    //    أي أن الردّ المبثوث لم يكن يُوقَف أبداً ([isBusy]).
+    if (!isBusy) return;
     _seq++;                 // ① يُبطل ما هو في الطريق
     _repo.cancel();         // ② يقطع الاتصال فعلاً
+    _stream.cancel();       //    والبثّ معه — وإلا بقي يكتب في فقاعةٍ مهجورة
     _sending = false;       // ③
+    isStreaming = false;    //    وما وصل يبقى معروضاً في فقاعته
     _notice = null;
     notifyListeners();
   }
@@ -155,7 +177,7 @@ class ScholarshipChatController extends ChangeNotifier {
 
   /// يبدأ التسجيل. يعيد رسالة خطأ عربية أو null.
   Future<String?> startVoiceRecording() async {
-    if (isRecording || _sending) return null;
+    if (isRecording || isBusy) return null;
     final started = await SttService.I.start();
     if (!started) return "🎤 التعرف على الكلام غير متاح على هذا الجهاز";
     isRecording = true;
@@ -197,6 +219,7 @@ class ScholarshipChatController extends ChangeNotifier {
 
   /// يرجع رسالة خطأ عربية، أو null عند النجاح/الإلغاء.
   Future<String?> attachImage({required bool fromCamera}) async {
+    if (isBusy) return "⏳ انتظر انتهاء الرد الحالي أو أوقفه.";
     if (!canAttachMore) return "📷 الحد الأقصى $maxImages صور";
     try {
       final picked = await ImageService.I.pick(fromCamera: fromCamera);
@@ -252,11 +275,14 @@ class ScholarshipChatController extends ChangeNotifier {
   Future<void> send(String raw) async {
     final text = raw.trim();
     // 📷 صورة بلا نص إرسالٌ صحيح: «اقرأ لي هذه» ضمنية.
-    if ((text.isEmpty && attachedImages.isEmpty) || _sending) return;
+    if ((text.isEmpty && attachedImages.isEmpty) || isBusy) return;
 
     _sending = true;
     _notice = null;
     final seq = ++_seq;     // 🛑 بصمة هذا الطلب — يُطرح إن تغيّرت
+    // 🧾 معرّف المحاولة: انتهت المهلة فأعاد الطالب السؤال ⇒ الخادم يرجع
+    //    الجواب المخزَّن بلا خصم حصةٍ ثانية ([Backend/core/idempotency.py]).
+    final requestId = _uuid.v4();
 
     // نلتقط المرفقات ونفرّغ الشريط فوراً كي لا تُرسل مرتين بضغطة مزدوجة.
     final sending = List<PickedImage>.of(attachedImages);
@@ -283,14 +309,36 @@ class ScholarshipChatController extends ChangeNotifier {
     await _persist(conv);
     notifyListeners();
 
-    final answer = await _repo.ask(
+    // 🌊 **البثّ هنا أيضاً**: مساعد المنحة يجيب بفقراتٍ طويلة (شروط،
+    //    مستندات، خطوات)، والانتظار الصامت عليها أطول من قسم التعليم لا أقصر.
+    //
+    // 📌 الفقاعة تُنشأ عند أول جزء ثم تنمو، ويُستبدل نصّها بالنهائي في
+    //    `done` — لا يُلحق (الخادم يُنقّي الناتج بعد التوليد).
+    int? streamIndex;
+    final answer = await _stream.ask(
       scholarshipId: scholarship.id,
       question: text,
       history: history,
       imagesBase64: sending.map((e) => e.base64Data).toList(),
       idToken: await UserSession.I.idToken(),
       userId: _uid,
+      requestId: requestId,
+      onDelta: (piece) {
+        if (seq != _seq) return;      // 🛑 طلبٌ أحدث بدأ ⇒ نتجاهل القديم
+        if (streamIndex == null) {
+          conv.messages.add(SchMessage(role: "ai", text: piece));
+          streamIndex = conv.messages.length - 1;
+        } else {
+          final m = conv.messages[streamIndex!];
+          conv.messages[streamIndex!] =
+              SchMessage(role: m.role, text: m.text + piece, timestamp: m.timestamp);
+        }
+        _sending = false;          // ⏳ وصل أول جزء ⇒ ينتهي مؤشّر الانتظار
+        isStreaming = true;
+        notifyListeners();
+      },
     );
+    isStreaming = false;
 
     // 🛑 أُوقف الطلب أو بدأ غيرُه أثناء انتظار الرد ⇒ نطرحه كاملاً.
     //    (سؤال الطالب يبقى محفوظاً — أُضيف قبل الشبكة عن قصد.)
@@ -315,7 +363,15 @@ class ScholarshipChatController extends ChangeNotifier {
       }
     }
 
-    conv.messages.add(SchMessage(role: "ai", text: answer.text));
+    // 🌊 فقاعةٌ نمت أثناء البثّ ⇒ نُثبّت فيها النصّ النهائي بدل إضافة
+    //    فقاعةٍ ثانية (كانت ستُظهر الجواب مرتين).
+    if (streamIndex != null && streamIndex! < conv.messages.length) {
+      final m = conv.messages[streamIndex!];
+      conv.messages[streamIndex!] =
+          SchMessage(role: m.role, text: answer.text, timestamp: m.timestamp);
+    } else {
+      conv.messages.add(SchMessage(role: "ai", text: answer.text));
+    }
     await _persist(conv);
 
     if (answer.quotaExceeded) {
@@ -338,6 +394,7 @@ class ScholarshipChatController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _stream.cancel();
     stop();                 // 🛑 لا طلب معلّق بعد إغلاق الشاشة
     super.dispose();
   }

@@ -15,11 +15,16 @@ MAX_IMAGES = 2
 MAX_QUIZ_LESSONS = 3
 
 class AskRequest(BaseModel):
-    """نموذج طلب المستخدم الرئيسي"""
-    user_id: str = Field(max_length=128)
-    code: str = Field(max_length=64)
+    """نموذج طلب المستخدم الرئيسي.
+
+    🔐 **الهوية من التوكن وحده.** `user_id` يُستبدل في `_authenticate` بالـuid
+       المتحقَّق منه قبل أن يمسّه أيُّ معالج مادة. وسبب بقاء الحقل أصلاً أن
+       معالجات المواد تُمفتِح جلساتها به (`sessions_math[req.user_id]`)؛ ولو
+       بقي قادماً من الجسم لقرأ كلُّ طالبٍ جلسة غيره بتغيير حرف.
+       فما يرسله العميل هنا **يُتجاهل ويُكتب فوقه** — لا يُقرأ أبداً.
+    """
+    user_id: str = Field(default="", max_length=128)
     subject: str = Field(max_length=64)
-    device_id: Optional[str] = Field(default=None, max_length=128)
     logic_type: int = 1
     mode: str = Field(max_length=32)    # شرح، تلخيص، سؤال، وزاري
     input_type: str = Field(max_length=32)  # صفحة، وحدة، برومت
@@ -29,10 +34,44 @@ class AskRequest(BaseModel):
     lesson_name: Optional[str] = Field(default=None, max_length=256)
     chat_history: Optional[List[Dict[str, str]]] = None
 
+    # 🧾 مُعرّف المحاولة — الحماية من الخصم المزدوج عند انتهاء المهلة.
+    #    العميل يعيد **نفس** المعرّف عند إعادة المحاولة، فيرجع الردّ المخزّن
+    #    بلا نداء موديل ولا خصم حصة ([core/idempotency.py]).
+    request_id: str = Field(default="", max_length=64)
+
     # ── حقول النسخة الثالثة (اختيارية — العملاء القدامى لا يرسلونها) ──
     grade: int = 3                      # 1 | 2 | 3
     track: str = Field(default="علمي", max_length=16)   # عام | علمي | أدبي
     content_mode: Optional[str] = Field(default=None, max_length=16)  # lessons | pages
+
+    # 📄 **الصفحات المختارة — بنيةٌ لا نصّ** (قرار المالك 2026-09-09).
+    #
+    # 🔴 كانت أرقام الصفحات تُستخرج بـ`re.findall(r"\d+")` من **كلام الطالب
+    #    نفسه**، فكان عليه أن يكتب «13، 14، 15» بيده. وذلك يخلط النية
+    #    بالمحتوى: من كتب «اشرح لي قانون نيوتن 2» طلب قانوناً لا صفحة،
+    #    ومن كتب «الصفحة 40» ثم سأل سؤالاً تبعياً فقد صفحته.
+    #
+    # ⭐ والآن يختارها من قائمةٍ حقيقية فتصل **مفصولةً عن نصّه**، فتبقى
+    #    معلّقةً مع الرسائل التالية ولا يلتقطها العدّاد من رقمٍ عابر.
+    selected_pages: Optional[List[int]] = Field(default=None)
+
+    @field_validator("selected_pages")
+    @classmethod
+    def _clean_pages(cls, v):
+        """تنقيةٌ من التكرار والقيم المستحيلة — **بلا قصٍّ إلى الحدّ**.
+
+        ⚠️ القصُّ الصامت هنا كان يبتلع رسالة «الصفحات زائدة»: من أرسل خمساً
+           يأخذ ثلاثاً ولا يدري لماذا ضاعت اثنتان. فالحدّ يُفرض في المعالج
+           برسالةٍ يراها الطالب، وهذا السقف حارسُ إساءةٍ لا حدُّ منتج.
+        """
+        if not v:
+            return v
+        seen, out = set(), []
+        for n in v:
+            if isinstance(n, int) and 0 < n < 10_000 and n not in seen:
+                seen.add(n)
+                out.append(n)
+        return out[:50] or None
 
     # ── حقول يملؤها الخادم بعد قراءة الصور (لا تُقرأ من العميل) ──
     # `content` بعد الدمج يحمل ترويسة درع الحقن — ممتازة **للموديل**، لكنها
@@ -106,9 +145,8 @@ class AskRequest(BaseModel):
 
 class QuizRequest(BaseModel):
     """🧠 طلب توليد اختبار — من دروس الطالب وحدها ([31])."""
-    user_id: str = Field(default="", max_length=128)
-    code: str = Field(default="", max_length=64)
-    device_id: Optional[str] = Field(default=None, max_length=128)
+    user_id: str = Field(default="", max_length=128)   # يملؤه الخادم من التوكن
+    request_id: str = Field(default="", max_length=64)
     subject: str = Field(max_length=64)
     grade: int = 3
     track: str = Field(default="علمي", max_length=16)
@@ -135,17 +173,10 @@ class QuizRequest(BaseModel):
 
 class VoiceCleanRequest(BaseModel):
     """🎤 طلب تنظيف نص صوتي — نص قصير فقط، بلا تاريخ محادثة."""
-    user_id: str = Field(max_length=128)
-    code: str = Field(max_length=64)
-    device_id: Optional[str] = Field(default=None, max_length=128)
+    user_id: str = Field(default="", max_length=128)   # يملؤه الخادم من التوكن
     text: str = Field(max_length=1600)   # أعلى قليلاً من سقف المعالجة (1200) ليُقص هناك
     # 📚 المادة قرينةٌ ترجّح المصطلح عند الالتباس الصوتي («الخميرة» ⇒ «النخامية»).
     subject: str = Field(default="", max_length=64)
-
-class VerificationRequest(BaseModel):
-    """نموذج التحقق من الكود"""
-    code: str
-    device_id: str
 
 class ChatMessage(BaseModel):
     """رسالة في الشات"""
@@ -182,9 +213,8 @@ class ScholarshipAskRequest(BaseModel):
        والصورة لا تُحفظ ولا تُسجَّل — تبقى على جوال الطالب وحده ([27§3]).
        والاستعمال الحقيقي هنا: لقطة من موقع المنحة، أو كشف درجات، أو وثيقة.
     """
-    user_id: str = Field(default="", max_length=128)
-    code: str = Field(default="", max_length=64)
-    device_id: Optional[str] = Field(default=None, max_length=128)
+    user_id: str = Field(default="", max_length=128)   # يملؤه الخادم من التوكن
+    request_id: str = Field(default="", max_length=64)
     scholarship_id: str = Field(max_length=64)
     question: str = Field(default="", max_length=1200)
     chat_history: Optional[List[Dict[str, str]]] = None
@@ -315,19 +345,21 @@ class AvatarRequest(BaseModel):
     """👤 صورة الحساب — تصل من التطبيق مقصوصةً مربّعةً ومضغوطة. الفراغ يحذفها.
 
     ⚠️ الهويّة **لا تُقرأ من الجسم**: `uid` يُستخرج من توكن Firebase في
-       `_authenticate`، وإلا استطاع أيُّ أحد استبدال صورة أيِّ حساب. الحقول
-       أدناه للمسار القديم (كود التفعيل) وحده.
+       `_authenticate`، وإلا استطاع أيُّ أحد استبدال صورة أيِّ حساب.
     """
     image_base64: str = Field(default="", max_length=400_000)
-    user_id: str = Field(default="", max_length=128)
-    code: str = Field(default="", max_length=64)
-    device_id: Optional[str] = Field(default=None, max_length=128)
 
 
 class AdminSettingsRequest(BaseModel):
     """⚙️ الإعدادات العامة القابلة للتحرير من اللوحة."""
     quota_ask: Optional[int] = Field(default=None, ge=1, le=1000)
     quota_guest: Optional[int] = Field(default=None, ge=0, le=100)
+
+    # 📦 بوابة التحديث الإلزامي — ترفعها اللوحة بلا إصدار تطبيق جديد.
+    min_build: Optional[int] = Field(default=None, ge=0, le=100000)
+    latest_build: Optional[int] = Field(default=None, ge=0, le=100000)
+    store_url: Optional[str] = Field(default=None, max_length=300)
+    update_message: Optional[str] = Field(default=None, max_length=300)
 
 
 # ══════════════════════════════════════════════════
@@ -343,9 +375,8 @@ class TeacherAskRequest(BaseModel):
     `generate=True` ⇒ ضغط زر الأداة (خطة/تبسيط/واجب) فيُستعمل برومبت التوليد.
     `generate=False` ⇒ رسالة متابعة عادية فيُستعمل برومبت المحادثة.
     """
-    user_id: str = Field(default="", max_length=128)
-    code: str = Field(default="", max_length=64)
-    device_id: Optional[str] = Field(default=None, max_length=128)
+    user_id: str = Field(default="", max_length=128)   # يملؤه الخادم من التوكن
+    request_id: str = Field(default="", max_length=64)
 
     tool: str = Field(default="ask", max_length=32)      # plan|simplify|homework|ask
     generate: bool = False
