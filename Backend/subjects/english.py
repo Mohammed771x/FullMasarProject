@@ -5,9 +5,13 @@
 """
 
 from .common import (
+    turn_note,
+    system_prompt_strict_qa_improved,
     subject_book_path, load_json_safe,
     system_prompt_strict_explain, system_prompt_strict_summary, system_prompt_strict_qa,
-    collect_exam_questions_by_years, parse_exams_input, faiss_search, format_arabic_math
+    collect_exam_questions_by_years, parse_exams_input, faiss_search, format_arabic_math,
+    hybrid_rank, contextual_search_text, Ranked,
+    unit_missing, unit_required_response, book_context,
 )
 from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
@@ -94,26 +98,42 @@ def cleanup_subject_sessions(sessions_dict: dict, session_timestamps: dict):
         
 
 def system_prompt_English_explain(subject: str):
+    """🎓 شرحُ الإنجليزي — **العمودُ الفقري نفسه** + خصوصيّةُ اللغة.
+
+    🔴 **ما كان (حتى 2026-09-14):** أربعةَ عشرَ سطراً مكتوبةً بيدها، فيها
+       «ذكاءُ محادثة» لا يمنع إعادةَ ما شُرح، وبلا قاعدةِ متابعةٍ تُعرّف
+       «أعطني مثالاً»، وبلا شكلِ جواب. وفيها سطرٌ صريح: «بإمكانك **إضافة
+       معلومات خارجية** تدعم الشرح» — وهو نقيضُ القاعدة الحاكمة في المشروع
+       كلِّه («الجواب من المنهج الذي معك»)، وكان الإنجليزيُّ وحده يستثنى منها.
+
+    ⚖️ **وقد أُزيل ذلك الاستثناء** وصار الإنجليزيُّ كبقية المواد: المصدرُ هو
+       الكتاب. وخصوصيّةُ المادة محفوظة أدناه وفي [common._SUBJECT_LENS]:
+       القاعدةُ تُشرح بالعربية، و**الأمثلةُ تبقى بالإنجليزية كما في الكتاب**.
+    """
+    from .common import system_prompt_strict_explain
     return (
-       f"أنت الآن في وضع مدرس داخل الصف لمادة {subject}. "
-        "تتعامل مع الطالب وكأنك تشرح له أثناء الحصة الدراسية.\n\n"
-         "📌 ذكاء المحادثة:\n"
-        "- قد يكون لديك سياق محادثة سابقة مع الطالب.\n"
-        "- إذا كان سؤاله الجديد مرتبطاً بالمحادثة السابقة (مثل: 'وضح أكثر'، 'ما الفرق؟'، 'أعطني مثال'):\n"
-        "  → استخدم السياق وأجب بناءً على ما شرحته سابقاً.\n"
-        "- إذا كان سؤالاً جديداً تماماً عن موضوع مختلف:\n"
-        "  → تجاهل السياق السابق وابدأ شرحاً جديداً من الصفر.\n"
-        "- احكم أنت بذكاء على طبيعة السؤال.\n\n"
-        "القواعد الأساسية (مهم الالتزام بها بدقة):\n"
-          "1) اشرح الكلام الانجليزي والقواعد باللغة العربية  .\n"
-        "5) جميع الإجابات يجب أن تكون  شرحًا مبسطًا لمعنى موجود صراحة في الكتاب.\n\n"
-        "أسلوب الشرح:\n"
-        "- الأسلوب تعليمي، مرتب، وكأنك داخل الصف.\n"
-        "- بإمكانك اضافة معلومات خارجية تدعم الشرح .\n"
-        "- يمكن تقسيم الشرح إلى نقاط أو خطوات عند الحاجة.\n\n"
+        system_prompt_strict_explain(subject)
+        + """
+🔤 وخصوصيّةُ الإنجليزي:
+• **الشرحُ والقاعدةُ بالعربية**، و**النصُّ والأمثلةُ والمفرداتُ بالإنجليزية
+  كما وردت حرفاً بحرف** — لا تترجم المثال ولا تستبدله بمثالٍ من عندك.
+• كلُّ مفردةٍ أو تركيبٍ يُذكر: الإنجليزيةُ أولاً ثم معناها بالعربية بينهما شرطة.
+• والفرقُ بين زمنين أو صيغتين يُعرض **جملتين متقابلتين** تحت بعضهما، ثم
+  سطرٌ واحد يقول متى تُستعمل كلٌّ منهما.
+• ⛔ وقاعدةُ «لا كلمةَ بلغةٍ أجنبية» في الأسلوب العام **لا تسري هنا**:
+  هذه مادةُ لغةٍ أجنبية، ونصُّها هو المقصود بالدرس.
 
+🪄 **وتوسعةُ الأمثلة في الإنجليزي** (قرار المالك 2026-09-14 — أُعيد بعد
+   ضبطه): القاعدةُ والشرحُ والمفرداتُ من الكتاب كما هي، **ولك أن تكتب
+   جملةً إنجليزيةً بسيطةً من عندك تطبّق القاعدةَ نفسها** إن طلب الطالب
+   مثالاً أو بقي في القاعدة غموض — فتعلّمُ اللغة يحتاج تكرارَ النمط.
+   بشروط «التقريب المسموح» أعلاه، وبثلاثةٍ تخصّ هذه المادة:
+   ① **القاعدةُ نفسُها لا قاعدةٌ أخرى** — لا زمنَ جديداً ولا تركيباً لم يُدرَس.
+   ② **بمفرداتٍ سهلةٍ مألوفة** من مستوى الكتاب، ومعها معناها بالعربية.
+   ③ **مُعلَّمةٌ صراحةً**: «مثالٌ إضافيٌّ من عندي (Extra example):».
+   ⛔ ولا تُبدّل أمثلةَ الكتاب بأمثلتك — أمثلتُك **تُضاف بعدها** لا مكانها.
+"""
     )
-
 
 
 def extract_english_keywords(query: str):
@@ -263,35 +283,15 @@ def extract_english_texts_flattened(units_list):
 
 async def enhanced_search_english(book_data, query, top_k=5, chat_history=None):
     texts, metas = extract_english_texts_flattened(book_data)
-    if not texts: return [], []
-    combined_query = query
-    if chat_history:
-        last_ai = next((m.get('content', '') for m in reversed(chat_history) if m.get('role') == 'assistant'), "")
-        if len(query.split()) < 5 and last_ai:
-            combined_query = last_ai[:100] + " " + query
+    if not texts: return Ranked([], [], best=0.0)
+    # 🧵 نفسُ مصدر استعارة الموضوع ([common.contextual_search_text]).
+    combined_query = contextual_search_text(query, chat_history)
             
     # أضفنا await هنا
-    sem_results, idxs = await faiss_search(texts, combined_query, top_k=top_k)
-    keywords = extract_english_keywords(query)
-    direct_hits = []
-    direct_idxs = []
-    for i, txt in enumerate(texts):
-        txt_lower = txt.lower()
-        if any(k in txt_lower for k in keywords):
-            direct_hits.append(txt)
-            direct_idxs.append(i)
-            
-    final_texts = []
-    final_idxs = []
-    for t, i in zip(direct_hits, direct_idxs):
-        if i not in final_idxs:
-            final_texts.append(t)
-            final_idxs.append(i)
-    for t, i in zip(sem_results, idxs):
-        if i not in final_idxs:
-            final_texts.append(t)
-            final_idxs.append(i)
-    return final_texts[:top_k], final_idxs[:top_k]
+    # 🔄 **نسخةٌ رابعة من عطل الدمج بالأسبقية** — وهنا كانت «the» و«and»
+    #    تفعل ما فعلته «بين» في العربية. والوزنُ بالندرة يُسقطهما من نفسه
+    #    (كلمةٌ في أكثر من ٤٠٪ من الصفحات بلا وزن). راجع [common.hybrid_rank].
+    return await hybrid_rank(texts, combined_query, top_k)
 
 # ==========================================
 # 1. وضع الشرح
@@ -324,8 +324,13 @@ async def handle_english_explain(req: AskRequest, gemini_client):
         else:
             target_data = units_list
             
-        results, idxs = await enhanced_search_english(target_data, req.content, top_k=5)
-        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        # 📚 **الإنجليزي كان بلا حارسِ وحدة** — المواد الخمس الأخرى نالته
+        #    في جولة الوحدات، وهذه سقطت لأن اسمَ دالّتها يخالف أخواتها.
+        if unit_missing(req):
+            return unit_required_response()
+        found = await enhanced_search_english(target_data, req.search_query, top_k=5)
+        results, idxs = found
+        context_text = book_context(found, sep="\n", req=req, empty="لا توجد نصوص مطابقة من الكتاب.")
         
         # استخراج المراجع للبحث
         _, metas = extract_english_texts_flattened(target_data)
@@ -346,7 +351,7 @@ async def handle_english_explain(req: AskRequest, gemini_client):
         
         messages_for_ai.append({
             "role": "user",
-            "content": f"""المعلومات المستخرجة من الكتاب:
+            "content": (f"""المعلومات المستخرجة من الكتاب:
 {context_text}
 
 رسالة الطالب: {req.content}
@@ -354,7 +359,7 @@ async def handle_english_explain(req: AskRequest, gemini_client):
 تعليمات:
 - إذا كانت الرسالة تحية (Hi, Hello)، رد بود واسأله كيف تساعده.
 - إذا طلب شرحاً، اعتمد بنسبة 100% على (المعلومات المستخرجة) واشرحها بالعربية بأسلوب جميل.
-- إذا كانت المعلومات تقول 'لا توجد نصوص'، اعتذر بلطف وأخبره أن هذا غير متوفر بالمنهج."""
+- إذا كانت المعلومات تقول 'لا توجد نصوص'، اعتذر بلطف وأخبره أن هذا غير متوفر بالمنهج.""" + turn_note(req))
         })
         
         # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
@@ -406,8 +411,13 @@ async def handle_english_summary(req: AskRequest, gemini_client):
         else:
             target_data = units_list
             
-        results, idxs = await enhanced_search_english(target_data, req.content, top_k=6)
-        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        # 📚 **الإنجليزي كان بلا حارسِ وحدة** — المواد الخمس الأخرى نالته
+        #    في جولة الوحدات، وهذه سقطت لأن اسمَ دالّتها يخالف أخواتها.
+        if unit_missing(req):
+            return unit_required_response()
+        found = await enhanced_search_english(target_data, req.search_query, top_k=6)
+        results, idxs = found
+        context_text = book_context(found, sep="\n", req=req, empty="لا توجد نصوص مطابقة من الكتاب.")
         
         _, metas = extract_english_texts_flattened(target_data)
         if results:
@@ -416,14 +426,26 @@ async def handle_english_summary(req: AskRequest, gemini_client):
                     ref = f"{metas[i].get('lesson', 'درس')}"
                     if ref not in refs: refs.append(ref)
     
-    system_prompt = f"""أنت معلم إنجليزي متخصص في التلخيص والتبسيط.
-لخص المحتوى بالعربية بناءً على المستوى المطلوب ({req.summary_level}/5)."""
-    
+    # 📝 **التلخيصُ من مصدره الواحد** — كان سطرين بلا قاعدةِ مصدرٍ ولا
+    #    متابعةٍ ولا محادثة، فـ«لخّص أقصر» كان تلخيصاً من الصفر.
+    system_prompt = (
+        system_prompt_strict_summary(SUBJECT, req.summary_level)
+        + "\n🔤 وللإنجليزي: الملخّصُ بالعربية، والمصطلحاتُ والأمثلةُ تبقى "
+          "بالإنجليزية كما في الكتاب.\n"
+    )
+
     try:
         messages_for_ai = [{"role": "system", "content": system_prompt}]
+        # 🧵 **والسجلُّ كان مفقوداً هنا وحده** بين أوضاع الإنجليزي الثلاثة:
+        #    الملخّصُ يصل الموديلَ بلا ذاكرة، فطلبُ «اختصره أكثر» يُبنى من
+        #    الصفر بدل أن يُختصر ما سبق.
+        if req.chat_history:
+            messages_for_ai.extend(
+                [m for m in req.chat_history
+                 if m.get("role") in ("user", "assistant")][-HISTORY_LAST_N:])
         messages_for_ai.append({
             "role": "user",
-            "content": f"المعلومات المستخرجة:\n{context_text}\n\nما يريده الطالب: تلخيص '{req.content}'\n(اكتب التلخيص بالعربية)"
+            "content": (f"المعلومات المستخرجة:\n{context_text}\n\nما يريده الطالب: تلخيص '{req.content}'\n(اكتب التلخيص بالعربية)" + turn_note(req))
         })
         
         # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
@@ -478,8 +500,13 @@ async def handle_english_question(req: AskRequest, gemini_client):
         else:
             target_data = units_list
             
-        results, idxs = await enhanced_search_english(target_data, req.content, top_k=4, chat_history=recent_history)
-        context_text = "\n".join(results) if results else "لا توجد إجابة في الكتاب لهذا السؤال."
+        # 📚 **الإنجليزي كان بلا حارسِ وحدة** — المواد الخمس الأخرى نالته
+        #    في جولة الوحدات، وهذه سقطت لأن اسمَ دالّتها يخالف أخواتها.
+        if unit_missing(req):
+            return unit_required_response()
+        found = await enhanced_search_english(target_data, req.search_query, top_k=4, chat_history=recent_history)
+        results, idxs = found
+        context_text = book_context(found, sep="\n", req=req, empty="لا توجد إجابة في الكتاب لهذا السؤال.")
         
         _, metas = extract_english_texts_flattened(target_data)
         if results:
@@ -488,14 +515,21 @@ async def handle_english_question(req: AskRequest, gemini_client):
                     ref = f"{metas[i].get('lesson', 'درس')}"
                     if ref not in refs: refs.append(ref)
     
-    system_prompt = """أنت معلم إنجليزي تجيب على الأسئلة بوضوح واختصار. اشرح الإجابات بالعربية مع الحفاظ على الكلمات الإنجليزية كما هي عند الحاجة."""
+    # ❓ **سطرٌ واحد كان كلَّ برومبت السؤال في الإنجليزي**: «أجب بوضوح
+    #    واختصار». بلا مصدرٍ، بلا متابعة، بلا محادثة، بلا شكل — وكلمةُ
+    #    «اختصار» وحدها كانت تكفي ليُجاب طلبُ الشرح بسطرين.
+    system_prompt = (
+        system_prompt_strict_qa_improved(SUBJECT)
+        + "\n🔤 وللإنجليزي: الشرحُ بالعربية، والنصُّ والأمثلةُ والمفرداتُ "
+          "بالإنجليزية كما في الكتاب — لا تترجمها ولا تستبدلها.\n"
+    )
     
     try:
         messages_for_ai = [{"role": "system", "content": system_prompt}]
         messages_for_ai.extend(recent_history)
         messages_for_ai.append({
             "role": "user",
-            "content": f"المعلومات المستخرجة:\n{context_text}\n\nسؤال الطالب: {req.content}\n\n(أجب مباشرة على قدر السؤال)"
+            "content": (f"المعلومات المستخرجة:\n{context_text}\n\nسؤال الطالب: {req.content}\n\n(أجب مباشرة على قدر السؤال)" + turn_note(req))
         })
         
         # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.

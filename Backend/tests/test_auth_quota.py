@@ -26,7 +26,11 @@ def client(no_real_api_calls):
 def _body(**over):
     body = {
         "subject": "فيزياء", "mode": "شرح", "input_type": "برومت",
-        "summary_level": 3, "content": "اشرح", "unit_name": "", "lesson_name": "",
+    # 🎟️ **وحدةٌ حقيقية وسؤالٌ من داخلها عمداً.**
+    #    منذ أن صار الرفضُ لا يخصم من الحصة ([core/billing.py]) لم يعد
+    #    طلبٌ بلا وحدة يصلح لاختبار الحصة: يُرفض مجاناً فلا يُخصم شيء.
+    #    فاختبارُ الحصة يحتاج طلباً **يكلّف** فعلاً.
+        "summary_level": 3, "content": "اشرح لي نظرية بوهر", "unit_name": "الفيزياء الذرية", "lesson_name": "",
         "chat_history": [], "grade": 3, "track": "علمي",
     }
     body.update(over)

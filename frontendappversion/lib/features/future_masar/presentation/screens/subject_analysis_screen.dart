@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/session/user_session.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/masar_markdown.dart';
 import '../../../../core/widgets/fade_in_slide.dart';
 import '../../../chat/presentation/screens/main_chat_screen.dart';
 import '../../../quiz/data/models/quiz_models.dart';
@@ -414,18 +415,17 @@ class _SubjectAnalysisScreenState extends State<SubjectAnalysisScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(w.lesson.isEmpty ? w.topic : w.lesson,
+                // 🖌️ بالرسّام: موضوعُ الضعف قد يكون صيغةً لا كلمة.
+                MathOrText(w.lesson.isEmpty ? w.topic : w.lesson,
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary)),
                 if (w.topic.isNotEmpty) ...[
                   const SizedBox(height: 3),
-                  Text(w.topic,
+                  MathOrText(w.topic,
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           fontSize: 11, color: AppColors.textSecondary)),
                 ],

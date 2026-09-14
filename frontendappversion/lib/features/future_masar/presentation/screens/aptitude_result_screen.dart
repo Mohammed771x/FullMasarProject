@@ -57,8 +57,11 @@ class _AptitudeResultScreenState extends State<AptitudeResultScreen> {
     }
   }
 
+  // ⚠️ بلا `**`: هذا النصّ يُعرض بـ`Text` عادي. كان التوكيدُ يُكتب ترميزاً
+  //    ثم يُنزع بـ`replaceAll` عند العرض — وحيلةٌ بعيدةٌ عن مكانها تنكسر
+  //    أول مرّةٍ يُعرض فيها النصّ من موضعٍ آخر.
   String get _report =>
-      "بناءً على إجاباتك، ميولك تتجه بقوة نحو **${aptDimNames[_top]}**. "
+      "بناءً على إجاباتك، ميولك تتجه بقوة نحو ${aptDimNames[_top]}. "
       "أنت تميل للتفكير والعمل ضمن هذا المجال، وتنسجم شخصيتك مع تحدياته. "
       "ننصحك باستكشاف التخصصات المقترحة أدناه، والتحدث مع مرشد أكاديمي، والاطلاع على المنح التي تدعم هذا المسار. "
       "تذكّر: الشغف + المهارة = مستقبل مشرق 🌟 (عرض تجريبي)";
@@ -119,7 +122,7 @@ class _AptitudeResultScreenState extends State<AptitudeResultScreen> {
                 const SizedBox(height: 16),
 
                 const SectionHeader("قراءة النتيجة 🤖"),
-                SoftCard(child: Text(_report.replaceAll("**", ""), style: TextStyle(fontSize: 13.5, height: 1.9, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
+                SoftCard(child: Text(_report, style: TextStyle(fontSize: 13.5, height: 1.9, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
                 const SizedBox(height: 20),
 
                 const SectionHeader("تخصصات مقترحة لك"),

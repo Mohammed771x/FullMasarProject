@@ -357,6 +357,18 @@ _HIJRI = re.compile(r"(?:[٠-٩0-9]+\s*)?هـ\s*$|^\s*هـ")
 _GREGORIAN = re.compile(r"^[٠-٩0-9]{2,4}\s*م?\s*$")
 _CITE = re.compile(r"\[\s*cite[^\]]*\]")
 
+# ✅/❌ **علامةُ الصواب والخطأ ليست كسراً** — «(✓/X)» في أسئلة الوزاري
+#    خيارٌ بين إجابتين، وكانت تخرج `\frac{✓}{X}`: كسرٌ بسطُه صحٌّ ومقامُه
+#    خطأ. ظهرت في ٢٦ سؤالاً من وزاري العربي حين مرّت الأسئلة بالرسّام
+#    أول مرّة (2026-09-13).
+# ⚠️ و«×» ليست منها: هي **علامة ضربٍ** في الرياضيات — «[ (-1)^ن × ن! ] /
+#    (س - أ)^(ن+1)» كسرٌ حقيقيّ بسطُه ضرب. (كسرها الحارسُ في أول صياغة.)
+# ⚠️ والاسمُ `_TICK_MARKS` لا `_MARKS`: الأخيرةُ **مأخوذةٌ أصلاً** لعلامات
+#    التشكيل أعلى الملف (فتحة · ضمة · شدّة)، وإعادةُ تعريفها أسكتت تجريدَ
+#    التشكيل في `_left_atom` — فخرج «حـا\frac{...}» باسم الدالّة خارج
+#    الكسر، وهو **خطأٌ رياضيّ** لا تشويهُ شكل. (وقع فعلاً قبل سطرين.)
+_TICK_MARKS = set("✓✔✗✘☑☒")
+
 # 🧪 صيغةٌ كيميائية: «R2O» · «RCl2» · «CaCO3». وصفٌّ في الجدول الدوري يسرد
 #    «صيغ الأكاسيد والكلوريدات | R2O / RCl» — أي هذه **أو** تلك، لا قسمة.
 #    ويُشترط أن يكون الطرفان صيغتين وأن يحمل أحدهما رقماً أو حرفين فأكثر،
@@ -446,7 +458,8 @@ def to_frac(text: str) -> str:
         # ⛔ تاريخٌ هجريّ/ميلاديّ · وأثرُ أداة استخراج — ليسا كسراً.
         hijri_pair = (_HIJRI.search(left_text) and _GREGORIAN.match(right_text.strip())) \
             or (_HIJRI.search(right_text) and _GREGORIAN.match(left_text.strip()))
-        if hijri_pair or _both_formulas(left_text, right_text) \
+        marks = bool(_TICK_MARKS & (set(left_text) | set(right_text)))
+        if hijri_pair or marks or _both_formulas(left_text, right_text) \
                 or _CITE.search(right_text) or _CITE.search(left_text):
             out += ch
             i += 1

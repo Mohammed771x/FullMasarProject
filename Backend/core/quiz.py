@@ -36,6 +36,23 @@ class QuizError(Exception):
 
 # ══════════════ تجهيز النص ══════════════
 
+def _clip(text: str, limit: int) -> str:
+    r"""يقصّ نصّ الدرس عند السقف **بلا شطرِ ترميزِ رسمٍ نصفين**.
+
+    🔴 درس «قواعد تسمية مشتقات البنزين» ٦٠٤٢ حرفاً والسقف ٦٠٠٠: القصُّ الأعمى
+       قد يقف داخل `\ring{6|ar|+Br@1` فيصل الموديلَ ترميزٌ مبتور، فينقله كما
+       أُمر — ويقرؤه الطالبُ **خاماً** على شاشة اختباره. فنرجع إلى ما قبل
+       بداية الترميز الناقص: خسارةُ أسطرٍ أهونُ من رسمةٍ مكسورة.
+    """
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    start = cut.rfind("\\")
+    if start != -1 and "{" in cut[start:] and "}" not in cut[start:]:
+        return cut[:start].rstrip()
+    return cut
+
+
 def collect_lessons_text(grade, track, subject, unit, lessons):
     """يجمع نصوص الدروس المطلوبة. يرمي QuizError برسالة واضحة عند التعذّر."""
     grade, track = normalize_grade_track(grade, track)
@@ -66,8 +83,8 @@ def collect_lessons_text(grade, track, subject, unit, lessons):
             _u, lesson = find_lesson(book, "", name)
         if lesson is None:
             continue
-        text = serialize_lesson(lesson, unit or "",
-                                subject=subject)[:_MAX_CHARS_PER_LESSON]
+        text = _clip(serialize_lesson(lesson, unit or "", subject=subject),
+                     _MAX_CHARS_PER_LESSON)
         blocks.append(f"━━━ الدرس: {name} ━━━\n{text}")
         used.append(name)
 
@@ -78,11 +95,22 @@ def collect_lessons_text(grade, track, subject, unit, lessons):
 
 # ══════════════ قراءة رد الموديل ══════════════
 
+# 🔴 **الشرطةُ المفردة داخل JSON فخٌّ مزدوج** — وخطرُه ازداد بعد أن صار
+#    نصُّ الدرس نفسه يحمل `\ring{...}` و`\chem{...}` (2026-09-13):
+#      • `\chem` و`\sqrt` **هروبٌ غير صالح** ⇒ `json.loads` يرفض الردّ
+#        كلَّه ⇒ «تعذّر توليد الاختبار» في الكيمياء والرياضيات.
+#      • `\ring` و`\frac` و`\nuc` **هروبٌ صالح** (`\r` `\f` `\n`) ⇒
+#        يُقبل الردُّ **ويصل مشوّهاً**: مِحرفُ تحكّمٍ ثم «ing{6|ar}».
+#    فنُضاعف الشرطة لكل أمرٍ نعرفه **قبل** التحليل، فيَسلم الاثنان.
+_LONE_CMD = re.compile(
+    r"(?<!\\)\\(frac|ring|chem|sqrt|nuc|fact|perm|comb|sup|vec)\b")
+
+
 def extract_json(raw: str):
     """يستخرج JSON من رد الموديل ولو غلّفه بعلامات أو نصّ مجاور."""
     if not raw:
         return None
-    text = raw.strip()
+    text = _LONE_CMD.sub(r"\\\\\1", raw.strip())
     fence = re.search(r"```(?:json)?\s*(.+?)```", text, re.S)
     if fence:
         text = fence.group(1).strip()
@@ -116,8 +144,15 @@ def repair_escapes(text: str) -> str:
     return text
 
 
-def validate(data, count, allowed_lessons):
-    """يُبقي الأسئلة السليمة فقط. سؤال مشوّه يُطرح لا يُصلَّح."""
+def validate(data, count, allowed_lessons, subject: str = ""):
+    """يُبقي الأسئلة السليمة فقط. سؤال مشوّه يُطرح لا يُصلَّح.
+
+    🖌️ **ونصُّ السؤال يمرّ بالرسّام كجواب الشرح** (طلب المالك 2026-09-13:
+       «في كل مكان»): «اختبر نفسك» يسأل عن **نفس الدروس**، فلا معنى لأن
+       يُرسم الكسرُ في الشرح ويصل سؤالُ الاختبار «س/ص» سطراً مسطّحاً،
+       ولا أن تُخفض أدلّةُ الصيغ هناك وتبقى «H2SO4» هنا.
+    """
+    from subjects.common import render_finish
     if not isinstance(data, dict):
         return []
     raw = data.get("questions")
@@ -128,13 +163,14 @@ def validate(data, count, allowed_lessons):
     for item in raw:
         if not isinstance(item, dict):
             continue
-        q = repair_escapes(str(item.get("q", ""))).strip()
+        q = render_finish(repair_escapes(str(item.get("q", ""))), subject).strip()
         options = item.get("options")
         idx = item.get("correct_index")
 
         if not q or not isinstance(options, list) or len(options) != 4:
             continue
-        options = [repair_escapes(str(o)).strip() for o in options]
+        options = [render_finish(repair_escapes(str(o)), subject).strip()
+                   for o in options]
         if any(not o for o in options):
             continue
         if len(set(options)) != 4:                    # خيار مكرر ⇒ سؤال فاسد
@@ -147,6 +183,9 @@ def validate(data, count, allowed_lessons):
             continue
         seen.add(key)
 
+        # 🏷️ والموضوعُ يمرّ بالرسّام كذلك: عليه تُبنى شاشةُ «تحتاج تركيزاً في»
+        #    وقد يحمل صيغةً أو رمزاً («نصف قطر مدار بوهر» · «\frac{ن}{ر}»).
+        topic = render_finish(str(item.get("topic", "")), subject).strip()
         lesson = str(item.get("lesson", "")).strip()
         if allowed_lessons and lesson not in allowed_lessons:
             lesson = allowed_lessons[0]               # تصحيح نسبة لا رفض
@@ -154,7 +193,7 @@ def validate(data, count, allowed_lessons):
             "q": q,
             "options": options,
             "correct_index": idx,
-            "topic": str(item.get("topic", "")).strip() or lesson or "عام",
+            "topic": topic or lesson or "عام",
             "lesson": lesson,
         })
         if len(clean) >= count:
@@ -248,7 +287,7 @@ async def generate(grade, track, subject, unit, lessons, count, clients):
         except Exception:
             raise QuizError("⚠️ تعذّر تجهيز الأسئلة الآن. حاول بعد قليل.")
 
-        questions = validate(extract_json(raw), count, used)
+        questions = validate(extract_json(raw), count, used, subject)
         if questions:
             break
         if attempt == 1:

@@ -420,7 +420,14 @@ class SessionSettingsPanel extends StatelessWidget {
         const SizedBox(height: 10),
         Align(
           alignment: Alignment.centerRight,
-          child: Text("✅ اضغط إرسال مباشرة لشرح الدرس كاملاً، أو اكتب سؤالك فيه",
+          // ❓ **والوعدُ يتبع الوضع**: في وضع السؤال لا يعمل الإرسالُ الفارغ
+          //    ([ChatController.questionNeedsTypedText])، فالسطرُ القديم
+          //    «اضغط إرسال مباشرة» كان سيَعِد بما لا يقع — وهي بعينها
+          //    العلّةُ التي جعلت الزرَّ رمادياً ووعدَ اللوحة قائماً من قبل.
+          child: Text(
+              c.questionNeedsTypedText
+                  ? "❓ اكتب سؤالك عن الدرس — وضعُ السؤال للإجابات القصيرة المحدّدة"
+                  : "✅ اضغط إرسال مباشرة لشرح الدرس كاملاً، أو اكتب سؤالك فيه",
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary)),
         ),
       ],
@@ -649,7 +656,8 @@ class SessionSettingsPanel extends StatelessWidget {
         value: c.availableUnits.contains(c.selectedUnit) ? c.selectedUnit : null,
         items: c.availableUnits.toSet().toList(),
         onChanged: (v) => c.update(() {
-          c.selectedUnit = v ?? "الكل";
+          // 📚 لا «الكل» بعد اليوم — قائمةُ الوحدات وحدها ([_applyPagesUnits]).
+          c.selectedUnit = v ?? c.selectedUnit;
           c.selectedUnitName = c.selectedUnit;
         }),
         icon: Icons.library_books_rounded,

@@ -210,6 +210,72 @@ def check_and_consume(uid: str, is_guest: bool = False):
         return True, -1
 
 
+# ══════════════ ردُّ الحصة ══════════════
+#
+# 🔴 **قرار المالك (2026-09-14): «خلّ الرفض ما يخصم من الحصة.»**
+#    الحصة تُخصم في `_ask_guards` **قبل** المعالج — وهذا صحيح: الفحصُ
+#    والخصم يجب أن يسبقا أيَّ نداءِ موديل. لكنّ بعض الردود لا تُنادي
+#    موديلاً أصلاً (سؤالٌ خارج الوحدة · لا وحدة · لا صفحات · مادةٌ قيد
+#    الإضافة)، فالطالبُ كان يدفع ثمن لا شيء.
+#
+# ⚖️ **ولا نؤخّر الخصمَ إلى ما بعد الجواب** بدلاً من الردّ: التأخيرُ يفتح
+#    السباقَ الذي أُغلق هنا بمعاملة — عشرةُ طلباتٍ متوازية تمرّ كلُّها ثم
+#    تُخصم بعد أن تكون الفاتورة قد صُرفت. فالخصمُ أولاً، والردُّ استثناءٌ
+#    محسوب يقع **بعد** أن يثبت أن الطلب لم يكلّف شيئاً ([core/billing.py]).
+
+def _refund_firestore(db, key: str) -> None:
+    """ينقص واحداً — ولا ينزل تحت الصفر مهما تكرّر النداء."""
+    from firebase_admin import firestore as fs
+
+    ref = db.collection("usage").document(key)
+    stamp = getattr(fs, "SERVER_TIMESTAMP", None)
+
+    def _apply(snap):
+        used = (snap.to_dict() or {}).get("asks", 0) if snap.exists else 0
+        if not isinstance(used, (int, float)) or used <= 0:
+            return None
+        return max(0, int(used) - 1)
+
+    transactional = getattr(fs, "transactional", None)
+    if transactional is None or not hasattr(db, "transaction"):
+        new_used = _apply(ref.get())
+        if new_used is not None:
+            ref.set({"asks": new_used, "updated_at": stamp}, merge=True)
+        return
+
+    @transactional
+    def _txn(transaction):
+        new_used = _apply(ref.get(transaction=transaction))
+        if new_used is not None:
+            transaction.set(ref, {"asks": new_used, "updated_at": stamp}, merge=True)
+
+    _txn(db.transaction())
+
+
+def _refund_memory(key: str) -> None:
+    with _lock:
+        used = _memory.get(key, 0)
+        if used > 0:
+            _memory[key] = used - 1
+
+
+def refund(uid: str, is_guest: bool = False) -> None:
+    """يردّ سؤالاً خُصم ثم تبيّن أن الطلب لم يُنادِ موديلاً.
+
+    صامتةٌ عند أي عطل: فشلُ الردّ يكلّف الطالبَ سؤالاً، وفشلُ رفعِ
+    الاستثناء كان سيكلّفه الجوابَ كلَّه.
+    """
+    key = doc_id(uid, is_guest)
+    try:
+        db = _firestore()
+        if db is not None:
+            _refund_firestore(db, key)
+        else:
+            _refund_memory(key)
+    except Exception as e:
+        print(f"⚠️ تعذّر ردّ الحصة ({e}) — بقي الخصم.")
+
+
 def peek(uid: str, is_guest: bool = False) -> int:
     """المتبقي دون استهلاك — لعرضه في الواجهة."""
     key = doc_id(uid, is_guest)
@@ -241,6 +307,11 @@ def reset_memory():
 async def acheck_and_consume(uid: str, is_guest: bool = False):
     import asyncio
     return await asyncio.to_thread(check_and_consume, uid, is_guest)
+
+
+async def arefund(uid: str, is_guest: bool = False) -> None:
+    import asyncio
+    await asyncio.to_thread(refund, uid, is_guest)
 
 
 def status(uid: str, is_guest: bool = False) -> dict:

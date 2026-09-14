@@ -15,6 +15,8 @@
 
 import asyncio
 
+from . import billing
+
 _AI_TIMEOUT = 30
 _MAX_TOKENS = 1500
 VISION_MODEL = "gemini-3.1-flash-lite"
@@ -43,6 +45,10 @@ async def image_to_text(image_b64: str, mime: str, clients: dict) -> str:
     client = clients.get("gemini")
     if client is None:
         raise VisionFailed("📷 خدمة قراءة الصور غير متاحة حالياً.")
+
+    # 🧾 قراءةُ الصورة نداءُ موديلٍ مدفوع — فالطلبُ الذي حملها ليس مجانياً
+    #    ولو رُفض بعدها ([core/billing.py]).
+    billing.charge("vision")
 
     try:
         response = await asyncio.wait_for(

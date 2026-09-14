@@ -17,7 +17,17 @@
 //   \ring{6|ar|+NH2}           حلقة: ٦ أضلاع · عطرية · عليها مجموعة NH2
 //
 // تفصيل `\ring{...}` — أجزاء يفصلها `|` بأي ترتيب:
-//   العدد (3..8) · `ar` عطرية · رمز ذرّة غريبة (N · NH · O · S) · `+مجموعة`
+//   العدد (3..8) · `ar` عطرية · `=1,3,5` روابط ثنائية على الأضلاع ·
+//   رمز ذرّة غريبة (N · NH · O · S) وربما بموقعها `N@1` ·
+//   `+مجموعة` وربما بموقعها `+CH3@4` · `fuse2`/`fuse3` حلقاتٌ ملتحمة
+//
+// 🔴 **وما أضافته جولة 2026-09-13 (عطلٌ رآه المالك):** «الهكسان الحلقي
+//    والهكسين الحلقي — يقول لي بدون رابطة ثنائية وبها رابطة ثنائية، **وطيب
+//    نفس الرسمة**؟» والجواب أنه كان محقّاً: الرسّام لم يكن يعرف الرابطة
+//    الثنائية داخل الحلقة أصلاً، ولا موقعَ المجموعة (أورثو/ميتا/بارا رسمةٌ
+//    واحدة)، ولا الحلقات الملتحمة (النفثالين والأنثراسين حلقةٌ واحدة).
+//    الترقيم: **الرأس 1 هو الأعلى ثم مع عقارب الساعة**، والضلع i بين
+//    الرأسين i وi+1 — كترقيم الكتاب.
 //
 // ⚠️ الأرقام داخل المجموعات تُرسم **منخفضة** (CH₃ لا CH3) — هكذا الكتاب.
 
@@ -69,23 +79,62 @@ class ChemChain {
   final List<ChemGroup> groups;
 }
 
-/// حلقة: مضلّع منتظم، وربما عطرية أو فيها ذرّة غريبة أو عليها مجموعة.
+/// مجموعة معلّقة على الحلقة — ونصُّها وموقعُها.
+///
+/// 📍 **الموقع ليس زينة**: درسُ «أورثو · ميتا · بارا» كلُّه مواقع. ورسمُ
+///    مجموعتين على رأسين متجاورين بدل متقابلين يجعل الشكلَ يكذّب الاسمَ
+///    المكتوب تحته. فالموقع جزءٌ من الرسم لا تفصيلةٌ فيه.
+class ChemSubstituent {
+  const ChemSubstituent(this.label, {this.at});
+
+  final String label;
+
+  /// رأسُ الحلقة (1-based): **1 هو الأعلى ثم مع عقارب الساعة** — كترقيم
+  /// الكتاب. و`null` تعني «على الرأس الأعلى» (الحالة الشائعة: مجموعة واحدة).
+  final int? at;
+}
+
+/// حلقة: مضلّع منتظم، وربما عطرية أو فيها ذرّة غريبة أو عليها مجموعات
+/// أو فيها روابط ثنائية أو ملتحمة بأخرى.
 class ChemRing {
   const ChemRing({
     required this.size,
     this.aromatic = false,
     this.hetero,
-    this.substituent,
+    this.heteroAt,
+    this.substituents = const [],
+    this.doubleBonds = const [],
+    this.fused = 1,
   });
 
   final int size;
+
+  /// عطرية ⇒ دائرةٌ داخل الحلقة (البنزين كما يرسمه الكتاب).
   final bool aromatic;
 
-  /// ذرّة غير الكربون داخل الحلقة (`N` · `NH` · `O` · `S`) — تُرسم أسفلها.
+  /// ذرّة غير الكربون داخل الحلقة (`N` · `NH` · `O` · `S`).
   final String? hetero;
 
-  /// مجموعة معلّقة على الحلقة (`NH2` · `CH3` · `NH-CH3`) — تُرسم أعلاها.
-  final String? substituent;
+  /// رأسُ الذرّة الغريبة (1-based) — و`null` تعني الرأس الأدنى.
+  final int? heteroAt;
+
+  /// المجموعات المعلّقة ومواقعها.
+  final List<ChemSubstituent> substituents;
+  /// أضلاعٌ عليها رابطة ثنائية (1-based): الضلع i بين الرأسين i وi+1.
+  ///
+  /// 🔴 **هذا ما كان ينقص الرسّام كلَّه** (كشفه المالك 2026-09-13): الهكسان
+  ///    الحلقي والهكسين الحلقي كانا **رسمةً واحدة** — سداسيٌّ أصمّ — والفرق
+  ///    بينهما هو الرابطة الثنائية وحدها. والكتاب يرسمهما متجاورين في صفحةٍ
+  ///    واحدة ليُظهر الفرق، فخرج الشرحُ يقول «بها رابطة ثنائية» والشكلُ
+  ///    لا يُظهرها.
+  final List<int> doubleBonds;
+
+  /// عددُ الحلقات الملتحمة أفقياً: 1 عادية · 2 نفثالين · 3 أنثراسين.
+  final int fused;
+
+  /// توافقٌ للخلف — أولُ مجموعةٍ معلّقة (كان الحقل مفرداً).
+  String? get substituent =>
+      substituents.isEmpty ? null : substituents.first.label;
 }
 
 // ══════════════════ المُحلِّل ══════════════════
@@ -177,29 +226,80 @@ int _matchParen(String s, int open) {
   return s.length - 1;
 }
 
+/// موقعٌ لاحقٌ بالجزء: `+CH3@4` · `N@1`.
+final RegExp _atPosition = RegExp(r'@(\d+)$');
+
 /// يقرأ محتوى `\ring{...}` — الأجزاء يفصلها `|` بأي ترتيب.
+///
+/// الأجزاء المفهومة:
+///   `6` العدد · `ar` عطرية · `=1,3,5` روابط ثنائية على الأضلاع ·
+///   `N` / `N@1` ذرّة غريبة · `+OH` / `+CH3@4` مجموعة معلّقة ·
+///   `fuse2` / `fuse3` حلقتان/ثلاث ملتحمة (نفثالين · أنثراسين).
+///
+/// ⚠️ وما لا يُفهم يُهمل بصمت: ترميزٌ من نسخةٍ أحدث لا يجوز أن يُفرغ
+///    الشاشة عند طالبٍ لم يحدّث بعد.
 ChemRing parseChemRing(String source) {
   var size = 6;
   var aromatic = false;
   String? hetero;
-  String? substituent;
+  int? heteroAt;
+  var fused = 1;
+  final substituents = <ChemSubstituent>[];
+  final doubleBonds = <int>[];
 
   for (final raw in source.split('|')) {
     final part = raw.trim();
     if (part.isEmpty) continue;
+
     final n = int.tryParse(part);
     if (n != null) {
       size = n.clamp(3, 8);
-    } else if (part == 'ar' || part == 'aromatic') {
-      aromatic = true;
-    } else if (part.startsWith('+')) {
-      substituent = part.substring(1).trim();
-    } else {
-      hetero = part;
+      continue;
     }
+    if (part == 'ar' || part == 'aromatic') {
+      aromatic = true;
+      continue;
+    }
+    if (part.startsWith('=')) {
+      for (final piece in part.substring(1).split(',')) {
+        final edge = int.tryParse(piece.trim());
+        if (edge != null) doubleBonds.add(edge);
+      }
+      continue;
+    }
+    if (part.startsWith('fuse')) {
+      fused = (int.tryParse(part.substring(4).trim()) ?? 2).clamp(1, 3);
+      continue;
+    }
+    if (part.startsWith('+')) {
+      var text = part.substring(1).trim();
+      int? at;
+      final m = _atPosition.firstMatch(text);
+      if (m != null) {
+        at = int.parse(m.group(1)!);
+        text = text.substring(0, m.start).trim();
+      }
+      if (text.isNotEmpty) substituents.add(ChemSubstituent(text, at: at));
+      continue;
+    }
+    var text = part;
+    final m = _atPosition.firstMatch(text);
+    if (m != null) {
+      heteroAt = int.parse(m.group(1)!);
+      text = text.substring(0, m.start).trim();
+    }
+    if (text.isNotEmpty) hetero = text;
   }
+
   return ChemRing(
-      size: size, aromatic: aromatic, hetero: hetero, substituent: substituent);
+    size: size,
+    aromatic: aromatic,
+    hetero: hetero,
+    heteroAt: heteroAt,
+    substituents: substituents,
+    doubleBonds: doubleBonds,
+    fused: fused,
+  );
 }
 
 // ══════════════════ الرسم — نصّ المجموعة ══════════════════
@@ -435,8 +535,136 @@ class ChemChainView extends StatelessWidget {
 
 // ══════════════════ الرسم — الحلقة ══════════════════
 
-/// حلقة عضوية: مضلّع منتظم رأسه لأعلى، مع دائرة داخلية للعطرية،
-/// وذرّة غريبة أسفلها ومجموعة معلّقة أعلاها عند الحاجة.
+/// مسمّىً مرسومٌ في موضعه: نصُّه ومركزُه وطرفا رابطته.
+class _PlacedLabel {
+  _PlacedLabel(this.text, this.painter, this.center, this.from, this.to);
+
+  /// نصُّ المسمّى كما يُكتب — يُرسم بـ[ChemLabel] فتنخفض أرقامُه.
+  final String text;
+
+  /// قياسٌ تقريبيّ للنصّ — للصندوق وحده، والرسمُ ويدجت.
+  final TextPainter painter;
+  final Offset center;
+
+  /// طرفا الخطّ الواصل بين رأس الحلقة والمسمّى (`null` لذرّة الحلقة نفسها).
+  final Offset? from;
+  final Offset? to;
+}
+
+/// هندسةُ الحلقة محسوبةً مرّةً واحدة: الرؤوس · المسمّيات · صندوق الرسم.
+///
+/// ⚖️ **ولماذا صنفٌ مستقلّ؟** الويدجت يحتاج **المقاس** قبل الرسم، والرسّام
+///    يحتاج **المواضع** أثناءه. وحسابُهما في مكانين بقاعدتين متقاربتين هو
+///    بالضبط ما كان يقصّ المجموعةَ عند الحافة: المقاس كان تقديراً ثابتاً
+///    (`size * 1.9` فوق الحلقة) والرسمُ حقيقة. فالحساب هنا مرّةً واحدة،
+///    والاثنان يقرآن منه.
+class _RingGeometry {
+  _RingGeometry({
+    required this.ring,
+    required this.radius,
+    required this.style,
+    required this.scaler,
+  }) {
+    final n = ring.size;
+    final fused = ring.fused.clamp(1, 3);
+
+    // 🔄 رأسٌ لأعلى دائماً — فيبقى للحلقة رأسٌ أعلى تُعلَّق عليه المجموعة
+    //    ورأسٌ أدنى تجلس فيه الذرّة الغريبة (البيريدين كما الكتاب).
+    //    **إلا المربّع**: رأسه لأعلى يجعله معيّناً ◇ لا مربّعاً □، والكتاب
+    //    يرسم السيكلوبيوتان مربّعاً — فيُدار نصف زاوية.
+    final startAngle = n == 4 ? -math.pi / 4 : -math.pi / 2;
+
+    // 🔗 الحلقات الملتحمة تتقاسم **ضلعاً كاملاً** لا نقطة: مركزُ التالية
+    //    يبعد وترَ الضلع (√3·r للسداسي) فينطبق ضلعها الأيسر على الأيمن
+    //    تماماً — وهكذا يُرسم النفثالين والأنثراسين في الكتاب.
+    final step = radius * math.sqrt(3);
+    final firstDx = -step * (fused - 1) / 2;
+
+    for (var k = 0; k < fused; k++) {
+      final c = Offset(firstDx + step * k, 0);
+      centers.add(c);
+      vertices.add([
+        for (var i = 0; i < n; i++)
+          Offset(
+            c.dx + radius * math.cos(startAngle + 2 * math.pi * i / n),
+            c.dy + radius * math.sin(startAngle + 2 * math.pi * i / n),
+          ),
+      ]);
+    }
+
+    final main = vertices.first;
+
+    // ذرّة الحلقة الغريبة: في موقعها المذكور، وإلا في الرأس الأدنى.
+    if (ring.hetero != null && ring.hetero!.isNotEmpty) {
+      heteroIndex = ring.heteroAt != null
+          ? (ring.heteroAt! - 1) % n
+          : _extremeIndex(main, lowest: true);
+      final tp = _paint(ring.hetero!);
+      hetero = _PlacedLabel(ring.hetero!, tp, main[heteroIndex!], null, null);
+    }
+
+    // المجموعات المعلّقة: كلٌّ على رأسها، ورابطتها شعاعٌ للخارج.
+    for (final s in ring.substituents) {
+      if (s.label.isEmpty) continue;
+      final index =
+          s.at != null ? (s.at! - 1) % n : _extremeIndex(main, lowest: false);
+      final v = main[index];
+      final dir = (v - centers.first) / radius; // متجه وحدة نحو الخارج
+      final tp = _paint(s.label);
+      final end = v + dir * (radius * 0.46);
+      // نصفُ امتداد المسمّى في اتجاه الشعاع — فلا يركب الخطَّ ولا يبتعد.
+      final half = (dir.dx.abs() * tp.width + dir.dy.abs() * tp.height) / 2;
+      labels.add(
+          _PlacedLabel(s.label, tp, end + dir * (half + radius * 0.1), v, end));
+    }
+
+    // 📦 الصندوق: المضلّعات ثم كلُّ مسمّى — لا تقديرَ ولا ثابت.
+    var box = Rect.fromPoints(main.first, main.first);
+    for (final poly in vertices) {
+      for (final p in poly) {
+        box = box.expandToInclude(Rect.fromCircle(center: p, radius: 1.5));
+      }
+    }
+    for (final l in [if (hetero != null) hetero!, ...labels]) {
+      box = box.expandToInclude(Rect.fromCenter(
+          center: l.center, width: l.painter.width, height: l.painter.height));
+    }
+    box = box.inflate(1.5);
+    origin = -box.topLeft;
+    canvasSize = box.size;
+  }
+
+  final ChemRing ring;
+  final double radius;
+  final TextStyle style;
+  final TextScaler scaler;
+
+  final List<Offset> centers = [];
+  final List<List<Offset>> vertices = [];
+  final List<_PlacedLabel> labels = [];
+  _PlacedLabel? hetero;
+  int? heteroIndex;
+
+  late final Offset origin;
+  late final Size canvasSize;
+
+  TextPainter _paint(String text) => TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout();
+
+  static int _extremeIndex(List<Offset> points, {required bool lowest}) {
+    var best = 0;
+    for (var i = 1; i < points.length; i++) {
+      final better =
+          lowest ? points[i].dy > points[best].dy : points[i].dy < points[best].dy;
+      if (better) best = i;
+    }
+    return best;
+  }
+}
+
 class ChemRingView extends StatelessWidget {
   const ChemRingView(this.ring, {super.key, required this.style});
 
@@ -445,43 +673,46 @@ class ChemRingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = style.fontSize ?? 15;
-    final r = size * 1.55; // نصف قطر المضلّع
-    final color = style.color ?? Colors.black;
+    final fontSize = style.fontSize ?? 15;
+    final geometry = _RingGeometry(
+      ring: ring,
+      radius: fontSize * 1.55,
+      style: style,
+      scaler: MediaQuery.textScalerOf(context),
+    );
 
-    // مساحة إضافية للمجموعة المعلّقة أعلى الحلقة ولذرّة الحلقة أسفلها.
-    final subText = ring.substituent;
-    final topExtra = subText == null ? 0.0 : size * 1.9;
-    final bottomExtra = ring.hetero == null ? 0.0 : size * 0.75;
+    // 🔤 **المسمّيات ويدجت لا نصٌّ في اللوحة**: `CH3` يجب أن تُرسم CH₃
+    //    كما في الكتاب، وخفضُ الرقم عملُ [ChemLabel] — و`TextPainter`
+    //    المجرّد لا يبلغه. (خسرناه لحظةً حين نُقلت المسمّيات إلى الرسّام.)
+    final labels = [
+      if (geometry.hetero != null) geometry.hetero!,
+      ...geometry.labels,
+    ];
 
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: size * 0.3, vertical: 2),
+        padding: EdgeInsets.symmetric(horizontal: fontSize * 0.3, vertical: 2),
         child: SizedBox(
-          width: r * 2 + size * 0.6,
-          height: r * 2 + topExtra + bottomExtra + size * 0.6,
+          width: geometry.canvasSize.width,
+          height: geometry.canvasSize.height,
           child: Stack(
-            alignment: Alignment.topCenter,
             children: [
-              if (subText != null)
-                Positioned(
-                  top: 0,
-                  child: ChemLabel(subText, style: style),
-                ),
-              Positioned(
-                top: topExtra,
-                child: CustomPaint(
-                  size: Size(r * 2 + size * 0.6, r * 2 + size * 0.6),
-                  painter: _RingPainter(
-                    ring: ring,
-                    color: color,
-                    radius: r,
-                    labelStyle: style,
-                    textScaler: MediaQuery.textScalerOf(context),
-                  ),
+              CustomPaint(
+                size: geometry.canvasSize,
+                painter: _RingPainter(
+                  geometry: geometry,
+                  color: style.color ?? Colors.black,
                 ),
               ),
+              for (final l in labels)
+                Positioned(
+                  left: geometry.origin.dx + l.center.dx - l.painter.width / 2,
+                  top: geometry.origin.dy + l.center.dy - l.painter.height / 2,
+                  width: l.painter.width,
+                  height: l.painter.height,
+                  child: Center(child: ChemLabel(l.text, style: style)),
+                ),
             ],
           ),
         ),
@@ -491,23 +722,16 @@ class ChemRingView extends StatelessWidget {
 }
 
 class _RingPainter extends CustomPainter {
-  _RingPainter({
-    required this.ring,
-    required this.color,
-    required this.radius,
-    required this.labelStyle,
-    required this.textScaler,
-  });
+  _RingPainter({required this.geometry, required this.color});
 
-  final ChemRing ring;
+  final _RingGeometry geometry;
   final Color color;
-  final double radius;
-  final TextStyle labelStyle;
-  final TextScaler textScaler;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
+    canvas.translate(geometry.origin.dx, geometry.origin.dy);
+
+    final ring = geometry.ring;
     final n = ring.size;
     final stroke = Paint()
       ..color = color
@@ -515,71 +739,53 @@ class _RingPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
-    // 🔄 الاتجاه: رأسٌ لأعلى دائماً — فيبقى للحلقة رأسٌ أعلى تُعلَّق عليه
-    //    المجموعة ورأسٌ أدنى تجلس فيه الذرّة الغريبة (البيريدين كما الكتاب).
-    //    **إلا المربّع**: رأسه لأعلى يجعله معيّناً ◇ لا مربّعاً □، والكتاب
-    //    يرسم السيكلوبيوتان مربّعاً — فيُدار نصف زاوية.
-    final start = n == 4 ? -math.pi / 4 : -math.pi / 2;
-    final points = <Offset>[
-      for (var i = 0; i < n; i++)
-        Offset(
-          center.dx + radius * math.cos(start + 2 * math.pi * i / n),
-          center.dy + radius * math.sin(start + 2 * math.pi * i / n),
-        ),
-    ];
-
-    // ذرّة الحلقة الغريبة تُوضع في الرأس الأدنى (الأقرب للأسفل).
-    int? heteroIndex;
-    if (ring.hetero != null) {
-      var best = 0;
-      for (var i = 1; i < n; i++) {
-        if (points[i].dy > points[best].dy) best = i;
-      }
-      heteroIndex = best;
-    }
-
-    TextPainter? heteroPainter;
-    if (heteroIndex != null) {
-      heteroPainter = TextPainter(
-        text: TextSpan(text: ring.hetero, style: labelStyle),
-        textDirection: TextDirection.ltr,
-        textScaler: textScaler,
-      )..layout();
-    }
-
-    // نصف عرض الفجوة التي تُترك حول رمز الذرّة كي لا تمرّ الأضلاع فوقه.
-    final gap = heteroPainter == null
+    // فجوةٌ حول رمز الذرّة الغريبة كي لا تمرّ الأضلاع فوقه.
+    final heteroLabel = geometry.hetero;
+    final gap = heteroLabel == null
         ? 0.0
-        : math.max(heteroPainter.width, heteroPainter.height) * 0.72;
+        : math.max(heteroLabel.painter.width, heteroLabel.painter.height) * 0.72;
 
-    for (var i = 0; i < n; i++) {
-      var a = points[i];
-      var b = points[(i + 1) % n];
-      if (heteroIndex == i) a = _shrink(a, b, gap);
-      if (heteroIndex == (i + 1) % n) b = _shrink(b, a, gap);
-      canvas.drawLine(a, b, stroke);
-    }
+    for (var k = 0; k < geometry.vertices.length; k++) {
+      final points = geometry.vertices[k];
+      final center = geometry.centers[k];
+      final isMain = k == 0;
 
-    if (ring.aromatic) {
-      canvas.drawCircle(center, radius * 0.58, stroke);
-    }
+      for (var i = 0; i < n; i++) {
+        var a = points[i];
+        var b = points[(i + 1) % n];
+        if (isMain && geometry.heteroIndex == i) a = _shrink(a, b, gap);
+        if (isMain && geometry.heteroIndex == (i + 1) % n) b = _shrink(b, a, gap);
+        canvas.drawLine(a, b, stroke);
 
-    if (heteroPainter != null && heteroIndex != null) {
-      final p = points[heteroIndex];
-      heteroPainter.paint(
-        canvas,
-        Offset(p.dx - heteroPainter.width / 2, p.dy - heteroPainter.height / 2),
-      );
-    }
-
-    // رابطةُ المجموعة المعلّقة: خطٌّ قصير من الرأس الأعلى إلى أعلى المربّع.
-    if (ring.substituent != null) {
-      var top = 0;
-      for (var i = 1; i < n; i++) {
-        if (points[i].dy < points[top].dy) top = i;
+        // ➖➖ الرابطة الثنائية: خطٌّ موازٍ **داخل** الحلقة، أقصرُ من الضلع
+        //     قليلاً — هكذا تُطبع في الكتاب، ولو رُسم خارجها لبدا مجموعةً
+        //     معلّقة لا رابطة.
+        if (isMain && ring.doubleBonds.contains(i + 1)) {
+          _innerBond(canvas, stroke, a, b, center);
+        }
       }
-      canvas.drawLine(points[top], Offset(points[top].dx, 0), stroke);
+
+      if (ring.aromatic) {
+        canvas.drawCircle(center, geometry.radius * 0.58, stroke);
+      }
     }
+
+    // رابطةُ كل مجموعة — ونصُّها يُرسم ويدجت فوق اللوحة ([ChemRingView]).
+    for (final l in geometry.labels) {
+      if (l.from != null && l.to != null) canvas.drawLine(l.from!, l.to!, stroke);
+    }
+  }
+
+  /// يرسم خطّ الرابطة الثانية موازياً للضلع ومزاحاً نحو مركز الحلقة.
+  void _innerBond(Canvas canvas, Paint stroke, Offset a, Offset b, Offset center) {
+    final mid = Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
+    final toCenter = center - mid;
+    final len = toCenter.distance;
+    if (len == 0) return;
+    final inward = toCenter / len * (geometry.radius * 0.17);
+    // تقصيرٌ من الطرفين: الخطّ الداخلي لا يلامس الرأسين.
+    final shift = (b - a) * 0.17;
+    canvas.drawLine(a + inward + shift, b + inward - shift, stroke);
   }
 
   /// يزحزح نقطة نحو الأخرى بمقدار [by] — لفتح فجوة حول رمز الذرّة.
@@ -592,10 +798,17 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _RingPainter old) =>
-      old.ring.size != ring.size ||
-      old.ring.aromatic != ring.aromatic ||
-      old.ring.hetero != ring.hetero ||
-      old.ring.substituent != ring.substituent ||
-      old.color != color ||
-      old.radius != radius;
+      old.color != color || !_sameRing(old.geometry.ring, geometry.ring);
+
+  /// ⚠️ بالحقول لا بالهوية: `parseChemRing` تُنشئ كائناً جديداً في كل
+  ///    بناء، فمقارنةُ المرجعين تعني إعادةَ رسمٍ دائمة بلا سبب.
+  static bool _sameRing(ChemRing a, ChemRing b) =>
+      a.size == b.size &&
+      a.aromatic == b.aromatic &&
+      a.hetero == b.hetero &&
+      a.heteroAt == b.heteroAt &&
+      a.fused == b.fused &&
+      a.doubleBonds.join(',') == b.doubleBonds.join(',') &&
+      a.substituents.map((s) => '${s.label}@${s.at}').join('|') ==
+          b.substituents.map((s) => '${s.label}@${s.at}').join('|');
 }

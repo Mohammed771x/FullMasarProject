@@ -426,7 +426,10 @@ def test_the_answer_returned_over_http_is_cleaned(client, monkeypatch):
     for c in api.AI_CLIENTS.values():
         monkeypatch.setattr(c.chat.completions, "create", _create, raising=False)
     ans = client.post("/teacher/ask", json=_body()).json()["answer"]
-    assert "\\(" not in ans and r"\frac{1}{س}" in ans and "×" in ans
+    # ٠١٢ **والأرقام تُعرَّب** بعد وصل قسم المعلّم برسّام قسم التعليم
+    #     (2026-09-13): الفيزياء من مواد الأرقام العربية، فما يراه الطالب
+    #     مرسوماً يراه المعلّم كذلك — نفس النصّ ونفس الرسم.
+    assert "\\(" not in ans and r"\frac{١}{س}" in ans and "×" in ans
 
 
 def test_context_card_tells_the_model_not_to_echo_it():

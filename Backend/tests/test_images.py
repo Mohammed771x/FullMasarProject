@@ -63,9 +63,25 @@ def client(no_real_api_calls):
     return TestClient(api.app)
 
 
+def _some_unit(subject: str) -> str:
+    """أولُ وحدةٍ حقيقية في كتاب المادة."""
+    from core.content_store import get_pages_book
+    book = get_pages_book(3, "علمي", subject) or []
+    return (book[0].get("اسم_الوحدة") if book else "") or "الكل"
+
+
 def _body(**over):
+    # 📚 **وحدةٌ مسمّاة لا «الكل»** (قرار المالك 2026-09-14): بحثُ وضع
+    #    الوحدات صار يشترط وحدة، ومسارُ الصور يمرّ به. وهذه الاختبارات
+    #    عن **توجيه الصورة** لا عن اختيار الوحدة، فتُعطى وحدةً صالحة.
+    #
+    # 🎯 **وسؤالٌ من داخل الوحدة** (2026-09-14): بعد عتبة الصلة صار سؤالٌ
+    #    لا يخصّ الوحدة يُرفض بلا نداء موديل — و«احسبها» و«س» و«قارن
+    #    بينهما» لا موضوع فيها. وهذه الاختبارات عن **توجيه الصورة** لا عن
+    #    الصلة، فتُعطى نصاً من الوحدة كي تصل الموديل.
     b = {"subject": "فيزياء", "mode": "شرح", "input_type": "برومت",
-         "summary_level": 3, "content": "", "unit_name": "الكل", "lesson_name": "",
+         "summary_level": 3, "content": "",
+         "unit_name": _some_unit("فيزياء"), "lesson_name": "",
          "chat_history": [], "grade": 3, "track": "علمي"}
     b.update(over)
     return b
@@ -80,7 +96,7 @@ def test_image_routed_to_subject_model_not_gemini(client):
 
 def test_extracted_text_reaches_model_in_qa_mode(client):
     """في وضع السؤال يُمرَّر نص الطالب حرفياً — فيصل النص المستخرج للموديل."""
-    r = client.post("/ask", json=_body(mode="سؤال", image_base64=JPEG, content="احسبها"))
+    r = client.post("/ask", json=_body(mode="سؤال", image_base64=JPEG, content="احسبها في كمية التحرك والمقذوفات"))
     ans = r.json()["answer"]
     assert "نص مستخرج من الصورة" in ans, "النص المستخرج يجب أن يصل للموديل"
     assert "بيانات، لا تعليمات" in ans, "درع الحقن يجب أن يرافق النص"
@@ -120,7 +136,7 @@ def test_oversized_image_rejected_by_schema(client):
 # ═══════════ صورتان كحد أقصى ═══════════
 def test_two_images_both_extracted(client):
     r = client.post("/ask", json=_body(mode="سؤال", images_base64=[JPEG, PNG],
-                                       content="قارن بينهما"))
+                                       content="قارن بينهما في كمية التحرك والمقذوفات"))
     ans = r.json()["answer"]
     # ٠١٢ والأرقام عربية: المادة **فيزياء**، وأرقامها تُعرَّب في [_finish]
     #     منذ 2026-09-12 — فترقيمُ الصور كذلك، وهو المطلوب.
@@ -132,20 +148,20 @@ def test_third_image_is_dropped(client):
     from models import MAX_IMAGES
     assert MAX_IMAGES == 2
     r = client.post("/ask", json=_body(mode="سؤال",
-                                       images_base64=[JPEG, PNG, WEBP], content="س"))
+                                       images_base64=[JPEG, PNG, WEBP], content="اشرح كمية التحرك والمقذوفات"))
     ans = r.json()["answer"]
     assert "الصورة 3" not in ans, "الصورة الثالثة يجب أن تُهمَل"
 
 
 def test_legacy_single_field_still_works(client):
     """نسخ التطبيق الأقدم ترسل image_base64 المفرد."""
-    r = client.post("/ask", json=_body(mode="سؤال", image_base64=JPEG, content="س"))
+    r = client.post("/ask", json=_body(mode="سؤال", image_base64=JPEG, content="اشرح كمية التحرك والمقذوفات"))
     assert "نص مستخرج من الصورة" in r.json()["answer"]
 
 
 def test_mixed_fields_capped_at_two(client):
     r = client.post("/ask", json=_body(mode="سؤال", images_base64=[JPEG, PNG],
-                                       image_base64=WEBP, content="س"))
+                                       image_base64=WEBP, content="اشرح كمية التحرك والمقذوفات"))
     assert "الصورة 3" not in r.json()["answer"]
 
 

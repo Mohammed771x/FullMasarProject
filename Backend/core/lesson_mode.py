@@ -9,6 +9,7 @@
 #   asyncio.wait_for(client.chat.completions.create(...), timeout=50)
 
 import asyncio
+import re
 
 from . import streaming
 
@@ -17,6 +18,11 @@ from subjects.common import (
     system_prompt_strict_summary,
     system_prompt_strict_qa_improved,
     strip_stray_latex,
+    render_rules,
+    render_rules_once,
+    turn_note,
+    draw_reminder,
+    DRAW_CODES,
 )
 from .content_store import get_lessons_book, find_lesson
 from .serializer import serialize_lesson
@@ -29,14 +35,26 @@ from config import HISTORY_LAST_N as _HISTORY_LAST_N   # مصدر واحد لل�
 
 def _system_prompt(mode: str, subject: str, summary_level: int, prompts=None) -> str:
     """برومبتات المادة. `prompts` = وحدة المادة (subjects/*.py) إن وُجدت،
-    فتُستخدم دوالها الخاصة؛ وإلا تُستخدم البرومبتات العامة."""
+    فتُستخدم دوالها الخاصة؛ وإلا تُستخدم البرومبتات العامة.
+
+    🔴 **وقواعدُ الرسّام تُلحق بها في الحالتين** — وهذا ما كان ناقصاً:
+       برومبتُ المادة المستقلّة كان يحلّ **محلّ** العام لا فوقه، فخرجت
+       مواد المسار الأدبي كلُّها (منطق · خرائط · جغرافيا …) بلا قاعدة
+       كسورٍ ولا أرقامٍ عربية — والمنطق فيه «(ن ق ٣) / (ن-١ ق ٣) = ٨/٥».
+    """
+    # 🖌️ و`render_rules_once` لا `render_rules`: برومبتاتُ المواد صارت تُبنى
+    #    من `system_prompt_strict_*` وهي تحمل قواعدَ الرسّام في ذيلها أصلاً،
+    #    فالإلحاقُ الأعمى كان يكرّرها مرّتين في كل نداء ([common.render_rules_once]).
     if prompts is not None:
         if mode == "تلخيص" and hasattr(prompts, "prompt_summary"):
-            return prompts.prompt_summary(summary_level)
+            p = prompts.prompt_summary(summary_level)
+            return p + render_rules_once(p, subject)
         if mode == "سؤال" and hasattr(prompts, "prompt_qa"):
-            return prompts.prompt_qa()
+            p = prompts.prompt_qa()
+            return p + render_rules_once(p, subject)
         if hasattr(prompts, "prompt_explain"):
-            return prompts.prompt_explain()
+            p = prompts.prompt_explain()
+            return p + render_rules_once(p, subject)
     if mode == "تلخيص":
         return system_prompt_strict_summary(subject, summary_level)
     if mode == "سؤال":
@@ -44,7 +62,21 @@ def _system_prompt(mode: str, subject: str, summary_level: int, prompts=None) ->
     return system_prompt_strict_explain(subject)   # شرح (الافتراضي)
 
 
-def _user_message(mode: str, lesson_text: str, student_text: str) -> str:
+# 🖌️ التذكيرُ بعددِ الرسوم — جسدُه في `subjects/common` لأن أربعة أقسامٍ
+#    تستعمله (الدروس · الصفحات · الاختبار · المعلّم)، وكان يسكن هنا فيستورده
+#    الجميع من جوف وحدةٍ لا تخصّهم. والاسمُ يبقى لمن استورده من قبل.
+_DRAW_CODES = DRAW_CODES
+_draw_reminder = draw_reminder
+
+
+def _user_message(mode: str, lesson_text: str, student_text: str, req=None) -> str:
+    """رسالةُ الطالب كما يراها الموديل: نصُّ الدرس ← الطلب ← **موضعُه من
+    الحصة** ← تذكيرُ الرسوم.
+
+    🕐 و`turn_note` هنا لا في البرومبت وحده: قسمُ المعلّم يحقن رقم الدور منذ
+       يومه الأول (`teacher_assistant.turn_state`) وكان قسمُ الطالب بلا نظيره،
+       فبقي الموديل يقرأ الرسائل الستّ كقائمةِ مهامّ ويعيد شرح ما شرحه.
+    """
     student_text = (student_text or "").strip()
     if mode == "تلخيص":
         ask = student_text or "لخص الدرس أعلاه."
@@ -52,7 +84,9 @@ def _user_message(mode: str, lesson_text: str, student_text: str) -> str:
         ask = student_text or "اطرح ملخصاً سريعاً لأهم نقاط الدرس."
     else:
         ask = student_text or "اشرح الدرس أعلاه كاملاً."
-    return f"نص الدرس من الكتاب:\n{lesson_text}\n\nطلب الطالب: {ask}"
+    return (f"نص الدرس من الكتاب:\n{lesson_text}\n\nطلب الطالب: {ask}"
+            + turn_note(req)
+            + _draw_reminder(lesson_text))
 
 
 async def handle(req, clients: dict, prompts=None) -> dict:
@@ -85,7 +119,7 @@ async def handle(req, clients: dict, prompts=None) -> dict:
     if req.chat_history:
         valid = [m for m in req.chat_history if m.get("role") in ("user", "assistant")]
         messages.extend(valid[-_HISTORY_LAST_N:])
-    messages.append({"role": "user", "content": _user_message(req.mode, lesson_text, req.content)})
+    messages.append({"role": "user", "content": _user_message(req.mode, lesson_text, req.content, req)})
 
     try:
         # 🌊 يبثّ حرفاً حرفاً إن كان الطلب على مسار البثّ، وإلا فنداءٌ عادي

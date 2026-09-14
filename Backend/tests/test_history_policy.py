@@ -16,9 +16,29 @@ def test_caps_number_of_messages():
     assert r.chat_history[-1]["content"] == "م39"      # الأحدث يبقى
 
 
-def test_caps_message_length():
+def test_a_real_answer_is_never_cut():
+    """⭐ **انقلبت هذه القاعدة (قرار المالك 2026-09-14).**
+
+    كانت: «رسالةٌ من ٩٠٠٠ حرف تُقصّ عند السقف». وصارت: تمرّ كما هي.
+    والسببُ أن ردَّ شرحٍ كامل يبلغ ٨ آلاف حرف، فالقصُّ كان يُسلّم الموديلَ
+    **مقدّمة الشرح وحدها** — يسأل الطالب «وضّح الخطوة السابعة» وهو لم
+    يرَ إلا الأولى والثانية.
+    """
     r = _req([{"role": "assistant", "content": "ب" * 9000}])
+    assert len(r.chat_history[0]["content"]) == 9000
+
+
+def test_the_owner_s_own_number_passes_whole():
+    """«حتى كانت ٢٠ ألف حرف» — نصُّ المالك، فليكن اختباراً."""
+    r = _req([{"role": "assistant", "content": "ج" * 20000}])
+    assert len(r.chat_history[0]["content"]) == 20000
+
+
+def test_the_wall_still_stands_against_abuse():
+    """🛡️ والسقفُ الباقي جدارُ إساءةٍ لا حدُّ محتوى — عشرةُ ميغابايت تُقصّ."""
+    r = _req([{"role": "user", "content": "x" * 10_000_000}])
     assert len(r.chat_history[0]["content"]) == HISTORY_MAX_CHARS
+    assert HISTORY_MAX_CHARS >= 24000, "الجدارُ نزل حتى صار يقصّ محتوىً حقيقياً"
 
 
 def test_accepts_both_content_and_text_keys():

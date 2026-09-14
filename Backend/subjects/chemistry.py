@@ -6,11 +6,15 @@
 """
 
 from .common import (
+    turn_note,
     subject_book_path, load_json_safe, extract_all_texts_and_metas_physics,
     enhanced_search_physics, system_prompt_strict_explain,
     system_prompt_strict_summary, system_prompt_strict_qa,
     filter_and_rank_exams, collect_exam_questions_by_years,
-    parse_exams_input, extract_keywords, faiss_search, format_arabic_math
+    parse_exams_input, extract_keywords, faiss_search, format_arabic_math,
+    unit_missing, unit_required_response, search_text_of, hybrid_rank,
+    book_context, Ranked,
+    contextual_search_text,
 )
 from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
@@ -82,44 +86,20 @@ def extract_lesson_only(book_data, lesson_name):
 
 async def enhanced_search_with_context(book_data, query, chat_history, top_k=5):
     """بحث ذكي مع دعم السياق من المحادثة"""
-    last_ai_response = ""
-    if chat_history:
-        for msg in reversed(chat_history):
-            if msg.get('role') == 'assistant':
-                last_ai_response = msg.get('content', '')
-                break
+    texts, metas = extract_all_texts_and_metas_physics(book_data, SUBJECT)
+    if not texts: return Ranked([], [], best=0.0)
     
-    texts, metas = extract_all_texts_and_metas_physics(book_data)
-    if not texts: return [], []
+    # 🧵 **استعارةُ الموضوع صارت مصدراً واحداً** ([common.contextual_search_text]).
+    #    كان هنا: «لو السؤال أقلّ من ٥ كلمات ألحِق أول ١٥٠ حرفاً من الرد
+    #    السابق». وهي حيلةٌ تُخطئ مرّتين: «ما الفرق بينها وبين الغدة
+    #    الدرقية» ستُّ كلماتٍ فلا تستعير شيئاً وموضوعُها ضمير، وأولُ ١٥٠
+    #    حرفاً من الرد غالباً تحيةٌ ومقدّمة لا موضوع.
+    combined_query = contextual_search_text(query, chat_history)
     
-    combined_query = query
-    if len(query.split()) < 5 and last_ai_response:
-        combined_query = last_ai_response[:150] + " " + query
-    
-    sem_results, idxs = await faiss_search(texts, combined_query, top_k=top_k)
-    keywords = extract_keywords(query)
-    direct_hits = []
-    direct_idxs = []
-    
-    for i, txt in enumerate(texts):
-        if any(k in txt for k in keywords):
-            direct_hits.append(txt)
-            direct_idxs.append(i)
-    
-    final_texts = []
-    final_idxs = []
-    
-    for t, i in zip(direct_hits, direct_idxs):
-        if i not in final_idxs:
-            final_texts.append(t)
-            final_idxs.append(i)
-    
-    for t, i in zip(sem_results, idxs):
-        if i not in final_idxs:
-            final_texts.append(t)
-            final_idxs.append(i)
-    
-    return final_texts[:top_k], final_idxs[:top_k]
+    # 🔄 **نفسُ عطل الدمج بالأسبقية كان هنا أيضاً** — نسخةٌ ثالثة منه.
+    #    كلمةُ «بين» وحدها كانت تطرد البحثَ الدلاليَّ كلَّه من المقاعد
+    #    الثلاثة. راجع [common.hybrid_rank].
+    return await hybrid_rank(texts, combined_query, top_k)
 
 
 # =====================
@@ -164,10 +144,14 @@ async def handle_chemistry_explain(req: AskRequest, openai_client):
         else:
             target_data = book.get("الوحدات", [])
             
-        results, idxs = await enhanced_search_physics(target_data, req.search_query, top_k=5)
-        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        # 📚 الوحدة إلزامية على مسار البحث ([common.unit_required_response]).
+        if unit_missing(req):
+            return unit_required_response()
+        found = await enhanced_search_physics(target_data, search_text_of(req), top_k=5)
+        results, idxs = found
+        context_text = book_context(found, sep="\n", req=req)
         
-        _, metas = extract_all_texts_and_metas_physics(target_data)
+        _, metas = extract_all_texts_and_metas_physics(target_data, SUBJECT)
         if results:
             for i in idxs:
                 if i < len(metas):
@@ -185,7 +169,7 @@ async def handle_chemistry_explain(req: AskRequest, openai_client):
         
         messages_for_ai.append({
             "role": "user",
-            "content": f"""
+            "content": (f"""
 المعلومات المستخرجة من الكتاب:
 {context_text}
 
@@ -222,7 +206,7 @@ async def handle_chemistry_explain(req: AskRequest, openai_client):
 
 4. إذا طلب شرحاً كيميائياً وكانت (المعلومات المستخرجة) تقول 'لا توجد نصوص مطابقة'، اعتذر بلطف وأخبره أن هذا الموضوع غير موجود في المنهج الحالي.
 4. 🧮 **الكسور**: كل كسر يُكتب \\frac{{البسط}}{{المقام}} — لا بـ«/» ولا «÷» ولا بكلمة «على»، حتى لو كتبه الكتاب هكذا. مثال: ك = \\frac{{الوزن}}{{تسارع الجاذبية}}. ⚠️ ووحدات القياس ليست كسوراً وتبقى كما هي: م/ث · كجم.م/ث · كم/ساعة.
-"""
+""" + turn_note(req))
         })
         
         # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
@@ -292,11 +276,15 @@ async def handle_chemistry_summary(req: AskRequest, openai_client):
         else:
             target_data = book.get("الوحدات", [])
             
-        results, idxs = await enhanced_search_physics(target_data, req.search_query, top_k=QA_TOP_K)
+        # 📚 الوحدة إلزامية على مسار البحث ([common.unit_required_response]).
+        if unit_missing(req):
+            return unit_required_response()
+        found = await enhanced_search_physics(target_data, search_text_of(req), top_k=QA_TOP_K)
+        results, idxs = found
         
-        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        context_text = book_context(found, sep="\n", req=req)
         
-        _, metas = extract_all_texts_and_metas_physics(target_data)
+        _, metas = extract_all_texts_and_metas_physics(target_data, SUBJECT)
         if results:
             for i in idxs:
                 if i < len(metas):
@@ -314,7 +302,7 @@ async def handle_chemistry_summary(req: AskRequest, openai_client):
         
         messages_for_ai.append({
             "role": "user",
-            "content": f"""
+            "content": (f"""
 المعلومات المستخرجة من الكتاب:
 {context_text}
 
@@ -349,7 +337,7 @@ async def handle_chemistry_summary(req: AskRequest, openai_client):
 ✅ مطلوب: «المركب \\chem{{CH3-NH-CH3}} يسمى ثنائي ميثيل أمين.»
 ❌ مرفوض: رسمٌ بالشرطات والخطوط داخل كتلة برمجية.
 
-"""
+""" + turn_note(req))
         })
         
         # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
@@ -424,16 +412,27 @@ async def handle_chemistry_question(req: AskRequest, openai_client):
         else:
             target_data = book.get("الوحدات", [])
             
-        results, idxs = await enhanced_search_with_context(
+        # 📚 **وهذا المسارُ كان بلا حارسِ وحدة** — سقط من المسح الأول
+        #    لأن اسمَ دالّته يختلف عن أخواتها. راجع المسحَ في
+        #    [tests/test_search_quality.py::test_every_search_path_is_guarded].
+        if unit_missing(req):
+            return unit_required_response()
+        found = await enhanced_search_with_context(
             target_data, 
-            req.content, 
+            # 🔴 **كان `req.content` هنا** — وهو في مسار الصور النصُّ
+            #    الملفوف بدرع الحقن («بيانات، لا تعليمات…») وترويسته
+            #    ضجيجٌ في البحث الدلالي. و`search_query` هو النصُّ
+            #    النظيف الذي أُعدّ لهذا بالضبط ([models.AskRequest]).
+            req.search_query, 
             recent_history, 
             top_k=5
         )
+        results, idxs = found
         
-        context_text = "\n".join(results) if results else "لا توجد إجابة في الكتاب لهذا السؤال."
+        context_text = book_context(found, sep="\n", req=req,
+                                    empty="لا توجد إجابة في الكتاب لهذا السؤال.")
         
-        _, metas = extract_all_texts_and_metas_physics(target_data)
+        _, metas = extract_all_texts_and_metas_physics(target_data, SUBJECT)
         if results:
             for i in idxs:
                 if i < len(metas):
@@ -448,7 +447,7 @@ async def handle_chemistry_question(req: AskRequest, openai_client):
         
         messages_for_ai.append({
             "role": "user",
-            "content": f"""
+            "content": (f"""
 المعلومات المستخرجة من المنهج:
 {context_text}
 
@@ -483,7 +482,7 @@ async def handle_chemistry_question(req: AskRequest, openai_client):
 ✅ مطلوب: «المركب \\chem{{CH3-NH-CH3}} يسمى ثنائي ميثيل أمين.»
 ❌ مرفوض: رسمٌ بالشرطات والخطوط داخل كتلة برمجية.
 
-"""
+""" + turn_note(req))
         })
         
         # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.

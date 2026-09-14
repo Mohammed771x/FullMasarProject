@@ -46,8 +46,10 @@ from subjects.english import handle_english_request
 # من common (للـ helper functions)
 from subjects.common import (
     subject_book_path, load_json_safe,
-    get_math_exam_years, get_math_exam_lessons
+    get_math_exam_years, get_math_exam_lessons,
+    strip_stray_latex as _polish_text,
 )
+from subjects import common as v3_common
 from subjects.math import handle_math_request, cleanup_old_sessions
 
 # ── طبقة النسخة الثالثة (تُضاف بجانب القديم — لا تبدله) ──
@@ -61,6 +63,8 @@ from core import image_guard as v3_image_guard
 from core import vision as v3_vision
 from core import firebase_auth as v3_auth
 from core import quota as v3_quota
+from core import billing as v3_billing
+from core import smalltalk as v3_smalltalk
 from core import user_state as v3_user_state
 from core import idempotency as v3_idem
 from core import streaming as v3_stream
@@ -820,6 +824,34 @@ async def voice_clean(req: VoiceCleanRequest, request: Request):
 # كانت داخلية في `/ask`؛ أُخرجت كي يستعملها `/ask/stream` بنفس المنطق
 # حرفياً. ونسخُها كان سيعني مادةً تُضاف لمسارٍ وتُنسى في الآخر.
 async def _dispatch_ask(req):
+    """يوجّه الطلب لمعالجه، ثم **يمرّ الجوابُ بلمسات الرسم مهما كان مساره**.
+
+    🔴 **ولماذا هنا لا في كل معالج؟** لأن المعالجات ستٌّ وأوضاعُها أربعة،
+       وقد أُضيف الفلتر إلى بعضها ونُسي في بعض: الأحياء (الثالث العلمي)
+       تخرج بلا فلترٍ نهائيّ أصلاً، وأوضاعُ **الوزاري** كلُّها تُعيد نصّ
+       الأسئلة خاماً — فكسورُ الرياضيات وصيغُ الكيمياء في الامتحانات
+       الوزارية تصل الطالبَ سطوراً مسطّحة بينما يراها مرسومةً في الشرح.
+       (شكوى المالك 2026-09-13: «خله في كل مكان — الشرح والتلخيص والسؤال
+        وحتى الوزاري، وفي كل مادة».)
+
+    ⚖️ والدالّة **ثابتةٌ عند التكرار** (`strip_stray_latex` تُنادى مرّتين
+       فتُعطي النتيجة نفسها حرفاً بحرف — يحرسه اختبار)، فلا يضرّ أن يكون
+       المعالجُ قد نادى فلترَه بنفسه.
+    """
+    result = await _dispatch_subject(req)
+    return _polish_answer(result, req.subject)
+
+
+def _polish_answer(result, subject: str):
+    """يمرّر `answer` بلمسات الرسم — ويترك ما ليس قاموساً كما هو."""
+    if isinstance(result, dict):
+        answer = result.get("answer")
+        if isinstance(answer, str) and answer:
+            result["answer"] = _polish_text(answer, subject)
+    return result
+
+
+async def _dispatch_subject(req):
     # =====================
     # 2️⃣ معالجة الطلب حسب المادة
     # =====================
@@ -832,6 +864,28 @@ async def _dispatch_ask(req):
             content=json.dumps({"answer": "❌ هذه المادة غير مقررة على صفك.", "session_active": False},
                                ensure_ascii=False),
             status_code=400, media_type="application/json")
+
+    # 👋 **التحيةُ ليست سؤالَ منهج** — تُجاب هنا قبل أي بحثٍ أو نداء.
+    #
+    # 🔴 شكوى المالك (2026-09-14): «لما قلت له السلام عليكم يقول لي: لم
+    #    أجد هذه المعلومة» — نتيجةٌ منطقية لعتبة الصلة، لأن السؤال المطروح
+    #    كان «هل هذا في الوحدة؟» بدل «هل هذا سؤالُ منهجٍ أصلاً؟».
+    #
+    # ⚖️ **وبعد بوابة المنهج لا قبلها**: مادةٌ غير مقرّرة على الصف لا
+    #    تُرحَّب بالطالب فيها. وهنا موضعٌ واحد يغطّي المواد الستّ والأوضاع
+    #    الأربعة — ووضعُه في كل معالجٍ كان يعني معالجاً يُنسى.
+    #    وبلا نداءِ موديل ⇒ لا يُخصم من الحصة ([core/billing.py]).
+    # ❓ **وضعُ السؤال يحتاج سؤالاً** (قرار المالك 2026-09-14): ضغطةُ إرسالٍ
+    #    بحقلٍ فارغة كانت تُولّد طلباً من عندنا فيخرج شرحُ درسٍ كامل من وضع
+    #    السؤال — ويُخصم من الحصة. وهنا **موضعٌ واحد يغطّي المواد كلَّها
+    #    والمسارين** (`/ask` و`/ask/stream`)، وبعد دمج نصّ الصورة في المحتوى
+    #    فالسؤالُ المصوَّر يمرّ ([common.question_needs_text]).
+    if v3_common.question_needs_text(req):
+        return v3_common.question_required_response()
+
+    social = v3_smalltalk.reply_for(req)
+    if social is not None:
+        return social
 
     # ── 🆕 المواد الجديدة: لكل واحدة ملف معالج مستقل ببرومبتاته ──
     if subject in NEW_SUBJECT_HANDLERS:
@@ -942,6 +996,10 @@ async def _ask_guards(req, request: Request):
              "references": [], "session_active": False,
              "quota_exceeded": True, "is_guest": identity["is_guest"]}, 429)
 
+    # 🧾 عدّادُ نداءات الموديل لهذا الطلب — عليه يقوم ردُّ الحصة إن لم
+    #    يُنادَ موديلٌ أصلاً ([core/billing.py] · قرار المالك 2026-09-14).
+    v3_billing.start()
+
     # 📷 الصورة → نص (Gemini لكل المواد) قبل أي توجيه.
     image_text = ""
     if req.all_images():
@@ -969,6 +1027,24 @@ async def _ask_guards(req, request: Request):
     return identity, image_text, None
 
 
+async def _dispatch_and_settle(req, identity):
+    """يوزّع الطلب، ثم **يردّ الحصة إن لم يكلّف نداءَ موديل**.
+
+    ⚖️ موضعٌ واحد لمساري السؤال (عاديّ وبثّ): وضعُ الردّ في كلٍّ منهما
+       على حدة كان يعني مساراً يُنسى — وهو بالضبط ما وقع في حرّاس الوحدة.
+    """
+    meter = v3_billing.current()
+    result = await _dispatch_ask(req)
+    if v3_billing.was_free(meter):
+        await v3_quota.arefund(identity["uid"], identity["is_guest"])
+        # 📣 **ويُخبَر العميل**: التطبيق يُنقص عدّاده محلياً فور نجاح السؤال
+        #    ([QuotaRepository.consumeOne])، فبلا هذه الراية يرى الطالب رقماً
+        #    أقلّ من الحقيقة حتى يُعيد فتح التطبيق.
+        if isinstance(result, dict):
+            result["quota_refunded"] = True
+    return result
+
+
 @app.post("/ask")
 async def ask(req: AskRequest, background_tasks: BackgroundTasks, request: Request):
     """🔥 المسار الرئيسي — ردٌّ واحد كامل.
@@ -985,7 +1061,8 @@ async def ask(req: AskRequest, background_tasks: BackgroundTasks, request: Reque
     # 🧾 الجواب يُحفظ للمحاولة نفسها: إعادةٌ بنفس `request_id` ترجعه بلا
     #    نداء موديل ولا خصم. وأيُّ استثناء يُحرِّر الحجز وإلا بقي «يعمل».
     try:
-        result = _attach_image_text(await _dispatch_ask(req), _image_text)
+        result = _attach_image_text(
+            await _dispatch_and_settle(req, identity), _image_text)
     except Exception:
         v3_idem.abandon(identity["uid"], req.request_id)
         raise
@@ -1162,7 +1239,7 @@ async def ask_stream(req: AskRequest, background_tasks: BackgroundTasks,
     return _sse_stream(
         uid=identity["uid"], request_id=req.request_id, sink=sink,
         image_text=image_text,
-        runner=lambda: _dispatch_ask(req),
+        runner=lambda: _dispatch_and_settle(req, identity),
         fallback={"references": [], "session_active": False},
     )
 

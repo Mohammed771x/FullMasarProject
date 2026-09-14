@@ -36,6 +36,8 @@
 import asyncio
 import json
 
+from . import billing
+
 # ⏱️ نبضةٌ كل ١٥ ثانية حين لا يصل شيء من الموديل.
 #
 # ⚠️ **ليست تحسيناً:** بروكسيات كثيرة (وHF Spaces منها) تقطع اتصالاً صامتاً
@@ -105,6 +107,10 @@ async def complete(client, *, model, messages, sink=None, timeout=50.0, **kwargs
     🛟 **وسقوط البثّ لا يُسقط الجواب:** مزوّدٌ لا يدعم `stream` أو ينقطع في
        منتصفه ⇒ نعود للنداء العادي مرةً واحدة. الطالب يرى تأخيراً لا خطأً.
     """
+    # 🧾 **كلُّ نداءِ موديلٍ على مسار السؤال يمرّ من هنا** — فهنا يُسجَّل.
+    #    عليه تقوم قاعدةُ «ما لم يُنادَ موديلٌ لا يُخصم» ([core/billing.py]).
+    billing.charge()
+
     if sink is None:
         response = await asyncio.wait_for(
             client.chat.completions.create(

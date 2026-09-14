@@ -14,6 +14,56 @@ MAX_IMAGES = 2
 # 🧠 أقصى عدد دروس في اختبار واحد (قرار المالك)
 MAX_QUIZ_LESSONS = 3
 
+# ══════════════════════════════════════════════════
+# 🧵 سجلُّ المحادثة — تطبيعٌ واحدٌ عند الباب
+# ══════════════════════════════════════════════════
+#
+# 🔴 **أخطرُ عطبٍ في المشروع، ولم يظهر إلا اليوم (2026-09-14):** التطبيق
+#    يخزّن ردَّ المساعد بالدور **"ai"** (`chat_controller.dart`: `"role": "ai"`)
+#    ويُرسله في `chat_history` كما هو. و**كلُّ** مستهلكٍ في الخادم يُصفّي
+#    `role in ("user", "assistant")` — فكانت ردودُ المساعد **تُحذف كلُّها**
+#    قبل أن تصل الموديل.
+#
+#    والنتيجةُ هي كلُّ ما شكا منه المالك مجتمعاً:
+#      • الموديلُ يرى **ستّ رسائلَ من الطالب بلا جوابٍ واحد** بينها، فيقرؤها
+#        قائمةَ أسئلةٍ معلّقة ويحاول الإجابة عنها كلِّها («يحسب إن الرسائل
+#        الست اللي جبناها للمدل ضروري تنشرح»).
+#      • و«أعطني مثالاً» بلا موضوع: جوابُه السابق ليس أمامه أصلاً فيعتذر
+#        بـ«هذه المعلومة غير متوفرة في الكتاب».
+#      • و[common.has_prior_answer] — الحارسُ الذي بنيناه ليمنع الرفضَ في
+#        المتابعة — كانت **تعود False دائماً** في التطبيق الحقيقي: تعمل في
+#        اختباراتنا (نرسل "assistant") وتسقط عند الطالب.
+#
+# ⚖️ **ولماذا هنا لا في المستهلكين؟** لأنهم أكثرُ من عشرة، وأيُّ معالجٍ
+#    يُكتب غداً سينسى التطبيع. والبابُ واحد: ما يدخل النموذج يخرج بأدوارٍ
+#    قياسية، فلا يعرف أحدٌ بعده أن "ai" كانت موجودة.
+#
+# ⚠️ **والعلاجُ في الخادم لا في التطبيق وحده**: النسخُ المثبّتة على أجهزة
+#    الطلاب ستبقى ترسل "ai" شهوراً بعد إصلاح الواجهة.
+
+_ROLE_ALIASES = {
+    "ai": "assistant", "bot": "assistant", "model": "assistant",
+    "assistant": "assistant",
+    "user": "user", "human": "user", "student": "user", "me": "user",
+}
+
+
+def normalize_history(v):
+    """سقفٌ دفاعيّ على الحجم + **تطبيعُ الأدوار** — مصدرٌ واحد لكل النماذج.
+
+    والدورُ غيرُ المعروف يبقى كما هو فيُسقطه المستهلكون كما كانوا: لا نخمّن
+    أن رسالةً مجهولةَ المصدر جوابُ مساعدٍ فنضعها في فم الموديل.
+    """
+    if not v:
+        return v
+    trimmed = []
+    for m in v[-HISTORY_MAX_MESSAGES:]:
+        raw = str(m.get("role", ""))[:16].strip().lower()
+        text = str(m.get("content", m.get("text", "")))[:HISTORY_MAX_CHARS]
+        trimmed.append({"role": _ROLE_ALIASES.get(raw, raw), "content": text})
+    return trimmed
+
+
 class AskRequest(BaseModel):
     """نموذج طلب المستخدم الرئيسي.
 
@@ -132,16 +182,8 @@ class AskRequest(BaseModel):
     @field_validator("chat_history")
     @classmethod
     def _cap_history(cls, v):
-        if not v:
-            return v
-        # ⛑️ سقف دفاعي على ما يصل من العميل (المعالجات تأخذ آخر HISTORY_LAST_N).
-        #    أوسع قليلاً من سقف الفرونت كي لا يُكسر عميل قديم — راجع config.py.
-        trimmed = []
-        for m in v[-HISTORY_MAX_MESSAGES:]:
-            role = str(m.get("role", ""))[:16]
-            text = str(m.get("content", m.get("text", "")))[:HISTORY_MAX_CHARS]
-            trimmed.append({"role": role, "content": text})
-        return trimmed
+        # ⛑️ سقفٌ دفاعيّ **وتطبيعُ الأدوار** — [normalize_history] أعلاه.
+        return normalize_history(v)
 
 class QuizRequest(BaseModel):
     """🧠 طلب توليد اختبار — من دروس الطالب وحدها ([31])."""
@@ -241,14 +283,7 @@ class ScholarshipAskRequest(BaseModel):
     @classmethod
     def _cap_sch_history(cls, v):
         # نفس سقف /ask الدفاعي — مصدر الرقم واحد في config.py.
-        if not v:
-            return v
-        trimmed = []
-        for m in v[-HISTORY_MAX_MESSAGES:]:
-            role = str(m.get("role", ""))[:16]
-            text = str(m.get("content", m.get("text", "")))[:HISTORY_MAX_CHARS]
-            trimmed.append({"role": role, "content": text})
-        return trimmed
+        return normalize_history(v)
 
 
 class ScholarshipUpsertRequest(BaseModel):
@@ -312,6 +347,14 @@ class ScholarshipTryRequest(BaseModel):
     question: str = Field(default="", max_length=1200)
     assistant_prompt: Optional[str] = Field(default=None, max_length=8000)
     chat_history: Optional[List[Dict[str, str]]] = None
+
+    # ⚠️ وكان هذا النموذج **بلا مُحقِّقٍ أصلاً**: تجربةُ البرومبت من اللوحة
+    #    لا تُطبّع الأدوار ولا تحدّ الحجم، فتُري المشرفَ سلوكاً غير الذي
+    #    يراه الطالب — وهي بالضبط الشاشةُ التي يُفترض أن تحاكيه.
+    @field_validator("chat_history")
+    @classmethod
+    def _cap_try_history(cls, v):
+        return normalize_history(v)
 
 
 class ScholarshipCoverRequest(BaseModel):
@@ -420,14 +463,7 @@ class TeacherAskRequest(BaseModel):
     @classmethod
     def _cap_teacher_history(cls, v):
         # نفس السقف الدفاعي في /ask و/scholarship/ask — مصدر الرقم config.py.
-        if not v:
-            return v
-        trimmed = []
-        for m in v[-HISTORY_MAX_MESSAGES:]:
-            role = str(m.get("role", ""))[:16]
-            text = str(m.get("content", m.get("text", "")))[:HISTORY_MAX_CHARS]
-            trimmed.append({"role": role, "content": text})
-        return trimmed
+        return normalize_history(v)
 
 
 class TeacherPromptRequest(BaseModel):

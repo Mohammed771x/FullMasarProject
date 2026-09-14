@@ -31,11 +31,29 @@ def test_each_has_own_three_prompts(module, subject):
 
 
 def test_prompts_are_independent_per_subject():
-    """تعديل برومبت مادة لا يؤثر على غيرها (نصوص منفصلة لا مرجع مشترك)."""
+    """برومبتُ كل مادةٍ يخصّها — **بعمودٍ مشترك وعدسةٍ خاصّة** (2026-09-14).
+
+    🔄 **انقلب معنى «مستقل» هنا، وعن قصد.** كانت القاعدة «نصوصٌ منفصلة لا
+       مرجعٌ مشترك»، فكان في المشروع أربعةَ عشرَ برومبتاً منسوخاً — وثمانيةٌ
+       منها بلا قاعدةِ مصدرٍ ولا متابعةٍ ولا محادثة، لأن الإصلاح كان يصيب
+       ملفين ويُخطئ الباقي. فصار العمودُ الفقري مصدراً واحداً
+       ([common.teaching_core])، و**الاستقلالُ في العدسة** ([subject_lens]).
+
+    ⚠️ والفحصُ صار على **ترويسة المادة** لا على ورود اسمها في أي موضع:
+       نصُّ «التقريب المسموح» يذكر «ولا تاريخاً» في سياق منع الأرقام
+       والتواريخ، فكان الفحصُ القديم يراها «تاريخاً» في برومبت الجغرافيا.
+    """
     h = importlib.import_module("subjects.history")
     g = importlib.import_module("subjects.geography")
     assert h.prompt_explain() != g.prompt_explain()
-    assert "تاريخ" in h.prompt_explain() and "تاريخ" not in g.prompt_explain()
+
+    head_h, head_g = h.prompt_explain()[:120], g.prompt_explain()[:120]
+    assert "تاريخ" in head_h and "تاريخ" not in head_g
+    assert "جغرافيا" in head_g
+
+    from subjects.common import subject_lens
+    assert subject_lens("تاريخ") in h.prompt_explain()
+    assert subject_lens("تاريخ") not in g.prompt_explain()
 
 
 def test_explain_prompt_mirrors_biology_structure():

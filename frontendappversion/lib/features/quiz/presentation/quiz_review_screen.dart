@@ -152,7 +152,9 @@ class QuizReviewScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                               color: AppColors.softSurface,
                               borderRadius: BorderRadius.circular(10)),
-                          child: Text("🏷️ ${q.topic}",
+                          // 🖌️ بالرسّام: الموضوع قد يكون صيغةً لا كلمة —
+                          //    و[MathOrText] تعود نصّاً عادياً حين لا ترميز.
+                          child: MathOrText("🏷️ ${q.topic}",
                               style: TextStyle(
                                   fontSize: 11, fontWeight: FontWeight.w700,
                                   color: AppColors.textSecondary)),

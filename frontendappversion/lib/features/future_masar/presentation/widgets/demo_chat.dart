@@ -95,8 +95,10 @@ class _DemoChatState extends State<DemoChat> {
   }
 
   String _mockReply(String q) {
-    return "✨ **(عرض تجريبي)**\n\n"
-        "بخصوص \"${q.isEmpty ? 'المسألة المرفقة' : q}\" في **${widget.contextLabel}**:\n\n"
+    // ⚠️ هذا النصّ يُعرض بـ`TypewriterText`/`Text` لا بمحلّل markdown،
+    //    فلا نجمتين فيه: كانتا ستظهران للطالب حرفاً على الشاشة.
+    return "✨ (عرض تجريبي)\n\n"
+        "بخصوص \"${q.isEmpty ? 'المسألة المرفقة' : q}\" في ${widget.contextLabel}:\n\n"
         "هذا ردّ يحاكي مساعد مسار الذكي. في النسخة الكاملة يُحلَّل سؤالك ويُرجَع شرح دقيق ومصادر موثوقة خطوة بخطوة.\n\n"
         "- نقطة توضيحية مرتبطة بالموضوع\n"
         "- مثال عملي مبسّط\n"

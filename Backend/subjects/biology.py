@@ -5,12 +5,15 @@
 """
 
 from .common import (
+    turn_note,
     subject_book_path, load_json_safe, extract_all_texts_and_metas,
     enhanced_qa_search, faiss_search, filter_and_rank_exams,
+    hybrid_rank, book_context,
     collect_exam_questions_by_years, pages_with_headers,
     system_prompt_strict_explain, system_prompt_strict_summary,
     system_prompt_strict_qa, normalize_arabic, extract_keywords,
-    parse_exams_input, fetch_pages_by_numbers, requested_pages
+    parse_exams_input, fetch_pages_by_numbers, requested_pages,
+    unit_missing, unit_required_response, search_text_of,
 )
 from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, MAX_PAGES_EXPLAIN_SUMMARY, HISTORY_LAST_N
 from models import AskRequest
@@ -102,7 +105,7 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
             return {"answer": "الصفحات غير موجودة في النطاق المحدد."}
         
         # تنسيق النص للإرسال للذكاء الاصطناعي
-        context_text = pages_with_headers(found_pages)
+        context_text = pages_with_headers(found_pages, SUBJECT)
         system_prompt = system_prompt_strict_explain(SUBJECT)
         
         try:
@@ -117,7 +120,7 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
             # الرسالة الحالية
             messages_for_ai.append({
                 "role": "user",
-                "content": f"نص الكتاب:\n{context_text}\n\nطلب الطالب: اشرح المحتوى أعلاه."
+                "content": (f"نص الكتاب:\n{context_text}\n\nطلب الطالب: اشرح المحتوى أعلاه." + turn_note(req))
             })
             
             # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
@@ -150,10 +153,14 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
     # ==========================
     elif req.input_type == "برومت":
         # البحث في النصوص باستخدام الدالة المحسنة
-        results, idxs = await enhanced_qa_search(target_data, req.search_query, top_k=5)
+        # 📚 الوحدة إلزامية على مسار البحث ([common.unit_required_response]).
+        if unit_missing(req):
+            return unit_required_response()
+        found = await enhanced_qa_search(target_data, search_text_of(req), top_k=5)
+        results, idxs = found
         
         # ✅ حتى لو ما فيه نتائج، ما نرد مباشرة - نرسل السياق للـ AI
-        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        context_text = book_context(found, sep="\n", req=req)
         system_prompt = system_prompt_strict_explain(SUBJECT)
         
         try:
@@ -168,7 +175,7 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
             # ✅ نفس البرومبت الذكي حق الفيزياء
             messages_for_ai.append({
                 "role": "user",
-                "content": f"""المعلومات المستخرجة من الكتاب:
+                "content": (f"""المعلومات المستخرجة من الكتاب:
 {context_text}
 
 رسالة الطالب: {req.content}
@@ -178,7 +185,7 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
 2.إذا كانت رسالته سؤالاً أو طلباً لشرح بيولوجي، يجب أن تعتمد بنسبة 100% على (المعلومات المستخرجة من الكتاب) فقط  
 3. إذا طلب شرحاً بيولوجياً وكانت (المعلومات المستخرجة) تقول 'لا توجد نصوص مطابقة', جاوب من خارج الكتاب مع اخبار الطالب بان المعلومه من خارج الكتاب
 4. 🧮 **الكسور**: كل كسر يُكتب \\frac{{البسط}}{{المقام}} — لا بـ«/» ولا «÷» ولا بكلمة «على»، حتى لو كتبه الكتاب هكذا. مثال: ك = \\frac{{الوزن}}{{تسارع الجاذبية}}. ⚠️ ووحدات القياس ليست كسوراً وتبقى كما هي: م/ث · كجم.م/ث · كم/ساعة.
-"""
+""" + turn_note(req))
             })
             
             # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
@@ -210,6 +217,15 @@ async def handle_biology_explain(req: AskRequest, gemini_client):
 # =====================
 # 2. وضع التلخيص
 # =====================
+def _recent_history(req) -> list:
+    """آخر `HISTORY_LAST_N` رسالةً صالحة من سجلّ الطالب — بنفس سياسة بقية
+    المعالجات. دالّةٌ لأن مساري التلخيص يبنيان قائمةَ الرسائل بالحرف لا
+    بـ`messages_for_ai`، فلا موضع فيهما لسطرَي `extend` المعتادين."""
+    return [m for m in (getattr(req, "chat_history", None) or [])
+            if isinstance(m, dict) and m.get("role") in ("user", "assistant")
+            ][-HISTORY_LAST_N:]
+
+
 async def handle_biology_summary(req: AskRequest, gemini_client):
     book_data = get_biology_data()
     if not book_data: return {"answer": "المادة غير متوفرة"}
@@ -226,7 +242,7 @@ async def handle_biology_summary(req: AskRequest, gemini_client):
         
         if not found_pages: return {"answer": "الصفحات غير موجودة."}
 
-        context_text = pages_with_headers(found_pages)
+        context_text = pages_with_headers(found_pages, SUBJECT)
         system_prompt = system_prompt_strict_summary(SUBJECT, req.summary_level)
         
         try:
@@ -236,9 +252,13 @@ async def handle_biology_summary(req: AskRequest, gemini_client):
                 sink=streaming.sink_of(req),
                 timeout=50,
                 model="gemini-3.1-flash-lite",
+                # 🧵 **والسجلُّ كان مفقوداً في مساري التلخيص وحدهما**: الملخّص
+                #    يصل الموديلَ بلا ذاكرة، فـ«اختصره أكثر» تلخيصٌ من الصفر
+                #    لا اختصارٌ لما سبق ([common.FOLLOWUP_RULES]).
                 messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"نص الكتاب:\n{context_text}\n\nالمطلوب: لخص المحتوى."}
+                *_recent_history(req),
+                {"role": "user", "content": (f"نص الكتاب:\n{context_text}\n\nالمطلوب: لخص المحتوى." + turn_note(req))}
                 ],
                 temperature=0.15,
             )
@@ -255,11 +275,15 @@ async def handle_biology_summary(req: AskRequest, gemini_client):
     # تلخيص البرومت
     elif req.input_type == "برومت":
         texts, metas = extract_all_texts_and_metas(target_data)
-        results, idxs = await faiss_search(texts, req.search_query, top_k=QA_TOP_K)
+        # 📚 الوحدة إلزامية على مسار البحث ([common.unit_required_response]).
+        if unit_missing(req):
+            return unit_required_response()
+        # 🔴 كان هذا المسار وحده على `faiss_search` — بحثٌ دلاليٌّ صرف بلا
+        #    مطابقةٍ لفظية، بينما كلُّ المسارات الأخرى على الترتيب الهجين.
+        found = await hybrid_rank(texts, search_text_of(req), QA_TOP_K)
+        results, idxs = found
         
-        if not results: return {"answer": "لا توجد مقاطع صلة."}
-        
-        context_text = "\n".join(results)
+        context_text = book_context(found, sep="\n", req=req)
         system_prompt = system_prompt_strict_summary(SUBJECT, req.summary_level)
         
         try:
@@ -271,7 +295,8 @@ async def handle_biology_summary(req: AskRequest, gemini_client):
                model="gemini-3.1-flash-lite",
                messages=[
                {"role": "system", "content": system_prompt},
-               {"role": "user", "content": f"نص الكتاب:\n{context_text}\n\nالمطلوب: لخص الموضوع '{req.content}'."}
+               *_recent_history(req),
+               {"role": "user", "content": (f"نص الكتاب:\n{context_text}\n\nالمطلوب: لخص الموضوع '{req.content}'." + turn_note(req))}
                ],
                temperature=0.15,
            )
@@ -299,11 +324,13 @@ async def handle_biology_question(req: AskRequest, gemini_client):
     else:
         target_data = book_data
 
-    results, idxs = await enhanced_qa_search(target_data, req.search_query, top_k=5)
+    # 📚 الوحدة إلزامية على مسار البحث ([common.unit_required_response]).
+    if unit_missing(req):
+        return unit_required_response()
+    found = await enhanced_qa_search(target_data, search_text_of(req), top_k=5)
+    results, idxs = found
     
-    if not results: return {"answer": "عذراً، لم أجد إجابة دقيقة في الكتاب."}
-    
-    context_text = "\n".join(results)
+    context_text = book_context(found, sep="\n", req=req)
     system_prompt = system_prompt_strict_qa(SUBJECT)
     
     try:
@@ -314,7 +341,7 @@ async def handle_biology_question(req: AskRequest, gemini_client):
         
         messages_for_ai.append({
             "role": "user",
-            "content": f"نص الكتاب:\n{context_text}\n\nالسؤال: {req.content}"
+            "content": (f"نص الكتاب:\n{context_text}\n\nالسؤال: {req.content}" + turn_note(req))
         })
         
         # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.

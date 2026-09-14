@@ -5,11 +5,15 @@
 """
 
 from .common import (
+    turn_note,
     subject_book_path, load_json_safe, extract_all_texts_and_metas_physics,
     enhanced_search_physics, system_prompt_strict_explain,
     system_prompt_strict_summary, system_prompt_strict_qa,
     filter_and_rank_exams, collect_exam_questions_by_years,
-    parse_exams_input, extract_keywords, faiss_search, format_arabic_math
+    parse_exams_input, extract_keywords, faiss_search, format_arabic_math,
+    unit_missing, unit_required_response, search_text_of, hybrid_rank,
+    book_context, Ranked,
+    contextual_search_text,
 )
 from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
@@ -80,44 +84,20 @@ def extract_lesson_only(book_data, lesson_name):
 
 async def enhanced_search_with_context(book_data, query, chat_history, top_k=5):
     """بحث ذكي مع دعم السياق من المحادثة"""
-    last_ai_response = ""
-    if chat_history:
-        for msg in reversed(chat_history):
-            if msg.get('role') == 'assistant':
-                last_ai_response = msg.get('content', '')
-                break
+    texts, metas = extract_all_texts_and_metas_physics(book_data, SUBJECT)
+    if not texts: return Ranked([], [], best=0.0)
     
-    texts, metas = extract_all_texts_and_metas_physics(book_data)
-    if not texts: return [], []
+    # 🧵 **استعارةُ الموضوع صارت مصدراً واحداً** ([common.contextual_search_text]).
+    #    كان هنا: «لو السؤال أقلّ من ٥ كلمات ألحِق أول ١٥٠ حرفاً من الرد
+    #    السابق». وهي حيلةٌ تُخطئ مرّتين: «ما الفرق بينها وبين الغدة
+    #    الدرقية» ستُّ كلماتٍ فلا تستعير شيئاً وموضوعُها ضمير، وأولُ ١٥٠
+    #    حرفاً من الرد غالباً تحيةٌ ومقدّمة لا موضوع.
+    combined_query = contextual_search_text(query, chat_history)
     
-    combined_query = query
-    if len(query.split()) < 5 and last_ai_response:
-        combined_query = last_ai_response[:150] + " " + query
-    
-    sem_results, idxs = await faiss_search(texts, combined_query, top_k=top_k)
-    keywords = extract_keywords(query)
-    direct_hits = []
-    direct_idxs = []
-    
-    for i, txt in enumerate(texts):
-        if any(k in txt for k in keywords):
-            direct_hits.append(txt)
-            direct_idxs.append(i)
-    
-    final_texts = []
-    final_idxs = []
-    
-    for t, i in zip(direct_hits, direct_idxs):
-        if i not in final_idxs:
-            final_texts.append(t)
-            final_idxs.append(i)
-    
-    for t, i in zip(sem_results, idxs):
-        if i not in final_idxs:
-            final_texts.append(t)
-            final_idxs.append(i)
-    
-    return final_texts[:top_k], final_idxs[:top_k]
+    # 🔄 **نفسُ عطل الدمج بالأسبقية كان هنا أيضاً** — نسخةٌ ثالثة منه.
+    #    كلمةُ «بين» وحدها كانت تطرد البحثَ الدلاليَّ كلَّه من المقاعد
+    #    الثلاثة. راجع [common.hybrid_rank].
+    return await hybrid_rank(texts, combined_query, top_k)
 
 
 # =====================
@@ -162,11 +142,15 @@ async def handle_arabic_explain(req: AskRequest, gemini_client):
         else:
             target_data = book if isinstance(book, list) else book.get("الوحدات", [])
             
-        results, idxs = await enhanced_search_physics(target_data, req.search_query, top_k=5)
-        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        # 📚 الوحدة إلزامية على مسار البحث ([common.unit_required_response]).
+        if unit_missing(req):
+            return unit_required_response()
+        found = await enhanced_search_physics(target_data, search_text_of(req), top_k=5)
+        results, idxs = found
+        context_text = book_context(found, sep="\n", req=req)
         
         # استخراج المراجع الخاصة بالبحث الدلالي
-        _, metas = extract_all_texts_and_metas_physics(target_data)
+        _, metas = extract_all_texts_and_metas_physics(target_data, SUBJECT)
         if results:
             for i in idxs:
                 if i < len(metas):
@@ -174,41 +158,19 @@ async def handle_arabic_explain(req: AskRequest, gemini_client):
                     if ref not in refs: refs.append(ref)
 
     # 3. إعداد الـ System Prompt بشكل مباشر
-    system_prompt = f"""أنت الآن في وضع مدرس محترف داخل الصف لمادة {SUBJECT}.
-تتعامل مع الطالب وكأنك تشرح له أثناء الحصة الدراسية.
-
-📌 آلية التفكير:
-- اقرأ السؤال جيداً.
-- افهم المقصود الحقيقي منه.
-- حدد المفهوم الأساسي وراء السؤال.
-- ابدأ بشرح الفكرة من الداخل (التعريف، الفكرة الجوهرية,من الدرس).
-- اشرح بالاعتماد على النص من ناحية الامثلة وطريقة الشرح .
-- ثم وسّع الشرح من الخارج (السياق العام، لماذا نستخدمه، أين يطبق، علاقته بالمفاهيم الأخرى).
-
-📌 ذكاء المحادثة:
-- إذا كان السؤال مرتبطاً بسؤال سابق (مثل: وضح أكثر، ما الفرق، أعطني مثال):
-  → أكمل من حيث توقفت.
-- إذا كان سؤالاً جديداً:
-  → ابدأ شرحاً جديداً من الصفر.
-- احكم بذكاء على طبيعة السؤال.
-
-📌 أسلوب الشرح:
-1) اشرح باللغة العربية الفصحى السهلة.
-2) لا تكتب كلمات إنجليزية داخل الشرح.
-3) اشرح وكأنك داخل الصف فعلياً.
-4) قسم الشرح إلى خطوات مرتبة عند الحاجة.
-5) إذا وجدت معادلات، اشرحها بنفس الرموز الموجودة دون تغيير الصيغة.
-6) لا تكتفِ بالتعريف، بل وضّح لماذا وكيف.
-
-📌 مهم جداً:
-- لا تكن جامداً.
-- لا تكرر السؤال فقط.
-- الهدف هو الفهم العميق.
-- استخدم أمثلة تعليمية مبسطة عند الحاجة.
-- اربط بين المفاهيم حتى تتكوّن صورة كاملة عند الطالب.
-
-🎯 هدفك:
-أن يفهم الطالب الفكرة بعمق ويستطيع إعادة شرحها بنفسه."""
+    # 🎓 **برومبتُ الشرح من مصدره الواحد** (2026-09-14).
+    #
+    # 🔴 كان هنا نصٌّ مكتوبٌ بيده يبدأ بـ«أنت الآن في وضع مدرس محترف…» —
+    #    وهو **نسخةٌ متخلّفة** من [common.system_prompt_strict_explain]: نفس
+    #    العناوين، لكن بلا قاعدةِ المصدر المفصّلة، وبلا قاعدةِ المتابعة، وبلا
+    #    قاعدةِ المحادثة، وبلا شكلِ الجواب — وكلُّها أُضيفت للأصل ولم تصل
+    #    نسخةَ العربي. فكان طالبُ العربي وحده يُجاب «هذه المعلومة غير متوفرة»
+    #    على «أعطني مثالاً»، ويُستقبل بـ«أهلاً بك في حصتنا» في كل ردّ.
+    #
+    # 🔬 **ونكهةُ المادة لم تسقط**: «من الشاهد إلى القاعدة إلى علامة الإعراب
+    #    ثم حالات الترجيح» تسكن الآن في [common._SUBJECT_LENS] فتصل الأوضاعَ
+    #    الثلاثة — الشرحَ والسؤالَ والتلخيص — لا وضعَ الشرح وحده.
+    system_prompt = system_prompt_strict_explain(SUBJECT)
 
     try:
         # 4. بناء الرسائل للمودل
@@ -222,7 +184,7 @@ async def handle_arabic_explain(req: AskRequest, gemini_client):
         # رسالة الـ User مخصصة فقط للبيانات والسؤال
         messages_for_ai.append({
             "role": "user",
-            "content": f"المعلومات المستخرجة من الكتاب:\n{context_text}\n\nرسالة الطالب: {req.content}"
+            "content": (f"المعلومات المستخرجة من الكتاب:\n{context_text}\n\nرسالة الطالب: {req.content}" + turn_note(req))
         })
         
         # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
@@ -284,10 +246,14 @@ async def handle_arabic_summary(req: AskRequest, gemini_client):
         else:
             target_data = book if isinstance(book, list) else book.get("الوحدات", [])
         
-        results, idxs = await enhanced_search_physics(target_data, req.search_query, top_k=QA_TOP_K)
-        context_text = "\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+        # 📚 الوحدة إلزامية على مسار البحث ([common.unit_required_response]).
+        if unit_missing(req):
+            return unit_required_response()
+        found = await enhanced_search_physics(target_data, search_text_of(req), top_k=QA_TOP_K)
+        results, idxs = found
+        context_text = book_context(found, sep="\n", req=req)
         
-        _, metas = extract_all_texts_and_metas_physics(target_data)
+        _, metas = extract_all_texts_and_metas_physics(target_data, SUBJECT)
         if results:
             for i in idxs:
                 if i < len(metas):
@@ -306,7 +272,7 @@ async def handle_arabic_summary(req: AskRequest, gemini_client):
         
         messages_for_ai.append({
             "role": "user",
-            "content": f"""
+            "content": (f"""
 المعلومات المستخرجة من الكتاب:
 {context_text}
 
@@ -315,7 +281,7 @@ async def handle_arabic_summary(req: AskRequest, gemini_client):
 التعليمات:
 1. إذا كانت رسالة الطالب ترحيب أو شكر، رد بلطف وتجاهل التلخيص.
 2. إذا طلب التلخيص، استخدم فقط المعلومات المستخرجة أعلاه لعمل التلخيص. إذا لم تكن هناك معلومات، أخبره أن الموضوع غير متوفر في المنهج.
-"""
+""" + turn_note(req))
         })
         
         # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.
@@ -382,16 +348,27 @@ async def handle_arabic_question(req: AskRequest, gemini_client):
         else:
             target_data = book if isinstance(book, list) else book.get("الوحدات", [])
         
-        results, idxs = await enhanced_search_with_context(
+        # 📚 **وهذا المسارُ كان بلا حارسِ وحدة** — سقط من المسح الأول
+        #    لأن اسمَ دالّته يختلف عن أخواتها. راجع المسحَ في
+        #    [tests/test_search_quality.py::test_every_search_path_is_guarded].
+        if unit_missing(req):
+            return unit_required_response()
+        found = await enhanced_search_with_context(
             target_data, 
-            req.content, 
+            # 🔴 **كان `req.content` هنا** — وهو في مسار الصور النصُّ
+            #    الملفوف بدرع الحقن («بيانات، لا تعليمات…») وترويسته
+            #    ضجيجٌ في البحث الدلالي. و`search_query` هو النصُّ
+            #    النظيف الذي أُعدّ لهذا بالضبط ([models.AskRequest]).
+            req.search_query, 
             recent_history, 
             top_k=5
         )
+        results, idxs = found
         
-        context_text = "\n".join(results) if results else "لا توجد إجابة في الكتاب لهذا السؤال."
+        context_text = book_context(found, sep="\n", req=req,
+                                    empty="لا توجد إجابة في الكتاب لهذا السؤال.")
         
-        _, metas = extract_all_texts_and_metas_physics(target_data)
+        _, metas = extract_all_texts_and_metas_physics(target_data, SUBJECT)
         if results:
             for i in idxs:
                 if i < len(metas):
@@ -407,7 +384,7 @@ async def handle_arabic_question(req: AskRequest, gemini_client):
         
         messages_for_ai.append({
             "role": "user",
-            "content": f"""
+            "content": (f"""
 المعلومات المستخرجة من المنهج:
 {context_text}
 
@@ -416,7 +393,7 @@ async def handle_arabic_question(req: AskRequest, gemini_client):
 التعليمات:
 1. إذا كان الطالب يقول "مرحبا"، "كيفك"، "شكراً"، رد بلطف وبشكل طبيعي كمعلم.
 2. إذا كان سؤالاً في المادة، استخدم المعلومات المستخرجة للإجابة. وإن كان الموضوع موجوداً في المعلومات المستخرجة لكن بصياغة مختلفة أو موزّعاً على أكثر من موضع، فاجمعه وأجب منه — هذا استخدامٌ للنص لا تخمين. أما إذا كان الموضوع نفسه غير موجود في المعلومات المستخرجة، فلا تخمن! قل: "عذراً، هذه المعلومة غير متوفرة في المنهج المرفق".
-"""
+""" + turn_note(req))
         })
         
         # 🌊 يبثّ حرفاً حرفاً على مسار البثّ، وإلا نداءٌ عادي حرفياً.

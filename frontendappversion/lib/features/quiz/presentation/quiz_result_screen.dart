@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/masar_markdown.dart';
 import '../../../core/widgets/fade_in_slide.dart';
 import '../../../core/widgets/robot_widget.dart';
 import '../../chat/presentation/screens/main_chat_screen.dart';
@@ -227,7 +228,10 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(e.key,
+                        // 🖌️ بالرسّام لا بنصٍّ خام: الموضوع قد يكون صيغةً
+                        //    («\frac{ن}{ر}») — و[MathOrText] تعود نصّاً
+                        //    عادياً حين لا ترميزَ فيه، فلا كلفةَ لها.
+                        child: MathOrText(e.key,
                             style: TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w700,
                                 color: AppColors.textPrimary)),

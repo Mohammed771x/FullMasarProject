@@ -96,16 +96,35 @@ def test_rule_overrides_wording_only_never_the_source():
 
 
 def test_chemistry_explain_prompt_keeps_its_source_clauses():
-    """قواعد المصدر الأصلية باقية كما هي بعد إضافة قاعدة الرسم."""
+    """قاعدةُ المصدر باقيةٌ في وضع الشرح — **وبصياغةٍ أقوى** (2026-09-14).
+
+    ⚖️ كانت ثلاثةَ أسطرٍ مكتوبةً بيدها هنا: «مصدر الإجابة الوحيد هو الكتاب
+       المعطى لك فقط · لا تضف معرفة عامة…». وصارت [common.source_rules] —
+       نفسُ النصّ الذي يقرؤه وضعُ السؤال ووضعُ التلخيص — وفيه ما كان ناقصاً:
+       **«التعاريف والمصطلحات والأرقام كما وردت في الكتاب»** (فالطالب يُمتحن
+       بمصطلح كتابه لا بمصطلحٍ أدقّ يختاره الموديل)، و**استثناءُ المتابعة**
+       الذي كان غيابُه يردّ «بسّطها لي» بـ«ليست في الكتاب».
+       فنفحص القاعدة بمعناها لا بحروف صياغتها القديمة.
+    """
     prompt = system_prompt_strict_explain("كيمياء")
-    assert "مصدر الإجابة الوحيد هو الكتاب المعطى لك فقط" in prompt
-    assert "لا تضف معرفة عامة، ولا أمثلة خارجية، ولا اجتهاد شخصي" in prompt
+    assert "كلُّ **محتوى** تقوله يجب أن يكون موجوداً في «نص الكتاب» المرفق" in prompt
+    assert "لا تُضِف من معرفتك العامة محتوىً جديداً" in prompt
+    assert "كما وردت في الكتاب" in prompt
 
 
 def test_chemistry_summary_and_qa_keep_their_source_clauses():
+    """⚖️ الصياغةُ تغيّرت (2026-09-14) والقاعدةُ اشتدّت.
+
+    كان برومبت السؤال يقول «لا تضف معلومات إضافية لم يطلبها» — وهي قاعدةُ
+    **طولٍ** لا قاعدةُ **مصدر**: لم يكن فيه حرفٌ واحد يأمر بالإجابة من نصّ
+    الكتاب. فصار على [common.qa_core]، ونفحص القاعدتين معاً.
+    """
     assert "التزم بالنص المقدم فقط" in system_prompt_strict_summary("كيمياء", 3)
     assert "لا تضف معلومات خارج النص" in system_prompt_strict_summary("كيمياء", 3)
-    assert "لا تضف معلومات إضافية لم يطلبها" in system_prompt_strict_qa_improved("كيمياء")
+
+    qa = system_prompt_strict_qa_improved("كيمياء")
+    assert "لا تُضِف من معرفتك العامة محتوىً جديداً" in qa, "قاعدةُ المصدر سقطت"
+    assert "ولا تسرد الدرس كلَّه" in qa, "قاعدةُ الطول سقطت"
 
 
 def test_source_clauses_identical_between_chemistry_and_physics():
@@ -117,13 +136,25 @@ def test_source_clauses_identical_between_chemistry_and_physics():
     #
     # ⚖️ وذيلُ الأرقام **معكوسُ النطاق**: فارغٌ في الكيمياء (أرقامها
     #    لاتينية بنصّ المالك) وموجودٌ في الفيزياء — فيُطرح من الفيزياء.
-    from subjects.common import arabic_digits_rules
+    from subjects.common import arabic_digits_rules, subject_lens
     assert arabic_digits_rules("كيمياء") == ""
     tails = len(organic_structure_rules("كيمياء")) + \
         len(reaction_equation_rules("كيمياء"))
     body = chem[: len(chem) - tails]
     phys_tail = len(arabic_digits_rules("فيزياء"))
-    assert body == phys[: len(phys) - phys_tail].replace("فيزياء", "كيمياء")
+    # ⚠️ وتُطرح عدسةُ الفيزياء **قبل** استبدال اسم المادة، وإلا صار نصُّها
+    #    يحمل كلمة «كيمياء» فلا يطابق `subject_lens("فيزياء")` ولا يُطرح.
+    body_phys = phys[: len(phys) - phys_tail].replace(subject_lens("فيزياء"), "")
+    body_phys = body_phys.replace("فيزياء", "كيمياء")
+
+    # 🔬 **وعدسةُ المادة تُطرح أيضاً منذ 2026-09-14**: صار لكل مادةٍ فقرةٌ
+    #    تصف ترتيبَ التفكير فيها — الكيمياءُ من البنية إلى السلوك، والفيزياءُ
+    #    من الظاهرة إلى القانون — وهو **اختلافٌ مقصود** طلبه المالك صراحةً
+    #    («لكل مادة اللوجك اللي فيها يختلف»). فما يجب أن يبقى متطابقاً هو
+    #    **العمودُ الفقري**: المصدرُ والمتابعةُ والمحادثةُ والاتّصالُ والشكل.
+    body = body.replace(subject_lens("كيمياء"), "")
+    assert body == body_phys
+    assert subject_lens("كيمياء") != subject_lens("فيزياء")
 
 
 # ══════════════ 3️⃣ منظّف اللاتيك لا يأكل ترميزاً ولا عربية ══════════════

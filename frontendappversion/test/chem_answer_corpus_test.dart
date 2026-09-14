@@ -297,13 +297,27 @@ void main() {
     expect(find.textContaining('|'), findsNothing);
     expect(find.textContaining('---'), findsNothing);
     // ⭐ والترويسةُ والخلايا كلُّها حاضرة، والنواةُ مرسومةٌ داخلها.
-    expect(find.text('نوع التحول'), findsOneWidget);
+    //
+    // 🔄 **`findsWidgets` لا `findsOneWidget` (2026-09-13):** عمودُ المعادلة
+    //    هنا أعرضُ من أن يُقسَّم على شاشة جوال، فيختار الجدولُ **وضعَ
+    //    البطاقات** — وفيه تتكرّر الترويسةُ مع كل صفّ لأن القيمة بلا
+    //    اسمها لا معنى لها. الشكلُ تغيّر والمعنى كما هو، وهذا هو المقصود.
+    expect(find.text('نوع التحول'), findsWidgets);
     expect(find.text('238'), findsOneWidget);
     expect(find.textContaining(r'\nuc'), findsNothing);
+    // ولا تضيع خليّةٌ في التحوّل.
+    expect(find.textContaining('فقدان جسيم ألفا'), findsWidgets);
+    expect(find.textContaining('انطلاق جاما'), findsWidgets);
   });
 
-  testWidgets('📊 وجدولٌ بلا ترميز يبقى للماركداون كما كان', (t) async {
-    // ⚖️ الماركداون يرسم الجداول أصلاً وأجمل — فلا نأخذها منه بلا سبب.
+  testWidgets('📊 وحتى الجدولُ الخالي من الترميز يمرّ بنا', (t) async {
+    // 🔄 **انقلبت هذه القاعدة (2026-09-13)** وكانت: «جدولٌ بلا ترميز يبقى
+    //    للماركداون». وسببُ الانقلاب شكوى المالك: «الجدول في الجوال متداخل
+    //    والحروف مقصّصة» — و`Table` الذي يرسمه الماركداون يقسّم العرض
+    //    بالتساوي بلا حدٍّ أدنى، فتُكسر الكلمةُ العربية في وسطها.
+    //
+    // ⚖️ ومسارانِ للجدول يعني شكلين لا يفهم الطالبُ لماذا اختلفا — فصار
+    //    المسارُ واحداً ومسؤولاً. الحراسةُ الكاملة في [table_layout_test].
     t.view.physicalSize = _phone * 3;
     t.view.devicePixelRatio = 3.0;
     addTearDown(t.view.reset);
@@ -316,7 +330,9 @@ void main() {
       ),
     ));
     await t.pumpAndSettle();
-    expect(find.byType(MasarTable), findsNothing);
+    expect(find.byType(MasarTable), findsOneWidget);
+    expect(find.textContaining('|'), findsNothing);
+    expect(find.text('الماء'), findsOneWidget);
   });
 
   testWidgets('➖ والسالبُ يسارَ الرقم اللاتيني في خلايا الجدول', (t) async {

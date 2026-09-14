@@ -150,4 +150,64 @@ void main() {
       expect(c.canSendWithoutText, isFalse);
     });
   });
+
+  // ══════════════════════════════════════════════════
+  // ❓ وضعُ السؤال يحتاج سؤالاً مكتوباً — في كل المواد
+  // ══════════════════════════════════════════════════
+  //
+  // ⚖️ **قرار المالك (2026-09-14):** «في خانة السؤال ضروري الطالب يكتب
+  //    سؤال… السؤالُ ليس الذي يشرح الدرس. فلا تخلّيه يقدر يضغط زرّ الإرسال
+  //    بلا ما يكتب شي، في كل المواد.»
+  //
+  // 🔴 وما كان: الضغطُ بحقلٍ فارغ في وضع السؤال يُولّد طلباً من عندنا —
+  //    «اطرح ملخصاً سريعاً…» أو «أجب من الصفحات الآتية» — فيخرج **شرحُ
+  //    درسٍ كامل من وضع السؤال**، ويُخصم من حصّة الطالب.
+  group('❓ وضعُ السؤال يحتاج سؤالاً', () {
+    test('الإرسالُ الفارغ مغلقٌ مع درسٍ مختار', () {
+      final c = ChatController()
+        ..selectedSubject = "احياء"
+        ..selectedMode = "سؤال"
+        ..contentMode = "lessons"
+        ..selectedV3Unit = "الجهاز العصبي"
+        ..selectedV3Lesson = "الخلية العصبية"
+        ..caps = _caps();
+      addTearDown(c.dispose);
+      expect(c.questionNeedsTypedText, isTrue);
+      expect(c.canSendWithoutText, isFalse);
+    });
+
+    test('ومغلقٌ مع صفحاتٍ مختارة كذلك', () {
+      final c = _inPagesModeWithPages();
+      addTearDown(c.dispose);
+      expect(c.canSendWithoutText, isTrue);   // وهو في وضع «شرح»
+      c.selectedMode = "سؤال";
+      expect(c.canSendWithoutText, isFalse);
+    });
+
+    test('ويعود مفتوحاً بمجرّد الرجوع لوضع الشرح', () {
+      final c = _inPagesModeWithPages();
+      addTearDown(c.dispose);
+      c.selectedMode = "سؤال";
+      expect(c.canSendWithoutText, isFalse);
+      c.selectedMode = "شرح";
+      expect(c.canSendWithoutText, isTrue);
+    });
+
+    test('والتلخيصُ لا يتأثّر — القيدُ على السؤال وحده', () {
+      final c = _inPagesModeWithPages();
+      addTearDown(c.dispose);
+      c.selectedMode = "تلخيص";
+      expect(c.questionNeedsTypedText, isFalse);
+      expect(c.canSendWithoutText, isTrue);
+    });
+
+    test('وقسمُ المعلّم خارج هذا القيد', () {
+      final c = ChatController()
+        ..selectedSubject = "احياء"
+        ..selectedMode = "سؤال"
+        ..teacherTool = TeacherTool.ask;
+      addTearDown(c.dispose);
+      expect(c.questionNeedsTypedText, isFalse);
+    });
+  });
 }

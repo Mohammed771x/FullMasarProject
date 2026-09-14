@@ -10,6 +10,15 @@ class AskResponse {
   final bool quotaExceeded;
   final bool isGuest;
 
+  /// 🎟️ **رُدَّ السؤالُ إلى الحصة**: الخادم لم ينادِ موديلاً (سؤالٌ خارج
+  /// الوحدة · لا وحدة · لا صفحات)، فلا يُنقص العدّادُ المحليّ شيئاً.
+  /// بدونها يرى الطالب رقماً أقلّ من الحقيقة حتى يُعيد فتح التطبيق.
+  final bool quotaRefunded;
+
+  /// 🚫 **ردٌّ بلا جواب**: الخادم لم يجد في الوحدة ما يخصّ السؤال. يُعرض
+  /// للطالب ولا يُرسل في السجلّ — لا هو ولا السؤال الذي أثاره.
+  final bool offTopic;
+
   /// 📄 نصّ الصورة كما قرأه الخادم — يُخزَّن مع رسالة الطالب ويُرسل في
   /// السياق لاحقاً. بدونه تُنسى الصورة في السؤال التالي (التاريخ نصٌّ لا صور).
   final String imageText;
@@ -20,6 +29,8 @@ class AskResponse {
     required this.sessionActive,
     this.quotaExceeded = false,
     this.isGuest = false,
+    this.quotaRefunded = false,
+    this.offTopic = false,
     this.imageText = "",
   });
 
@@ -30,6 +41,8 @@ class AskResponse {
         sessionActive: json["session_active"] ?? false,
         quotaExceeded: json["quota_exceeded"] == true,
         isGuest: json["is_guest"] == true,
+        quotaRefunded: json["quota_refunded"] == true,
+        offTopic: json["off_topic"] == true,
         imageText: (json["extracted_text"] ?? "").toString(),
       );
 }

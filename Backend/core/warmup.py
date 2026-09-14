@@ -53,7 +53,7 @@ def _units_of(subject: str, grade: int, track: str):
 
 def build_all(verbose: bool = True) -> dict:
     """يبني (أو يحمّل) كل الفهارس. يعيد ملخّصاً."""
-    from subjects.common import build_index_sync
+    from subjects.common import build_index_sync, embedding_corpus
 
     started = time.time()
     index_store._stats["warm_started_at"] = time.strftime("%H:%M:%S")
@@ -90,6 +90,14 @@ def build_all(verbose: bool = True) -> dict:
                 if not texts:
                     continue
 
+                # ✂️ **الفهرسُ على المقاطع لا على الصفحات** — وهي بعينها
+                #    التي يستعملها البحث ([common.embedding_corpus]). لو
+                #    أحمينا فهرسَ الصفحات وبحثنا في فهرس المقاطع لبنى كلُّ
+                #    سؤالٍ أولَ فهرسِه أثناء انتظار الطالب.
+                texts, _owners = embedding_corpus(texts)
+                if not texts:
+                    continue
+
                 fp = index_store.fingerprint(texts)
                 if index_store.get_mem(fp) is not None:
                     continue
@@ -104,7 +112,7 @@ def build_all(verbose: bool = True) -> dict:
                     index_store.put_mem(fp, index)
                     index_store.save_disk(fp, index, {
                         "subject": subject, "grade": grade, "track": track,
-                        "unit": unit_name, "texts": len(texts),
+                        "unit": unit_name, "texts": len(texts), "chunked": True,
                     })
                     built += 1
                 except Exception as e:

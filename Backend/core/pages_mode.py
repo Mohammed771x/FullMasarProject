@@ -19,7 +19,11 @@ from subjects.common import (
     system_prompt_strict_explain, system_prompt_strict_summary,
     system_prompt_strict_qa_improved,
     strip_stray_latex,
+    render_rules,
+    unit_missing, unit_required_response, search_text_of,
+    book_context, render_rules_once, turn_note,
 )
+from .lesson_mode import _draw_reminder   # 🖌️ نفس التذكير في الوضعين
 from .content_store import get_pages_book
 from .curriculum import model_route
 
@@ -29,13 +33,18 @@ from config import HISTORY_LAST_N as _HISTORY_LAST_N   # مصدر واحد لل�
 
 
 def _system_prompt(mode, subject, summary_level, prompts=None):
+    # 🖌️ قواعدُ الرسّام تُلحق ببرومبت المادة المستقلّة لا تُستبدل به —
+    #    راجع الشرح في [core/lesson_mode.py].
     if prompts is not None:
         if mode == "تلخيص" and hasattr(prompts, "prompt_summary"):
-            return prompts.prompt_summary(summary_level)
+            p = prompts.prompt_summary(summary_level)
+            return p + render_rules_once(p, subject)
         if mode == "سؤال" and hasattr(prompts, "prompt_qa"):
-            return prompts.prompt_qa()
+            p = prompts.prompt_qa()
+            return p + render_rules_once(p, subject)
         if hasattr(prompts, "prompt_explain"):
-            return prompts.prompt_explain()
+            p = prompts.prompt_explain()
+            return p + render_rules_once(p, subject)
     if mode == "تلخيص":
         return system_prompt_strict_summary(subject, summary_level)
     if mode == "سؤال":
@@ -112,7 +121,9 @@ async def handle(req, clients: dict, prompts=None) -> dict:
         messages = [{"role": "system", "content": _system_prompt(req.mode, subject, req.summary_level, prompts)}]
         messages.extend(history)
         messages.append({"role": "user",
-                         "content": f"نص الكتاب:\n{context_text}\n\nطلب الطالب: {verb} المحتوى أعلاه."})
+                         "content": f"نص الكتاب:\n{context_text}\n\nطلب الطالب: {verb} المحتوى أعلاه."
+                         + turn_note(req)
+                         + _draw_reminder(context_text)})
         answer = await _call_model(subject, messages, clients, streaming.sink_of(req))
         if missing:
             answer += f"\n\n(ملاحظة: الصفحات {missing} لم يتم العثور عليها)"
@@ -121,17 +132,30 @@ async def handle(req, clients: dict, prompts=None) -> dict:
             "session_active": False}
 
     # ══ ب) بالبرومت (بحث دلالي — embeddings) ══
-    query = req.search_query
+    #
+    # 📚 **الوحدة إلزامية هنا** (قرار المالك 2026-09-14): البحثُ في الكتاب
+    #    كلِّه يُزاحم الموضوعَ بصفحاتٍ من وحداتٍ لا علاقة لها به. وعلى مسار
+    #    البحث وحده — اختيارُ صفحةٍ برقمها لا يحتاج وحدة.
+    if unit_missing(req):
+        return unit_required_response()
+
+    # 🧵 نصُّ البحث يستعير موضوعَه من المحادثة عند المتابعة
+    #    ([common.contextual_search_text]).
+    query = search_text_of(req)
     if not query:
         return {"answer": "✍️ اكتب سؤالك أو الموضوع الذي تريد شرحه.", "references": [], "session_active": False}
 
-    results, idxs = await enhanced_qa_search(target, query, top_k=QA_TOP_K)
-    context_text = "\n\n".join(results) if results else "لا توجد نصوص مطابقة من الكتاب."
+    found = await enhanced_qa_search(target, query, top_k=QA_TOP_K)
+    results, idxs = found
+    context_text = book_context(found, req=req)
 
     messages = [{"role": "system", "content": _system_prompt(req.mode, subject, req.summary_level, prompts)}]
     messages.extend(history)
+    # 🖌️ ولا `_draw_reminder` هنا: [common.book_context] تُلحقه بنفسها الآن
+    #    لكل معالجٍ يمرّ بها — وإلحاقُه مرّتين تكرارٌ بلا فائدة.
     messages.append({"role": "user",
-                     "content": f"نص الكتاب:\n{context_text}\n\nسؤال الطالب: {query}"})
+                     "content": f"نص الكتاب:\n{context_text}\n\nسؤال الطالب: {query}"
+                     + turn_note(req)})
     answer = await _call_model(subject, messages, clients, streaming.sink_of(req))
 
     # المراجع: أسماء الوحدات وأرقام الصفحات المطابقة

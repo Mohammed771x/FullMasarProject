@@ -40,6 +40,7 @@ from . import teacher_prompts as tp
 from .content_store import get_lessons_book, find_lesson, lessons_units, lessons_in_unit
 from .curriculum import model_route, normalize_grade_track, is_valid_subject
 from .serializer import serialize_lesson
+from subjects.common import render_finish, render_rules, draw_reminder
 
 _AI_TIMEOUT = 60
 _MAX_TOKENS = 4000
@@ -256,6 +257,18 @@ def _context_card(subject, grade, track, unit, lesson, text) -> str:
 # ⭐ وعي الدور — ما يجعلها محادثة لا ردوداً منفصلة
 # ══════════════════════════════════════════════════
 
+def _turns_label(n: int) -> str:
+    """«تبادلٌ واحد» و«تبادلان» و«٣ تبادلات» — وبأرقامٍ عربية.
+    كان النصُّ «سبقها نحو 2 تبادلاً»: رقمٌ لاتينيٌّ وتمييزٌ خاطئ، والموديلُ
+    يقلّد لغةَ ما يقرؤه فتظهر ٢ لاتينيةً في ردٍّ عربيٍّ للأستاذ."""
+    if n == 1:
+        return "تبادلٌ واحد"
+    if n == 2:
+        return "تبادلان"
+    digits = str(n).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+    return f"{digits} تبادلات" if 3 <= n <= 10 else f"{digits} تبادلاً"
+
+
 def turn_state(chat_history, is_generate: bool) -> str:
     valid = [m for m in (chat_history or []) if isinstance(m, dict)]
     if is_generate:
@@ -266,22 +279,42 @@ def turn_state(chat_history, is_generate: bool) -> str:
                 "لا تحية، ولا تعريف بنفسك. ابدأ بالمُخرَج مباشرةً.")
     if not valid:
         return ("\n\n🕐 حالة المحادثة: هذه **أول رسالة**. رحّب بسطر واحد قصير ثم أجب.")
-    turns = max(1, len(valid) // 2)
-    return (f"\n\n🕐 حالة المحادثة: هذه **متابعة** (سبقها نحو {turns} تبادلاً). "
-            "لا تحية، ولا تعريف، ولا إعادة لما قلته سابقاً — أكمل من حيث توقفت.")
+    turns = _turns_label(max(1, len(valid) // 2))
+    # 🧭 **و«نفّذ آخر طلبٍ وحده» تُقال هنا أيضاً لا في البرومبت وحده**
+    #    (شكوى المالك 2026-09-14: سأله عن «ترجيح العطف» بعد «ترجيح المعية»
+    #    فأعاد شرح المعية ثم العطف). فما يُلحق بآخر رسالةٍ يُمتثَل له أكثرُ
+    #    من قاعدةٍ في رأس برومبتٍ طويل — وهذا هو مَوضعُ هذه الجملة بالضبط.
+    return (f"\n\n🕐 حالة المحادثة: هذه **متابعة** (سبقها {turns}). "
+            "لا تحية، ولا تعريف، ولا إعادة لما قلته سابقاً — أكمل من حيث توقفت.\n"
+            "⚠️ ونفّذ **آخر طلبٍ للأستاذ وحده**: الرسائل التي قبله نُفّذت "
+            "وردودُها قائمةٌ في المحادثة، فلا تُعِدها ولا تُمهّد بها.")
 
 
 def build_system(tool: str, is_generate: bool, subject, grade, track,
-                 unit, lesson, text, chat_history=None) -> str:
-    """الطبقات الثلاث بترتيبها: المشترك ← برومبت الأداة ← بطاقة الدرس ← الدور.
+                 unit, lesson, text, chat_history=None,
+                 prompt_override: str = None) -> str:
+    """الطبقات بترتيبها: المشترك ← برومبت الأداة ← **رسّام المادة** ← البطاقة ← الدور.
 
     ⚠️ **الترتيب مقصود**: برومبت اللوحة يأتي قبل البطاقة وقبل حالة الدور، فلا
     يستطيع سطرٌ فيه أن يُبطل قواعد الصدق والتقيّد بالدرس التي تسبقه في
     SYSTEM_CORE. (الدرس المستفاد من قسم المنح: تعليماتٌ «تعلو على ما سبق»
     تفتح ثغرةً في منع الاختراع — فلم نمنحها تلك المرتبة هنا أصلاً.)
+
+    🔴 **ورسّامُ المادة كان غائباً كلَّه** (شكوى المالك 2026-09-13: «قسم المعلم
+       نفس المحادثة بالضبط، نفس الرسّام»). `SYSTEM_CORE` فيه قاعدةُ كسورٍ
+       **مكتوبةٌ بيدها** لا تعرف المادة، فلا حلقاتِ كيمياء ولا صيغَ بنائية
+       ولا معادلاتِ تفاعل. وقيسَ حيّاً: خطةُ درس «قواعد تسمية مشتقات البنزين»
+       — ونصُّه فيه ٤٧ ترميزَ حلقة — عادت بلا رسمةٍ واحدة، بينما الطالبُ
+       يرى الحلقاتِ مرسومةً في شرح الدرس نفسه.
+       فتُلحق `render_rules(subject)` هنا: **مصدرٌ واحد** مع قسم التعليم
+       والاختبار، فما يُضاف لمادةٍ غداً يصل المعلّمَ بلا لمسِ هذا الملف.
+
+    ⚠️ و`prompt_override` لتجربة اللوحة: تبني **نفس** النصّ بمسودّةٍ غير
+       محفوظة، فلا يبقى في `try_prompt` تجميعٌ ثانٍ يتخلّف عن هذا.
     """
     kind = "generate" if is_generate else "chat"
-    parts = [tp.SYSTEM_CORE, get_prompt(tool, kind)]
+    draft = prompt_override if prompt_override is not None else get_prompt(tool, kind)
+    parts = [tp.SYSTEM_CORE, draft, render_rules(subject)]
     if text:
         parts.append(_context_card(subject, grade, track, unit, lesson, text))
     else:
@@ -293,7 +326,12 @@ def build_system(tool: str, is_generate: bool, subject, grade, track,
 
 
 def build_history(chat_history) -> list:
-    """آخر `HISTORY_LAST_N` رسالة، كلٌّ مقصوصة — نفس سياسة بقية المشروع."""
+    """آخر `HISTORY_LAST_N` رسالة — **كلٌّ كاملةً**، نفس سياسة بقية المشروع.
+
+    🔄 `HISTORY_MAX_CHARS` صار جدارَ إساءةٍ لا حدَّ محتوى (قرار المالك
+       2026-09-14): خطةُ درسٍ كاملة تبلغ ٦ آلاف حرف، والقصُّ عند ٢٠٠٠ كان
+       يُنسي الموديلَ ما أنتجه بنفسه فيعيد بناءه من الصفر عند أول متابعة.
+    """
     out = []
     for m in (chat_history or []):
         if not isinstance(m, dict):
@@ -364,16 +402,24 @@ _SYMBOLS = {
 }
 
 
-def clean_math(text: str) -> str:
-    """يزيل ما لا يرسمه التطبيق ويُبقي `\\frac{}{}` وحده.
+def clean_math(text: str, subject: str = "") -> str:
+    """يزيل ما لا يرسمه التطبيق، **ويمرّ بلمسات الرسّام كقسم التعليم**.
+
+    🔴 **وكان ينقصه الرسّام** (شكوى المالك 2026-09-13: «في كل مكان»):
+       قسمُ المعلّم يقرأ **نفس دروس الطالب** — كيمياءَ وفيزياءَ ورياضيات —
+       فخطةُ درسٍ في الكيمياء كانت تصل بلا خفضِ دليلٍ (H2SO4 لا H₂SO₄)
+       ولا جذرٍ ولا أُسٍّ مرسوم، بينما الطالبُ يراها مرسومةً في الشرح.
+
+    📐 **وبلا سحقِ المسافات**: مخرجاتُ المعلّم بنيوية (خطةٌ بتسعة أقسام ·
+       جدولُ مواصفات · مفتاحُ تصحيح)، والمسافةُ البادئة فيها بنيةٌ لا زينة —
+       ولهذا لا تُستعمل `format_arabic_math` هنا. والحدود `\\(` و`\\)`
+       ظهرت فعلاً على الشاشة في أول تجربة حيّة.
 
     ⚠️ **لماذا نسخة خاصة بدل `format_arabic_math` المستعملة في قسم التعليم؟**
        تلك تنتهي بـ`re.sub(r"[ \t]+", " ")` — وهو يسحق المسافات البادئة،
        فتنهار قوائم Markdown المتداخلة والجداول. ومخرجات المعلم **بنيوية**
        (خطة بتسعة أقسام · جدول مواصفات · مفتاح تصحيح)، فالفرق ليس تجميلياً.
 
-    والحدود `\\(` و`\\)` ظهرت فعلاً على الشاشة في أول تجربة حيّة:
-    «باستخدام الصيغة \\( … \\)» — الكسر رُسم والحدّان بقيا نصّاً.
     """
     if not text:
         return ""
@@ -383,7 +429,8 @@ def clean_math(text: str) -> str:
         out = out.replace(cmd, sym)
     # مسافة مزدوجة قد تبقى مكان الحدّ المحذوف — تُطوى بلا لمس بداية السطر.
     out = re.sub(r"(?<=\S)[ \t]{2,}", " ", out)
-    return out
+    # 🖌️ ثم لمساتُ الرسّام نفسُها التي يمرّ بها جوابُ الطالب.
+    return render_finish(out, subject, collapse_spaces=False)
 
 
 # ══════════════════════════════════════════════════
@@ -449,6 +496,10 @@ async def ask(req, clients: dict) -> dict:
         if not question:
             raise TeacherError("اكتب سؤالك أو أرفق صورة 😊")
         user_message = question
+    # 🖌️ وتذكيرٌ بعددِ رسوم الدرس — آخرُ ما يقرؤه الموديل. القاعدةُ في
+    #    البرومبت لا تكفي وحدها: مَن يبني خطةً يستخلص المعنى فيطوي الرسوم،
+    #    تماماً كما كان يفعل المُلخِّصُ وواضعُ الأسئلة ([common.draw_reminder]).
+    user_message += draw_reminder(text)
 
     system = build_system(tool, is_generate, subject, req.grade, req.track,
                           unit, lesson_in, text, req.chat_history)
@@ -473,7 +524,7 @@ async def ask(req, clients: dict) -> dict:
         print(f"⚠️ خطأ في مساعد المعلم: {e}")
         answer = "⚠️ تعذّر توليد الرد. حاول مرة ثانية بعد قليل."
 
-    answer = clean_math(answer)
+    answer = clean_math(answer, subject)
     refs = []
     if lesson_in:
         refs = [f"{unit} › {lesson_in}".strip(" ›")]
@@ -499,11 +550,11 @@ async def try_prompt(tool: str, kind: str, prompt_text: str, question: str,
 
     draft = (prompt_text or "").strip() or tp.default_prompt(tool, kind)
     is_generate = kind == "generate"
-    parts = [tp.SYSTEM_CORE, draft]
-    if text:
-        parts.append(_context_card(subject, grade, track, unit, lesson, text))
-    parts.append(turn_state(None, is_generate))
-    system = "\n\n".join(p for p in parts if p)
+    # ⚖️ **نفس المُجمِّع لا نسخةٌ ثانية**: وعدُ هذه الأداة أن ترى اللوحةُ «ما
+    #    سيراه المعلّم حرفياً»، وتجميعٌ موازٍ هنا كان سيخلف الوعد أولَ ما
+    #    يُضاف سطرٌ هناك — وقد حدث فعلاً مع قواعد الرسّام.
+    system = build_system(tool, is_generate, subject, grade, track,
+                          unit, lesson, text, None, prompt_override=draft)
 
     client_key, model_name = model_route(subject or "احياء")
     client = clients.get(client_key) or clients["gemini"]
@@ -513,13 +564,16 @@ async def try_prompt(tool: str, kind: str, prompt_text: str, question: str,
             client.chat.completions.create(
                 model=model_name,
                 messages=[{"role": "system", "content": system},
-                          {"role": "user", "content": (question or "").strip()[:MAX_QUESTION_CHARS]}],
+                          {"role": "user",
+                           "content": (question or "").strip()[:MAX_QUESTION_CHARS]
+                                      + draw_reminder(text)}],
                 max_tokens=_MAX_TOKENS, temperature=0.3,
             ),
             timeout=_AI_TIMEOUT,
         )
         # نفس التنظيف: اللوحة يجب أن ترى **ما سيراه المعلّم حرفياً**.
-        return {"answer": clean_math(response.choices[0].message.content), "ok": True}
+        return {"answer": clean_math(response.choices[0].message.content, subject),
+                "ok": True}
     except asyncio.TimeoutError:
         return {"answer": "⚠️ انتهت المهلة — الخوادم مشغولة.", "ok": False}
     except Exception as e:

@@ -239,7 +239,11 @@ def build_system(sch: dict, admin_prompt: str = "", chat_history=None) -> str:
 # ══════════════════════════════════════════════════
 
 def build_history(chat_history) -> list:
-    """آخر HISTORY_LAST_N رسالة مقصوصة — مصدر الرقم واحد ([27§6])."""
+    """آخر HISTORY_LAST_N رسالة **كاملةً** — مصدر الرقم واحد ([27§6]).
+
+    🔄 والسقفُ صار دفاعياً لا وظيفياً (قرار المالك 2026-09-14) — راجع
+       `config.HISTORY_MAX_CHARS`.
+    """
     if not chat_history:
         return []
     out = []

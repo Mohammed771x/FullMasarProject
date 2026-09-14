@@ -235,13 +235,18 @@ class _Block {
   String get text => lines.join('\n');
 }
 
-/// هل في كتلة الجدول ترميزٌ يعجز عنه الماركداون؟
+/// هل في النصّ جدولٌ أصلاً؟ — فحصٌ رخيص قبل أي تقسيم.
 ///
-/// ⚖️ **وإلّا فالماركداون أولى**: هو يرسم الجداول أصلاً وأجمل، فلا
-///    نعترضها إلا حين تحمل خليّةٌ ما لا يعرفه — كسراً أو رمزَ نواة أو
-///    معادلةَ تفاعل.
-bool _tableNeedsUs(List<String> rows) => rows.any((r) =>
-    _needsMath(r) || RegExp(r'--+>|<--+|⇌|⟶|⟵|→|←|->').hasMatch(r));
+/// 🔴 **بلا هذا الفحص لا يصل الجدولُ إلينا**: `build` يخرج مبكراً إلى
+///    `MarkdownBody` حين لا كسورَ ولا معادلات — وجدولُ المقارنة في درس
+///    التاريخ ليس فيه واحدةٌ منهما.
+bool _hasTable(String text) {
+  final lines = text.split('\n');
+  for (var i = 0; i + 1 < lines.length; i++) {
+    if (isTableRow(lines[i]) && isTableRow(lines[i + 1])) return true;
+  }
+  return false;
+}
 
 List<_Block> _split(String data, {bool equations = true}) {
   final lines = data.split('\n');
@@ -264,7 +269,14 @@ List<_Block> _split(String data, {bool equations = true}) {
         end++;
       }
       final rows = lines.sublist(i, end + 1);
-      if (rows.length >= 2 && _tableNeedsUs(rows)) {
+      // ⚖️ **وكلُّ جدولٍ يمرّ بنا الآن، لا الجداولُ الرياضية وحدها**
+      //    (شكوى المالك 2026-09-13: «الجدول في الجوال متداخل والحروف
+      //    مقصّصة»). كان جدولُ المقارنة العاديّ يذهب إلى `Table` الذي
+      //    يرسمه الماركداون: أعمدةٌ متساوية بلا حدٍّ أدنى، فأربعةُ أعمدةٍ
+      //    على شاشة ٤٠٢ نقطة = تسعون نقطةً للعمود، والكلمةُ العربية
+      //    تُكسر في وسطها. ومسارانِ للجدول يعني شكلين لا يفهم الطالبُ
+      //    لماذا اختلفا — فصار المسارُ واحداً ومسؤولاً.
+      if (rows.length >= 2) {
         flush();
         blocks.add(_Block(_Kind.table, rows));
         i = end + 1;
@@ -369,7 +381,8 @@ class MasarMarkdown extends StatelessWidget {
     final prepared = math ? _prepare(data) : data;
     // 🛡️ لا كسور ولا معادلات (أو الرسّام مُطفأ) ⇒ لا تغيير عن السلوك السابق.
     final wantsEquations = _drawsChemistry && _hasEquation(prepared);
-    if (!math || (!_needsMath(prepared) && !wantsEquations)) {
+    final wantsTable = _hasTable(prepared);
+    if (!math || (!_needsMath(prepared) && !wantsEquations && !wantsTable)) {
       return MarkdownBody(
         // ⚠️ `prepared` لا `data`: الحارس يجب أن يمرّ حتى على النصّ الخالي
         //    من الكسور — وهو بالضبط حيث ظهرت «int» (شرحُ تكاملٍ بلا `\frac`).
@@ -390,7 +403,8 @@ class MasarMarkdown extends StatelessWidget {
       children: [
         for (final block in _split(prepared, equations: _drawsChemistry))
           if (block.kind == _Kind.table)
-            MasarTable(block.lines, style: base, latinSign: _latinSign)
+            MasarTable(block.lines,
+                style: base, latinSign: _latinSign, math: math)
           else if (block.kind == _Kind.equation)
             ChemEquation(block.text, label: block.label, style: base)
           else if (block.kind == _Kind.math)
@@ -419,17 +433,30 @@ class MasarMarkdown extends StatelessWidget {
   }
 }
 
-/// 📊 **جدولُ مقارنةٍ فيه معادلات** — يرسمه التطبيق لا الماركداون.
+double _atLeastZero(double v) => v > 0 ? v : 0;
+
+/// 📊 **جدولُ المحتوى — يرسمه التطبيق لا الماركداون.**
 ///
-/// 🔴 **علّةُ المالك (2026-09-12):** الموديل يضع معادلة التحول النووي في
-///    عمودٍ من جدول، فيُخطف الصفُّ كلُّه إلى صندوق المعادلة فتظهر أعمدتُه
-///    «|» وشرطاتُه للطالب وينهار الجدول.
+/// 🔴 **علّتان اجتمعتا:**
+///  ① (2026-09-12) الموديل يضع معادلة التحول النووي في عمودٍ من جدول،
+///     فيُخطف الصفُّ كلُّه إلى صندوق المعادلة فتظهر أعمدتُه «|» للطالب.
+///  ② (2026-09-13) **«الجدول في الجوال متداخل والحروف مقصّصة، مستحيل
+///     يفهمه الطالب».** وهي العلّة الأكبر: `Table` الذي يرسمه الماركداون
+///     يقسّم العرض بالتساوي بلا حدٍّ أدنى، فأربعةُ أعمدةٍ على شاشة ٤٠٢
+///     نقطة تعطي ٩٠ نقطةً للعمود — وكلمةُ «الكهربائي» وحدها أعرضُ من ذلك،
+///     فتُكسر في وسطها حرفاً حرفاً.
 ///
-/// ⚖️ **ولا يُعترض إلا حين يلزم**: الماركداون يرسم الجداول أصلاً وأجمل،
-///    فلا نأخذها منه إلا إذا حملت خليّةٌ ترميزاً لا يعرفه.
+/// ⚖️ **والحلُّ ليس تمريراً أفقياً**: جُرّب فأخفى نصفَ الجدول خلف الحافّة
+///    بلا ما يدلّ الطالبَ أن هناك بقيّة. الحلُّ أن **يقيس الجدولُ نفسه**:
+///
+///    • يتّسع بلا كسرِ كلمة  ⇒ **شبكةٌ** بأعمدةٍ متناسبة مع محتواها
+///      (لا متساوية: «الخاصية» لا تحتاج عرضَ «موصلة جيدة للتيار»).
+///    • لا يتّسع            ⇒ **بطاقةٌ لكل صف**: عنوانُ الصفّ في رأسها،
+///      ثم «الترويسة: القيمة» سطراً سطراً. تُقرأ بلا كسرٍ ولا تمرير،
+///      ويبقى المعنى كاملاً — وهو ما تفعله المواقعُ الجادّة في جداولها.
 class MasarTable extends StatelessWidget {
   const MasarTable(this.rows,
-      {super.key, this.style, this.latinSign = false});
+      {super.key, this.style, this.latinSign = false, this.math = true});
 
   final List<String> rows;
   final TextStyle? style;
@@ -437,47 +464,184 @@ class MasarTable extends StatelessWidget {
   /// ➖ إشارةُ العدد اللاتينيّ يسارَه — الكيمياء وحدها ([MasarMarkdown]).
   final bool latinSign;
 
+  /// هل تُرسم الخلايا برسّام الرياضيات؟ (`false` في سياقٍ بلا رياضيات).
+  final bool math;
+
   /// خليّةٌ واحدة: معادلةً إن كانت معادلة، وإلا نصّاً برسّام الرياضيات.
   ///
   /// 🔴 **وبغير هذا يظهر السهم `-->` نصّاً مقلوباً `<-`** داخل الخليّة:
   ///    رسّامُ الرياضيات لا يعرف الأسهم، وهي شأنُ [ChemEquation].
-  Widget _cell(String text, TextStyle style) {
+  Widget _cell(String text, TextStyle style, {TextAlign? align}) {
+    if (!math) {
+      return Text(text, style: style, textAlign: align);
+    }
     final eq = readEquation(text);
     if (eq != null) {
       return ChemEquation(eq.equation, style: style, dense: true);
     }
-    return MathOrText(text, style: style, latinSign: latinSign);
+    return MathOrText(text, style: style, latinSign: latinSign, textAlign: align);
+  }
+
+  /// 📏 **تقريبُ ما سيُرسم، لا ما كُتب**: الخليّة التي فيها
+  /// `\frac{٢س + ٣}{س - ١}` تُرسم بسطاً فوق مقام بعرضِ أطولهما — أما
+  /// قياسُ الترميز حرفياً فيعطي ضعفَ العرض تقريباً، فيأخذ العمودُ حصّةً
+  /// لا يحتاجها ويضيق جارُه بلا سبب.
+  static final RegExp _innerFrac =
+      RegExp(r'\\frac\{([^{}]*)\}\{([^{}]*)\}');
+  static final RegExp _innerCmd = RegExp(r'\\[a-zA-Z]+\{([^{}]*)\}');
+
+  static String _asDrawn(String text) {
+    var out = text;
+    for (var i = 0; i < 4; i++) {
+      final before = out;
+      out = out.replaceAllMapped(_innerFrac, (m) {
+        final a = m[1] ?? '';
+        final b = m[2] ?? '';
+        return a.length >= b.length ? a : b;      // البسط أو المقام، أطولُهما
+      });
+      out = out.replaceAllMapped(_innerCmd, (m) => m[1] ?? '');
+      if (out == before) break;
+    }
+    return out;
+  }
+
+  /// عرضُ النصّ لو كُتب في سطرٍ واحد، وعرضُ أطولِ كلمةٍ فيه.
+  ///
+  /// ⚠️ **أطولُ كلمةٍ هي الحدُّ الذي لا يُنزل تحته**: العربية لا تُوصَل
+  ///    بشرطة، فالعمودُ الأضيقُ من كلمته يكسرها في وسطها — وهو عينُ
+  ///    «الحروف مقصّصة».
+  static (double, double) _measure(
+      String text, TextStyle style, TextScaler scaler) {
+    final painter =
+        TextPainter(textDirection: TextDirection.rtl, textScaler: scaler);
+    double widthOf(String t) {
+      painter.text = TextSpan(text: t, style: style);
+      painter.layout();
+      return painter.width;
+    }
+
+    // ⚠️ **هامشُ أمانٍ نصفُ حرف**: قياسُ `TextPainter` قد يقلّ عن التخطيط
+    //    الفعليّ بكسرِ نقطة (تشكيلُ الحروف وتقريبُ الأعداد)، وكسرُ النقطة
+    //    يكفي لأن تنزل آخرُ حرفٍ سطراً — وهو عينُ «الحروف مقصّصة».
+    final guard = (style.fontSize ?? 16) * 0.12 + 1;
+    final drawn = _asDrawn(text);
+    final full = widthOf(drawn) + guard;
+    var longest = 0.0;
+    for (final word in drawn.split(RegExp(r'\s+'))) {
+      if (word.isEmpty) continue;
+      final w = widthOf(word);
+      if (w > longest) longest = w;
+    }
+    painter.dispose();
+    return (full, longest + guard);
   }
 
   @override
   Widget build(BuildContext context) {
     final base = style ?? DefaultTextStyle.of(context).style;
+    final head = base.copyWith(fontWeight: FontWeight.w700);
     final body = [for (final r in rows) if (!isTableDivider(r)) splitRow(r)];
     if (body.isEmpty) return const SizedBox.shrink();
-    final columns =
-        body.map((r) => r.length).reduce((a, b) => a > b ? a : b);
+    final columns = body.map((r) => r.length).reduce((a, b) => a > b ? a : b);
+    if (columns < 2) return const SizedBox.shrink();
+
+    String at(int r, int c) => c < body[r].length ? body[r][c] : '';
+
+    // 🔤 مُكبِّرُ الخطّ من إعدادات النظام — بغيره يُقاس الجدولُ بحجمٍ
+    //    غيرِ الذي يُرسم به، فتنكسر الكلماتُ عند من كبّر خطَّ جهازه.
+    final scaler = MediaQuery.textScalerOf(context);
+
+    // 📏 قياسُ كل عمود: ما يحتاجه في سطرٍ واحد، وما لا يُنزل تحته.
+    final want = List<double>.filled(columns, 0);
+    final floor = List<double>.filled(columns, 0);
+    for (var c = 0; c < columns; c++) {
+      for (var r = 0; r < body.length; r++) {
+        final (full, longest) =
+            _measure(at(r, c), r == 0 ? head : base, scaler);
+        if (full > want[c]) want[c] = full;
+        if (longest > floor[c]) floor[c] = longest;
+      }
+    }
+
+    return LayoutBuilder(builder: (context, box) {
+      // 🔴 **الحسابُ على عرضِ المحتوى لا على عرضِ الخليّة**: الخطأ الأول
+      //    كان أن يُعطى العمودُ عرضاً يساوي أرضيّته ثم تُقتطع منه الحشوةُ
+      //    والحدّ — فينزل المحتوى تحت الأرضيّة وتنكسر الكلمة رغم الحساب.
+      const pad = 10.0;
+      final gutters = columns * pad * 2 + (columns - 1) + 2;
+      final avail = box.maxWidth - gutters;
+
+      // ① شرطٌ لا يُتجاوز: كلُّ عمودٍ يسع **أطولَ كلمةٍ** فيه. وإلا كُسرت
+      //    الكلمةُ في وسطها — وهي شكوى المالك حرفاً بحرف.
+      final needFloor = floor.fold(0.0, (a, b) => a + b);
+      if (avail <= 0 || needFloor > avail) {
+        return _cards(context, body, columns, base, head);
+      }
+
+      // توزيعٌ متناسب مع الحاجة، ثم رفعُ كل عمودٍ إلى أرضيّته، ثم خصمُ
+      // الزيادة من أصحاب الفائض وحدهم — والمجموعُ يساوي المتاح تماماً
+      // فلا تبقى فجوةٌ بيضاء على الحافّة.
+      final wantTotal = want.fold(0.0, (a, b) => a + b);
+      final widths = List<double>.generate(columns,
+          (c) => wantTotal <= 0 ? avail / columns : avail * want[c] / wantTotal);
+      for (var c = 0; c < columns; c++) {
+        if (widths[c] < floor[c]) widths[c] = floor[c];
+      }
+      var over = widths.fold(0.0, (a, b) => a + b) - avail;
+      if (over > 0) {
+        var slack = 0.0;
+        for (var c = 0; c < columns; c++) {
+          slack += _atLeastZero(widths[c] - floor[c]);
+        }
+        if (slack > 0) {
+          for (var c = 0; c < columns; c++) {
+            widths[c] -= over * (_atLeastZero(widths[c] - floor[c]) / slack);
+          }
+        }
+      } else if (over < 0) {
+        // فائضٌ يُوزَّع بالتناسب كي يملأ الجدولُ عرضَ الشاشة.
+        for (var c = 0; c < columns; c++) {
+          widths[c] += (-over) *
+              (wantTotal <= 0 ? 1 / columns : want[c] / wantTotal);
+        }
+      }
+      // ② وشرطُ جودةٍ بعد القياس: عمودٌ يلتفّ محتواه إلى أكثر من أربعة
+      //    أسطر يجعل الصفَّ برجاً من الكلمات المفردة — يُقرأ بالعين لا
+      //    بالمعنى. عندها البطاقةُ أصدق. (ولهذا لا نحكم بعدد الأعمدة:
+      //    خمسةُ أعمدةٍ أرقامُها قصيرة تُقرأ، وثلاثةٌ فقراتُها طويلة لا.)
+      var worst = 1;
+      for (var c = 0; c < columns; c++) {
+        if (widths[c] <= 0) continue;
+        final lines = (want[c] / widths[c]).ceil();
+        if (lines > worst) worst = lines;
+      }
+      if (worst > 4) return _cards(context, body, columns, base, head);
+      return _grid(context, body, columns, widths, pad, base, head);
+    });
+  }
+
+  // ══════════════ شبكة: أعمدةٌ متناسبة مع محتواها ══════════════
+  Widget _grid(BuildContext context, List<List<String>> body, int columns,
+      List<double> widths, double pad, TextStyle base, TextStyle head) {
     final line = Theme.of(context).colorScheme.outlineVariant;
-    final head = Theme.of(context)
+    final headBg = Theme.of(context)
         .colorScheme
         .surfaceContainerHighest
         .withValues(alpha: 0.45);
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         border: Border.all(color: line),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
       ),
       clipBehavior: Clip.antiAlias,
-      // ⚖️ **يملأ العرض ولا يمرّر أفقياً**: التمريرُ الأفقيّ كان يُخفي
-      //    عمودَ المعادلة كلَّه خلف حافّة الشاشة — والعمودُ هو المقصود.
-      //    فالأعمدةُ تتقاسم العرض ويلتفّ ما طال منها.
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           for (var r = 0; r < body.length; r++)
             Container(
-              color: r == 0 ? head : null,
+              color: r == 0 ? headBg : null,
               child: IntrinsicHeight(
                 child: Row(
                   // 🧭 عربيٌّ: أولُ عمودٍ إلى اليمين.
@@ -485,10 +649,11 @@ class MasarTable extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     for (var c = 0; c < columns; c++)
-                      Expanded(
+                      SizedBox(
+                        width: widths[c] + pad * 2,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 6),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: pad, vertical: 8),
                           decoration: BoxDecoration(
                             border: Border(
                               left: c == columns - 1
@@ -502,11 +667,8 @@ class MasarTable extends StatelessWidget {
                           child: Align(
                             alignment: AlignmentDirectional.centerStart,
                             child: _cell(
-                              c < body[r].length ? body[r][c] : '',
-                              r == 0
-                                  ? base.copyWith(fontWeight: FontWeight.w700)
-                                  : base,
-                            ),
+                                c < body[r].length ? body[r][c] : '',
+                                r == 0 ? head : base),
                           ),
                         ),
                       ),
@@ -516,6 +678,89 @@ class MasarTable extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  // ══════════════ بطاقات: صفٌّ = بطاقة، لا كسرَ ولا تمرير ══════════════
+  //
+  // ⚖️ **لماذا البطاقة لا التمرير؟** الطالبُ يقرأ على شاشةٍ بعرض إبهامه،
+  //    والمقارنةُ التي لا تُقرأ لا قيمة لها. البطاقةُ تحفظ **المعنى**
+  //    كاملاً (كلُّ قيمةٍ منسوبةٌ إلى ترويستها بالاسم) وتخسر **الشكل**
+  //    الشبكيّ وحده — وهي مقايضةٌ رابحة بلا تردّد.
+  Widget _cards(BuildContext context, List<List<String>> body, int columns,
+      TextStyle base, TextStyle head) {
+    final scheme = Theme.of(context).colorScheme;
+    final line = scheme.outlineVariant;
+    final headers = body.first;
+    final label = base.copyWith(
+        fontWeight: FontWeight.w700,
+        fontSize: (base.fontSize ?? 16) - 1.5,
+        color: scheme.primary);
+
+    String header(int c) => c < headers.length ? headers[c].trim() : '';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var r = 1; r < body.length; r++)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: line),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 🏷️ رأسُ البطاقة = الخليّة الأولى (وهي عنوانُ الصفّ عادةً)،
+                //    ومعها ترويستُها فوقها صغيرةً كي لا يضيع معناها.
+                Container(
+                  width: double.infinity,
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (header(0).isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Text(header(0), style: label),
+                        ),
+                      _cell(body[r].isNotEmpty ? body[r][0] : '', head),
+                    ],
+                  ),
+                ),
+                for (var c = 1; c < columns; c++)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: line.withValues(alpha: 0.6)),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (header(c).isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 3),
+                            child: Text(header(c), style: label),
+                          ),
+                        _cell(c < body[r].length ? body[r][c] : '—', base),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

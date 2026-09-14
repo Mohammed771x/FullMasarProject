@@ -337,8 +337,17 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: AppColors.bubbleShadow,
               ),
-              child: Text(
-                "اختر دروسك وسأجهّز لك أسئلة **من الدرس نفسه** — سهلة ثم أصعب.",
+              // 🔴 كان هنا نصٌّ واحد فيه `**…**` داخل `Text` عادي، فكان
+              //    الطالب يقرأ النجمتين كما هما على الشاشة (رُصد في المحاكي
+              //    2026-09-13). والنصُّ ثابتٌ من عندنا، فأصدقُ علاجٍ أن
+              //    يُكتب التوكيدُ توكيداً لا ترميزاً.
+              child: Text.rich(
+                TextSpan(children: const [
+                  TextSpan(text: "اختر دروسك وسأجهّز لك أسئلة "),
+                  TextSpan(text: "من الدرس نفسه",
+                      style: TextStyle(fontWeight: FontWeight.w900)),
+                  TextSpan(text: " — سهلة ثم أصعب."),
+                ]),
                 style: TextStyle(
                     fontSize: 12.5, height: 1.6,
                     fontWeight: FontWeight.w600, color: AppColors.textPrimary),
