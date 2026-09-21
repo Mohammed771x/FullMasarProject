@@ -6,12 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../future_masar/presentation/widgets/demo_widgets.dart';
+import '../../../core/widgets/phosphor.dart';
 import '../data/models/scholarship.dart';
-import '../data/scholarship_chat_storage.dart';
 import '../data/scholarship_repository.dart';
-import '../../../core/session/user_session.dart';
 import 'scholarship_chat_screen.dart';
+import 'widgets/scholarship_ui.dart';
 
 // ==========================================
 // 🏆 تفاصيل المنحة
@@ -23,6 +22,14 @@ import 'scholarship_chat_screen.dart';
 //   • **شريط عدّاد** أعلى: باقٍ كذا يوماً · نوع التمويل · المراحل.
 //   • **زر الموقع الرسمي** — التقديم يتم هناك، وإخفاؤه يقطع الرحلة.
 //   • **زر المساعد يعرض عدد محادثاتك السابقة** فيعرف الطالب أن له سجلاً.
+//
+// 🎨 **إعادة التصميم (2026-09-21):** من `design/06-scholarships/02·03·04`.
+//    رأسٌ ممتدٌّ 165 بزاويتين سفليتين، زرّان 40/r14، عنوانٌ 16/w900، ثم
+//    شريطُ وسومٍ 26، ثم **شرائحُ التبويب** 36/r18 بدل `TabBar`، ثم أقسامٌ
+//    على سطحٍ باهت `#D9EFFF` بحبر `#15294B`، وشريطٌ سفليٌّ بزرّين 46/r16.
+//
+// ⚠️ **التبويبُ صار مؤشّراً لا `TabController`** — تغييرُ عرضٍ محض: نفسُ
+//    [_tabs] ونفسُ [_tabBody] ونفسُ الشروط التي تُخفي التبويبَ الفارغ.
 class ScholarshipDetailScreen extends StatefulWidget {
   final Scholarship scholarship;
   const ScholarshipDetailScreen({super.key, required this.scholarship});
@@ -36,6 +43,8 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
 
   /// 🖼️ بايتات الغلاف — تُجلب **عند فتح هذه الشاشة وحدها**، لا مع القائمة.
   Uint8List? _cover;
+
+  int _tab = 0;
 
   @override
   void initState() {
@@ -73,72 +82,90 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
   Widget build(BuildContext context) {
     final s = scholarship;
     final tabs = _tabs();
-    return DefaultTabController(
-      length: tabs.length,
-      child: Scaffold(
-        backgroundColor: AppColors.bgLight,
-        body: Column(
-          children: [
-            _header(context, s),
-            _summaryStrip(s),
-            _tabBar(tabs),
-            Expanded(
-              child: TabBarView(
-                children: tabs.map((t) => _tabBody(context, s, t.kind)).toList(),
-              ),
-            ),
-            _bottomBar(context, s),
-          ],
-        ),
+    final index = _tab.clamp(0, tabs.length - 1);
+    return Scaffold(
+      backgroundColor: AppColors.bgLight,
+      body: Column(
+        children: [
+          _header(context, s),
+          const SizedBox(height: 14),
+          _summaryStrip(s),
+          const SizedBox(height: 16),
+          _tabBar(tabs, index),
+          const SizedBox(height: 18),
+          Expanded(child: _tabBody(context, s, tabs[index].kind)),
+          _bottomBar(context, s),
+        ],
       ),
     );
   }
 
   // ══════════════ الرأس ══════════════
 
+  /// 📐 مقيسٌ من `02-المنح2`: الرأسُ يمتدّ من حافةٍ إلى حافة (بلا هامش)
+  ///    بارتفاع 165 وزاويتين سفليتين 24، وفيه زرّان 40/r14 في أعلاه
+  ///    (الرجوعُ يميناً والرابطُ الخارجيُّ يساراً)، ثم العنوانُ 16/w900
+  ///    والوصفُ 12/w600 محاذيين لليمين عند هامش 24.
   Widget _header(BuildContext context, Scholarship s) {
     final top = MediaQuery.of(context).padding.top;
-    final content = Column(
-      children: [
-        Row(
-          children: [
-            _iconBtn(context, Icons.arrow_back_rounded, () => Navigator.maybePop(context)),
-            const Spacer(),
-            if (s.website.isNotEmpty)
-              _iconBtn(context, Icons.open_in_new_rounded, () => _openSite(context, s)),
+
+    final content = Padding(
+      padding: EdgeInsets.fromLTRB(
+          SchMetrics.margin, top + 10, SchMetrics.margin, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SchSquareButton(
+                icon: PI.arrowRight,
+                onTap: () => Navigator.maybePop(context),
+                fill: Colors.white.withValues(alpha: 0.22),
+                ink: Colors.white,
+                border: false,
+                tooltip: "رجوع",
+              ),
+              const Spacer(),
+              if (s.website.isNotEmpty)
+                SchSquareButton(
+                  icon: PI.arrowSquareOut,
+                  onTap: () => _openSite(context, s),
+                  fill: Colors.white.withValues(alpha: 0.22),
+                  ink: Colors.white,
+                  border: false,
+                  tooltip: "الموقع الرسمي",
+                ),
+            ],
+          ),
+          const Spacer(),
+          // 🚫 لا شعار هنا: الغلاف **هو** هوية المنحة داخل شاشتها، وشعارٌ
+          //    فوقه يزاحمه ويقطع الصورة من نصفها. الشعار مكانه كرت القائمة
+          //    — قبل الدخول — حيث لا غلاف يعرّف بالمنحة.
+          Text(s.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
+          if (s.shortDesc.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(s.shortDesc,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 12,
+                    height: 1.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withValues(alpha: 0.92))),
           ],
-        ),
-        // 🚫 لا شعار هنا: الغلاف **هو** هوية المنحة داخل شاشتها، وشعارٌ
-        //    فوقه يزاحمه ويقطع الصورة من نصفها. الشعار مكانه كرت القائمة
-        //    — قبل الدخول — حيث لا غلاف يعرّف بالمنحة.
-        const SizedBox(height: 18),
-        Text(s.name,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                fontSize: 21, fontWeight: FontWeight.w900, color: Colors.white)),
-        if (s.shortDesc.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(s.shortDesc,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.9))),
         ],
-      ],
+      ),
     );
 
     final decoration = BoxDecoration(
       gradient: LinearGradient(
           colors: s.colors, begin: Alignment.topRight, end: Alignment.bottomLeft),
       borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
-      boxShadow: [
-        BoxShadow(
-            color: s.colors.last.withValues(alpha: 0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 10))
-      ],
+          bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
     );
 
     // الأولوية للغلاف المرفوع من اللوحة، ثم رابط خارجي، ثم الرأس المتدرّج.
@@ -151,108 +178,116 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
                 errorWidget: (_, _, _) => const SizedBox.shrink())
             : null);
 
-    if (background == null) {
-      return Container(
-        padding: EdgeInsets.only(top: top + 12, bottom: 18, left: 18, right: 18),
-        decoration: decoration,
-        child: content,
-      );
-    }
-
-    // 🖼️ غلاف حقيقي + طبقة داكنة تضمن قراءة الاسم مهما كانت الصورة فاتحة.
     return Container(
+      height: top + SchMetrics.heroHeight,
       decoration: decoration,
       clipBehavior: Clip.antiAlias,
       child: Stack(
-        fit: StackFit.passthrough,
+        fit: StackFit.expand,
         children: [
-          Positioned.fill(child: background),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.25),
-                    Colors.black.withValues(alpha: 0.62),
-                  ],
+          // 🏳️ ختمُ العلم الخافت في يمين الرأس — كما في التصدير.
+          if (background == null)
+            Positioned(
+              right: -10,
+              top: top + 6,
+              child: Opacity(
+                opacity: 0.18,
+                child: Text(s.badge, style: const TextStyle(fontSize: 128)),
+              ),
+            ),
+          if (background != null) ...[
+            Positioned.fill(child: background),
+            // 🖼️ طبقة داكنة تضمن قراءة الاسم مهما كانت الصورة فاتحة.
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.25),
+                      Colors.black.withValues(alpha: 0.62),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.only(top: top + 12, bottom: 18, left: 18, right: 18),
-            child: content,
-          ),
+          ],
+          content,
         ],
       ),
     );
   }
 
   /// شريط أرقام سريع تحت الرأس — ما يريد الطالب معرفته في ثانيتين.
+  ///
+  /// 📐 **ثلاثُ بطاقاتٍ تملأ السطر** (أمرُ المالك 2026-09-21: «خليها هذه
+  ///    المربعات تكون على ملء المكان، تكون واحد اثنين ثلاثة»): الحالة ·
+  ///    التمويل · المهلة، متساويةَ العرض بفجوة 8 من الهامش إلى الهامش —
+  ///    كما في `02-المنح2` حيث تمتدّ من x=54 إلى x=726.
+  ///
+  /// ⚠️ والمهلةُ **لا تغيب أبداً** وإلا صارتا اثنتين: منحةٌ مغلقةٌ تقول
+  ///    «انتهى التقديم» في المكان نفسه.
   Widget _summaryStrip(Scholarship s) {
     final days = s.daysLeft;
+    final deadline = switch (s.status) {
+      SchStatus.closed => "انتهى التقديم",
+      SchStatus.soon => "لم يُفتح بعد",
+      SchStatus.open => days == null
+          ? "بلا موعد إغلاق"
+          : days == 0
+              ? "آخر يوم للتقديم"
+              : "باقٍ $days يوماً",
+    };
+    final tags = <Widget>[
+      SchTag(
+          label: s.statusText,
+          icon: s.status == SchStatus.open ? PI.checkCircle : PI.clock,
+          fill: AppColors.schBlueFill,
+          ink: AppColors.schBlueInk,
+          center: true),
+      SchTag(
+          label: s.isFullyFunded ? "ممولة بالكامل" : "تمويل جزئي",
+          icon: PI.shieldCheck,
+          fill: AppColors.schGreenFill,
+          ink: AppColors.schGreenInk,
+          center: true),
+      SchTag(
+          label: deadline,
+          icon: PI.clock,
+          fill: AppColors.schRedFill,
+          ink: AppColors.schRedInk,
+          center: true),
+    ];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 2),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            InfoPill(s.statusIcon, s.statusText, color: s.statusColor),
-            const SizedBox(width: 8),
-            InfoPill(
-                Icons.workspace_premium_rounded,
-                s.isFullyFunded ? "ممولة بالكامل" : "تمويل جزئي",
-                color: s.colors.first),
-            if (days != null) ...[
-              const SizedBox(width: 8),
-              InfoPill(Icons.timer_outlined,
-                  days == 0 ? "آخر يوم للتقديم" : "باقٍ $days يوماً",
-                  color: days <= 7 ? Colors.redAccent : Colors.orange),
-            ],
-            if (s.degreeLevels.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              InfoPill(Icons.school_rounded, s.degreeLevels.join(" · "),
-                  color: AppColors.secondary),
-            ],
-            if (s.country.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              InfoPill(Icons.public_rounded, s.country),
-            ],
+      padding: const EdgeInsets.symmetric(horizontal: SchMetrics.margin),
+      child: Row(
+        children: [
+          for (var i = 0; i < tags.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(child: tags[i]),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _tabBar(List<_Tab> tabs) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-          color: AppColors.softSurface, borderRadius: BorderRadius.circular(16)),
-      child: TabBar(
-        // ⚠️ **غير قابل للتمرير عمداً.** الشريط القابل للتمرير كان يقصّ التبويب
-        //    الأول («نبذة») عند خمسة تبويبات مهما كانت المحاذاة. والعناوين هنا
-        //    كلها قصيرة، فالتوزيع المتساوي يسعها ولا يقصّ شيئاً.
-        isScrollable: false,
-        labelPadding: EdgeInsets.zero,
-        dividerColor: Colors.transparent,
-        // ⚠️ **إلزامي مع مؤشّر الحبّة:** Material 3 يجعل `indicatorSize`
-        //    افتراضياً `label`، فتُرسم الحبّة بعرض الكلمة لا بعرض التبويب —
-        //    فتظهر أضيق من النصّ ويبدو كأنه مقصوص. `tab` تملأ التبويب.
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicatorPadding: const EdgeInsets.symmetric(horizontal: 2),
-        indicator: BoxDecoration(
-            color: AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: AppColors.bubbleShadow),
-        labelColor: AppColors.primary,
-        unselectedLabelColor: AppColors.textSecondary,
-        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-        tabs: tabs.map((t) => Tab(height: 38, text: t.label)).toList(),
+  /// 🪄 **التبويبات شرائحُ لا شريط.** في التصدير خمسُ شرائح 36/r18، المختارةُ
+  ///    مملوءةٌ بلون الهوية والبقيّةُ بيضاءُ بحدٍّ رفيع — وهي تمرّ أفقياً
+  ///    فلا تُقصّ عند خمسة عناوين كما كان يفعل `TabBar`.
+  Widget _tabBar(List<_Tab> tabs, int index) {
+    return SizedBox(
+      height: SchMetrics.filterHeight,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: SchMetrics.margin),
+        itemCount: tabs.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 4),
+        itemBuilder: (_, i) => SchFilterChip(
+          label: tabs[i].label,
+          selected: i == index,
+          onTap: () => setState(() => _tab = i),
+        ),
       ),
     );
   }
@@ -264,111 +299,162 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
       case _TabKind.about:
         return _aboutTab(s);
       case _TabKind.requirements:
-        return _listTab(s.requirements, Icons.check_circle_rounded, Colors.green);
+        return _listTab(s.requirements, PI.checkCircle);
       case _TabKind.documents:
-        return _listTab(s.documents, Icons.description_rounded, AppColors.secondary);
+        return _listTab(s.documents, PI.fileText);
       case _TabKind.dates:
         return _datesTab(s);
       case _TabKind.apply:
-        return _listTab(s.howToApply, Icons.arrow_circle_left_rounded,
-            AppColors.primary,
+        return _listTab(s.howToApply, PI.listNumbers,
             numbered: true, footer: s.website.isEmpty ? null : _siteCard(context, s));
     }
   }
 
+  static const _pagePad = EdgeInsets.fromLTRB(
+      SchMetrics.margin, 0, SchMetrics.margin, 20);
+
   Widget _aboutTab(Scholarship s) {
+    // 📊 المعدّلُ المطلوب: من حقل اللوحة، وإلا فمن الشروط — وهو نفسُ
+    //    ما يقرؤه كرتُ القائمة حرفاً، فلا يختلف الرقمان أمام الطالب.
+    final gpa = gpaTextOf(s.minGpa, s.requirements);
+    final hasQuick =
+        s.degreeLevels.isNotEmpty || s.country.isNotEmpty || gpa != null;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+      padding: _pagePad,
       children: [
         if (s.about.isNotEmpty) ...[
-          const SectionHeader("نبذة عن المنحة"),
-          SoftCard(
+          const SchSectionTitle("نبذة عن المنحة"),
+          SchTintCard(
             child: Text(s.about,
                 style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     height: 1.9,
-                    color: AppColors.textSecondary,
+                    color: AppColors.schTintInk,
                     fontWeight: FontWeight.w600)),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 22),
+        ],
+        // 🆕 **المراحلُ والدولة** — بياناتٌ تملكها البطاقة ولم يرسم لها
+        //    المصمّم مكاناً، وخرجتا من الشريط العلويّ حين صار ثلاثَ
+        //    بطاقاتٍ بالضبط. فوُضعتا هنا بلغة الصفوف نفسِها.
+        if (hasQuick) ...[
+          if (s.degreeLevels.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _tintRow(
+                  PI.graduationCap, "المراحل: ${s.degreeLevels.join(" · ")}"),
+            ),
+          if (s.country.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(bottom: gpa == null ? 0 : 8),
+              child: _tintRow(PI.globe, "الدولة: ${s.country}"),
+            ),
+          if (gpa != null) _tintRow(PI.target, "المعدل المطلوب: $gpa"),
+          const SizedBox(height: 22),
         ],
         if (s.benefits.isNotEmpty) ...[
-          const SectionHeader("ماذا تشمل؟"),
+          const SchSectionTitle("ماذا تشمل؟"),
           ...s.benefits.map((b) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: SoftCard(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(children: [
-                    const Text("✨", style: TextStyle(fontSize: 18)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                        child: Text(b,
-                            style: TextStyle(
-                                fontSize: 13.5,
-                                height: 1.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary))),
-                  ]),
-                ),
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _tintRow(PI.sparkle, stripBullet(b)),
               )),
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
         ],
         if (s.fields.isNotEmpty) ...[
-          const SectionHeader("المجالات المتاحة"),
-          SoftCard(
+          // 🏷️ **«التخصصات المتاحة» لا «المجالات»** (أمرُ المالك
+          //    2026-09-21) — وهي التسميةُ التي تُستعمل في لوحة التحكم.
+          const SchSectionTitle("التخصصات المتاحة"),
+          SchTintCard(
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: s.fields
-                  .map((f) => InfoPill(Icons.category_rounded, f,
-                      color: AppColors.secondary))
-                  .toList(),
+              alignment: WrapAlignment.center,
+              children: s.fields.map((f) => _fieldPill(stripBullet(f))).toList(),
             ),
           ),
         ],
-        if (s.about.isEmpty && s.benefits.isEmpty && s.fields.isEmpty)
+        if (s.about.isEmpty &&
+            s.benefits.isEmpty &&
+            s.fields.isEmpty &&
+            !hasQuick)
           _placeholder("لم تُضف تفاصيل هذه المنحة بعد."),
       ],
     );
   }
 
-  Widget _listTab(List<String> items, IconData icon, Color color,
+  /// صفٌّ باهتٌ بأيقونةٍ ونصّ — لبنةُ «ماذا تشمل؟» والشروط والوثائق.
+  Widget _tintRow(PIcon icon, String text, {String? number}) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 50),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.schTint,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ⚠️ RTL: أوّلُ ابنٍ هو الأيمن — وهناك الأيقونة في التصدير.
+          if (number != null)
+            SizedBox(
+              width: 22,
+              child: Text(number,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.schBlueInk)),
+            )
+          else
+            Icon(icon.regular, size: 20, color: AppColors.schBlueInk),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(text,
+                style: TextStyle(
+                    fontSize: 13,
+                    height: 1.6,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.schTintInk)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fieldPill(String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceWhite,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.schTintInk),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(PI.stack.regular, size: 16, color: AppColors.schBlueInk),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.schTintInk)),
+            ),
+          ],
+        ),
+      );
+
+  Widget _listTab(List<String> items, PIcon icon,
       {bool numbered = false, Widget? footer}) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+      padding: _pagePad,
       children: [
         ...items.asMap().entries.map((e) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: SoftCard(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    numbered
-                        ? Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.12),
-                                shape: BoxShape.circle),
-                            child: Center(
-                                child: Text("${e.key + 1}",
-                                    style: TextStyle(
-                                        color: color, fontWeight: FontWeight.w900))))
-                        : Icon(icon, color: color, size: 22),
-                    const SizedBox(width: 12),
-                    Expanded(
-                        child: Text(e.value,
-                            style: TextStyle(
-                                fontSize: 13.5,
-                                height: 1.6,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary))),
-                  ],
-                ),
-              ),
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _tintRow(icon, stripBullet(e.value),
+                  number: numbered ? "${e.key + 1}" : null),
             )),
-        if (footer != null) footer,
+        if (footer != null) ...[const SizedBox(height: 10), footer],
       ],
     );
   }
@@ -376,39 +462,24 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
   Widget _datesTab(Scholarship s) {
     final days = s.daysLeft;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+      padding: _pagePad,
       children: [
         if (s.openDate == null && s.closeDate == null)
           _placeholder("لم تُعلن مواعيد هذه المنحة بعد — تابعنا، ننشرها فور صدورها.")
         else ...[
           if (s.openDate != null)
-            _dateCard("📅 فتح التقديم", s.openDate!, Colors.green),
-          if (s.openDate != null && s.closeDate != null) const SizedBox(height: 12),
+            _dateCard("فتح التقديم", s.openDate!, AppColors.schGreenInk),
+          if (s.openDate != null && s.closeDate != null) const SizedBox(height: 10),
           if (s.closeDate != null)
-            _dateCard("⏳ إغلاق التقديم", s.closeDate!, Colors.redAccent),
-          const SizedBox(height: 12),
-          SoftCard(
-            child: Row(children: [
-              Icon(days != null && days <= 7
-                      ? Icons.warning_amber_rounded
-                      : Icons.info_rounded,
-                  color: days != null && days <= 7 ? Colors.redAccent : AppColors.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  days == null
-                      ? "راقب المواعيد جيداً وجهّز ملفك مبكراً — التقديم المبكر يزيد فرصك."
-                      : days <= 7
-                          ? "⚠️ باقٍ $days أيام فقط! جهّز وثائقك اليوم لا غداً."
-                          : "باقٍ $days يوماً على الإغلاق — ابدأ بتجهيز الوثائق من الآن.",
-                  style: TextStyle(
-                      fontSize: 12.5,
-                      height: 1.6,
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600),
-                ),
-              ),
-            ]),
+            _dateCard("إغلاق التقديم", s.closeDate!, AppColors.schRedInk),
+          const SizedBox(height: 10),
+          _tintRow(
+            days != null && days <= 7 ? PI.warningCircle : PI.info,
+            days == null
+                ? "راقب المواعيد جيداً وجهّز ملفك مبكراً — التقديم المبكر يزيد فرصك."
+                : days <= 7
+                    ? "باقٍ $days أيام فقط! جهّز وثائقك اليوم لا غداً."
+                    : "باقٍ $days يوماً على الإغلاق — ابدأ بتجهيز الوثائق من الآن.",
           ),
         ],
       ],
@@ -416,83 +487,71 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
   }
 
   Widget _dateCard(String label, DateTime d, Color color) {
-    return SoftCard(
+    return SchCard(
       child: Row(children: [
         Container(
-            padding: const EdgeInsets.all(12),
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14)),
-            child: Icon(Icons.event_rounded, color: color)),
+            child: Icon(PI.calendar.regular, size: 22, color: color)),
         const SizedBox(width: 14),
         Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label,
               style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600)),
+                  fontSize: 11,
+                  color: AppColors.schMutedInk,
+                  fontWeight: FontWeight.w700)),
           const SizedBox(height: 3),
           Text("${d.day} / ${d.month} / ${d.year}",
               style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary)),
+                  color: AppColors.inputBarText)),
         ])),
       ]),
     );
   }
 
-  Widget _siteCard(BuildContext context, Scholarship s) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: GradientButton(
-        label: "🌐 افتح الموقع الرسمي",
-        height: 50,
+  Widget _siteCard(BuildContext context, Scholarship s) => SchPrimaryButton(
+        label: "افتح الموقع الرسمي",
+        icon: PI.globe,
         onTap: () => _openSite(context, s),
-      ),
-    );
-  }
-
-  Widget _placeholder(String text) => Padding(
-        padding: const EdgeInsets.only(top: 40),
-        child: Column(children: [
-          Icon(Icons.hourglass_empty_rounded,
-              size: 46, color: AppColors.textSecondary.withValues(alpha: 0.4)),
-          const SizedBox(height: 14),
-          Text(text,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 13,
-                  height: 1.8,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary)),
-        ]),
       );
+
+  Widget _placeholder(String text) => SchEmptyState(icon: PI.clock, text: text);
 
   // ══════════════ الشريط السفلي ══════════════
 
   Widget _bottomBar(BuildContext context, Scholarship s) {
-    final past = SchChatStorage.countFor(UserSession.I.uid, s.id);
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        padding: const EdgeInsets.fromLTRB(
+            SchMetrics.margin, 10, SchMetrics.margin, 12),
         child: Row(
           children: [
+            // ⚠️ RTL: أوّلُ ابنٍ هو الأيمن — وهناك الزرُّ المملوء في التصدير.
             Expanded(
               flex: 3,
-              child: GradientButton(
-                label: past == 0
-                    ? "💬 اسأل مساعد المنحة"
-                    : "💬 المساعد ($past محادثة)",
+              child: SchPrimaryButton(
+                // 🔒 **النصُّ ثابتٌ كما في التصدير** (أمرُ المالك
+                //    2026-09-21): «اسأل مساعد المنحة» — لا «المساعد (٤
+                //    محادثة)». وعددُ المحادثات لم يضع: شارتُه على زرّ
+                //    السجلّ داخل شاشة المساعد نفسِها.
+                label: "اسأل مساعد المنحة",
+                icon: PI.chatDots,
+                gradient: AppColors.schCtaGradient,
                 onTap: () async {
                   await Navigator.push(
                       context,
                       MaterialPageRoute(
                           builder: (_) => ScholarshipChatScreen(scholarship: s)));
                   // العودة من الشات قد تغيّر عدد المحادثات على الزر.
-                  if (context.mounted) (context as Element).markNeedsBuild();
+                  if (mounted) setState(() {});
                 },
               ),
             ),
@@ -500,23 +559,11 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
               const SizedBox(width: 10),
               Expanded(
                 flex: 2,
-                child: InkWell(
+                child: SchGhostButton(
+                  label: "الموقع الرسمي",
+                  icon: PI.globe,
+                  outlined: true,
                   onTap: () => _openSite(context, s),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    height: 56,
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.4),
-                            width: 1.4)),
-                    child: Center(
-                        child: Text("🌐 التقديم",
-                            style: TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13))),
-                  ),
                 ),
               ),
             ],
@@ -535,24 +582,11 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text("تعذّر فتح الرابط",
             style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.redAccent,
+        backgroundColor: AppColors.quizWrong,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ));
     }
-  }
-
-  Widget _iconBtn(BuildContext context, IconData icon, VoidCallback onTap) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
-      child: Container(
-          padding: const EdgeInsets.all(9),
-          decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(14)),
-          child: Icon(icon, color: Colors.white, size: 22)),
-    );
   }
 }
 

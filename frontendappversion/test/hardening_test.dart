@@ -212,6 +212,9 @@ void main() {
               correctIndex: 1,
               topic: "بوهر",
               lesson: "نظرية بوهر",
+              why: "لأن نصف القطر يتناسب مع مربّع العدد",
+              level: "متوسط",
+              id: "qid$i",
             ),
           ),
           answers: List.generate(index, (_) => 1),
@@ -228,6 +231,11 @@ void main() {
       expect(back!.index, 3);
       expect(back.questions.length, 5);
       expect(back.remaining, 2);
+      // 💡 **واللقطةُ تحمل «لماذا» و`id`** — بدونهما تصل المراجعةُ بلا
+      //    تعليل ويتكرّر السؤالُ في المحاولة التالية (رُئي 2026-09-18).
+      expect(back.questions.first.why, isNotEmpty);
+      expect(back.questions.first.id, "qid0");
+      expect(back.questions.first.level, "متوسط");
       expect(back.answers.length, 3);
     });
 

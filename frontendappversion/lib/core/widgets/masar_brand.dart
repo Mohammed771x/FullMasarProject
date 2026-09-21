@@ -7,8 +7,15 @@ import '../theme/app_colors.dart';
 // ==========================================
 /// ⚠️ **ثابتٌ للأسطح البيضاء دائماً** (كصفيحة الشعار). وللنصّ الذي يجلس
 ///    على سطحٍ يتبع الوضع استعمل [AppColors.brandInk] — هذا يختفي هناك.
-const Color kNavy = Color(0xFF173A6D);
-const List<Color> kBlueBtn = [Color(0xFF3B82F6), Color(0xFF1D4ED8)];
+///
+/// 🎨 حُدِّثا إلى لوحة Figma: `#173A6D` ← `#091E42`، و`#3B82F6→#1D4ED8`
+///    ← درجتا الهوية الجديدة. الاسمان باقيان كي لا تنكسر مواضع استعمالهما.
+const Color kNavy = AppColors.inkB900;
+const List<Color> kBlueBtn = [AppColors.primary500, AppColors.primary700];
+
+/// 🌀 **لون العلامة الحلزونية** كما هي في ملف الشعار — يُستعمل حين تُرسم
+///    العلامة أيقونةً مسطّحة بدل الصورة.
+const Color kMarkBlue = Color(0xFF2B1FE8);
 
 /// شعار مسار الرسمي (assets/icon/icon.png).
 /// يستبدل الشعار المرسوم بالكود الذي كان في الديمو.
@@ -32,11 +39,175 @@ class MasarLogo extends StatelessWidget {
         ],
       ),
       child: Image.asset(
-        'assets/icon/icon.png',
+        // 🌀 شعار المصمّم الجديد (العلامة الحلزونية وحدها). `icon.png` يبقى
+        //    أيقونةَ المشغّل ولا يُلمس — وهذا أصلٌ منفصل للواجهة.
+        'assets/brand/logo_mark.png',
         fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
         // احتياط: لو فشل تحميل الصورة لا تنكسر الشاشة.
-        errorBuilder: (_, _, _) => Icon(Icons.auto_stories_rounded, size: size * 0.7, color: kNavy),
+        errorBuilder: (_, _, _) => Icon(Icons.auto_stories_rounded, size: size * 0.7, color: kMarkBlue),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 🤖 روبوت مسار — شخصية التطبيق
+// ==========================================
+/// نسختا الروبوت في تصميم Figma.
+///
+/// ⛔ **حلّ محلّ `RobotWidget` المرسوم بالكود** بحالاته الأربع
+///    (`wave` · `idle` · `think` · `point`) — قرار المالك 2026-09-20.
+///
+/// 📌 **مؤقّت بالتصميم لا بالبنية:** الشخصية ستُعدَّل لاحقاً، واستبدالها
+///    يجب أن يكون **تبديلَ ملفَي صورة** لا إعادةَ كتابة شاشات — ولذلك
+///    تمرّ كل المواضع من هنا ولا تستدعي `Image.asset` مباشرةً.
+enum MasarRobotPose {
+  /// الوجه الأمامي — الترحيب · زرّ التنقّل · شاشة التأكيد.
+  face,
+
+  /// يطير بهالة — بطاقة التعليم · التسجيل · شاشات التحميل.
+  fly,
+}
+
+class MasarRobot extends StatelessWidget {
+  const MasarRobot({super.key, this.size = 137, this.pose = MasarRobotPose.face});
+
+  final double size;
+  final MasarRobotPose pose;
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+        switch (pose) {
+          MasarRobotPose.face => 'assets/brand/robot_face.png',
+          MasarRobotPose.fly => 'assets/brand/robot_fly.png',
+        },
+        width: size,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+        // احتياط: لو فشل تحميل الصورة لا تنكسر الشاشة ولا تترك فراغاً.
+        errorBuilder: (_, _, _) => Icon(Icons.smart_toy_rounded,
+            size: size * 0.7, color: AppColors.primary),
+      );
+}
+
+// ==========================================
+// 🤖✨ روبوتٌ يتحرّك — لشاشات الانتظار
+// ==========================================
+/// **يطفو ويتنفّس هالتُه** بينما يُجهَّز شيءٌ للطالب.
+///
+/// 🎯 طلبُ المالك (2026-09-20): «لما جاهز تجهيز أسئلتك، خلّي الروبوت
+///    يتحرّك». والانتظارُ في «اختبر نفسك» ثوانٍ يقضيها الطالب أمام صورةٍ
+///    ساكنة، فيظنّ التطبيقَ متجمّداً.
+///
+/// 🔒 **الصورةُ لا تُمسّ.** الحركةُ كلُّها تحويلاتٌ فوق [MasarRobot] —
+///    إزاحةٌ رأسية وهالةٌ مرسومةٌ خلفه — كي يبقى استبدالُ الشخصية
+///    **تبديلَ ملفٍّ** كما نصّ عليه [MasarRobot] نفسه.
+///
+/// ♿ ويحترم «تقليل الحركة» في إعدادات النظام: يعود صورةً ساكنة، فلا
+///    يدوخ من طلب ألّا يتحرّك شيء.
+class MasarRobotAnimated extends StatefulWidget {
+  const MasarRobotAnimated({
+    super.key,
+    this.size = 120,
+    this.pose = MasarRobotPose.fly,
+  });
+
+  final double size;
+  final MasarRobotPose pose;
+
+  @override
+  State<MasarRobotAnimated> createState() => _MasarRobotAnimatedState();
+}
+
+class _MasarRobotAnimatedState extends State<MasarRobotAnimated>
+    with TickerProviderStateMixin {
+  /// الطفو — دورةٌ بطيئة صعوداً وهبوطاً.
+  late final AnimationController _float;
+
+  /// نبضُ الهالة — أسرعُ قليلاً كي لا يتزامن الاثنان فيبدوا حركةً واحدة.
+  late final AnimationController _halo;
+
+  // 🔴 **ولماذا في `initState` لا في `late final … = …`؟** المُهيّئُ الكسول
+  //    لا يعمل إلا عند أول قراءة. وحين يطلب النظامُ تسكينَ الحركة لا تُقرأ
+  //    المتحكّمات في البناء أصلاً، فتُقرأ **أوّلَ مرّة داخل `dispose`** —
+  //    فيُنشأ `Ticker` على عنصرٍ مُبطَل ويُرمى:
+  //    «Looking up a deactivated widget's ancestor is unsafe».
+  //    (سقط فعلاً في `test/masar_robot_animated_test.dart`.)
+  @override
+  void initState() {
+    super.initState();
+    _float = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 2600));
+    _halo = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1700));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // ♿ التسكينُ يُوقف المؤقّتات نفسَها لا الرسمَ وحده.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _float.stop();
+      _halo.stop();
+    } else if (!_float.isAnimating) {
+      _float.repeat(reverse: true);
+      _halo.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _float.dispose();
+    _halo.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final robot = MasarRobot(size: widget.size, pose: widget.pose);
+
+    // ♿ لا حركةَ إن طلب النظامُ ذلك — ولا حتى مؤقّتاتٍ تدور بلا فائدة.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      return SizedBox(
+          height: widget.size * 1.18,
+          child: Center(child: robot));
+    }
+
+    final lift = widget.size * 0.055; // ±٥٫٥٪ — يُرى ولا يقفز
+    return SizedBox(
+      height: widget.size * 1.18,
+      child: Center(
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_float, _halo]),
+          builder: (context, child) {
+            final t = Curves.easeInOut.transform(_float.value);
+            final h = Curves.easeInOut.transform(_halo.value);
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                // 🌀 هالةٌ تتنفّس خلفه — بلون الهوية، فتذوب في الوضعين.
+                Opacity(
+                  opacity: 0.16 + 0.16 * h,
+                  child: Container(
+                    width: widget.size * (0.78 + 0.16 * h),
+                    height: widget.size * (0.78 + 0.16 * h),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(colors: [
+                        AppColors.primary,
+                        AppColors.primary.withValues(alpha: 0),
+                      ]),
+                    ),
+                  ),
+                ),
+                Transform.translate(
+                    offset: Offset(0, lift - 2 * lift * t), child: child),
+              ],
+            );
+          },
+          child: robot,
+        ),
       ),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../features/future_masar/presentation/screens/home_screen.dart';
+import '../shell/masar_shell.dart';
 import '../../features/teacher/presentation/teacher_home_screen.dart';
 import 'user_session.dart';
 
@@ -19,7 +19,11 @@ class RoleHome {
 
   /// الشاشة الأولى لهذا الحساب.
   static Widget screen() =>
-      UserSession.I.isTeacher ? const TeacherHomeScreen(isHome: true) : const FutureHomeScreen();
+      UserSession.I.isTeacher
+          ? const TeacherHomeScreen(isHome: true)
+          // 🏛️ بيتُ الطالب صار **قشرةً بشريط تنقّل** لا شاشةً واحدة
+          //    ([MasarShell]) — والرئيسيةُ تبويبٌ داخلها.
+          : const MasarShell();
 
   /// يعيد بناء الرحلة كاملةً على بيت الدور الحالي — يُستدعى بعد تبديل الدور.
   ///

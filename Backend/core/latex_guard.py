@@ -140,7 +140,7 @@ _ARG_CMDS = ("text", "mathrm", "mathbf", "mathit", "textbf", "textit",
 
 # 🛡️ ما **لا** يُمسّ: الرسّام في التطبيق يفهمها.
 KEPT = {r"\frac", r"\sqrt", r"\chem", r"\ring", r"\fact",
-        r"\perm", r"\comb", r"\sup", r"\ovl", r"\nuc"}
+        r"\perm", r"\comb", r"\sup", r"\sub", r"\ovl", r"\nuc"}
 
 _ARG_RE = re.compile(r"\\(" + "|".join(_ARG_CMDS) + r")\s*\{([^{}]*)\}")
 _LEFTOVER_RE = re.compile(r"\\([a-zA-Z]+)")

@@ -13,6 +13,7 @@ Widget _wrap(Widget child) => MaterialApp(
     );
 
 void main() {
+  _englishSentenceDirection();
   group('المحلِّل', () {
     test('يقرأ الكسر البسيط', () {
       final nodes = MathParser.parse(r'قيمة \frac{لو أ}{لو ب} ثابتة');
@@ -315,6 +316,54 @@ void _safetyNet() {
   });
 
   // ══════════════════════════════════════════════════
+  // ₙ الدليلُ المنخفض — النصفُ الغائب من الأُسّ (2026-09-17)
+  // ══════════════════════════════════════════════════
+  //
+  // 🔴 «_» تُرسم دليلاً منذ البداية، لكنها **لا تفتح بوّابةَ السطر**
+  //    ([kMathTokens])، فسطرٌ كلُّ رياضياته «م_ط» كان يُطبع نصّاً عادياً
+  //    بشرطةٍ عارية — **٣٩٠ موضعاً في المخزون** (٣٥٥ منها فيزياء).
+  group('ₙ الدليل المنخفض', () {
+    testWidgets(r'\sub يفتح بوّابةَ الرسّام', (t) async {
+      expect(hasMathMarkup(r'م\sub{ط} = ٠٫٠٠٢'), isTrue);
+      expect(hasMathMarkup('م_ط = ٠٫٠٠٢'), isFalse,
+          reason: 'الشرطةُ وحدها لا تكفي — ولذلك لزم الأمرُ الصريح');
+    });
+
+    testWidgets('يُرسم منخفضاً لا يُطبع خاماً', (t) async {
+      await t.pumpWidget(_wrap(const MathText(r'م\sub{ط}')));
+      expect(find.textContaining(r'\sub'), findsNothing);
+      expect(find.text('ط'), findsOneWidget);
+    });
+
+    testWidgets('⭐ والدليلُ أخفضُ من الأساس — بالبكسل', (t) async {
+      await t.pumpWidget(_wrap(const MathText(r'م\sub{ط}')));
+      expect(t.getCenter(find.text('ط')).dy,
+          greaterThan(t.getCenter(find.text('م')).dy));
+    });
+
+    testWidgets('⚖️ وهو ضدُّ الأُسّ في الاتجاه لا في الرسم', (t) async {
+      await t.pumpWidget(_wrap(const MathText(r'س\sup{٢} و م\sub{ط}')));
+      expect(t.getCenter(find.text('٢')).dy,
+          lessThan(t.getCenter(find.text('س')).dy));
+      expect(t.getCenter(find.text('ط')).dy,
+          greaterThan(t.getCenter(find.text('م')).dy));
+    });
+
+    testWidgets('ودليلٌ مركّب يبقى كاملاً', (t) async {
+      await t.pumpWidget(_wrap(const MathText(r'ن\sub{i+1}')));
+      expect(find.textContaining(r'\sub'), findsNothing);
+      expect(t.takeException(), isNull);
+    });
+
+    testWidgets('ويتسلسل: «م_فراغ_وسط» دليلان لا واحد', (t) async {
+      await t.pumpWidget(_wrap(const MathText(r'م\sub{فراغ}\sub{وسط}')));
+      expect(find.text('فراغ'), findsOneWidget);
+      expect(find.text('وسط'), findsOneWidget);
+      expect(t.takeException(), isNull);
+    });
+  });
+
+  // ══════════════════════════════════════════════════
   // ⁿ الأُسّ
   // ══════════════════════════════════════════════════
   group('ⁿ الأُسّ', () {
@@ -546,4 +595,58 @@ void _safetyNet() {
     });
   });
 
+}
+
+// ───────────── الجملةُ الإنجليزية تُرسم من اليسار (2026-09-18) ─────────────
+void _englishSentenceDirection() {
+  test('جملةٌ إنجليزيةٌ كاملة تُعدّ لاتينيةَ الاتجاه، والرمزُ المفرد لا', () {
+    expect(isLatinSentence("What is the passive form of 'Ali is washing'?"),
+        isTrue);
+    expect(isLatinSentence('Choose the correct form: He ____ (go) to school.'),
+        isTrue);
+    // 🔬 رمزٌ أو كلمتان داخل فقرةٍ عربية تبقى في مكانها
+    expect(isLatinSentence('NaCl'), isFalse);
+    expect(isLatinSentence('pH 7'), isFalse);
+    expect(isLatinSentence('ما تعريف prefix and suffix now?'), isFalse);
+  });
+
+  test('المادّةُ بين نجمتين تُمال ولا تُعرض نجمتاها', () {
+    const q = 'Change into the passive: *They built the school in 1990.*';
+    expect(hasEmphasis(q), isTrue);
+    final spans = emphasisSpans(q, const TextStyle());
+    final shown = spans.map((s) => (s as TextSpan).text ?? '').join();
+    expect(shown.contains('*'), isFalse);
+    expect(shown, 'Change into the passive: They built the school in 1990.');
+    expect(
+        spans.any((s) =>
+            (s as TextSpan).style?.fontStyle == FontStyle.italic &&
+            s.text == 'They built the school in 1990.'),
+        isTrue);
+    // ✖️ والضربُ ليس إمالة
+    expect(hasEmphasis('٣ * ٤ = ١٢'), isFalse);
+    expect(hasEmphasis('نصٌّ بلا نجوم'), isFalse);
+  });
+
+  test('✏️ الكلمةُ بين شرطتين يُرسم تحتها خطّ — داخل المادّة وخارجَها', () {
+    const q = 'Part of speech: *The __cut__ on his arm was bleeding.*';
+    expect(hasEmphasis(q), isTrue);
+    final spans = emphasisSpans(q, const TextStyle(fontSize: 14))
+        .cast<TextSpan>();
+    final shown = spans.map((s) => s.text ?? '').join();
+    expect(shown.contains('*'), isFalse);
+    expect(shown.contains('_'), isFalse);
+    expect(shown, 'Part of speech: The cut on his arm was bleeding.');
+
+    final word = spans.firstWhere((s) => s.text == 'cut');
+    expect(word.style?.decoration, TextDecoration.underline);
+    // 🎨 والمادّةُ أغمق: مائلةٌ وأثقلُ من النصّ العاديّ (طلبُ المالك).
+    final material = spans.firstWhere((s) => (s.text ?? '').contains('on his'));
+    expect(material.style?.fontStyle, FontStyle.italic);
+    expect(material.style!.fontWeight!.value, greaterThanOrEqualTo(700));
+    final lead = spans.first;
+    expect(lead.style?.fontStyle, isNot(FontStyle.italic));
+
+    // ␣ والفراغُ `____` يبقى فراغاً لا خطّاً
+    expect(hasEmphasis('He ____ (go) to school.'), isFalse);
+  });
 }

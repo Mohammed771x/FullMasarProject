@@ -8,6 +8,7 @@ import '../../../core/sync/sync_service.dart';
 import '../data/models/quiz_models.dart';
 import '../data/quiz_repository.dart';
 import '../data/quiz_resume_store.dart';
+import '../data/quiz_seen_store.dart';
 import '../data/quiz_storage.dart';
 
 // ==========================================
@@ -77,6 +78,10 @@ class QuizController extends ChangeNotifier {
         // 🧾 معرّف هذه المحاولة: إعادةُ التوليد بعد مهلةٍ لا تخصم حصةً ثانية
         //    ولا تُنادي الموديل مرتين ([Backend/core/idempotency.py]).
         requestId: _requestId,
+        // 🔁 ذاكرةُ «لا تُعده عليّ» — بلا هذا يعيد الاختبارُ نفسَه حرفياً
+        //    على من كرّره ليتحسّن، فيصير امتحانَ حفظٍ لا فهم.
+        seenIds: await QuizSeenStore.read(
+            UserSession.I.uid, QuizSeenStore.scopeOf(subject, lessons)),
       );
 
       if (gen.isEmpty) {
@@ -236,6 +241,10 @@ class QuizController extends ChangeNotifier {
     );
 
     await QuizStorage.save(result, ownerUid: UserSession.I.uid);
+    // 🔁 وتُقيَّد أسئلةُ هذه المحاولة كي لا تعود في التالية.
+    await QuizSeenStore.remember(
+        UserSession.I.uid, QuizSeenStore.scopeOf(subject, lessons),
+        [for (final q in questions) if (q.id.isNotEmpty) q.id]);
     SyncService.I.pushResult(result);      // fire-and-forget
 
     // 🧹 اكتمل الاختبار ⇒ لا لقطة تُستأنف. تركُها يعني زرّ «استأنف» يفتح

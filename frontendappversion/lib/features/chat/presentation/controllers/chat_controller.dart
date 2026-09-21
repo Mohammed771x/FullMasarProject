@@ -18,6 +18,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/storage/chat_storage.dart';
 import '../../../../core/sync/sync_service.dart';
 import '../../data/models/ask_response.dart';
+import '../../data/models/chat_suggestion.dart';
 import '../../data/models/chat_model.dart';
 import '../../data/models/subject_capabilities.dart';
 import '../../data/repositories/ask_stream.dart';
@@ -227,6 +228,105 @@ class ChatController extends ChangeNotifier {
   ///    مسار الصور ([chat_input_area] يفتح الزرّ للمرفقات على حدة).
   bool get questionNeedsTypedText => !isTeacher && selectedMode == "سؤال";
 
+  // ══════════════════════════════════════════════════
+  // 💡 اقتراحاتُ الوضع — بدايةٌ للطالب، ومتابعةٌ بعد الجواب
+  // ══════════════════════════════════════════════════
+  //
+  // ⚖️ **قرار المالك (2026-09-16):** «اقتراحات مناسبة لكل وضع. وركّز في زرّ
+  //    اشرح لي — خلّه باين أفضل، لما يضغط عليه يشرح له على طول من المخزون.»
+  //
+  // 🎯 و«اشرح لي الدرس» ليست شريحةً كغيرها: هي **الطلبُ الوحيد المخزون**
+  //    ([core/lesson_cache] على الخادم)، فتصل في جزءٍ من الثانية وبلا خصمٍ
+  //    من الحصة. ولذلك تُعرض زرّاً بارزاً (`primary`) لا شريحةً في الصفّ.
+  //    ونصُّها **حرفياً** ما يقبله `lesson_cache.is_full_lesson_request`،
+  //    فأيُّ صياغةٍ أخرى تُفوّت المخزون وتذهب للموديل.
+  //
+  // 🔄 **وتتبدّل بعد أول جواب**: شرائحُ البداية تصير شرائحَ متابعة. فشريحةٌ
+  //    تقول «بسّط لي» قبل أن يُشرح شيءٌ تُنتج رداً بلا معنى وتُستهلك من
+  //    الحصة — نفسُ القاعدة المطبّقة في [TeacherSuggestionChips].
+
+  /// نصُّ «اشرح لي الدرس» كما يقبله المخزون على الخادم. **لا يُغيَّر بلا
+  /// تغيير `is_full_lesson_request` معه** — وإلا سقط الكاشُ بصمت.
+  static const String explainLessonText = "اشرح لي هذا الدرس";
+
+  static const List<ChatSuggestion> _followUps = [
+    ChatSuggestion("بسّط لي", "بسّط لي ما شرحته بلغةٍ أسهل"),
+    ChatSuggestion("مثال من الحياة",
+        "أعطني مثالاً من الحياة اليومية يوضّح الفكرة"),
+    ChatSuggestion("وضّح أكثر", "وضّح أكثر ما شرحته"),
+    ChatSuggestion("لخّص", "لخّص لي ما سبق في نقاط"),
+  ];
+
+  /// عددُ ردودِ المساعد في هذه المحادثة — مقياسُ «أين نحن من الحصة».
+  int get _answerCount =>
+      messages.where((m) => m["role"] == "ai").length;
+
+  /// ⏳ **بعد جولتين تُطفأ الاقتراحات** (قرار المالك 2026-09-16: «الثالثة
+  /// خلاص ما عاد شي داعي تطلع الاقتراحات — خلاص هو يتصرّف اليوزر»).
+  ///
+  /// ⚖️ والحدُّ ليس تجميلاً: الاقتراحُ يخدم **البداية** — أن يعرف الطالبُ
+  ///    ما يستطيع طلبه. فإذا سأل مرّتين فقد عرف، وبقاؤها بعدها يضيّق
+  ///    الشاشةَ ويغري بضغطةٍ بلا حاجة تُخصم من حصّته.
+  static const int _maxSuggestionRounds = 2;
+
+  /// الاقتراحاتُ المناسبة للحالة الراهنة — فارغةٌ حين لا معنى لها.
+  List<ChatSuggestion> get suggestions {
+    if (isTeacher) return const [];            // للمعلّم شرائحُه الخاصة
+    if (selectedMode == "وزاري" || selectedMode == "اختبارات") return const [];
+    final answers = _answerCount;
+    if (answers >= _maxSuggestionRounds) return const [];
+    if (answers > 0) return _followUps;
+
+    // 📖 الزرُّ البارز لا يظهر إلا ودرسٌ مختار — وإلا لا شيءَ ليُشرح.
+    final lessonReady = effectiveContentMode == "lessons"
+        ? selectedV3Lesson.isNotEmpty
+        : (selectedSubject == "رياضيات" && selectedLesson.isNotEmpty);
+
+    switch (selectedMode) {
+      case "تلخيص":
+        return [
+          if (lessonReady)
+            const ChatSuggestion("لخّص لي", "لخّص لي هذا الدرس", primary: true),
+          const ChatSuggestion("في نقاط", "لخّص الدرس في نقاطٍ مرقّمة"),
+          const ChatSuggestion("أهم التعريفات",
+              "اجمع لي أهم التعريفات في هذا الدرس"),
+        ];
+      case "سؤال":
+        // ⚠️ **قوالبُ تُملأ ولا تُرسل**: وضعُ السؤال يشترط أن يكتب الطالبُ
+        //    سؤاله ([questionNeedsTypedText]). فتُفتح له البداية ويُكملها
+        //    بموضوعه — ولو أُرسلت ناقصةً لضاعت من حصّته بلا فائدة.
+        return const [
+          ChatSuggestion("عرّف لي…", "عرّف لي ", send: false),
+          ChatSuggestion("ما الفرق بين…", "ما الفرق بين ", send: false),
+          ChatSuggestion("لماذا…", "لماذا ", send: false),
+          ChatSuggestion("اذكر أمثلة على…", "اذكر أمثلة على ", send: false),
+        ];
+      default:                                  // شرح
+        return [
+          if (lessonReady)
+            const ChatSuggestion("اشرح لي", explainLessonText, primary: true),
+          const ChatSuggestion("مثال من الحياة",
+              "اشرح لي الدرس وأعطني مثالاً من الحياة اليومية"),
+          const ChatSuggestion("بطريقةٍ مبسّطة",
+              "اشرح لي الدرس بطريقةٍ مبسّطةٍ جداً"),
+          const ChatSuggestion("أهم النقاط",
+              "اشرح لي أهم النقاط في هذا الدرس"),
+        ];
+    }
+  }
+
+  /// تنفيذُ اقتراح: إرسالٌ فوريّ، أو ملءُ حقل الكتابة لِيُكمله الطالب.
+  void applySuggestion(ChatSuggestion s) {
+    if (s.send) {
+      processRequest(customText: s.text);
+      return;
+    }
+    inputController.text = s.text;
+    inputController.selection =
+        TextSelection.collapsed(offset: s.text.length);
+    notifyListeners();
+  }
+
   bool get canSendWithoutText =>
       !isTeacher &&
       !questionNeedsTypedText &&
@@ -384,7 +484,6 @@ class ChatController extends ChangeNotifier {
   String get trackLabel => track.label;
 
   bool _isResponseCancelled = false;
-  bool isMathExplanationStarted = false;
 
   // UI State
   bool showSettingsPanel = true;
@@ -523,6 +622,29 @@ class ChatController extends ChangeNotifier {
     if (subject == selectedSubject) return;
     selectedSubject = subject;
     await _onScopeChanged(keepSubject: true);
+  }
+
+  /// 👨‍🏫 **يبدّل أداة المعلم من شريط الأدوات** — بلا مغادرة الشاشة.
+  ///
+  /// 🎨 صار لازماً بتصميم `design/09-teacher`: كانت الأداةُ تُختار مرّةً
+  ///    من شاشة بوابةٍ ثم تُفتح الشاشةُ عليها، فلا تتبدّل إلا برجوعٍ
+  ///    وفتحٍ جديد. وفي التصميم شريطٌ فوق المحادثة يبدّلها بلمسة.
+  ///
+  /// ⚠️ **والأداةُ جزءٌ من مفتاح النطاق** (`selectedMode = "معلم:<id>"`)،
+  ///    فتبديلُها تبديلُ سجلٍّ كامل: تُحمَّل محادثاتُ الأداة الجديدة
+  ///    وتُفتح محادثةٌ فارغة — تماماً كما كان يحدث عند فتح الشاشة عليها.
+  ///
+  /// 🔒 **ولا تُمسّ المادةُ ولا الوحدةُ ولا الدرس**: معلّمٌ اختار درسه ثم
+  ///    أراد منه واجباً بدل الخطة لا يُعقل أن يُعيد اختياره. ولهذا لا
+  ///    تمرّ هذه الدالة بـ[_onScopeChanged] — تلك تمسح القدرات والدرس
+  ///    لأن المادة تغيّرت، وهنا لم تتغيّر.
+  Future<void> setTeacherTool(TeacherTool tool) async {
+    if (!isTeacher || tool == teacherTool) return;
+    teacherTool = tool;
+    selectedMode = "معلم:${tool.id}";
+    loadConversations();
+    createNewConversation();
+    _safeNotify();
   }
 
   /// كل ما يجب أن يحدث عند تغيّر النطاق (صف/مسار/مادة).
@@ -843,8 +965,89 @@ class ChatController extends ChangeNotifier {
         mode: (!isTeacher && selectedSubject == "رياضيات") ? mathMode : selectedMode,
       );
 
+  // ══════════════════════════════════════════════════
+  // ⚡ الشرحُ المخزون يُسحب **قبل أن يُطلب**
+  // ══════════════════════════════════════════════════
+  //
+  // 🔴 **علّةُ المالك (2026-09-16):** «لما أضغط شرح المفروض على طول يطلع
+  //    لي الشرح، ما ينتظر ثانيتين ولا ثلاثة — كما قسم الوزارة.»
+  //
+  // ⚖️ وقياسُ الخادم قال إن الشرحَ يُقرأ من القرص في **مللي ثانيةٍ واحدة**.
+  //    فالانتظارُ لم يكن في الجواب بل في الطريق إليه: رحلةُ شبكةٍ من جهاز
+  //    الطالب، ثم حرّاسُ `/ask`، ثم **خصمُ الحصة من Firestore ثم ردُّها**
+  //    — معاملتان عبر الشبكة لطلبٍ لم يكلّف شيئاً أصلاً.
+  //
+  // 🎯 **فليُسحب لحظةَ اختيار الدرس**: يفتح الطالبُ اللوحة ويختار درساً،
+  //    فيصل الشرحُ في الخلفية بينما هو يغلق اللوحة. ثم تكون الضغطةُ عرضاً
+  //    من الذاكرة — **بلا رحلةِ شبكةٍ أصلاً**، وهو ما قاس عليه المالك.
+  //
+  // 🔒 و[TutorContentRepository.getStoredExplanation] لا تنادي موديلاً ولا
+  //    تخصم حصة، فلا ضررَ في سحبها عند كل اختيار — ولا ترمي عند الفشل،
+  //    فالسحبُ راحةٌ لا وظيفة: إن غاب مضى الطالبُ في `/ask` كما كان.
+  //
+  // 📍 **والنداءُ من `_safeNotify` لا من كل مكانٍ يُختار فيه درس**: مواضعُ
+  //    الاختيار ستةٌ (اللوحة · الرابط العميق · نتيجةُ الاختبار · التحليل …)
+  //    وواحدٌ منها يُنسى يعني ميزةً تعمل أحياناً — وهي أسوأُ من ميزةٍ لا
+  //    تعمل. والحارسُ مقارنةُ نصٍّ واحدة، فلا كلفةَ لتكرارها.
+
+  String _prefetchKey = "";        // آخرُ مفتاحٍ طُلب (كي لا يتكرّر النداء)
+  String _prefetchedFor = "";      // مفتاحُ ما وصل فعلاً
+  String _prefetchedAnswer = "";   // الشرحُ المخزون في اليد
+
+  /// مفتاحُ الدرس الذي يصحّ له شرحٌ مخزون — أو فراغ.
+  ///
+  /// ⚠️ وضعُ الوحدات (`pages`) خارجَه: مدخلُه صفحاتٌ يختارها الطالب، فلا
+  ///    شرحَ مخزونَ له أصلاً ([core/lesson_cache]).
+  String get _explainScopeKey {
+    if (isTeacher || selectedMode != "شرح") return "";
+    if (selectedSubject == "رياضيات") {
+      if (mathMode != "شرح" || selectedLesson.isEmpty) return "";
+      return "$grade|${track.key}|رياضيات|$selectedMathBranch|$selectedLesson";
+    }
+    if (effectiveContentMode != "lessons" || selectedV3Lesson.isEmpty) return "";
+    return "$grade|${track.key}|$selectedSubject|$selectedV3Unit|$selectedV3Lesson";
+  }
+
+  void _maybePrefetchExplanation() {
+    final key = _explainScopeKey;
+    if (key.isEmpty || key == _prefetchKey) return;
+    _prefetchKey = key;
+    unawaited(_pullStoredExplanation(key));
+  }
+
+  Future<void> _pullStoredExplanation(String key) async {
+    final parts = key.split('|');
+    if (parts.length != 5) return;
+    final answer = await _content.getStoredExplanation(
+        parts[2], parts[3], parts[4], int.tryParse(parts[0]) ?? grade, parts[1]);
+    if (_disposed || answer.isEmpty) return;
+    // ⏱️ وقد يكون الطالبُ بدّل درسَه أثناء الرحلة — فالنتيجةُ تُنسب لمفتاحها.
+    _prefetchedFor = key;
+    _prefetchedAnswer = answer;
+  }
+
+  /// الشرحُ المخزون الجاهز لهذه اللحظة — أو `null`.
+  ///
+  /// ⚠️ **وشرطُ «لا جوابَ قبله» هنا كما على الخادم** ([lesson_cache.serves]):
+  ///    من شُرح له نصفُ الدرس ثم قال «اشرح الدرس» يريد متابعةً لا نسخةً
+  ///    جاهزة — تلك حالةُ الموديل لا حالةُ المخزون.
+  String? get _readyExplanation {
+    if (_prefetchedAnswer.isEmpty) return null;
+    if (_prefetchedFor.isEmpty || _prefetchedFor != _explainScopeKey) return null;
+    if (_answerCount > 0) return null;
+    return _prefetchedAnswer;
+  }
+
+  /// نصُّ المرجع كما يبنيه الخادم: «الوحدة › الدرس».
+  String get _explainRef {
+    final parts = _explainScopeKey.split('|');
+    if (parts.length != 5) return "";
+    return "${parts[3]} › ${parts[4]}".replaceAll(RegExp(r'^\s*›\s*'), '').trim();
+  }
+
   void _safeNotify() {
     if (!_disposed) notifyListeners();
+    _maybePrefetchExplanation();
   }
 
   // ========== مفتاح المحادثة الحالي ==========
@@ -938,7 +1141,6 @@ class ChatController extends ChangeNotifier {
     updateSettings();
 
     // ✅ 3. تصفير حالة زر شرح الرياضيات
-    isMathExplanationStarted = false;
 
     // 4. استرجاع المحادثة الجديدة (إن وجدت)
     String newKey = getCurrentChatKey();
@@ -1174,8 +1376,24 @@ class ChatController extends ChangeNotifier {
 
   Future<void> saveCurrentConversation() async {
     if (currentConversationId == null || messages.isEmpty) return;
-    String title = messages.first['text'] ?? 'محادثة جديدة';
-    if (title.length > 50) title = '${title.substring(0, 47)}...';
+    // ✏️ **العنوانُ يُشتقّ مرّةً، ولا يُكتب فوق اسمٍ اختاره الطالب.**
+    //
+    // 🔴 كان يُشتقّ من `messages.first` في **كل** حفظ — والرسالةُ الأولى
+    //    لا تتغيّر، فالعنوانُ المشتقُّ ثابت. ومعناه أن [renameConversation]
+    //    **تُمحى عند أوّل سؤالٍ تالٍ**: يسمّيها الطالبُ «مراجعة الفيزياء»
+    //    فتعود «اشرح لي قانون نيوتن» بعد رسالةٍ واحدة. وُجدت وأنا أضيف
+    //    الزرَّ نفسَه في مساعد المنحة (2026-09-21) — والعلّةُ هنا أقدم.
+    // 🔒 المحكومةُ بالمالك لا المطلقة — انضباطُ المخزن نفسُه.
+    final stored = (ChatStorage.getOwnedConversation(
+                currentConversationId!, ownerUid)
+            ?.title ??
+        '')
+        .trim();
+    String title = stored;
+    if (title.isEmpty || title == 'محادثة جديدة') {
+      title = messages.first['text'] ?? 'محادثة جديدة';
+      if (title.length > 50) title = '${title.substring(0, 47)}...';
+    }
     final chatMessages = messages
         .map((m) => ChatMessage(
               role: m['role'],
@@ -1220,20 +1438,22 @@ class ChatController extends ChangeNotifier {
     loadConversations();
   }
 
-  Future<void> renameConversation(ChatConversation conversation, String newTitle) async {
-    final updated = ChatConversation(
-      id: conversation.id,
-      title: newTitle,
-      subject: conversation.subject,
-      mode: conversation.mode,
-      messages: conversation.messages,
-      grade: conversation.grade,
-      track: conversation.track,
-      branch: conversation.branch,
-      createdAt: conversation.createdAt,
-      lastUpdated: conversation.lastUpdated,
-    );
-    await ChatStorage.saveConversation(updated);
+  /// ✏️ إعادة تسمية المحادثة.
+  ///
+  /// 🔴 **عطلٌ رآه المالك: «لما نعدّل الاسم تنحذف».** ولم تكن تُحذف — بل
+  ///    **تصير يتيمة**. كانت الدالة تبني `ChatConversation` جديدةً بنسخ
+  ///    الحقول حقلاً حقلاً، و`ownerUid` **لم يكن في القائمة** فيأخذ قيمته
+  ///    الافتراضية `""`. وكلُّ استعلامات `ChatStorage` محكومةٌ بالمالك
+  ///    (`_ownedBy`)، فتختفي من القائمة الجانبية عن **كل** حساب — ويراها
+  ///    الطالبُ محذوفةً وهي قابعةٌ في الصندوق بلا مالك.
+  ///
+  /// ✅ **والعلاج ألّا تُنسخ أصلاً**: `title` حقلٌ غيرُ نهائيّ، فيُبدَّل
+  ///    في مكانه وتُحفظ المحادثةُ نفسُها. نسخُ الحقول يدوياً يعني أن كل
+  ///    حقلٍ يُضاف مستقبلاً سيسقط هنا بصمت — وهذا ما وقع بالضبط.
+  Future<void> renameConversation(
+      ChatConversation conversation, String newTitle) async {
+    conversation.title = newTitle;
+    await ChatStorage.saveConversation(conversation, ownerUid: ownerUid);
     loadConversations();
   }
 
@@ -1584,6 +1804,47 @@ class ChatController extends ChangeNotifier {
 
     scrollToBottom();
 
+    // ══════════════════════════════════════════════════
+    // ⚡ الشرحُ المخزون في اليد ⇒ يُعرض بلا رحلةِ شبكة
+    // ══════════════════════════════════════════════════
+    //
+    // 🎯 هنا تتحقّق «على طول» التي طلبها المالك: سُحب الشرحُ لحظةَ اختيار
+    //    الدرس ([_pullStoredExplanation])، فالضغطةُ لا تنتظر شيئاً.
+    //
+    // ⚖️ **وبعد إضافة رسالة الطالب لا قبلها**: المحادثة تُحفظ كاملةً
+    //    (سؤالٌ ثم جواب)، فيمضي سؤالُه التالي إلى الموديل وفي سجلّه الشرحُ
+    //    — وهو ما يجعل «يسأل مع الشرح حقه» يعمل بلا جلسةٍ على الخادم
+    //    ([subjects/math._last_assistant_text]).
+    //
+    // 💳 ولا حصةَ تُخصم: الخادمُ نفسُه يردّها للشرح المخزون
+    //    ([_dispatch_and_settle])، فتخطّي الرحلة لا يغيّر حساباً.
+    if (!teacherGenerate && !hasImage && !questionNeedsTypedText &&
+        (text.isEmpty || text == explainLessonText)) {
+      final ready = _readyExplanation;
+      if (ready != null) {
+        isLoading = false;
+        _busySince = null;
+        messages.add({
+          "role": "ai",
+          "text": ready,
+          "refs": _explainRef.isEmpty ? <String>[] : <String>[_explainRef],
+          "cached": true,
+          // ⌨️ ويُكتب كغيره تماماً — الفرقُ أنه يبدأ **من اللحظة الأولى**.
+          "animating": true,
+          "fullText": ready,
+        });
+        sessionActive = false;
+        _safeNotify();
+        scrollToBottom();
+        // 🗄️ والحفظُ لا يحجب العرض: الشرحُ أمام الطالب قبل أن يلمس القرصَ
+        //    أحد، وعطلُ التخزين لا يجوز أن يبتلع جواباً وصل.
+        try {
+          await saveCurrentConversation();
+        } catch (_) {}
+        return;
+      }
+    }
+
     // ==================================================
     // 🚀 الإرسال — بمحاولةٍ ثانيةٍ واحدة عند عطل شبكةٍ عابر
     // ==================================================
@@ -1691,6 +1952,9 @@ class ChatController extends ChangeNotifier {
         m["streaming"] = false;
         m["animating"] = false;      // البثّ بديلٌ عن الطابعة لا يجتمعان
         if (response.offTopic) m["offTopic"] = true;
+        // ⚡ وسمُ «من المحفوظ» — سؤالُ المالك: «ما أدري هل يجي من المخزون
+        //    ولا لا». فالجوابُ يُرى على الفقاعة، ولا يُقاس بالإحساس.
+        if (response.cached) m["cached"] = true;
         _streamIndex = null;
         isStreaming = false;
       } else {
@@ -1698,6 +1962,16 @@ class ChatController extends ChangeNotifier {
           "role": "ai",
           "text": response.answer,
           "refs": response.references,
+          if (response.cached) "cached": true,
+          // ⌨️ **والمخزونُ يُكتب كغيره** (تصحيحُ المالك 2026-09-16):
+          //    «خلّه يطلع يكتب مثل الدروس الباقية وكأنه بثّ، بس توّه على
+          //    طول بسرعة يكتب — يا إما تطبّق الشيء كامل يا إما لا.»
+          //
+          // ⚖️ وهو محقّ: الطابعةُ ليست إبطاءً بل **شكلَ الجواب في هذا
+          //    التطبيق**. فجوابٌ يهبط كتلةً واحدةً يبدو غريباً عمّا حوله،
+          //    والقارئُ يفقد موضعَه في نصٍّ ظهر دفعةً. الذي كان يزعج
+          //    المالكَ هو **الانتظارُ قبل أول حرف** لا الكتابةُ نفسُها —
+          //    وذاك صار صفراً بالسحب المسبق ([_readyExplanation]).
           "animating": !quiet,
           "fullText": response.answer,
           if (response.offTopic) "offTopic": true,

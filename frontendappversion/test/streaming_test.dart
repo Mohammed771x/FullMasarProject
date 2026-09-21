@@ -2,6 +2,7 @@
 //
 // كلا الملفين منطقٌ خالص عمداً — يُختبران بلا شاشة ولا شبكة.
 import 'dart:async';
+import 'dart:io';
 import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
@@ -222,6 +223,27 @@ void main() {
 
     test('المسافة لا تصير سالبة عند التمرير الزائد (overscroll)', () {
       expect(StickToBottom.distanceToBottom(1100, 1000), 0);
+    });
+
+    // 🔴 **الشرحُ المخزون كان يستثني نفسَه من القاعدة كلِّها**
+    //    (أمرُ المالك 2026-09-19): «لو جات رسالة من المخزون تو على طول
+    //    ينزل بآخر شيء… أبغاه نفس لو أرسلت رسالة للمودل ويجيبها».
+    //
+    // ⚖️ والمخزونُ وحده هو ما يُكتب بـ[TypewriterText] (`animating`)، وكان
+    //    `onTyping` فيه `jumpTo(maxScrollExtent)` **بلا شرط** مع كل حرف —
+    //    فيتجاوز [StickToBottom] ولا يُفلت القارئ ولو وضع إصبعه. والحارسُ
+    //    بالكود لا بالتعليق، لأن التعليقَ هو ما جعل استثناءَ البثّ يبدو
+    //    مقصوداً فلا يُراجَع ([[streaming-design]]).
+    test('📌 الطابعةُ تتبع قاعدةَ التمرير كالبثّ — لا قفزَ مطلق', () {
+      final src = File('lib/features/chat/presentation/widgets/'
+              'chat_list_view.dart')
+          .readAsStringSync();
+      final typing = src.substring(src.indexOf('onTyping:'),
+          src.indexOf('onStopped:'));
+      expect(typing.contains('followBottom'), isTrue,
+          reason: 'الطابعةُ لا تمرّ بقاعدة الالتصاق');
+      expect(typing.contains('jumpTo'), isFalse,
+          reason: 'قفزٌ مطلقٌ يسحب الشاشة من تحت القارئ');
     });
   });
 }

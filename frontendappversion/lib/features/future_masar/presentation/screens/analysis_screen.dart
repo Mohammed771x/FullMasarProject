@@ -1,21 +1,37 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/curriculum.dart';
 import '../../../../core/session/user_session.dart';
+import '../../../../core/storage/chat_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/fade_in_slide.dart';
+import '../../../../core/widgets/masar_brand.dart';
+import '../../../../core/widgets/phosphor.dart';
 import '../../../../core/widgets/screen_tip.dart';
 import '../../../chat/presentation/screens/main_chat_screen.dart';
 import '../../../quiz/data/models/quiz_models.dart';
 import '../../../quiz/data/quiz_analytics.dart';
 import '../../../quiz/data/quiz_storage.dart';
 import '../../../quiz/presentation/quiz_setup_screen.dart';
-import '../widgets/demo_widgets.dart';
+import '../../../quiz/presentation/widgets/quiz_ui.dart';
+import '../widgets/analysis_ui.dart';
+import '../widgets/review_quiz_sheet.dart';
+import '../widgets/student_profile_card.dart';
 import '../widgets/weak_spot_sheet.dart';
+import 'settings_screen.dart';
 import 'subject_analysis_screen.dart';
 
 // ==========================================
-// 📊 «تحليل مستواي» — على نتائج الاختبارات الحقيقية
+// 👤📊 «معلومات الطالب» — وفيها «تحليل مستواي»
 // ==========================================
+// 🎨 **المصدر:** `design/03-home/21-معلومات.png` و`22-معلومات.png`.
+//
+// 🔴 **صوابُ المالك (2026-09-21):** «التحليل حوّلناه إلى قسم الطالب… دوّر
+//    في فيجما بتحصل تحليل مستواي، تظهر لما نضغط على الطالب». وكنتُ قد
+//    بنيتُ القسمَ مشتقّاً من شاشة نتيجة الاختبار لأن مجلّد `07-analysis`
+//    فارغ — والتصميمُ كان موجوداً فعلاً، لكن **داخل شاشة الطالب** في
+//    مجلّد الرئيسية. فأُعيد البناءُ على التصدير الحقيقي.
+//
 // كل رقم هنا مُشتقّ من `QuizAnalytics` فوق نتائج `QuizStorage` المحلية:
 // **صفر قراءات سحابية وصفر انتظار شبكة** ([31§7]) — يفتح فوراً وبلا إنترنت.
 //
@@ -64,51 +80,68 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   Widget build(BuildContext context) {
     final subjects = QuizAnalytics.bySubject(_results);
     final weak = QuizAnalytics.weakSpots(_results, limit: 5);
+    final points = QuizAnalytics.recentPercents(_results, count: 10);
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
+      // ⚠️ **`ScreenTip` يرجع `Positioned`** فمكانُه `Stack` مباشرةً لا داخل
+      //    عمودٍ — وإلا رمى فلاتر في كل بناءٍ ولم يظهر للطالب أبداً.
       body: Stack(
         children: [
-          const GlowBackgroundStatic(),
-          Column(
-            children: [
-              const GlassBar(
-                  title: "تحليل مستواي 📊", subtitle: "قوتك، ضعفك، وتوصياتك"),
-              Expanded(
-                child: _results.isEmpty
-                    ? _EmptyState(onStart: () => _push(const QuizSetupScreen()))
-                    : ListView(
-                        padding: const EdgeInsets.fromLTRB(18, 16, 18, 30),
-                        children: [
-                          FadeInSlide(child: _summaryCard()),
-                          const SizedBox(height: 14),
-                          FadeInSlide(delay: 0.05, child: _progressCard()),
-                          const SizedBox(height: 18),
-                          if (weak.isNotEmpty) ...[
-                            const SectionHeader("الدروس التي تحتاج تركيز 🎯"),
-                            ...weak.asMap().entries.map((e) => FadeInSlide(
-                                  delay: 0.08 + e.key * 0.05,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(bottom: 10),
-                                    child: _weakCard(e.value),
-                                  ),
-                                )),
-                            const SizedBox(height: 8),
-                          ],
-                          FadeInSlide(delay: 0.12, child: _reviewCard(subjects)),
-                          const SizedBox(height: 22),
-                          const SectionHeader("تحليل المواد"),
-                          ...subjects.asMap().entries.map((e) => FadeInSlide(
-                                delay: 0.12 + e.key * 0.06,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _subjectCard(e.value),
-                                ),
-                              )),
-                        ],
-                      ),
-              ),
-            ],
+          SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(AnalysisMetrics.margin, 18,
+                  AnalysisMetrics.margin, 28),
+              children: [
+                _header(),
+                const SizedBox(height: 16),
+                FadeInSlide(child: _profile()),
+                const SizedBox(height: 22),
+                const AnalysisSectionTitle("تحليل مستواي"),
+                const SizedBox(height: 12),
+                if (_results.isEmpty)
+                  FadeInSlide(delay: 0.05, child: _emptyAnalysis())
+                else ...[
+                  FadeInSlide(delay: 0.05, child: _summary()),
+                  if (points.length >= 2) ...[
+                    const SizedBox(height: AnalysisMetrics.gap),
+                    FadeInSlide(delay: 0.08, child: _progress(points)),
+                  ],
+                  if (weak.isNotEmpty) ...[
+                    const SizedBox(height: 22),
+                    const AnalysisSectionTitle("الدروس التي تحتاج تركيز"),
+                    const SizedBox(height: 12),
+                    ...weak.asMap().entries.map((e) => FadeInSlide(
+                          delay: 0.1 + e.key * 0.04,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 11),
+                            child: _focusRow(e.value),
+                          ),
+                        )),
+                  ],
+                  const SizedBox(height: 10),
+                  FadeInSlide(delay: 0.14, child: _reviewCard(subjects)),
+                  const SizedBox(height: 22),
+                  const AnalysisSectionTitle("تحليل المواد"),
+                  const SizedBox(height: 12),
+                  ...subjects.asMap().entries.map((e) => FadeInSlide(
+                        delay: 0.14 + e.key * 0.05,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 11),
+                          child: AnalysisSubjectRow(
+                            subject: e.value.subject,
+                            percent: e.value.currentPercent,
+                            label: e.value.label,
+                            quizzes: e.value.quizzes,
+                            onTap: () => _push(SubjectAnalysisScreen(
+                                subject: e.value.subject,
+                                ownerUid: widget.ownerUid)),
+                          ),
+                        ),
+                      )),
+                ],
+              ],
+            ),
           ),
           const ScreenTip(
               screenId: "analysis",
@@ -119,59 +152,128 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     );
   }
 
-  // ══════════════ الملخّص ══════════════
+  // ══════════════ الرأس ══════════════
 
-  Widget _summaryCard() {
+  /// 📐 من التصدير: الرسمُ في **يمين** السطر ثم «معلومات الطالب» 22/w900،
+  ///    وسهمُ الرجوع في أقصى اليسار.
+  ///
+  /// 🎨 والرسمُ أصلُ المصمّم نفسُه — وُجد في `design/assets/`.
+  Widget _header() => Row(
+        children: [
+          SizedBox(
+            width: 44,
+            height: 40,
+            child: Image.asset("assets/art/art_student_info.png",
+                fit: BoxFit.contain),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text("معلومات الطالب",
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.headingInk)),
+          ),
+          QuizSquareButton(
+              icon: PI.arrowRight, onTap: () => Navigator.maybePop(context)),
+        ],
+      );
+
+  // ══════════════ بطاقة الطالب ══════════════
+
+  Widget _profile() {
+    final scope = UserSession.I.scope;
+    // 📚 «مادة درستها» — نفسُ حسابِ بطاقات الرئيسية حرفاً: عددُ الموادّ
+    //    التي فتح فيها محادثةً فعلاً، من مجموع موادّ صفّه.
+    final studied = ChatStorage.getAllConversations(
+          widget.ownerUid ?? UserSession.I.uid,
+          scope: scope,
+        ).map((c) => c.subject).toSet().length;
+    final total = Curriculum.subjectsFor(
+            UserSession.I.grade, TrackLabel.fromKey(UserSession.I.track))
+        .length;
+
+    return StudentProfileCard(
+      studied: studied,
+      total: total,
+      onAvatarChanged: () => setState(() {}),
+      // ⚙️ «عرض التفاصيل» يفتح الإعدادات — فهناك تُقرأ بيانات الحساب
+      //    كلُّها وتُعدَّل (الاسم · الصف · المسار · نوع الحساب).
+      onDetails: () => _push(const SettingsScreen()),
+    );
+  }
+
+  // ══════════════ ملخّص الأداء ══════════════
+
+  /// 📐 من التصدير: بطاقةٌ `#3C65CA` فيها «ملخص أدائك العام» ثم ثلاثةُ
+  ///    أعمدةٍ بفواصلَ رأسية، ثم فاصلٌ أفقيّ، ثم أفضلُ مادةٍ وأضعفُها.
+  Widget _summary() {
     final subjects = QuizAnalytics.bySubject(_results);
     final best = subjects.isEmpty ? null : subjects.first;
     // ⚠️ «أضعف مادة» تظهر عند مادتين فأكثر فقط — وإلا كانت هي «أفضل مادة».
     final weakest = subjects.length >= 2 ? subjects.last : null;
-    final streak = QuizAnalytics.streakDays(_results);
     final last = _results.first; // القائمة مرتّبة: الأحدث أولاً
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppColors.mainGradient,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: AppColors.softShadow,
-      ),
+    return AnalysisNavyCard(
       child: Column(
         children: [
           const Text("ملخص أدائك العام",
               style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900)),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white)),
           const SizedBox(height: 16),
-          Row(children: [
-            _sumTile("${QuizAnalytics.totalQuizzes(_results)}", "عدد الاختبارات"),
-            _divider(),
-            _sumTile("${QuizAnalytics.overallPercent(_results)}%", "المعدل العام"),
-            _divider(),
-            _sumTile("${last.percent}%", "آخر اختبار"),
-          ]),
-          const Divider(color: Colors.white24, height: 26),
-          Row(children: [
-            _sumTile(best?.subject ?? "—", "💪 أفضل مادة"),
-            if (weakest != null) ...[
-              _divider(),
-              _sumTile(weakest.subject, "🎯 أضعف مادة"),
+          Row(
+            children: [
+              // ⚠️ RTL: أوّلُ ابنٍ هو الأيمن — وهناك «عدد الاختبارات».
+              Expanded(
+                  child: AnalysisNavyStat(
+                      value: "${QuizAnalytics.totalQuizzes(_results)}",
+                      label: "عدد الاختبارات")),
+              const AnalysisNavyDivider(),
+              Expanded(
+                  child: AnalysisNavyStat(
+                      value: "${QuizAnalytics.overallPercent(_results)}%",
+                      label: "المعدل العام")),
+              const AnalysisNavyDivider(),
+              Expanded(
+                  child: AnalysisNavyStat(
+                      value: "${last.percent}%", label: "آخر اختبار")),
             ],
-          ]),
-          if (streak > 1) ...[
+          ),
+          if (best != null) ...[
+            const SizedBox(height: 16),
+            Divider(color: Colors.white.withValues(alpha: 0.22), height: 1),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                    child: _subjectFact(
+                        best.subject, "أفضل مادة", AppColors.success500)),
+                if (weakest != null) ...[
+                  const AnalysisNavyDivider(),
+                  Expanded(
+                      child: _subjectFact(
+                          weakest.subject, "أضعف مادة", AppColors.error500)),
+                ],
+              ],
+            ),
+          ],
+          // 🔥 سلسلةُ الأيام — 🆕 ليست في التصدير، ويملكها التطبيق.
+          //    تظهر عند يومين فأكثر: «يومٌ واحدٌ متتالٍ» لا معنى له.
+          if (QuizAnalytics.streakDays(_results) > 1) ...[
             const SizedBox(height: 14),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Text("🔥 $streak أيام متتالية — واصل!",
+              child: Text(
+                  "🔥 ${QuizAnalytics.streakDays(_results)} أيام متتالية — واصل!",
                   style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 12.5,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800)),
             ),
           ],
@@ -180,111 +282,73 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     );
   }
 
-  Widget _sumTile(String value, String label) => Expanded(
-        child: Column(children: [
-          Text(value,
+  /// «رياضيات» وتحتها «🟢 أفضل مادة» — نقطةٌ ملوّنة كما في التصدير.
+  Widget _subjectFact(String subject, String label, Color dot) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(subject,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900)),
-          const SizedBox(height: 4),
-          Text(label,
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600)),
-        ]),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white)),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.86))),
+              const SizedBox(width: 6),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+              ),
+            ],
+          ),
+        ],
       );
 
-  Widget _divider() => Container(width: 1, height: 40, color: Colors.white24);
+  // ══════════════ خطّ التقدّم — 🆕 ══════════════
 
-  // ══════════════ خط التقدّم ══════════════
-
-  Widget _progressCard() {
-    final points = QuizAnalytics.recentPercents(_results, count: 10);
-    if (points.length < 2) return const SizedBox.shrink();
-
-    return SoftCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Icon(Icons.show_chart_rounded, size: 18, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Text("تقدّمك في آخر ${points.length} اختبارات",
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
-          ]),
-          const SizedBox(height: 14),
-          SizedBox(height: 66, child: _Sparkline(points: points)),
-        ],
-      ),
-    );
-  }
+  Widget _progress(List<int> points) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceWhite,
+          borderRadius: BorderRadius.circular(AnalysisMetrics.cardRadius),
+          border: Border.all(color: AppColors.quizCardBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(PI.chartLine.regular, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text("تقدّمك في آخر ${arabicQuizzes(points.length, afterAkhir: true)}",
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.headingInk)),
+            ]),
+            const SizedBox(height: 14),
+            AnalysisSparkline(points: points),
+          ],
+        ),
+      );
 
   // ══════════════ نقاط الضعف — الحلقة الذهبية ══════════════
 
-  Widget _weakCard(WeakSpot w) {
-    // 👆 البطاقة كلّها هدفٌ للنقر لا الزرّ الصغير وحده — أرحم لإصبع الطالب.
-    return InkWell(
-      onTap: () => showWeakSpotSheet(context, w,
-                onExplain: () => _explain(w), onRetakeQuiz: () => _retake(w)),
-      borderRadius: BorderRadius.circular(24),
-      child: SoftCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.redAccent.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text("${w.errorRate}٪",
-                style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.redAccent)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(w.lesson.isEmpty ? w.topic : w.lesson,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
-                const SizedBox(height: 3),
-                Text("${w.subject}${w.topic.isEmpty ? '' : ' · ${w.topic}'}",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 11, color: AppColors.textSecondary)),
-              ],
-            ),
-          ),
-          TextButton.icon(
-            onPressed: () =>
-                showWeakSpotSheet(context, w,
-                onExplain: () => _explain(w), onRetakeQuiz: () => _retake(w)),
-            icon: const Icon(Icons.chevron_left_rounded, size: 19),
-            label: const Text("التفاصيل",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-          ),
-        ],
-      ),
-    ),
-    );
-  }
+  Widget _focusRow(WeakSpot w) => AnalysisFocusRow(
+        title: w.lesson.isEmpty ? w.topic : w.lesson,
+        subtitle: "${w.subject}${w.topic.isEmpty ? '' : ' • ${w.topic}'}",
+        percent: w.errorRate,
+        onTap: () => showWeakSpotSheet(context, w,
+            onExplain: () => _explain(w), onRetakeQuiz: () => _retake(w)),
+      );
 
   void _explain(WeakSpot w) => _push(MainChatScreen(
         openSubject: w.subject,
@@ -302,401 +366,66 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
   // ══════════════ اختبار المراجعة ══════════════
 
-  Widget _reviewCard(List<SubjectStats> subjects) {
-    return InkWell(
-      onTap: subjects.isEmpty ? null : () => _openReviewSheet(subjects),
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: [Color(0xFF0F172A), Color(0xFF7C3AED)],
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: AppColors.softShadow,
-        ),
-        child: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(16)),
-            child: const Text("📅", style: TextStyle(fontSize: 24)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("اختبار مراجعة",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w900)),
-                const SizedBox(height: 5),
-                Text("أسئلة من دروسك الضعيفة وحدها — لا من المنهج كله.",
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.88),
-                        fontSize: 11.5,
-                        height: 1.4,
-                        fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-          Icon(Icons.arrow_circle_left_rounded,
-              color: Colors.white.withValues(alpha: 0.9), size: 26),
-        ]),
-      ),
-    );
-  }
-
-  void _openReviewSheet(List<SubjectStats> subjects) {
-    // نبدأ بأضعف مادة — فهي الأولى بالمراجعة.
-    var subject = subjects.last.subject;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surfaceWhite,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) {
-          final spots = QuizAnalytics.weakSpots(
-              _results.where((r) => r.subject == subject).toList(),
-              limit: 3);
-          final unit = spots.isEmpty ? "" : spots.first.unit;
-
-          return Padding(
-            padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 18,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                      child: Container(
-                          width: 42,
-                          height: 4,
-                          decoration: BoxDecoration(
-                              color: AppColors.softSurface,
-                              borderRadius: BorderRadius.circular(4)))),
-                  const SizedBox(height: 16),
-                  Text("اختبار مراجعة 📅",
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.textPrimary)),
-                  const SizedBox(height: 16),
-                  Text("المادة:",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textSecondary,
-                          fontSize: 13)),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: subjects
-                        .map((s) => _sheetChip(s.subject, s.subject == subject,
-                            () => setSheet(() => subject = s.subject)))
-                        .toList(),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(children: [
-                    Icon(Icons.auto_awesome_rounded,
-                        size: 16, color: AppColors.secondary),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text("دروس مختارة من أخطائك السابقة:",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textSecondary,
-                              fontSize: 12)),
-                    ),
-                  ]),
-                  const SizedBox(height: 10),
-                  if (spots.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      child: Text(
-                          "ما عندك أخطاء في «$subject» 🎉 اختر مادة أخرى.",
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textSecondary)),
-                    )
-                  else
-                    ...spots.map((s) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.07),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.4),
-                                  width: 1.4),
-                            ),
-                            child: Row(children: [
-                              Icon(Icons.check_box_rounded,
-                                  color: AppColors.primary, size: 22),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                  child: Text(s.lesson,
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textPrimary,
-                                          fontSize: 13.5))),
-                              Text("${s.misses} أخطاء",
-                                  style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.redAccent)),
-                            ]),
-                          ),
-                        )),
-                  const SizedBox(height: 22),
-                  GradientButton(
-                    label: "🚀 ابدأ اختبار المراجعة",
-                    onTap: spots.isEmpty
-                        ? () {}
-                        : () {
-                            Navigator.pop(ctx);
-                            _push(QuizSetupScreen(
-                              initialSubject: subject,
-                              presetUnit: unit,
-                              presetLessons:
-                                  spots.map((s) => s.lesson).toList(),
-                            ));
-                          },
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _sheetChip(String label, bool sel, VoidCallback onTap) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-          decoration: BoxDecoration(
-              color: sel ? AppColors.primary : AppColors.softSurface,
-              borderRadius: BorderRadius.circular(16)),
-          child: Text(label,
-              style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.bold,
-                  color: sel ? Colors.white : AppColors.textSecondary)),
-        ),
+  Widget _reviewCard(List<SubjectStats> subjects) => AnalysisReviewCard(
+        title: "اختبار مراجعة",
+        subtitle: "أسئلة من دروسك الضعيفة وحدها — لا من المنهج كله.",
+        onTap: subjects.isEmpty
+            ? null
+            : () => showReviewQuizSheet(
+                  context,
+                  subjects: subjects,
+                  results: _results,
+                  onStart: (subject, unit, lessons) => _push(QuizSetupScreen(
+                    initialSubject: subject,
+                    presetUnit: unit,
+                    presetLessons: lessons,
+                  )),
+                ),
       );
 
-  // ══════════════ بطاقة مادة ══════════════
+  // ══════════════ الحالة الفارغة ══════════════
 
-  Widget _subjectCard(SubjectStats s) {
-    return InkWell(
-      onTap: () => _push(SubjectAnalysisScreen(
-          subject: s.subject, ownerUid: widget.ownerUid)),
-      borderRadius: BorderRadius.circular(22),
-      child: SoftCard(
-        child: Row(
-          children: [
-            _Ring(percent: s.currentPercent),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(s.subject,
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.textPrimary)),
-                  const SizedBox(height: 6),
-                  Row(children: [
-                    Text(s.label,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: _levelColor(s))),
-                    const SizedBox(width: 8),
-                    Text("· ${s.quizzes} اختبار",
-                        style: TextStyle(
-                            fontSize: 11, color: AppColors.textSecondary)),
-                    if (s.trend != 0) ...[
-                      const SizedBox(width: 8),
-                      Icon(
-                          s.trend > 0
-                              ? Icons.trending_up_rounded
-                              : Icons.trending_down_rounded,
-                          size: 15,
-                          color: s.trend > 0 ? Colors.green : Colors.orange),
-                      Text("${s.trend > 0 ? '+' : ''}${s.trend}",
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color:
-                                  s.trend > 0 ? Colors.green : Colors.orange)),
-                    ],
-                  ]),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_left_rounded,
-                color: AppColors.textSecondary, size: 24),
-          ],
+  /// ⚠️ **البطاقةُ تبقى والتحليلُ وحده يفرغ.** الشاشةُ صارت «معلومات
+  ///    الطالب»، فمن لم يختبر نفسه بعدُ يرى بياناتِه ويُدعى للاختبار —
+  ///    لا شاشةً خاوية.
+  Widget _emptyAnalysis() => Container(
+        padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceWhite,
+          borderRadius: BorderRadius.circular(AnalysisMetrics.cardRadius),
+          border: Border.all(color: AppColors.quizCardBorder),
         ),
-      ),
-    );
-  }
-
-  Color _levelColor(SubjectStats s) => s.isStrong
-      ? Colors.green
-      : (s.isWeak ? Colors.redAccent : AppColors.primary);
-}
-
-// ══════════════ الحالة الفارغة ══════════════
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onStart});
-  final VoidCallback onStart;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("📊", style: TextStyle(fontSize: 56)),
-            const SizedBox(height: 18),
+            MasarRobot(size: 84, pose: MasarRobotPose.fly),
+            const SizedBox(height: 14),
             Text("لا يوجد تحليل بعد",
                 style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimary)),
-            const SizedBox(height: 10),
+                    color: AppColors.headingInk)),
+            const SizedBox(height: 8),
             Text(
               "التحليل يُبنى من اختباراتك. اختبر نفسك مرة واحدة "
               "وسترى مستواك في كل مادة ونقاط ضعفك بالدرس.",
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: 13,
-                  height: 1.7,
+                  fontSize: 12,
+                  height: 1.8,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary),
+                  color: AppColors.rowHint),
             ),
-            const SizedBox(height: 26),
-            GradientButton(label: "🧠 ابدأ اختبارك الأول", onTap: onStart),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: 220,
+              child: QuizPrimaryButton(
+                label: "ابدأ اختبارك الأول",
+                icon: PI.brain,
+                height: 46,
+                onTap: () => _push(const QuizSetupScreen()),
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ══════════════ حلقة النسبة ══════════════
-
-class _Ring extends StatelessWidget {
-  const _Ring({required this.percent});
-  final int percent;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = percent >= 80
-        ? Colors.green
-        : (percent >= 50 ? AppColors.primary : Colors.redAccent);
-    return SizedBox(
-      width: 46,
-      height: 46,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            width: 46,
-            height: 46,
-            child: CircularProgressIndicator(
-              value: percent / 100,
-              strokeWidth: 4.5,
-              backgroundColor: AppColors.softSurface,
-              valueColor: AlwaysStoppedAnimation(color),
-            ),
-          ),
-          Text("$percent",
-              style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w900, color: color)),
-        ],
-      ),
-    );
-  }
-}
-
-// ══════════════ خط التقدّم ══════════════
-// رسم يدوي بـ`CustomPaint` — بلا أي مكتبة رسوم بيانية إضافية.
-
-class _Sparkline extends StatelessWidget {
-  const _Sparkline({required this.points});
-  final List<int> points;
-
-  @override
-  Widget build(BuildContext context) => CustomPaint(
-        painter: _SparklinePainter(points, AppColors.primary),
-        child: const SizedBox.expand(),
       );
-}
-
-class _SparklinePainter extends CustomPainter {
-  _SparklinePainter(this.points, this.color);
-  final List<int> points;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (points.length < 2) return;
-
-    // المحور الرأسي ثابت 0–100 حتى لا يبالغ الرسم في تضخيم فروق صغيرة.
-    double x(int i) => size.width * i / (points.length - 1);
-    double y(int v) => size.height * (1 - v / 100);
-
-    final line = Path()..moveTo(x(0), y(points.first));
-    for (var i = 1; i < points.length; i++) {
-      line.lineTo(x(i), y(points[i]));
-    }
-
-    final fill = Path.from(line)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    canvas.drawPath(
-        fill, Paint()..color = color.withValues(alpha: 0.12));
-    canvas.drawPath(
-        line,
-        Paint()
-          ..color = color
-          ..strokeWidth = 2.4
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round);
-
-    for (var i = 0; i < points.length; i++) {
-      canvas.drawCircle(
-          Offset(x(i), y(points[i])), 3, Paint()..color = color);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SparklinePainter old) => old.points != points;
 }

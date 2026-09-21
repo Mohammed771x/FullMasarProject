@@ -6,8 +6,8 @@ import '../../../core/session/role_home.dart';
 
 import '../../../core/session/user_session.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/fade_in_slide.dart';
-import '../../../core/widgets/robot_widget.dart';
+import '../../../core/widgets/masar_brand.dart';
+import 'widgets/auth_kit.dart';
 
 // ==========================================
 // 📧 شاشة تفعيل البريد
@@ -19,6 +19,19 @@ import '../../../core/widgets/robot_widget.dart';
 //   • فحص تلقائي كل 4 ثوانٍ (الطالب يفتح الرابط في تطبيق البريد ويعود)
 //   • زر «تحققت، افتح لي» للفحص الفوري
 //   • «أعد الإرسال» بمهلة 60 ثانية تمنع إغراق بريده وحظر Firebase المؤقت
+//
+// 🎨 **تصميم Figma** — «التحقق من البريد الإلكتروني» (716:16784).
+//
+// 🔴 **ما لم يُنفَّذ من التصميم ولماذا:** صمّم المصمّم **أربع خانات لرمز
+//    تحقّق** (`5` `8` `9` `6`). و«مسار» **لا يملك نظام أكواد إطلاقاً** —
+//    حُذف بالكامل في 2026-09-08 بقرار المالك لأنه كان ثغرةً حقيقية
+//    (مفتاحٌ مدفون في التطبيق يمنح حساباً بلا حصة ولا حظر ولا تحقق بريد).
+//    التفعيل اليوم **رابطُ Firebase** يُفتح من البريد، والتطبيق يستطلع
+//    الحالة كل أربع ثوانٍ.
+//
+//    فبناءُ أربع خاناتٍ لا تتحقّق من شيء واجهةٌ ميتة تُوهم الطالبَ برمزٍ
+//    لن يصله. أخذنا **هيكل التصميم** (العنوان · الوصف · البريد مع «تعديل»
+//    · الزرّ · عدّاد إعادة الإرسال) ووضعنا في موضع الخانات **ما يعمل فعلاً**.
 class VerifyEmailScreen extends StatefulWidget {
   const VerifyEmailScreen({super.key});
 
@@ -105,91 +118,135 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   @override
   Widget build(BuildContext context) {
     final email = UserSession.I.email;
-    return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: FadeInSlide(
-              child: Column(
+    return AuthScaffold(
+      showBack: false,
+      children: [
+        const SizedBox(height: 10),
+        const Center(child: MasarRobot(size: 120)),
+        const SizedBox(height: 16),
+        AuthHeading(
+          title: "التحقق من البريد الإلكتروني",
+          subtitle: "أرسلنا رابط التفعيل إلى بريدك الإلكتروني",
+        ),
+        const SizedBox(height: 14),
+
+        // ✉️ البريد + «تعديل البريد» — من التصميم. و«تعديل» هنا يعني
+        //    الخروج والتسجيل ببريدٍ آخر، وهو ما كان يفعله الزرّ السفلي.
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(email,
+                  textDirection: TextDirection.ltr,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.fieldLabel)),
+            ),
+            const SizedBox(width: 12),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _changeEmail,
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  RobotWidget(size: 96, state: RobotState.point),
-                  const SizedBox(height: 16),
-                  Text("فعّل بريدك أولاً 📧",
+                  Icon(Icons.edit_outlined, size: 15, color: AppColors.primary),
+                  const SizedBox(width: 4),
+                  Text("تعديل البريد",
                       style: TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
-                  const SizedBox(height: 12),
-                  Text(
-                    "أرسلنا رابط تفعيل إلى:",
-                    style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Text(email,
-                        textDirection: TextDirection.ltr,
-                        style: TextStyle(
-                            fontSize: 13.5, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    "افتح الرابط من بريدك ثم عُد إلى هنا — سنفتح لك التطبيق تلقائياً.\n"
-                    "لم تجد الرسالة؟ تحقّق من مجلد الرسائل غير المرغوبة (Spam).",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 12.5, height: 1.8, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 26),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                      ),
-                      onPressed: _busy ? null : () => _check(),
-                      child: _busy
-                          ? const SizedBox(
-                              width: 20, height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
-                          : const Text("تحققت — افتح لي التطبيق ✅",
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: _secondsLeft > 0 ? null : _resend,
-                    child: Text(
-                      _secondsLeft > 0
-                          ? "إعادة الإرسال بعد $_secondsLeft ثانية"
-                          : "لم تصلك الرسالة؟ أعد الإرسال",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: _secondsLeft > 0 ? AppColors.textSecondary : AppColors.secondary),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  TextButton(
-                    onPressed: () async {
-                      await UserSession.I.signOut();
-                      if (context.mounted) Navigator.of(context).popUntil((r) => r.isFirst);
-                    },
-                    child: Text("تسجيل الخروج / تغيير البريد",
-                        style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
-                  ),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary)),
                 ],
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 22),
+
+        // 📬 في موضع خانات الرمز: الإرشاد الفعليّ + مؤشّر الاستطلاع الحيّ.
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: AppColors.primaryTintSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.primary200),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text("في انتظار تفعيلك… نفتح لك التطبيق تلقائياً",
+                        style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "افتح الرابط من بريدك ثم عُد إلى هنا.\n"
+                "لم تجد الرسالة؟ تحقّق من مجلد الرسائل غير المرغوبة (Spam).",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.8,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary),
+              ),
+            ],
           ),
         ),
-      ),
+        const SizedBox(height: 22),
+
+        AuthPrimaryButton(
+            label: "تحقّق الآن", onTap: () => _check(), busy: _busy),
+        const SizedBox(height: 8),
+
+        Center(
+          child: TextButton(
+            onPressed: _secondsLeft > 0 ? null : _resend,
+            child: Text(
+              _secondsLeft > 0
+                  ? "إعادة إرسال الرمز خلال ${_fmt(_secondsLeft)}"
+                  : "لم تصلك الرسالة؟ أعد الإرسال",
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: _secondsLeft > 0
+                      ? AppColors.textSecondary
+                      : AppColors.primary),
+            ),
+          ),
+        ),
+        Center(
+          child: TextButton(
+            onPressed: _changeEmail,
+            child: Text("تسجيل الخروج / تغيير البريد",
+                style: TextStyle(
+                    fontSize: 12.5, color: AppColors.textSecondary)),
+          ),
+        ),
+      ],
     );
+  }
+
+  /// ⏱️ `00:54` كما في التصميم — لا «٥٤ ثانية».
+  String _fmt(int s) =>
+      "${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}";
+
+  Future<void> _changeEmail() async {
+    await UserSession.I.signOut();
+    if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
   }
 }

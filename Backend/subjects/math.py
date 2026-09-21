@@ -3,9 +3,27 @@
 قسم الرياضيات - بدون أخطاء
 """
 
+from core import lesson_cache
+# 🎯 اسمُ نموذج الرياضيات من مصدرٍ واحد — كان مكتوباً بيده في أربعة مواضع،
+#    فتغييرُه عند سحب المزوّد للنموذج كان يحتاج تعديلَ أربعة أسطر وتذكُّرَها.
+from core.curriculum import model_route as _route
+MATH_MODEL = _route("رياضيات")[1]
+
+# ☢️ **`deepseek-v4-pro` نموذجُ تفكير — وسقفُ ٤٠٠٠ كان يقتله صامتاً.**
+#
+# 🔴 قِيس (2026-09-15): بسقف ٤٠٠٠ ينفق **٤٠٠٠ توكن كلَّها على التفكير**
+#    ويعيد **صفرَ حروف** و`finish_reason="length"` — أي جواباً فارغاً بلا
+#    خطأٍ ولا سجلّ. وبسقف ١٢٠٠٠ يفكّر ٤٣٢٨ ثم يكتب ٣٢٦٠ حرفاً من شرحٍ سليم.
+#
+# ⚖️ فالسقفُ هنا **ليس طولَ الجواب** بل «تفكيرٌ + جواب»، ولذلك يفارق
+#    ٤٠٠٠ المعتمدة في بقية المواد (نماذجُها بلا تفكير). والمهلةُ معه ١٢٠
+#    لا ٥٠: القياسُ أعطى ٤٧ث لدرسٍ متوسّط، وخمسون كانت على حافّة السقوط.
+MATH_MAX_TOKENS = 12000
+MATH_TIMEOUT = 120.0
 from .common import (
     turn_note,
     FOLLOWUP_RULES, CONVERSATION_RULES, CONTINUITY_RULES, subject_lens,
+    ANSWER_SHAPE_RULES,
     SUPPORT_EXAMPLE_RULES,
     subject_book_path, load_json_safe, extract_all_texts_and_metas,
     enhanced_qa_search, faiss_search, filter_and_rank_exams,
@@ -61,6 +79,10 @@ MARKUP_RULES = (
     "  • المضروب: \\fact{المقدار} — لا «!». مثال: \\fact{ن} و\\fact{ن-١}.\n"
     "  • التباديل: \\perm{ن}{ر} — لا «ل(ن، ر)» ولا «ن ل ر».\n"
     "  • التوافيق: \\comb{ن}{ر} — لا «(ن ق ر)».\n"
+    # ⁿ ₙ **والأُسُّ ودليلُه**: الخادم يردّ «^» و«_» إليهما بعد الجواب
+    #    (`to_power` و`to_sub`)، وذكرُهما هنا يوفّر الردَّ ويوحّد الشكل.
+    "  • الأُسّ: \\sup{المقدار} — لا «^». مثال: س\\sup{٢} و١٠\\sup{-٣}.\n"
+    "  • الدليل المنخفض: \\sub{المقدار} — لا «_». مثال: م\\sub{ط} وع\\sub{١}.\n"
     "  ولا تكتب أيَّ أمرٍ آخر يبدأ بشرطةٍ مائلة.\n"
 )
 
@@ -179,6 +201,11 @@ def system_prompt_math_explain():
         #    `source_rules` (انظر أعلاه)، فكان استثناءُ التشبيه يسقط عنها
         #    وحدها بينما طلبه المالك **في كل المواد**.
         + SUPPORT_EXAMPLE_RULES
+        # 🚫 **وشكلُ الجواب معها** — ومنه ضبطُ الافتتاح: الرياضياتُ كانت
+        #    المادةَ الوحيدة خارج `ANSWER_SHAPE_RULES`، فعادت تفتح بـ«أهلاً
+        #    بك، سأشرح لك…» بعد أن نُظّف الافتتاحُ في المواد كلِّها.
+        #    وقواعدُ التنسيق الخاصّة بالرياضيات تأتي بعدها فتعلو عليها.
+        + ANSWER_SHAPE_RULES
         + subject_lens("رياضيات")
         + "القواعد:\n"
         "1) الشرح يكون بنفس أسلوب الملخص.\n"
@@ -243,10 +270,10 @@ async def explain_math_lesson(lesson: dict, groq_client, deepseek_client, sink=N
         raw_answer = await streaming.complete(
             deepseek_client,
             sink=sink,
-            timeout=50.0,
-            model="deepseek-chat",
+            timeout=MATH_TIMEOUT,
+            model=MATH_MODEL,
             temperature=0.2,
-            max_tokens=4000,
+            max_tokens=MATH_MAX_TOKENS,
             messages=[
                 {"role": "system", "content": system_prompt_math_explain()},
                 {"role": "user", "content": prompt}
@@ -327,6 +354,16 @@ async def handle_math_request(req: AskRequest, deepseek_client, groq_client):
     return {"answer": "وضع غير معروف"}
 
 
+def _last_assistant_text(history) -> str:
+    """آخرُ ردٍّ للمساعد في المحادثة — أو فراغ. ([handle_math_explain] الحالة ٢)"""
+    for msg in reversed(list(history or [])):
+        if not isinstance(msg, dict):
+            continue
+        if msg.get("role") == "assistant":
+            return (msg.get("content") or "").strip()
+    return ""
+
+
 async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, groq_client):
     """شرح درس رياضيات - النسخة الصحيحة"""
     
@@ -343,9 +380,20 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
     sess_lesson_name = normalize_text_match(sess.get("lesson_name", "")) if sess else ""
     
     # ============================================
-    # ✅ الحالة 1: الطالب ضغط "شرح الدرس" (content فارغ)
+    # ✅ الحالة 1: الطالب طلب شرح الدرس كاملاً
     # ============================================
-    if user_text == "" or user_text.startswith("شرح درس:"):
+    # 🔴 **وكان الشرطُ نصفَ شرط** (علّةُ المالك 2026-09-16): الرياضياتُ وحدها
+    #    تعرف «الحقل الفارغ» طلباً للشرح، لأن زرَّها القديم «🚀 ابدأ الشرح
+    #    الذكي» كان يُرسل فراغاً. فلمّا صار زرُّ «اشرح لي» واحداً لكل المواد
+    #    وهو يُرسل **نصّاً** («اشرح لي هذا الدرس») وقعت ضغطتُه في الرياضيات
+    #    على الحالة ٢ — «سؤالٌ عن الشرح» — فذهبت إلى الموديل بلا شرحٍ سابقٍ
+    #    تسأل عنه، وتخطّت المخزونَ كلَّه.
+    #
+    # ⚖️ و`is_full_lesson_request` هي **نفسُ المقياس** الذي تُسلَّم به شروحُ
+    #    بقية المواد ([lesson_cache.serves]) — فالرياضياتُ تدخل الميزةَ من
+    #    بابها لا من باب استثناءٍ خاصٍّ بها.
+    if (user_text == "" or user_text.startswith("شرح درس:")
+            or lesson_cache.is_full_lesson_request(user_text)):
         # إذا فيه جلسة نشطة للدرس نفسه → رجع الشرح السابق
         if sess and sess_lesson_name == norm_lesson_name:
             return {
@@ -358,6 +406,27 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
         lesson = load_math_lesson(branch, lesson_name)
         if not lesson: 
             return {"answer": f"❌ لم أجد درس '{lesson_name}'."}
+
+        # 🗄️ **والشرحُ المخزون هنا أيضاً** ([core/lesson_cache]): الرياضياتُ
+        #    لا تمرّ بـ`lesson_mode`، فكانت ستبقى وحدها خارج الكاش بينما
+        #    طلبُ المالك «في الأحياء والكيمياء والفيزياء والرياضيات، في كل
+        #    مكان». وبصمتُها من ملف الدرس نفسِه لا من المُسلسِل.
+        # 🔴 **و`serves` لا «السجلّ فارغ»**: التطبيق يضيف رسالةَ الطالب إلى
+        #    `messages` ثم يبني منها `chat_history`، فالسجلُّ يصل وفيه سؤالُه
+        #    الحالي — وكان شرطُ الفراغ لا يتحقّق أبداً فلا يُسلَّم مخزونٌ في
+        #    الرياضيات ولا مرّة. وهي **نفسُ العلّة** التي أُصلحت لبقية المواد
+        #    بمِسبارٍ حيّ من المحاكي ([lesson_cache.serves]).
+        if lesson_cache.serves(req):
+            _stored = lesson_cache.get(req.grade, req.track, "رياضيات", branch,
+                                       lesson_name, lesson_cache.math_source(lesson))
+            if _stored:
+                sessions[user_id] = {
+                    "subject": "رياضيات", "mode": "math_explain",
+                    "lesson": lesson, "lesson_name": lesson_name,
+                    "last_explanation": _stored,
+                }
+                _session_timestamps[user_id] = time.time()
+                return {"answer": _stored, "cached": True, "session_active": False}
         
         explanation = await explain_math_lesson(
         lesson, groq_client, deepseek_client, sink=streaming.sink_of(req))
@@ -375,7 +444,28 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
     # ============================================
     # ✅ الحالة 2: الطالب كتب سؤال عن الشرح
     # ============================================
-    # تحقق إذا فيه جلسة شرح نشطة للدرس الحالي
+    # 🧵 **والشرحُ يُستعاد من المحادثة إن غابت الجلسة.**
+    #
+    # 🔴 جلسةُ الخادم ذاكرةٌ هشّة: تموت بإعادة تشغيلٍ أو بعامِلٍ آخر يستقبل
+    #    الطلب، و**لا تُنشأ أصلاً** حين يُعرض الشرحُ من سحب التطبيق المسبق
+    #    ([/lesson/explanation]) — وهو المسارُ الغالب اليوم. فبلا هذا
+    #    الاسترداد يسقط سؤالُ الطالب إلى «الحالة ٣» فيُعاد شرحُ الدرس من
+    #    أوّله بدل أن يُجاب سؤالُه.
+    #
+    # ⚖️ والمصدرُ البديل في يده أصلاً: `chat_history` يحمل آخرَ ردٍّ للمساعد
+    #    — وهو الشرحُ نفسُه. فطلبُ المالك «ولما يسأل الطالب يسأل مع الشرح
+    #    حقه» يتحقّق بالجلسة **أو** بالمحادثة، أيُّهما وُجد.
+    if not (sess and sess.get("mode") == "math_explain"
+            and sess_lesson_name == norm_lesson_name):
+        recovered = _last_assistant_text(req.chat_history)
+        if recovered:
+            _doc = load_math_lesson(branch, lesson_name)
+            if _doc:
+                sess = {"subject": "رياضيات", "mode": "math_explain",
+                        "lesson": _doc, "lesson_name": lesson_name,
+                        "last_explanation": recovered}
+                sess_lesson_name = norm_lesson_name
+
     if sess and sess.get("mode") == "math_explain" and sess_lesson_name == norm_lesson_name:
         lesson = sess["lesson"]
         last_explanation = sess["last_explanation"]
@@ -413,11 +503,11 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
             raw_answer = await streaming.complete(
                 deepseek_client,
                 sink=streaming.sink_of(req),
-                timeout=60,
-                model="deepseek-chat",
+                timeout=MATH_TIMEOUT,
+                model=MATH_MODEL,
                 temperature=0.2,
                 messages=messages_for_ai,
-                max_tokens=4000,
+                max_tokens=MATH_MAX_TOKENS,
             )
             clean_answer = _finalize(raw_answer)
             full_answer = clean_answer # نمرر الإجابة النظيفة للتطبيق
@@ -489,6 +579,11 @@ async def handle_math_question(req: AskRequest, sessions: Dict, deepseek_client)
         #    `source_rules` (انظر أعلاه)، فكان استثناءُ التشبيه يسقط عنها
         #    وحدها بينما طلبه المالك **في كل المواد**.
         + SUPPORT_EXAMPLE_RULES
+        # 🚫 **وشكلُ الجواب معها** — ومنه ضبطُ الافتتاح: الرياضياتُ كانت
+        #    المادةَ الوحيدة خارج `ANSWER_SHAPE_RULES`، فعادت تفتح بـ«أهلاً
+        #    بك، سأشرح لك…» بعد أن نُظّف الافتتاحُ في المواد كلِّها.
+        #    وقواعدُ التنسيق الخاصّة بالرياضيات تأتي بعدها فتعلو عليها.
+        + ANSWER_SHAPE_RULES
         + subject_lens("رياضيات")
             + "📖 التعامل مع الأسئلة:\n"
              "- اشرح الدرس أو السؤال كما لو كنت تشرحه للطلاب في الفصل.\n"
@@ -526,9 +621,9 @@ async def handle_math_question(req: AskRequest, sessions: Dict, deepseek_client)
         raw_answer = await streaming.complete(
             deepseek_client,
             sink=streaming.sink_of(req),
-            timeout=60,
-            model="deepseek-chat",
-            messages=messages_for_ai, max_tokens=4000,
+            timeout=MATH_TIMEOUT,
+            model=MATH_MODEL,
+            messages=messages_for_ai, max_tokens=MATH_MAX_TOKENS,
             temperature=0.2,
         )
         clean_answer = _finalize(raw_answer)
@@ -766,9 +861,9 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
             raw_answer = await streaming.complete(
                 deepseek_client,
                 sink=streaming.sink_of(req),
-                timeout=60,
-                model="deepseek-chat",
-                messages=messages_for_ai, max_tokens=4000,
+                timeout=MATH_TIMEOUT,
+                model=MATH_MODEL,
+                messages=messages_for_ai, max_tokens=MATH_MAX_TOKENS,
                 temperature=0.2,
             )
             clean_answer = _finalize(raw_answer)

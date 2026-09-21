@@ -50,6 +50,19 @@ Widget _app(Widget child) => MaterialApp(
       home: Directionality(textDirection: TextDirection.rtl, child: child),
     );
 
+/// 📜 **الشاشةُ صارت «معلومات الطالب»** (تصميم `03-home/22-معلومات`): فوق
+///    التحليلِ بطاقةُ الطالب وملخّصُ الأداء، فما دونهما **تحت الطيّة** في
+///    نافذة الاختبار (600 بكسل) و`ListView` لا يبني ما هو خارجها.
+///
+/// ⚠️ و`scrollUntilVisible` وحدها لا تكفي: تتوقّف حين يصير للودجة وجودٌ في
+///    الشجرة ولو كانت خارج المنفذ، فيقع النقرُ في الفراغ **بتحذيرٍ لا
+///    بفشل**. و`ensureVisible` هي التي تُدخلها المنفذَ فعلاً.
+Future<void> bring(WidgetTester t, Finder f) async {
+  if (!t.any(f)) await t.scrollUntilVisible(f, 250);
+  await t.ensureVisible(f.first);
+  await t.pump();
+}
+
 void main() {
   late Directory dir;
 
@@ -122,9 +135,11 @@ void main() {
       await t.pumpWidget(_app(const AnalysisScreen(ownerUid: _owner)));
       await t.pump();
 
+      await bring(t, find.text('نظرية بوهر'));
       expect(find.text('نظرية بوهر'), findsWidgets);
-      // الشارة صارت **نسبة خطأ** لا عدد أخطاء (قرار المالك)
-      expect(find.textContaining('٪'), findsWidgets, reason: 'شارة النسبة غائبة');
+      // الشارة **نسبة خطأ** لا عدد أخطاء (قرار المالك). وعلامتُها `%`
+      // لاتينيّةٌ كما في التصدير `03-home/22-معلومات` لا «٪».
+      expect(find.textContaining('%'), findsWidgets, reason: 'شارة النسبة غائبة');
       // الصفّ يفتح التفصيل؛ و«اشرح لي» صارت داخل الورقة
       expect(find.text('التفاصيل'), findsWidgets);
     });
@@ -136,6 +151,15 @@ void main() {
 
       await t.pumpWidget(_app(const AnalysisScreen(ownerUid: _owner)));
       await t.pump();
+      // 📜 بعد إعادة التصميم صارت بطاقةُ الملخّص أطولَ (حلقةُ نسبةٍ 138
+      //    وبطاقاتُ إحصاء)، فبطاقةُ المراجعة تحت الطيّة في نافذة الاختبار
+      //    (600 بكسل).
+      //
+      // ⚠️ و`scrollUntilVisible` **لا تكفي وحدها**: تتوقّف حين يصير للودجة
+      //    وجودٌ في الشجرة، وقد تكون عند y=620 أي خارج المنفذ — فيقع النقر
+      //    في الفراغ **بتحذيرٍ لا بفشل**. و`ensureVisible` هي التي تُدخلها
+      //    المنفذَ فعلاً.
+      await bring(t, find.text('اختبار مراجعة'));
       await t.tap(find.text('اختبار مراجعة'));
       // ⚠️ لا `pumpAndSettle`: `ScreenTip` يحمل مؤقّتات حيّة فلا تسكن الشاشة أبداً
       await t.pump();
@@ -272,9 +296,10 @@ void detailSheetTests() {
     await t.pumpWidget(_app(const AnalysisScreen(ownerUid: _owner)));
     await t.pump();
 
+    await bring(t, find.text('المنفعل الماضي'));
     // الصفّ واحد لا ثلاثة
     expect(find.text('المنفعل الماضي'), findsOneWidget);
-    expect(find.textContaining('٪'), findsWidgets);
+    expect(find.textContaining('%'), findsWidgets);
 
     await t.tap(find.text('المنفعل الماضي'));
     await t.pump();
@@ -284,9 +309,10 @@ void detailSheetTests() {
     // النسبة والعيّنة معاً — الرقم المجرّد يُقرأ خطأً
     expect(find.textContaining('نسبة الخطأ'), findsOneWidget);
     expect(find.text('نائب الفاعل'), findsOneWidget);
-    expect(find.text('2 خطأ'), findsOneWidget);
+    // 🔤 تمييزُ العدد بالعربية: «خطآن» لا «2 خطأ» ([arabicMistakes]).
+    expect(find.text('خطآن'), findsOneWidget);
     expect(find.text('علامة البناء'), findsOneWidget);
-    expect(find.text('1 خطأ'), findsOneWidget);
+    expect(find.text('خطأ'), findsOneWidget);
     expect(find.text('اشرح لي هذا الدرس'), findsOneWidget);
   });
 
@@ -300,8 +326,9 @@ void detailSheetTests() {
     await t.pumpWidget(_app(const AnalysisScreen(ownerUid: _owner)));
     await t.pump();
 
-    expect(find.text('💪 أفضل مادة'), findsOneWidget);
-    expect(find.text('🎯 أضعف مادة'), findsOneWidget);
+    // 🎨 التصميم يضع **نقطةً ملوّنة** مكان الإيموجي — والنصُّ هو هو.
+    expect(find.text('أفضل مادة'), findsOneWidget);
+    expect(find.text('أضعف مادة'), findsOneWidget);
   });
 
   testWidgets('مادة واحدة ⇒ لا تُعرض «أضعف مادة» (هي نفسها الأفضل)', (t) async {
@@ -309,15 +336,18 @@ void detailSheetTests() {
     await t.pumpWidget(_app(const AnalysisScreen(ownerUid: _owner)));
     await t.pump();
 
-    expect(find.text('💪 أفضل مادة'), findsOneWidget);
-    expect(find.text('🎯 أضعف مادة'), findsNothing);
+    expect(find.text('أفضل مادة'), findsOneWidget);
+    expect(find.text('أضعف مادة'), findsNothing);
   });
 }
 
 /// عدد بطاقات الإحصاء التي تحمل هذه القيمة.
 ///
-/// تُميَّز بحجم خطّها (٢٠) عن أرقام سجلّ الاختبارات (١٣) — فالاختبار يقيس
-/// **ما يقصده** لا مجرّد وجود نصٍّ في الشجرة.
+/// تُميَّز بحجم خطّها عن أرقام سجلّ الاختبارات — فالاختبار يقيس **ما يقصده**
+/// لا مجرّد وجود نصٍّ في الشجرة.
+///
+/// 📐 والقياسُ **20** — أعاده أمرُ المالك: «تحليل كل مادة خلّه زي الأول،
+///    ولكن عدّل بالألوان». فالبِنيةُ الأصلية بقيت واللغةُ وحدها تبدّلت.
 int _statValue(WidgetTester t, String value) => t
     .widgetList<Text>(find.text(value))
     .where((w) => w.style?.fontSize == 20)

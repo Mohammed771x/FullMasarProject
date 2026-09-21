@@ -2,148 +2,186 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/modern_dropdown.dart';
+import '../../../../core/widgets/phosphor.dart';
 import '../../../chat/presentation/controllers/chat_controller.dart';
 import '../../data/teacher_tool.dart';
 
 // ==========================================
-// ⚙️ لوحة إعدادات المعلم (بديلة لوحة إعدادات الطالب)
+// ⚙️ بطاقةُ إعدادات أداة المعلم
 // ==========================================
-// ⭐ **هذه هي الفرق الأول** بين قسم المعلم وقسم التعليم (قرار المالك):
+// 🎨 **تصميم Figma** — `design/09-teacher/01·03·04` · مقيسٌ من التصدير:
+//    البطاقة (24,203) 341×* · r20 · بيضاء بحدّ `#E8EDF3` · حشوةٌ 16 ·
+//    العنوان **14**/w900 `#0F172B` · تسميةُ الحقل **12**/w900 `#42526D` ·
+//    القوائم 36 r9 (هي [ModernDropdown] نفسُها) ·
+//    وزرُّ التوليد **46 · r11 · لونٌ مصمتٌ من سلّم الأداة** ونصُّه أبيض
+//    **14**/w900 تسبقه أيقونةُ الأداة وتذيّله «✨».
+//
+// 📏 **والمقاسات مقيسةٌ بمقارنة الحرف بالحرف** لا مقدَّرة من الصورة:
+//    حبرُ عنوان البطاقة في التصدير 17.0 — وهو نفسُ ارتفاع عنوان الشريط
+//    العلويّ المعلومِ أنه 14، والفرقُ بينهما الوزنُ لا المقاس.
+//
+// ⭐ **وهذه هي الفرق الأول** بين قسم المعلم وقسم التعليم (قرار المالك):
 //    كل ما عداها من الشات — الفقاعات والصور والصوت والنسخ والإيقاف والسياق
 //    وسجلّ المحادثات — **هو نفسه حرفياً** لأنه الشاشة نفسها والمتحكّم نفسه.
 //
-// التسلسل ثابت في الأدوات الأربع: **الوحدة ← الدرس**، ثم حقول الأداة، ثم الزر.
-// (المادة والصف والمسار من القائمة الجانبية — تماماً كقسم التعليم.)
+// 📐 **والبطاقةُ مُدّت لتسع ما لم يرسمه المصمّم** (قاعدة المالك ①): رسم
+//    للخطة «المادة + الدرس»، وللواجب «الدرس» وحده، وللتبسيط «المفهوم»
+//    وحده. والتطبيق يحتاج **المادة ← الوحدة ← الدرس** في الثلاث (الدرسُ
+//    يُعرَّف بوحدته)، ويحتاج للواجب مستوىً وعدداً. فزيدت الحقول بلغة
+//    البطاقة نفسِها ولم يُحذف منها شيء.
 //
 // ⚠️ **لا وضع صفحات ولا محتوى وحدات هنا إطلاقاً**: أدوات المعلم تُبنى من نصّ
 //    الدرس وحده، فمادةٌ بلا دروس تُقال صراحةً بدل أن تُنتج خطةً لدرسٍ لا يوجد.
 class TeacherSettingsPanel extends StatelessWidget {
+  const TeacherSettingsPanel(
+      {super.key, required this.controller, this.onGenerated});
+
   final ChatController controller;
 
-  const TeacherSettingsPanel({super.key, required this.controller});
+  /// تُنادى بعد ضغط زرّ التوليد — الشاشةُ تطوي البطاقة لتفسح للنتيجة.
+  final VoidCallback? onGenerated;
+
+  /// 📏 مقاساتُ التصميم — يقرؤها الاختبار بدل أن يُعيد كتابتها.
+  static const double radius = 20;
+  static const double padding = 16;
+  static const double buttonHeight = 46;
+  static const double buttonRadius = 11;
 
   ChatController get c => controller;
   TeacherTool get tool => c.teacherTool!;
 
   @override
   Widget build(BuildContext context) {
+    final p = AppColors.toolPalette(tool.slot);
     return Container(
-      padding: const EdgeInsets.all(20),
+      // 📏 **19 لا 16 من أعلى**: حشوةُ التصدير 16 في الجهات الأربع، لكنّ
+      //    قيادةَ سطرِ Cairo في فلاتر أقصرُ بثلاثٍ منها في Figma — فلو
+      //    نُقل الرقمُ حرفياً لوقع الحبرُ أعلى بثلاثٍ من موضعه في الملف.
+      //    والمنقولُ **موضعُ الحبر** لا رقمُ الحشوة.
+      padding:
+          const EdgeInsets.fromLTRB(padding, padding + 3, padding, padding),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white, width: 2),
+        color: AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: AppColors.quizCardBorder),
         boxShadow: AppColors.softShadow,
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text("${tool.emoji} ${tool.settingsTitle}",
-                      style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
-                          color: AppColors.textPrimary)),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close_rounded, color: AppColors.textSecondary),
-                  onPressed: () => c.setShowSettingsPanel(false),
-                ),
-              ],
-            ),
-            Text("المادة والصف من القائمة الجانبية ☰",
-                style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary)),
-            const SizedBox(height: 16),
-            _lessonPickers(),
-            ..._toolFields(),
-            if (tool.hasGenerate) ...[
-              const SizedBox(height: 18),
-              _generateButton(),
-            ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(tool.cardTitle,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.slateTitle)),
+          const SizedBox(height: 17),
+          ..._fields(),
+          if (tool.hasGenerate) ...[
+            const SizedBox(height: 9),
+            _generateButton(p),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  // ───────────────── الوحدة ← الدرس ─────────────────
+  // ───────────────── الحقول ─────────────────
 
-  Widget _lessonPickers() {
+  List<Widget> _fields() {
     if (c.capsLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 18),
-        child: Center(
-            child: SizedBox(
-                width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4))),
-      );
+      return const [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 18),
+          child: Center(
+              child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2.4))),
+        ),
+      ];
     }
 
+    return [
+      _label("المادة الدراسية:"),
+      const SizedBox(height: 7),
+      // 📚 **المادةُ في البطاقة كما في التصميم** — وهي القائمةُ الجانبية
+      //    نفسُها تُستدعى من موضعٍ ثانٍ: `setSubject` واحدةٌ للاثنين.
+      ModernDropdown(
+        hint: "اختر المادة",
+        value: c.subjects.contains(c.selectedSubject) ? c.selectedSubject : null,
+        items: c.subjects,
+        onChanged: (v) => v == null ? null : c.setSubject(v),
+      ),
+      const SizedBox(height: 12),
+      ..._lessonFields(),
+      ..._toolFields(),
+    ];
+  }
+
+  List<Widget> _lessonFields() {
     final units = c.v3LessonsUnits;
     if (units.isEmpty) {
       // ⚠️ رسالة صريحة لا سقوطٌ صامت على محتوى الوحدات.
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.orange.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.orange.withValues(alpha: 0.3), width: 1.5),
-        ),
-        child: Row(
-          children: [
-            const Text("🚧", style: TextStyle(fontSize: 18)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                "دروس «${c.selectedSubject}» لهذا الصف لم تُضف بعد.\n"
-                "أدوات المعلم تُبنى من نصّ الدرس — اختر مادة أخرى من القائمة ☰.",
-                style: TextStyle(
-                    fontSize: 12,
-                    height: 1.6,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.orange.shade800),
+      return [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.warningTintSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.warningTintBorder, width: 1.5),
+          ),
+          child: Row(
+            children: [
+              const Text("🚧", style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "دروس «${c.selectedSubject}» لهذا الصف لم تُضف بعد.\n"
+                  "أدوات المعلم تُبنى من نصّ الدرس — اختر مادة أخرى.",
+                  style: TextStyle(
+                      fontSize: 12,
+                      height: 1.6,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.savedInk),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      );
+      ];
     }
 
-    return Column(children: [
+    return [
+      _label("الوحدة:"),
+      const SizedBox(height: 7),
       ModernDropdown(
         hint: "اختر الوحدة",
         value: c.selectedV3Unit.isEmpty ? null : c.selectedV3Unit,
         items: units,
         onChanged: (v) => c.setV3Unit(v ?? ""),
-        icon: Icons.folder_rounded,
       ),
       const SizedBox(height: 12),
+      _label(tool.lessonFieldLabel),
+      const SizedBox(height: 7),
       ModernDropdown(
         hint: "اختر الدرس",
         value: c.selectedV3Lesson.isEmpty ? null : c.selectedV3Lesson,
         items: c.v3LessonsInSelectedUnit,
         onChanged: (v) => c.setV3Lesson(v ?? ""),
-        icon: Icons.menu_book_rounded,
+        leading: PD.notebook,
       ),
       if (tool == TeacherTool.ask) ...[
-        const SizedBox(height: 10),
-        Align(
-          alignment: Alignment.centerRight,
-          child: Text(
-            "اختيار الدرس اختياري هنا — اسأل عنه أو عن التدريس عموماً.",
-            style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
-          ),
+        const SizedBox(height: 8),
+        Text(
+          "اختيار الدرس اختياري هنا — اسأل عنه أو عن التدريس عموماً.",
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary),
         ),
       ],
-    ]);
+    ];
   }
 
   // ───────────────── حقول كل أداة ─────────────────
@@ -152,50 +190,33 @@ class TeacherSettingsPanel extends StatelessWidget {
     switch (tool) {
       case TeacherTool.simplify:
         return [
-          const SizedBox(height: 14),
-          _label("المفهوم الذي تريد تبسيطه:"),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-                color: AppColors.softSurface, borderRadius: BorderRadius.circular(16)),
-            child: TextField(
-              controller: c.conceptController,
-              // ⭐ إعادة البناء ضرورية: زرّ التوليد معطَّل حتى يُكتب المفهوم،
-              //    وبدونها يبقى رمادياً بعد الكتابة حتى يلمس المعلّم شيئاً آخر.
-              onChanged: (_) => c.refresh(),
-              style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-              decoration: InputDecoration(
-                hintText: "مثال: الانتشار الغشائي · الاشتقاق الضمني",
-                hintStyle: TextStyle(
-                    color: AppColors.textSecondary.withValues(alpha: 0.6), fontSize: 13.5),
-                prefixIcon:
-                    Icon(Icons.lightbulb_outline_rounded, color: AppColors.secondary, size: 20),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 15),
-              ),
-            ),
-          ),
+          const SizedBox(height: 12),
+          _label("اكتب المفهوم أو المصطلح:"),
+          const SizedBox(height: 7),
+          _conceptField(),
         ];
 
       case TeacherTool.homework:
         return [
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _label("مستوى الصعوبة:"),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Row(
-            children: kTeacherDifficulties
-                .map((d) => _pill(d, c.teacherDifficulty == d,
-                    () => c.update(() => c.teacherDifficulty = d)))
-                .toList(),
+            children: [
+              for (final d in kTeacherDifficulties)
+                _pill(d, c.teacherDifficulty == d,
+                    () => c.update(() => c.teacherDifficulty = d)),
+            ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           _label("عدد الأسئلة:"),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Row(
-            children: kTeacherCounts
-                .map((n) => _pill("$n", c.teacherCount == n,
-                    () => c.update(() => c.teacherCount = n)))
-                .toList(),
+            children: [
+              for (final n in kTeacherCounts)
+                _pill("$n", c.teacherCount == n,
+                    () => c.update(() => c.teacherCount = n)),
+            ],
           ),
         ];
 
@@ -205,46 +226,96 @@ class TeacherSettingsPanel extends StatelessWidget {
     }
   }
 
+  /// 💡 حقلُ المفهوم — بصندوق [ModernDropdown] نفسِه (36 · r9 · `#FAFBFB`)
+  ///    لأن المصمّم رسمه صندوقاً واحداً لا صندوقين مختلفين.
+  Widget _conceptField() => Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.fieldFill,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: AppColors.rowBorder),
+        ),
+        child: TextField(
+          controller: c.conceptController,
+          // ⭐ إعادة البناء ضرورية: زرّ التوليد معطَّل حتى يُكتب المفهوم،
+          //    وبدونها يبقى رمادياً بعد الكتابة حتى يلمس المعلّمُ شيئاً آخر.
+          onChanged: (_) => c.refresh(),
+          textAlignVertical: TextAlignVertical.center,
+          style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w800,
+              color: AppColors.dropdownInk),
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: "مثال: قاعدة لوشاتيليه · الاشتقاق الضمني",
+            hintStyle: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.dropdownCaret),
+            filled: false,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      );
+
   // ───────────────── زرّ التوليد ─────────────────
 
-  Widget _generateButton() {
+  Widget _generateButton(ToolPalette p) {
     final ready = c.canGenerateTeacher;
+    final reason = _blockedReason();
+    // 🔴 **والحبرُ يتبع الحالة**: الأبيضُ على الزرّ المعطَّل الباهت كان
+    //    يختفي تماماً — رأيتُه في المحاكي قبل أن يراه أحد.
+    final Color ink = ready ? Colors.white : AppColors.rowHint;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          height: 54,
-          decoration: BoxDecoration(
-            gradient: ready ? LinearGradient(colors: tool.gradient) : null,
-            color: ready ? null : AppColors.softSurface,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: ready ? AppColors.softShadow : const [],
-          ),
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-            ),
-            onPressed: ready ? () => c.generateTeacher() : null,
-            child: Text(
-              tool.generateLabel,
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: ready ? Colors.white : AppColors.textSecondary),
+        Material(
+          color: ready ? p.cta : AppColors.quizButtonIdle,
+          borderRadius: BorderRadius.circular(buttonRadius),
+          child: InkWell(
+            onTap: ready
+                ? () {
+                    c.generateTeacher();
+                    onGenerated?.call();
+                  }
+                : null,
+            borderRadius: BorderRadius.circular(buttonRadius),
+            child: SizedBox(
+              height: buttonHeight,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  tool.iconWidget(size: 18, color: ink),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      "${tool.generateLabel} ✨",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: ink),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        if (!ready) ...[
+        if (!ready && reason.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(_blockedReason(),
+          Text(reason,
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary)),
+                  color: AppColors.rowHint)),
         ],
       ],
     );
@@ -255,7 +326,7 @@ class TeacherSettingsPanel extends StatelessWidget {
     if (c.isLoading) return "⏳ انتظر انتهاء الرد الحالي أو أوقفه.";
     // ⚠️ «اختر الدرس» نصيحةٌ كاذبة حين لا دروس أصلاً — المطلوب تبديل المادة.
     if (c.v3LessonsUnits.isEmpty && !c.capsLoading) {
-      return "🚧 لا دروس لهذه المادة — اختر مادة أخرى من القائمة ☰.";
+      return "🚧 لا دروس لهذه المادة — اختر مادة أخرى.";
     }
     if (!c.teacherLessonReady) return "📖 اختر الوحدة ثم الدرس أولاً.";
     if (tool == TeacherTool.simplify && c.conceptController.text.trim().isEmpty) {
@@ -268,28 +339,30 @@ class TeacherSettingsPanel extends StatelessWidget {
 
   Widget _label(String text) => Text(text,
       style: TextStyle(
-          fontWeight: FontWeight.bold, color: AppColors.textSecondary, fontSize: 12.5));
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+          color: AppColors.rowAction));
 
   Widget _pill(String label, bool selected, VoidCallback onTap) {
+    final p = AppColors.toolPalette(tool.slot);
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.only(left: 8),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(vertical: 11),
-            decoration: BoxDecoration(
-              color: selected ? AppColors.primary : AppColors.softSurface,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Center(
-              child: Text(label,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: selected ? Colors.white : AppColors.textSecondary,
-                      fontSize: 13)),
+        child: Material(
+          color: selected ? p.cta : AppColors.fieldFill,
+          borderRadius: BorderRadius.circular(9),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(9),
+            child: SizedBox(
+              height: 34,
+              child: Center(
+                child: Text(label,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: selected ? Colors.white : AppColors.rowAction)),
+              ),
             ),
           ),
         ),

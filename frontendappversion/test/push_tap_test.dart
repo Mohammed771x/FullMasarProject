@@ -125,8 +125,11 @@ void main() {
     testWidgets('🎭 ويفتح للمعلّم ولو لم تُعرَّف له قاعدة وصول', (tester) async {
       // 💡 التلميح مجدولٌ بمؤقّت، ورئيسية المعلم لا «تستقرّ» أبداً —
       //    فنعلّمه «عُرض» وندفع إطاراتٍ معدودة بدل `pumpAndSettle`.
-      SharedPreferences.setMockInitialValues(
-          {'screen_tip_shown_teacher_home': true});
+      SharedPreferences.setMockInitialValues({
+        'screen_tip_shown_teacher_chat': true,
+        // 💡 ودليلُ الأداة يُعرض مرّةً عند أول فتح — نعلّمه «عُرض».
+        'teacher_instruction_shown_ask': true,
+      });
       UserSession.I.role = AppRole.teacher;
       await tester.pumpWidget(host());
 
@@ -137,8 +140,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 300));
       }
 
-      // ✅ وصل أدوات المعلم فعلاً — ولا رسالةَ منعٍ ظهرت.
-      expect(find.text('أدوات المعلم'), findsOneWidget);
+      // ✅ وصل مساعدَ المعلم فعلاً — ولا رسالةَ منعٍ ظهرت.
+      //    (العنوان في الشريط العلويّ وفي لوحة الترحيب معاً.)
+      expect(find.text('مساعد المعلم الذكي'), findsWidgets);
       expect(find.textContaining('لحسابات المعلمين'), findsNothing);
     });
 

@@ -39,7 +39,9 @@ GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/"
 # تُضبط من .env عند تغيّر أسماء الموديلات — لا حاجة لتعديل الكود.
 VISION_MODEL = os.getenv("INGEST_VISION_MODEL", "gemini-3.1-pro-preview")
 STRUCT_MODEL = os.getenv("INGEST_STRUCT_MODEL", "gemini-3.1-pro-preview")
-MATH_MODEL = os.getenv("INGEST_MATH_MODEL", "deepseek-chat")
+# ☢️ ونفسُ النموذج المسحوب كان هنا أيضاً ([core/curriculum]) — وأداةُ
+#    الاستيعاب تتعلّق مثلَها بلا خطأ.
+MATH_MODEL = os.getenv("INGEST_MATH_MODEL", "deepseek-v4-pro")
 
 # المواد ذات الرموز وخط اليد: صور أقل في النداء الواحد.
 # دقة نقل خط اليد تنهار مع كثرة الصفحات في نداء واحد — وهذا أرخص إصلاح.

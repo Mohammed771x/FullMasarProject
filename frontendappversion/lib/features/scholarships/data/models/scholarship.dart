@@ -13,6 +13,31 @@ import 'package:flutter/material.dart';
 
 enum SchStatus { open, soon, closed }
 
+/// 🚪 بابٌ واحد: نصُّ الزرّ، والسؤالُ الذي يُرسَل عند ضغطه.
+class ScholarshipDoor {
+  const ScholarshipDoor(this.label, this.question);
+
+  final String label;
+  final String question;
+
+  static List<ScholarshipDoor> listFrom(dynamic raw) {
+    if (raw is! List) return const [];
+    final out = <ScholarshipDoor>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final label = (item["label"] ?? "").toString().trim();
+      final question = (item["question"] ?? "").toString().trim();
+      if (label.isNotEmpty && question.isNotEmpty) {
+        out.add(ScholarshipDoor(label, question));
+      }
+    }
+    return out;
+  }
+
+  Map<String, dynamic> toJson() => {"label": label, "question": question};
+}
+
+
 class Scholarship {
   final String id;
   final String name;
@@ -27,6 +52,29 @@ class Scholarship {
   final List<String> documents;
   final List<String> fields;
   final List<String> degreeLevels;
+
+  /// 📊 **المعدّل المطلوب** — نسبةٌ مئويّة، و`0` = «غير محدّد».
+  ///
+  /// 🔴 **أمرُ المالك (2026-09-21):** «أضف كم المعدّل المطلوب للمنحة
+  ///    عشان يكون موجود في الشاشة الرئيسية، يجيب لوحة التحكم». فصار حقلاً
+  ///    صريحاً في المنحة بدل استخراجِه من نصّ الشروط — والاستخراجُ يبقى
+  ///    احتياطاً لمنحةٍ لم يُملأ حقلُها بعد ([minGpaOf]).
+  ///
+  /// ⚠️ و`0` **ليست صفراً**: منحةٌ بمعدّلٍ صفرٍ لا معنى لها، والصفرُ
+  ///    هنا يعني «لم يُحدَّد» فتُعرض «غير محدّد» لا «0%».
+  final int minGpa;
+
+  /// 🧭 **أبوابُ المنحة** — أزرارٌ كلُّ واحدٍ منها يفتح جواباً مخزوناً في
+  /// الخادم بلا نداءِ موديلٍ ولا خصمٍ من الحصة.
+  ///
+  /// 🔴 **علّةُ المالك (2026-09-20):** «تسع نيّات تُجاب من البطاقة — **وين
+  ///    هالنيّات؟ مش موجودة**… خلّها من ضمن الاقتراحات، لو ضغطها يطلع له
+  ///    الوثائق». وكانت الأزرارُ أربعةً مكتوبةً في الشاشة لا صلةَ لها
+  ///    بما تملكه المنحة.
+  ///
+  /// ⚠️ ويحسبها **الخادم** لأنه صاحبُ قرار «أيُّ سؤالٍ يُجاب من البطاقة».
+  ///    وتبقى فارغةً في نسخةٍ قديمةٍ من الكاش، فيتولّاها [doors].
+  final List<ScholarshipDoor> suggestions;
   final String website;
   final String coverUrl;
   final String logoUrl;
@@ -57,6 +105,8 @@ class Scholarship {
     this.documents = const [],
     this.fields = const [],
     this.degreeLevels = const [],
+    this.minGpa = 0,
+    this.suggestions = const [],
     this.website = "",
     this.coverUrl = "",
     this.logoUrl = "",
@@ -151,6 +201,13 @@ class Scholarship {
     return s.isEmpty ? null : DateTime.tryParse(s);
   }
 
+  /// ⚠️ الرقمُ قد يصل نصّاً من كاشٍ قديم أو من لوحةٍ أرسلت «70».
+  static int _int(dynamic v) {
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse((v ?? "").toString().trim()) ?? 0;
+  }
+
   static List<String> _list(dynamic v) =>
       ((v as List?) ?? const []).map((e) => e.toString()).toList();
 
@@ -162,6 +219,39 @@ class Scholarship {
       if (hex.length == 6 && value != null) out.add(Color(0xFF000000 | value));
     }
     return out.length >= 2 ? out.take(2).toList() : const [];
+  }
+
+  /// 🧭 أبوابُ هذه المنحة كما تُعرض للطالب.
+  ///
+  /// ⚖️ **الخادمُ هو المرجع** — فهو وحده يعرف أيَّ سؤالٍ يجيبه من البطاقة.
+  ///    وهذه القائمةُ **احتياطٌ لنسخةِ كاشٍ قديمةٍ** لا `suggestions` فيها:
+  ///    بلا احتياطٍ كانت الأزرارُ ستختفي كلَّها عند من لم يُحدِّث بعد،
+  ///    وهو أسوأُ من القديم لا أحسن.
+  ///
+  /// 🔒 ونصوصُها **مطابقةٌ حرفاً** لـ`_SUGGESTIONS` في
+  ///    [core/scholarship_facts.py]، ويحرس التطابقَ اختبارٌ يقرأ الملفَّين.
+  List<ScholarshipDoor> get doors {
+    if (suggestions.isNotEmpty) return suggestions;
+    final out = <ScholarshipDoor>[];
+    void add(bool has, String label, String question) {
+      if (has) out.add(ScholarshipDoor(label, question));
+    }
+
+    add(requirements.isNotEmpty, "الشروط", "ما شروط التقديم؟");
+    add(documents.isNotEmpty, "الوثائق المطلوبة", "ما الوثائق المطلوبة؟");
+    if (closeDate != null) {
+      out.add(const ScholarshipDoor("المواعيد", "متى آخر موعد للتقديم؟"));
+    } else if (openDate != null) {
+      out.add(const ScholarshipDoor("المواعيد", "متى يفتح التقديم؟"));
+    }
+    add(benefits.isNotEmpty, "المزايا", "ما مزايا المنحة؟");
+    add(howToApply.isNotEmpty, "خطوات التقديم", "ما خطوات التقديم؟");
+    add(fields.isNotEmpty, "التخصصات", "ما التخصصات المتاحة؟");
+    add(degreeLevels.isNotEmpty, "المراحل", "ما المراحل الدراسية؟");
+    add(fundingType.isNotEmpty, "التمويل", "هل المنحة ممولة بالكامل؟");
+    add(about.trim().isNotEmpty || shortDesc.trim().isNotEmpty,
+        "نبذة عن المنحة", "نبذة عن المنحة");
+    return out;
   }
 
   factory Scholarship.fromJson(Map<String, dynamic> j) => Scholarship(
@@ -178,6 +268,8 @@ class Scholarship {
         documents: _list(j["documents"]),
         fields: _list(j["fields"]),
         degreeLevels: _list(j["degree_levels"]),
+        minGpa: _int(j["min_gpa"]),
+        suggestions: ScholarshipDoor.listFrom(j["suggestions"]),
         website: (j["website"] ?? "").toString(),
         coverUrl: (j["cover_url"] ?? "").toString(),
         logoUrl: (j["logo_url"] ?? "").toString(),
@@ -203,6 +295,8 @@ class Scholarship {
         "documents": documents,
         "fields": fields,
         "degree_levels": degreeLevels,
+        "min_gpa": minGpa,
+        "suggestions": suggestions.map((d) => d.toJson()).toList(),
         "website": website,
         "cover_url": coverUrl,
         "logo_url": logoUrl,

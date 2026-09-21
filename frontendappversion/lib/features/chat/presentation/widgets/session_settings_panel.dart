@@ -4,6 +4,7 @@ import '../../../../core/config/curriculum.dart';
 import '../../../quiz/presentation/quiz_setup_screen.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/modern_dropdown.dart';
+import '../../../../core/widgets/phosphor.dart';
 import '../controllers/chat_controller.dart';
 import 'page_picker.dart';
 import '../../../teacher/presentation/widgets/teacher_settings_panel.dart';
@@ -14,7 +15,24 @@ import '../../../teacher/presentation/widgets/teacher_settings_panel.dart';
 class SessionSettingsPanel extends StatelessWidget {
   final ChatController controller;
 
-  const SessionSettingsPanel({super.key, required this.controller});
+  /// ⌨️ هل لوحةُ المفاتيح مرفوعةٌ الآن؟
+  ///
+  /// 🔴 **ولماذا تُمرَّر ولا تُقرأ هنا؟** `Scaffold` يبتلع `viewInsets`
+  ///    السفليّ عن كل ما في جسمه (`resizeToAvoidBottomInset`)، فقراءتُها
+  ///    من داخل البطاقة تعطي صفراً دائماً. جرّبتُها في المحاكي فبقيت
+  ///    البطاقةُ مفتوحةً فوق الكيبورد و«تجاوزٌ بمقدار 80 بكسلة».
+  ///    فتُقرأ من فوق الـ`Scaffold` وتُمرَّر.
+  final bool keyboardOpen;
+
+  /// 👨‍🏫 يُنادى بعد ضغط زرّ توليد أداةِ المعلم — تطوي الشاشةُ البطاقة.
+  final VoidCallback? onTeacherGenerated;
+
+  const SessionSettingsPanel({
+    super.key,
+    required this.controller,
+    this.keyboardOpen = false,
+    this.onTeacherGenerated,
+  });
 
   ChatController get c => controller;
 
@@ -22,33 +40,118 @@ class SessionSettingsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     // 👨‍🏫 **الفرق الأول والوحيد في الشاشة** بين قسم المعلم وقسم التعليم:
     //    لوحة إعدادات أخرى. وما عداها — الشات كله — هو نفسه بالبناء لا بالنقل.
-    if (c.isTeacher) return TeacherSettingsPanel(controller: c);
+    if (c.isTeacher) {
+      return TeacherSettingsPanel(
+          controller: c, onGenerated: onTeacherGenerated);
+    }
 
+    // ══════════════════════════════════════════════════
+    // 🃏 بطاقةٌ في **أعلى** الشاشة لا لوحةٌ منزلقة من أسفلها
+    // ══════════════════════════════════════════════════
+    // 🎨 **تصميم Figma** — «الرفيق الذاكي» (390:2048 عند y=134):
+    //    بطاقةٌ 342 عرضاً · r12 · بيضاء بحدٍّ خفيف. رأسُها 316×52:
+    //    سهمُ الطيّ في اليسار · «إعدادات الجلسة» 14/w900 `#15294B` ·
+    //    وأيقونة `FadersHorizontal` في اليمين بلون `#006EBF`.
+    //
+    // 🔄 **لماذا تغيّر الموضع؟** كانت تنزلق من الأسفل فتغطّي المحادثة
+    //    وحقلَ الكتابة. وفي التصميم هي **رأس الشاشة**: الطالب يرى سياقه
+    //    (الوضع والمادة والدرس) قبل أن يكتب، ويطويها بضغطةٍ حين لا يحتاجه.
+    // ⌨️ **الكيبورد يطوي البطاقة** (ملاحظة المالك): من فتح لوحة المفاتيح
+    //    فهو يكتب الآن لا يضبط إعداداته — وبقاؤها مفتوحةً يأكل الشاشة
+    //    فوق الكيبورد حتى لا تبقى للمحادثة سطور، ويُخرج «تجاوز الحدّ».
+    //    وهذا **عرضٌ لا حالة**: لا نُطفئ `showSettingsPanel` في المتحكّم،
+    //    فتعود البطاقة كما تركها الطالب بمجرّد أن يُغلق الكيبورد.
+    final open = c.showSettingsPanel && !keyboardOpen;
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: AppColors.softShadow,
+        color: AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.rowBorder),
+        boxShadow: AppColors.bubbleShadow,
       ),
-      child: SingleChildScrollView(
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ══════ الرأس — يطوي ويفتح ══════
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                // ⌨️ وبالعكس: من فتحها وهو يكتب نُنزل له الكيبورد —
+                //    وإلا فتحها فوجدها مطويّةً من جديد.
+                FocusScope.of(context).unfocus();
+                c.setShowSettingsPanel(!open);
+              },
+              child: SizedBox(
+                height: 52,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 13),
+                  child: Row(
+                    children: [
+                      // 🎨 `FadersHorizontal` **ثنائيُّ اللون** — اسمُ العقدة
+                      //    في ملف Figma حرفياً، ولوحُه الأزرقُ الباهتُ خلف
+                      //    الخطّين لا يُنتجه نمطٌ ممتلئ.
+                      PDuo(PD.fadersHorizontal,
+                          size: 20, color: AppColors.panelTitleIcon),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text("إعدادات الجلسة",
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.panelTitle)),
+                      ),
+                      AnimatedRotation(
+                        turns: open ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 220),
+                        child: Icon(PI.caretDown.regular,
+                            size: 20, color: AppColors.dropdownCaret),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // ══════ الجسم ══════
+          // ⚠️ `AnimatedSize` لا `Visibility`: الطيُّ حركةٌ يتابعها الطالب،
+          //    والاختفاءُ المفاجئ يجعله يظنّ أن الشاشة قفزت.
+          AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: !open
+                ? const SizedBox(width: double.infinity)
+                : _body(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _body(BuildContext context) {
+    // 📏 **تُفتح كاملةً بلا سقفٍ ولا تمريرٍ داخليّ** (ملاحظة المالك: «أول
+    //    ما نضغط يجيك كامل، ولا ينزل كامل»).
+    //
+    // 🔴 كان عليها `maxHeight` فتُقصّ «صفحة/برومت» نصفين ويختفي ما بعدهما،
+    //    ويلزم تمريرٌ **داخل** لوحةٍ لا يبدو عليها أنها تُمرَّر — فيظنّ
+    //    الطالب أن ما تحتها غيرُ موجود.
+    //
+    // ✅ وصار ممكناً لأن البطاقة نفسَها **أوّلُ عناصر قائمة المحادثة**:
+    //    تمريرُ الشاشة يمرّرها معه، فطولُها لا يقتطع من أحد.
+    return Padding(
+        padding: const EdgeInsets.fromLTRB(13, 0, 13, 13),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("إعدادات الجلسة", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.textPrimary)),
-                IconButton(
-                  icon: Icon(Icons.close_rounded, color: AppColors.textSecondary),
-                  onPressed: () => c.setShowSettingsPanel(false),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
             _modeSelector(context),
+            // 📊 **مستوى التلخيص تحت الشرائح مباشرةً** (ملاحظة المالك):
+            //    كان آخرَ عنصرٍ في اللوحة فلا يُرى إلا بتمرير. ومن اختار
+            //    «تلخيص» فأوّلُ ما يريد ضبطه هو مستواه.
+            if (c.selectedMode == "تلخيص" && c.selectedSubject != "رياضيات")
+              _summarySlider(),
             if (c.selectedSubject == "رياضيات") ...[
               const SizedBox(height: 16), _mathBranchSelector(),
               if (c.mathMode == "وزاري" && c.selectedMathBranch.isNotEmpty) _mathExamSelector(),
@@ -59,7 +162,7 @@ class SessionSettingsPanel extends StatelessWidget {
                   value: c.selectedLesson.isEmpty ? null : c.selectedLesson,
                   items: c.mathLessons,
                   onChanged: (v) => c.update(() => c.selectedLesson = v ?? ""),
-                  icon: Icons.menu_book_rounded,
+                  leading: PD.notebook,
                 ),
               ],
               if (c.selectedMathBranch.isNotEmpty) const SizedBox(height: 12), _mathModeSelector(),
@@ -74,84 +177,132 @@ class SessionSettingsPanel extends StatelessWidget {
             // وضع الوحدات/الصفحات: الواجهة القديمة نفسها + الوزاري كما هو
             if (c.selectedSubject != "رياضيات" &&
                 (!c.usesContentModes || c.contentMode == "pages")) _unitFilterArea(),
-            if (c.selectedMode == "تلخيص" && c.selectedSubject != "رياضيات") _summarySlider(),
+
             if (c.selectedSubject != "رياضيات" && c.selectedMode != "سؤال" && c.selectedMode != "وزاري" &&
                 (!c.usesContentModes || c.contentMode == "pages")) _inputTypeSelector(),
             // 📄 **المُنتقي تحت المحدّد مباشرةً**: من ضغط «صفحة» يرى الصفحات
             //    في اللحظة نفسها — لا يبحث عن مكانٍ ثالثٍ يختار منه.
+            //
+            // 🔒 **لا يُنقل من هنا** (قرار المالك ٢٠٢٦-٠٩-٢٠): جرّبتُ نقلَه
+            //    إلى ورقةٍ سفليّة توفيراً للمساحة، فقال: «الصفحات بنظامها
+            //    الأول، خلّوه زي ما كان أول». فرُدَّ كما كان.
             if (c.canPickPages) ...[
               const SizedBox(height: 16),
               PagePicker(c),
             ],
           ],
-        ),
+        ));
+  }
+
+  // ===== محدّد الوضع (العام) =====
+  // ══════════════════════════════════════════════════
+  // 🎛️ شرائح الأوضاع — مجموعةٌ واحدة بخلفيةٍ غائرة
+  // ══════════════════════════════════════════════════
+  // 🎨 **تصميم Figma:** حاويةٌ 316×84 r12 بتعبئة `#EBEDF0`، وداخلها
+  //    شرائح r12 بارتفاع 35: اختبارات · سؤال · تلخيص · **شرح** (مختار،
+  //    تعبئة `#0092FF` ونصّه أبيض) في صفّ، و**وزاري** في الصفّ الثاني.
+  //    نصُّ الشريحة 10/w700 `#42526D` وأيقونتها 14.
+  //
+  // 📚 والأوضاعُ من `Curriculum.modesFor` لا مكتوبةً هنا — التصميمُ يعرض
+  //    خمسةً، والمنهجُ يقرّر ما يظهر لكل مادةٍ وصف.
+  Widget _modeSelector(BuildContext context) {
+    if (c.selectedSubject == "رياضيات") return const SizedBox.shrink();
+
+    // 🎯 **أيقوناتُ المصمّم بأعيانها** — قرأتُها من تصديره مكبّراً:
+    //    الكتابُ المفتوح للشرح · **البرق** للتلخيص (لا ورقةً) ·
+    //    **علامةُ الاستفهام** للسؤال (لا فقاعةَ محادثة) ·
+    //    و**ورقةٌ عليها صحّ** للوزاريّ وللاختبارات معاً.
+    // 📏 **16 لا 14، وعريضٌ لا عادي.** قِستُ التصدير بكسلةً بكسلة:
+    //    دائرةُ «سؤال» 13pt وارتفاعُ ورقة «وزاري» 13pt — ونسبةُ كلٍّ منهما
+    //    في مربّع Phosphor 0.8125، فالحجمُ 16 بالضبط. وسماكةُ خطّها 1.5pt
+    //    = 24/256 من 16 — وهذه سماكةُ النمط **العريض** لا العادي (1pt).
+    final icons = <String, Widget Function(Color)>{
+      "شرح": (col) => Icon(PI.bookOpen.bold, size: 16, color: col),
+      "تلخيص": (col) => Icon(PI.lightning.bold, size: 16, color: col),
+      "سؤال": (col) => Icon(PI.question.bold, size: 16, color: col),
+      "وزاري": (col) => PFileCheck(size: 16, color: col, bold: true),
+      "اختبارات": (col) => PFileCheck(size: 16, color: col, bold: true),
+    };
+
+    final modes = _inDesignOrder(Curriculum.modesFor(
+      c.selectedSubject,
+      grade: c.grade, // ★ الثالث يحتفظ بالوزاري دائماً
+      examsAvailable: c.caps?.examsAvailable ?? true,
+    ));
+
+    return Container(
+      // 📏 **بعرض البطاقة كاملاً.** `Wrap` يقيس نفسه على أعرض سطرٍ فيه،
+      //    فكانت الحاويةُ الرماديّة تنكمش إلى عرض الشرائح ويبقى نصفُ
+      //    البطاقة فارغاً على اليسار — وهي في التصميم تملأ ما بين حافّتيها.
+      width: double.infinity,
+      // 📏 حشوةُ الحاوية 4: 4 + 35 + 6 + 35 + 4 = 84 — ارتفاعُ التصميم.
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.modeGroupSurface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final m in modes)
+            _ModeChip(
+              label: m,
+              icon: icons[m] ??
+                  (col) => Icon(PI.sparkle.bold, size: 16, color: col),
+              selected: c.selectedMode == m,
+              onTap: () => _pickMode(context, m),
+            ),
+        ],
       ),
     );
   }
 
-  // ===== محدّد الوضع (العام) =====
-  Widget _modeSelector(BuildContext context) {
-    if (c.selectedSubject == "رياضيات") return const SizedBox.shrink();
-    Map<String, IconData> modeIcons = {
-      "شرح": Icons.auto_stories_rounded,
-      "تلخيص": Icons.psychology_rounded,
-      "سؤال": Icons.help_outline_rounded,
-      "وزاري": Icons.gavel_rounded,
-    };
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      // 📚 مصدر واحد للأوضاع: `Curriculum.modesFor` — كانت القائمة مكتوبة
-      //    هنا يدوياً، فتغييرها في المنهج لا يظهر في الواجهة.
-      children: Curriculum.modesFor(
-        c.selectedSubject,
-        grade: c.grade,                       // ★ الثالث يحتفظ بالوزاري دائماً
-        examsAvailable: c.caps?.examsAvailable ?? true,
-      ).map((m) => AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        child: ChoiceChip(
-          label: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(modeIcons[m], size: 16, color: c.selectedMode == m ? Colors.white : AppColors.textSecondary),
-            const SizedBox(width: 8),
-            Text(m),
-          ]),
-          selected: c.selectedMode == m,
-          selectedColor: AppColors.primary,
-          showCheckmark: false,
-          labelStyle: TextStyle(color: c.selectedMode == m ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 13),
-          backgroundColor: AppColors.softSurface,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
-          onSelected: (_) {
-            // 🧠 «اختبارات» ليست وضع محادثة — تفتح شاشة الاختبار مباشرةً
-            //    بالمادة والصف المحدَّدين مسبقاً ([31§4]).
-            if (m == Curriculum.quizMode) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => QuizSetupScreen(
-                    initialSubject: c.selectedSubject,
-                    initialGrade: c.grade,
-                    initialTrack: c.track.key,
-                  ),
-                ),
-              );
-              return;
-            }
-            c.switchContext(() {
-            c.selectedMode = m;
-            c.mathWazariQuestionsLoaded = false;
-            if (m == "وزاري") {
-              c.selectedExamYear = "";
-              c.loadAvailableYears();
-            } else {
-              c.loadAvailableUnits();
-            }
-            });
-          },
+  /// ترتيبُ العرض كما في التصميم — **عرضٌ فقط**، لا يمسّ `Curriculum`.
+  ///
+  /// 🎨 المصمّم رتّبها: شرح · تلخيص · سؤال · اختبارات · وزاري. والمنهجُ
+  ///    يعيدها بترتيبٍ آخر يضع «اختبارات» في الذيل، فيقع «وزاري» في
+  ///    السطر الأول و«اختبارات» في الثاني — معكوسَين عمّا في الملف.
+  ///    وما لا يعرفه هذا الترتيب يبقى في ذيل القائمة كما جاء.
+  static const List<String> _designOrder = [
+    "شرح",
+    "تلخيص",
+    "سؤال",
+    "اختبارات",
+    "وزاري",
+  ];
+
+  List<String> _inDesignOrder(List<String> modes) {
+    final known = [for (final m in _designOrder) if (modes.contains(m)) m];
+    return [...known, ...modes.where((m) => !_designOrder.contains(m))];
+  }
+
+  void _pickMode(BuildContext context, String m) {
+    // 🧠 «اختبارات» ليست وضع محادثة — تفتح شاشة الاختبار مباشرةً
+    //    بالمادة والصف المحدَّدين مسبقاً ([31§4]).
+    if (m == Curriculum.quizMode) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => QuizSetupScreen(
+            initialSubject: c.selectedSubject,
+            initialGrade: c.grade,
+            initialTrack: c.track.key,
+          ),
         ),
-      )).toList(),
-    );
+      );
+      return;
+    }
+    c.switchContext(() {
+      c.selectedMode = m;
+      c.mathWazariQuestionsLoaded = false;
+      if (m == "وزاري") {
+        c.selectedExamYear = "";
+        c.loadAvailableYears();
+      } else {
+        c.loadAvailableUnits();
+      }
+    });
   }
 
   // ===== محدّد نوع الإدخال (صفحة/برومت) =====
@@ -163,28 +314,18 @@ class SessionSettingsPanel extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(color: AppColors.softSurface, borderRadius: BorderRadius.circular(24)),
-        child: Row(
-          children: ["صفحة", "برومت"].map((t) => Expanded(
-            child: InkWell(
-              onTap: () => c.update(() => c.inputType = t),
-              borderRadius: BorderRadius.circular(20),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: c.inputType == t ? AppColors.surfaceWhite : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: c.inputType == t ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)] : [],
-                ),
-                child: Center(child: Text(t, style: TextStyle(color: c.inputType == t ? AppColors.primary : AppColors.textSecondary, fontWeight: FontWeight.bold))),
-              ),
-            ),
-          )).toList(),
-        ),
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: [
+          for (final t in const ["صفحة", "برومت"]) ...[
+            Expanded(
+                child: _PillToggle(
+                    label: t,
+                    selected: c.inputType == t,
+                    onTap: () => c.update(() => c.inputType = t))),
+            if (t == "صفحة") const SizedBox(width: 8),
+          ],
+        ],
       ),
     );
   }
@@ -245,7 +386,7 @@ class SessionSettingsPanel extends StatelessWidget {
       child: Column(
         children: [
           Row(children: [
-            Icon(Icons.school_rounded, color: AppColors.primary, size: 20),
+            Icon(PI.graduationCap.regular, color: AppColors.primary, size: 20),
             const SizedBox(width: 8),
             Text("إعدادات الأسئلة الوزارية", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           ]),
@@ -259,7 +400,6 @@ class SessionSettingsPanel extends StatelessWidget {
                 c.selectedMathExamYear = v!;
                 c.loadMathExamLessons(c.selectedMathBranch, v);
               }),
-              icon: Icons.calendar_month_rounded,
             ),
           const SizedBox(height: 12),
           if (c.mathExamLessons.isNotEmpty)
@@ -268,7 +408,7 @@ class SessionSettingsPanel extends StatelessWidget {
               value: c.selectedMathExamLesson.isEmpty ? null : c.selectedMathExamLesson,
               items: c.mathExamLessons,
               onChanged: (v) => c.update(() => c.selectedMathExamLesson = v!),
-              icon: Icons.menu_book_rounded,
+              leading: PD.notebook,
             ),
           if (c.selectedMathExamLesson.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -277,7 +417,7 @@ class SessionSettingsPanel extends StatelessWidget {
               decoration: BoxDecoration(color: AppColors.surfaceWhite, borderRadius: BorderRadius.circular(20)),
               child: Row(
                 children: [
-                  Icon(Icons.format_list_numbered_rounded, color: AppColors.primary, size: 20),
+                  Icon(PI.listNumbers.regular, color: AppColors.primary, size: 20),
                   const SizedBox(width: 12),
                   Expanded(child: Text("عدد الأسئلة:", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
                   SizedBox(
@@ -306,7 +446,7 @@ class SessionSettingsPanel extends StatelessWidget {
                   c.update(() => c.mathWazariQuestionsLoaded = true);
                   c.processRequest(customText: content);
                 },
-                icon: Icon(Icons.download_rounded, size: 20),
+                icon: Icon(PI.downloadSimple.bold, size: 20),
                 label: Text("جلب الأسئلة", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
@@ -316,7 +456,20 @@ class SessionSettingsPanel extends StatelessWidget {
     );
   }
 
-  // ===== شريط مستوى التلخيص =====
+  // ══════════════════════════════════════════════════
+  // 📊 مستوى التلخيص — شريطٌ بخمس درجات
+  // ══════════════════════════════════════════════════
+  // 🎨 **تصميم Figma** («الرفيق الذاكي» في وضع التلخيص · 12):
+  //    عنوانٌ «مستوى التلخيص:» فوق الشريط، والشريطُ بعرض البطاقة كاملاً:
+  //    ارتفاعُه 6 · الخاملُ `#E6F4FF` والنشطُ `#0092FF` · وأربع نقاطٍ
+  //    زرقاءَ تقسمه خمس درجات · ومقبضٌ دائريٌّ نصفُ قطره 6.
+  //
+  // 📌 **والنشطُ يمتدّ من اليمين** — الشريطُ في RTL يبدأ من جهة القراءة،
+  //    وفلاتر تتكفّل بذلك ما دام الاتجاه محفوظاً.
+  //
+  // 🔢 **والرقمُ باقٍ** وإن لم يرسمه المصمّم: من يحرّك مقبضاً بلا رقمٍ
+  //    لا يعرف أين وقف ولا كيف يعود. وُضع في طرف السطر صغيراً بلون
+  //    الهوية — لا شارةً رماديّةً كما كان.
   Widget _summarySlider() {
     return Padding(
       padding: const EdgeInsets.only(top: 16),
@@ -324,13 +477,44 @@ class SessionSettingsPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("مستوى التلخيص", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: Text("${c.summaryLevel}", style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold))),
+              Expanded(
+                child: Text("مستوى التلخيص:",
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.chipInk)),
+              ),
+              Text("${c.summaryLevel}",
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary)),
             ],
           ),
-          Slider(activeColor: AppColors.primary, inactiveColor: AppColors.softSurface, min: 1, max: 5, divisions: 4, value: c.summaryLevel.toDouble(), onChanged: (v) => c.update(() => c.summaryLevel = v.toInt())),
+          SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 6,
+              activeTrackColor: AppColors.primaryFill,
+              inactiveTrackColor: AppColors.primaryTintSurface,
+              thumbColor: AppColors.primaryFill,
+              activeTickMarkColor: AppColors.surfaceWhite,
+              inactiveTickMarkColor: AppColors.primaryFill,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              tickMarkShape: const RoundSliderTickMarkShape(tickMarkRadius: 2.5),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+              overlayColor: AppColors.primary500.withValues(alpha: 0.12),
+              // 🚫 لا فقاعةَ قيمةٍ تطفو: الرقمُ مكتوبٌ فوق الشريط دائماً.
+              showValueIndicator: ShowValueIndicator.never,
+            ),
+            child: Slider(
+              min: 1,
+              max: 5,
+              divisions: 4,
+              value: c.summaryLevel.toDouble(),
+              onChanged: (v) => c.update(() => c.summaryLevel = v.toInt()),
+            ),
+          ),
         ],
       ),
     );
@@ -338,49 +522,47 @@ class SessionSettingsPanel extends StatelessWidget {
 
   // ===== منطقة فلترة الوحدات/الوزاري لكل مادة =====
   // ===== 🆕 محدد مصدر المحتوى =====
+  // ══════════════════════════════════════════════════
+  // 📚 مصدر المحتوى — زرّان 154×32 · r12
+  // ══════════════════════════════════════════════════
+  // 🎨 **تصميم Figma:** عنوانٌ «اختر مصدر المحتوى:» 10/w700 `#62748E`،
+  //    وتحته زرّان: الخامل `#F8FAFC` بحدّ `#E2E8F0` ونصُّه `#45556C`،
+  //    والمختار `#E6F4FF` بحدّ `#0092FF` ونصُّه `#155DFC`. بلا أيقونات.
   Widget _contentModeSelector() {
-    Widget chip(String mode, String label, IconData icon, bool available) {
-      final sel = c.contentMode == mode;
-      return Expanded(
-        child: Opacity(
-          opacity: available ? 1 : 0.5,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () => c.setContentMode(mode),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(vertical: 11),
-              decoration: BoxDecoration(
-                gradient: sel ? AppColors.mainGradient : null,
-                color: sel ? null : AppColors.softSurface,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(children: [
-                Icon(icon, size: 19, color: sel ? Colors.white : AppColors.textSecondary),
-                const SizedBox(height: 3),
-                Text(label, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold,
-                    color: sel ? Colors.white : AppColors.textSecondary)),
-                if (!available)
-                  Text("قيد الإضافة", style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900,
-                      color: sel ? Colors.white70 : AppColors.textSecondary.withValues(alpha: 0.7))),
-              ]),
-            ),
-          ),
-        ),
-      );
-    }
-
     final lessonsOk = c.caps?.lessonsAvailable ?? false;
     final pagesOk = c.caps?.pagesAvailable ?? false;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text("مصدر المحتوى", style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
-      const SizedBox(height: 8),
-      Row(children: [
-        chip("lessons", "📖 وضع الدروس", Icons.menu_book_rounded, lessonsOk),
-        const SizedBox(width: 10),
-        chip("pages", "📄 وضع الوحدات", Icons.auto_stories_rounded, pagesOk),
-      ]),
-    ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 🖋️ العناوينُ الصغيرة **غامقة** — الملف يقول w700 لكن Cairo في
+        //    فلاتر يخرج أخفَّ من تصدير Figma، فالمطابقةُ بالمُخرَج.
+        Text("اختر مصدر المحتوى:",
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: AppColors.sectionLabel)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+                child: _PillToggle(
+                    label: "وضع الدروس",
+                    selected: c.contentMode == "lessons",
+                    // 🚧 «قيد الإضافة» يبقى: مادةٌ لم تُرفع دروسُها بعد
+                    //    يجب أن يعرف الطالبُ لماذا لا تعمل.
+                    disabledNote: lessonsOk ? null : "قيد الإضافة",
+                    onTap: () => c.setContentMode("lessons"))),
+            const SizedBox(width: 8),
+            Expanded(
+                child: _PillToggle(
+                    label: "وضع الوحدات",
+                    selected: c.contentMode == "pages",
+                    disabledNote: pagesOk ? null : "قيد الإضافة",
+                    onTap: () => c.setContentMode("pages"))),
+          ],
+        ),
+      ],
+    );
   }
 
   // ===== 🆕 منتقيا وضع الدروس (وحدة ← درس) =====
@@ -406,7 +588,6 @@ class SessionSettingsPanel extends StatelessWidget {
         value: c.selectedV3Unit.isEmpty ? null : c.selectedV3Unit,
         items: units,
         onChanged: (v) => c.setV3Unit(v ?? ""),
-        icon: Icons.folder_rounded,
       ),
       const SizedBox(height: 12),
       ModernDropdown(
@@ -414,7 +595,7 @@ class SessionSettingsPanel extends StatelessWidget {
         value: c.selectedV3Lesson.isEmpty ? null : c.selectedV3Lesson,
         items: c.v3LessonsInSelectedUnit,
         onChanged: (v) => c.setV3Lesson(v ?? ""),
-        icon: Icons.menu_book_rounded,
+        leading: PD.notebook,
       ),
       if (c.selectedV3Lesson.isNotEmpty) ...[
         const SizedBox(height: 10),
@@ -472,7 +653,6 @@ class SessionSettingsPanel extends StatelessWidget {
               value: c.selectedArabicExamYear.isEmpty ? null : c.selectedArabicExamYear,
               items: c.availableYears,
               onChanged: (v) => c.update(() => c.selectedArabicExamYear = v!),
-              icon: Icons.calendar_today_rounded,
             ),
             const SizedBox(height: 12),
             ModernDropdown(
@@ -483,7 +663,6 @@ class SessionSettingsPanel extends StatelessWidget {
                 c.selectedArabicExamSection = v!;
                 c.selectedArabicExamType = "";
               }),
-              icon: Icons.category_rounded,
             ),
             const SizedBox(height: 12),
             if (c.selectedArabicExamSection.isNotEmpty)
@@ -492,7 +671,6 @@ class SessionSettingsPanel extends StatelessWidget {
                 value: c.selectedArabicExamType.isEmpty ? null : c.selectedArabicExamType,
                 items: c.arabicExamTypes,
                 onChanged: (v) => c.update(() => c.selectedArabicExamType = v!),
-                icon: Icons.filter_alt_rounded,
               ),
             if (c.selectedArabicExamType.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -501,7 +679,7 @@ class SessionSettingsPanel extends StatelessWidget {
                 decoration: BoxDecoration(color: AppColors.surfaceWhite, borderRadius: BorderRadius.circular(20)),
                 child: Row(
                   children: [
-                    Icon(Icons.format_list_numbered_rounded, color: AppColors.primary, size: 20),
+                    Icon(PI.listNumbers.regular, color: AppColors.primary, size: 20),
                     const SizedBox(width: 12),
                     Expanded(child: Text(c.selectedArabicExamType == "قطعة" ? "عدد القطع:" : "عدد الأسئلة:", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
                     SizedBox(
@@ -535,14 +713,14 @@ class SessionSettingsPanel extends StatelessWidget {
                   c.setShowSettingsPanel(false);
                   c.processRequest(customText: content);
                 } : null,
-                icon: Icon(Icons.download_rounded, size: 20),
+                icon: Icon(PI.downloadSimple.bold, size: 20),
                 label: Text("جلب الأسئلة", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
             if (!isArabicReady)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
-                child: Text("اختر جميع الخيارات أولاً", style: TextStyle(color: Colors.orange.shade700, fontSize: 12, fontWeight: FontWeight.w600)),
+                child: Text("اختر جميع الخيارات أولاً", style: TextStyle(color: AppColors.warning800, fontSize: 12, fontWeight: FontWeight.w600)),
               ),
           ],
         );
@@ -563,7 +741,6 @@ class SessionSettingsPanel extends StatelessWidget {
                   c.loadExamSections("انجليزي", v);
                 });
               },
-              icon: Icons.calendar_today_rounded,
             ),
             const SizedBox(height: 12),
             ModernDropdown(
@@ -571,7 +748,6 @@ class SessionSettingsPanel extends StatelessWidget {
               value: c.selectedEnglishQuestionType.isEmpty ? null : c.selectedEnglishQuestionType,
               items: c.englishQuestionTypes,
               onChanged: (v) => c.update(() => c.selectedEnglishQuestionType = v!),
-              icon: Icons.category_rounded,
             ),
             if (c.selectedEnglishQuestionType.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -580,7 +756,7 @@ class SessionSettingsPanel extends StatelessWidget {
                 decoration: BoxDecoration(color: AppColors.surfaceWhite, borderRadius: BorderRadius.circular(20)),
                 child: Row(
                   children: [
-                    Icon(Icons.format_list_numbered_rounded, color: AppColors.primary, size: 20),
+                    Icon(PI.listNumbers.regular, color: AppColors.primary, size: 20),
                     const SizedBox(width: 12),
                     Expanded(child: Text(c.selectedEnglishQuestionType.contains("passage") || c.selectedEnglishQuestionType.contains("paragraph") ? "Number of Passages:" : "Number of Questions:", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
                     SizedBox(
@@ -609,7 +785,7 @@ class SessionSettingsPanel extends StatelessWidget {
                   c.setShowSettingsPanel(false);
                   c.processRequest(customText: content);
                 },
-                icon: Icon(Icons.rocket_launch_rounded, size: 20),
+                icon: Icon(PI.rocketLaunch.regular, size: 20),
                 label: Text("Start Practice", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
@@ -625,7 +801,6 @@ class SessionSettingsPanel extends StatelessWidget {
           value: c.selectedExamYear.isEmpty ? null : c.selectedExamYear,
           items: ["الكل", ...c.availableYears],
           onChanged: (v) => c.update(() => c.selectedExamYear = v!),
-          icon: Icons.calendar_today_rounded,
         ),
       );
     }
@@ -660,8 +835,126 @@ class SessionSettingsPanel extends StatelessWidget {
           c.selectedUnit = v ?? c.selectedUnit;
           c.selectedUnitName = c.selectedUnit;
         }),
-        icon: Icons.library_books_rounded,
       ),
     );
   }
+}
+
+// ══════════════════════════════════════════════════
+// 🏷️ شريحة وضعٍ واحدة — ارتفاع 35 · r12
+// ══════════════════════════════════════════════════
+class _ModeChip extends StatelessWidget {
+  const _ModeChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+
+  /// بانيةُ الأيقونة باللون — لا `IconData`: «ورقةٌ عليها صحّ» مركّبةٌ من
+  /// رمزين ([PFileCheck])، فلا يسعُها نوعُ الأيقونة الواحدة.
+  final Widget Function(Color) icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: 35,
+            // 📏 **16 لا 11** — مقيسةٌ من التصدير: الفجوةُ بين نصَّي شريحتين
+            //    متجاورتين 38pt = حشوةٌ يمنى 16 + فاصل 6 + حشوةٌ يسرى 16.
+            //    وبها يمتلئ الصفُّ عرضَ الحاوية ويلتفّ «وزاري» إلى السطر
+            //    الثاني في الموضع نفسه الذي التفّ فيه عند المصمّم —
+            //    وبالـ11 كانت الشرائحُ تتكوّم يميناً ويبقى اليسارُ فارغاً.
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.primaryFill : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                icon(selected ? Colors.white : AppColors.rowAction),
+                const SizedBox(width: 6),
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 10,
+                        // 🖋️ **w900 لا w700**: خطّ Cairo في فلاتر يخرج أخفَّ
+                        //    من تصدير Figma عند الوزن نفسه — تقاس المطابقة
+                        //    بالمُخرَج لا بالرقم المكتوب في الملف.
+                        fontWeight: FontWeight.w900,
+                        color:
+                            selected ? Colors.white : AppColors.rowAction)),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+// ══════════════════════════════════════════════════
+// 🔘 زرّ اختيارٍ مسطّح — 32 ارتفاعاً · r12
+// ══════════════════════════════════════════════════
+class _PillToggle extends StatelessWidget {
+  const _PillToggle({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.disabledNote,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  /// سببُ عدم التوفّر — يُعرض سطراً صغيراً تحت الاسم بدل إخفاء الزرّ.
+  final String? disabledNote;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            constraints: const BoxConstraints(minHeight: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: selected
+                  ? AppColors.primaryTintSurface
+                  : AppColors.chipSurface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: selected ? AppColors.primary : AppColors.rowBorder),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: selected
+                            ? AppColors.sendButton
+                            : AppColors.chipInk)),
+                if (disabledNote != null)
+                  Text(disabledNote!,
+                      style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.warning900)),
+              ],
+            ),
+          ),
+        ),
+      );
 }

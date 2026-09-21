@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/masar_markdown.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/fade_in_slide.dart';
+import '../../../core/widgets/masar_markdown.dart';
+import '../../../core/widgets/phosphor.dart';
 import '../data/models/quiz_models.dart';
 import 'quiz_controller.dart';
+import 'widgets/quiz_ui.dart';
 
 // ==========================================
 // 📋 راجع إجاباتك
@@ -19,6 +21,11 @@ import 'quiz_controller.dart';
 // ✅ فصارت الشاشة تقبل مصدرين، وتعرضهما بنفس الرسم حرفياً:
 //    • [QuizReviewScreen.live]  ← جلسة الاختبار الجارية (كما كان)
 //    • [QuizReviewScreen.saved] ← نتيجة محفوظة ([QuizResult.review])
+//
+// 🎨 **إعادة التصميم** (`design/05-quiz/08-راجع إجاباتك`): رأسٌ فيه العنوان
+//    وأيقونتُه وزرُّ رجوعٍ 32 · بطاقةٌ لكل سؤال r16 · الصحيحُ في صندوقٍ أخضر
+//    والمختارُ الخاطئ في أحمر وشارةُ «إجابتك» في نهاية السطر · والبدائلُ
+//    الباقية أسطراً باهتة · وشارةُ الموضوع كهرمانيّةٌ في الأسفل.
 class QuizReviewScreen extends StatelessWidget {
   const QuizReviewScreen._({required this.items, this.title});
 
@@ -45,6 +52,8 @@ class QuizReviewScreen extends StatelessWidget {
   /// عنوانٌ فرعي يقول **أيّ اختبارٍ** نراجع — يلزم حين تُفتح من السجلّ.
   final String? title;
 
+  String get _title => title == null ? "مراجعة الإجابات" : "مراجعة: $title";
+
   @override
   Widget build(BuildContext context) {
     final qs = items;
@@ -55,158 +64,252 @@ class QuizReviewScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      appBar: AppBar(
-        backgroundColor: AppColors.surfaceWhite,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(title == null ? "مراجعة الإجابات 📋" : "مراجعة: $title 📋",
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
-      ),
       body: SafeArea(
         child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-          itemCount: qs.length,
+          padding: const EdgeInsets.fromLTRB(
+              QuizMetrics.margin, 27, QuizMetrics.margin, 28),
+          itemCount: qs.length + 1,
           itemBuilder: (_, i) {
-            final q = qs[i];
-            final chosen = q.chosenIndex;
-            final ok = q.isCorrect;
-
-            return FadeInSlide(
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 14),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceWhite,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: (q.isSkipped
-                              ? AppColors.textSecondary
-                              : ok
-                                  ? Colors.green
-                                  : Colors.redAccent)
-                          .withValues(alpha: 0.35),
-                      width: 1.4),
+            if (i == 0) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: QuizHeader(
+                  title: _title,
+                  fontSize: 17,
+                  iconSize: 28,
+                  icon: PD.notePencil,
+                  art: null,
+                  onBack: () => Navigator.pop(context),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        // ⚠️ ثلاث حالات لا اثنتان: «لم تُجب» ليست خطأً.
-                        //    اختبارٌ استُؤنف ولم يكتمل يترك أسئلةً بلا
-                        //    إجابة، وعدُّها أخطاءً يكذب على الطالب.
-                        Icon(
-                            q.isSkipped
-                                ? Icons.remove_circle_outline_rounded
-                                : ok
-                                    ? Icons.check_circle_rounded
-                                    : Icons.cancel_rounded,
-                            size: 19,
-                            color: q.isSkipped
-                                ? AppColors.textSecondary
-                                : ok
-                                    ? Colors.green.shade600
-                                    : Colors.redAccent),
-                        const SizedBox(width: 8),
-                        Text("سؤال ${i + 1}",
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w900,
-                                color: AppColors.textSecondary)),
-                        const Spacer(),
-                        if (q.lesson.isNotEmpty)
-                          Flexible(
-                            child: Text("📖 ${q.lesson}",
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    fontSize: 11, color: AppColors.textSecondary,
-                                    fontWeight: FontWeight.w600)),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    MathOrText(q.question,
-                        style: TextStyle(
-                            fontSize: 14.5, height: 1.7,
-                            fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-                    const SizedBox(height: 12),
-                    ...List.generate(q.options.length, (j) {
-                      final isRight = j == q.correctIndex;
-                      final isChosen = j == chosen;
-                      if (!isRight && !isChosen) {
-                        return _plain(q.options[j]);
-                      }
-                      return _marked(
-                        q.options[j],
-                        right: isRight,
-                        label: isRight
-                            ? (isChosen ? "إجابتك ✅" : "الصحيحة ✅")
-                            : "إجابتك ❌",
-                      );
-                    }),
-                    if (q.topic.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                              color: AppColors.softSurface,
-                              borderRadius: BorderRadius.circular(10)),
-                          // 🖌️ بالرسّام: الموضوع قد يكون صيغةً لا كلمة —
-                          //    و[MathOrText] تعود نصّاً عادياً حين لا ترميز.
-                          child: MathOrText("🏷️ ${q.topic}",
-                              style: TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.w700,
-                                  color: AppColors.textSecondary)),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            );
+              );
+            }
+            return FadeInSlide(child: _card(qs[i - 1], i - 1));
           },
         ),
       ),
     );
   }
 
-  Widget _plain(String text) => Padding(
+  // ───────────────────── بطاقةُ سؤال ─────────────────────
+
+  Widget _card(QuizReviewItem q, int i) {
+    final chosen = q.chosenIndex;
+    final ok = q.isCorrect;
+    final ltr = isLatinCard(q.question, q.options);
+
+    // ⚠️ ثلاث حالات لا اثنتان: «لم تُجب» ليست خطأً. اختبارٌ استُؤنف ولم
+    //    يكتمل يترك أسئلةً بلا إجابة، وعدُّها أخطاءً يكذب على الطالب.
+    final Color state = q.isSkipped
+        ? AppColors.chipInk
+        : (ok ? AppColors.quizRight : AppColors.quizWrong);
+    final IconData stateIcon = q.isSkipped
+        ? PI.warningCircle.fill
+        : (ok ? PI.checkCircle.fill : PI.xCircle.fill);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: QuizCard(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                // ⚠️ RTL: «سؤال ن» أوّلُ ابنٍ ⇒ يميناً، وأيقونتُها إلى يسارها.
+                Text("سؤال ${i + 1}",
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.panelTitle)),
+                const SizedBox(width: 7),
+                Icon(stateIcon, size: 17, color: state),
+                const Spacer(),
+                if (q.lesson.isNotEmpty)
+                  Flexible(
+                    child: Container(
+                      height: 23,
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 9),
+                      decoration: BoxDecoration(
+                        color: AppColors.quizTint,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(q.lesson,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.primary)),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(PI.bookOpen.regular,
+                              size: 13, color: AppColors.primary),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            MathOrText(q.question,
+                forceLtr: ltr,
+                style: TextStyle(
+                    fontSize: 13,
+                    height: 1.65,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.panelTitle)),
+            const SizedBox(height: 12),
+            for (var j = 0; j < q.options.length; j++)
+              if (j == q.correctIndex || j == chosen)
+                _marked(
+                  q.options[j],
+                  ltr: ltr,
+                  right: j == q.correctIndex,
+                  label: j == q.correctIndex
+                      ? (j == chosen ? "إجابتك" : "الصحيحة")
+                      : "إجابتك",
+                )
+              else
+                _plain(q.options[j], ltr: ltr),
+            // 💡 **لماذا هذا هو الصواب** — أهمُّ سطرٍ في الشاشة.
+            //
+            // 🔴 كانت المراجعةُ تُري الطالبَ **ما** الصواب ولا تقول
+            //    **لماذا**، واختبارٌ لا يُصحَّح تقييمٌ لا تعليم.
+            //    ويأتي من البنك المخزون؛ فإن وُلّد السؤالُ حيّاً
+            //    بقي فارغاً واختفى السطرُ بلا فراغٍ يشغل الشاشة.
+            if (q.why.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.quizTint,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border(
+                    right: BorderSide(color: AppColors.primary, width: 3),
+                  ),
+                ),
+                child: MathOrText("💡 ${q.why}",
+                    forceLtr: isLatinSentence(q.why),
+                    style: TextStyle(
+                        fontSize: 12,
+                        height: 1.7,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.panelTitle)),
+              ),
+            ],
+            if (q.topic.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 25),
+                  alignment: Alignment.center,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: AppColors.quizTagFill,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.quizTagBorder)),
+                  // 🖌️ بالرسّام: الموضوع قد يكون صيغةً لا كلمة —
+                  //    و[MathOrText] تعود نصّاً عادياً حين لا ترميز.
+                  child: MathOrText("🏷️ ${q.topic}",
+                      maxLines: 2,
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.quizTagInk)),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// بديلٌ لم يُختر ولم يكن صواباً — سطرٌ باهتٌ بنقطةٍ في بدايته.
+  Widget _plain(String text, {bool ltr = false}) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("•  ", style: TextStyle(color: AppColors.textSecondary)),
+            Text("•  ",
+                style: TextStyle(
+                    fontSize: 12, color: AppColors.quizCheckBorder)),
             Expanded(
               child: MathOrText(text,
+                  forceLtr: ltr,
                   style: TextStyle(
-                      fontSize: 13, height: 1.6, color: AppColors.textSecondary)),
+                      fontSize: 11,
+                      height: 1.6,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.cardHint)),
             ),
           ],
         ),
       );
 
-  Widget _marked(String text, {required bool right, required String label}) => Padding(
+  /// الصوابُ أو ما اختاره الطالب — صندوقٌ ملوّنٌ وشارةٌ في نهاية السطر.
+  Widget _marked(String text,
+          {required bool right, required String label, bool ltr = false}) =>
+      Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           decoration: BoxDecoration(
-            color: (right ? Colors.green : Colors.redAccent).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
+            color:
+                right ? AppColors.quizRightFill : AppColors.quizWrongFill,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: right ? AppColors.quizRight : AppColors.quizWrong),
           ),
           child: Row(
             children: [
               Expanded(
                 child: MathOrText(text,
+                    forceLtr: ltr,
                     style: TextStyle(
-                        fontSize: 13, height: 1.6,
-                        fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                        fontSize: 11,
+                        height: 1.6,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.panelTitle)),
               ),
               const SizedBox(width: 8),
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 10.5, fontWeight: FontWeight.w900,
-                      color: right ? Colors.green.shade700 : Colors.redAccent)),
+              Container(
+                height: 22,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceWhite,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 📐 الحبرُ كحليٌّ والعلامةُ ملوّنة — كما في `08`
+                    //    بالضبط (قِستُ الشارة: `#091E42` للنصّ و`#20D958`
+                    //    للصحّ).
+                    Text(label,
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.panelTitle)),
+                    const SizedBox(width: 5),
+                    Icon(right ? PI.check.bold : PI.x.bold,
+                        size: 11,
+                        color: right
+                            ? AppColors.quizRight
+                            : AppColors.quizWrong),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -215,21 +318,23 @@ class QuizReviewScreen extends StatelessWidget {
   /// 🛟 لا مراجعة محفوظة — نقول السبب بدل قائمةٍ فارغة تبدو عطلاً.
   Widget _unavailable(BuildContext context) => Scaffold(
         backgroundColor: AppColors.bgLight,
-        appBar: AppBar(
-          backgroundColor: AppColors.surfaceWhite,
-          elevation: 0,
-          centerTitle: true,
-          title: const Text("مراجعة الإجابات 📋",
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
-        ),
-        body: Center(
+        body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.fromLTRB(
+                QuizMetrics.margin, 27, QuizMetrics.margin, 28),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.history_toggle_off_rounded,
-                    size: 44, color: AppColors.textSecondary.withValues(alpha: 0.4)),
+                QuizHeader(
+                  title: _title,
+                  fontSize: 17,
+                  iconSize: 28,
+                  icon: PD.notePencil,
+                  art: null,
+                  onBack: () => Navigator.pop(context),
+                ),
+                const Spacer(),
+                Icon(PI.clockCounterClockwise.regular,
+                    size: 44, color: AppColors.quizCheckBorder),
                 const SizedBox(height: 14),
                 Text(
                   "لا تتوفّر مراجعة لهذا الاختبار.\n"
@@ -239,8 +344,9 @@ class QuizReviewScreen extends StatelessWidget {
                       fontSize: 13,
                       height: 1.7,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary),
+                      color: AppColors.chipInk),
                 ),
+                const Spacer(flex: 2),
               ],
             ),
           ),

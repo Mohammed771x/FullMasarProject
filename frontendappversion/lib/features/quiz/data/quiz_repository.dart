@@ -51,6 +51,7 @@ class QuizRepository {
     String? idToken,
     String userId = "",
     String requestId = "",
+    List<String> seenIds = const [],
   }) async {
     final res = await _client
         .post(
@@ -65,6 +66,9 @@ class QuizRepository {
             "unit": unit,
             "lessons": lessons,
             "count": count,
+            // 🔁 ما سُئل عنه قريباً — كي لا يُعاد عليه ([QuizSeenStore]).
+            //    يُرسَل من الجهاز كي يبقى الخادمُ بلا حالةٍ فيتوسّع أفقياً.
+            "seen_ids": seenIds,
           }),
         )
         .timeout(const Duration(seconds: 90),

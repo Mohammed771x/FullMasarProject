@@ -26,7 +26,7 @@ import 'chem_text.dart';
 ///    تُستورد.
 const List<String> kMathTokens = [
   r'\frac', r'\sqrt', r'\chem', r'\ring',
-  r'\fact', r'\perm', r'\comb', r'\sup', r'\ovl', r'\nuc',
+  r'\fact', r'\perm', r'\comb', r'\sup', r'\sub', r'\ovl', r'\nuc',
 ];
 
 /// هل في النصّ ترميزٌ يرسمه [MathText]؟
@@ -246,6 +246,20 @@ class MathParser {
         flush();
         _i += 4;
         out.add(ScriptNode(_group(), superscript: true));
+        continue;
+      }
+
+      // ₙ `\sub{…}` — **النصفُ الغائب** من الأُسّ حتى 2026-09-17.
+      //
+      // 🔴 العلّةُ عينُها التي أوجبت `\sup`، وأكبرُ منها: «_» تُرسم دليلاً
+      //    منذ البداية، لكنها **لا تفتح بوّابةَ السطر**. فسطرٌ كلُّ
+      //    رياضياته «م_ط = ٠٫٠٠٢» يُرسم نصّاً عادياً بشرطةٍ سفليةٍ عارية
+      //    — **٣٩٠ موضعاً في المخزون** (٣٥٥ فيزياء) رآها المالك.
+      //    و[core/subscript.py] هو نظيرُ [core/powers.py] في الخادم.
+      if (c == r'\' && _startsWith(r'\sub')) {
+        flush();
+        _i += 4;
+        out.add(ScriptNode(_group(), superscript: false));
         continue;
       }
 

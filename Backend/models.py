@@ -4,7 +4,7 @@ Pydantic Models للتحقق من البيانات
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 
 from config import HISTORY_MAX_MESSAGES, HISTORY_MAX_CHARS
 
@@ -196,6 +196,13 @@ class QuizRequest(BaseModel):
     lessons: List[str] = Field(default_factory=list)
     count: int = 10
 
+    # 🔁 **ما سُئل عنه الطالبُ قريباً** — يرسله التطبيقُ من آخر محاولتين.
+    #
+    # ⚖️ **ولماذا من التطبيق لا من الخادم؟** كي يبقى الخادمُ **بلا حالة**:
+    #    لا جلسةَ ولا التصاقَ بخادمٍ بعينه، فيتوسّع أفقياً بنسخٍ متطابقة بلا
+    #    تنسيقٍ بينها. وهي ذاكرةُ راحةٍ لا أمان، فلا ضيرَ أن يملكها العميل.
+    seen_ids: List[str] = Field(default_factory=list)
+
     @field_validator("grade")
     @classmethod
     def _clamp_grade_quiz(cls, v):
@@ -211,6 +218,13 @@ class QuizRequest(BaseModel):
     @classmethod
     def _check_count(cls, v):
         return v if v in (5, 10, 15) else 10
+
+    @field_validator("seen_ids")
+    @classmethod
+    def _cap_seen(cls, v):
+        # ٦٠ معرّفاً = أربعُ محاولاتٍ بخمسةَ عشرَ سؤالاً — أكثرُ من كافٍ،
+        # والسقفُ يمنع طلباً منتفخاً من عميلٍ معطوب.
+        return [str(x)[:24] for x in (v or [])][:60]
 
 
 class VoiceCleanRequest(BaseModel):
@@ -310,6 +324,10 @@ class ScholarshipUpsertRequest(BaseModel):
     open_date: str = Field(default="", max_length=10)
     close_date: str = Field(default="", max_length=10)
     funding_type: str = Field(default="full", max_length=16)
+    # 📊 **المعدّل المطلوب** — نسبةٌ مئويّة صحيحة، و0 = «غير محدّد».
+    #    يصل من اللوحة نصّاً حين يُفرَّغ الحقل، فيُقبل الاثنان هنا ويُطبَّع
+    #    في `core/scholarships._min_gpa`.
+    min_gpa: Union[int, str] = 0
     gradient: List[str] = Field(default_factory=list)
     enabled: bool = True
     order: int = 0

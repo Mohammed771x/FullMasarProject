@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/chat_controller.dart';
+import '../../../../core/widgets/phosphor.dart';
 
 class PagePicker extends StatefulWidget {
   final ChatController controller;
@@ -63,13 +64,16 @@ class _PagePickerState extends State<PagePicker> {
       children: [
         Row(
           children: [
-            Icon(Icons.menu_book_rounded,
-                size: 18, color: AppColors.primary),
+            // 🎨 **أيقونةُ المصمّم نفسها** (ملاحظة المالك: «خلّها زي
+            //    الأيقونات اللي فوق»): `Notebook` ثنائيةُ اللون — نفسُ
+            //    أيقونة قائمة الدرس في اللوحة، وبحجمها 16 ووزنها.
+            PDuo(PD.notebook, size: 16, color: AppColors.primary),
             const SizedBox(width: 6),
             Text("اختر الصفحات",
                 style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textSecondary)),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.chipInk)),
             const Spacer(),
             // ⚠️ **لا شرطة مائلة**: «0 / 3» تنقلب في العربية فتُقرأ «3 / 0»
             //    أي أن المختار ثلاثةٌ من صفر. و«من» تربط الطرفين فلا تنقلب.
@@ -95,15 +99,15 @@ class _PagePickerState extends State<PagePicker> {
               : Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Row(children: [
-                    Icon(Icons.error_outline_rounded,
-                        size: 16, color: Colors.orange.shade700),
+                    Icon(PI.warningCircle.regular,
+                        size: 16, color: AppColors.warning800),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(_warning!,
                           style: TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.bold,
-                              color: Colors.orange.shade800)),
+                              color: AppColors.warning900)),
                     ),
                   ]),
                 ),
@@ -151,8 +155,7 @@ class _PagePickerState extends State<PagePicker> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (picked) ...[
-                  const Icon(Icons.check_rounded,
-                      size: 16, color: Colors.white),
+                  Icon(PI.check.bold, size: 16, color: Colors.white),
                   const SizedBox(width: 4),
                 ],
                 Text(
@@ -191,8 +194,7 @@ class _PagePickerState extends State<PagePicker> {
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(children: [
-          Icon(Icons.info_outline_rounded,
-              size: 18, color: AppColors.textSecondary),
+          Icon(PI.info.regular, size: 18, color: AppColors.textSecondary),
           const SizedBox(width: 8),
           Expanded(
               child: Text(text,

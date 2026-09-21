@@ -45,6 +45,23 @@ class TutorContentRepository {
   Future<List<String>> getMathExamLessons(String branch, String year, int grade, String track) =>
       _client.getStringList(ApiEndpoints.mathExamLessons(branch, year, grade, track));
 
+  /// ⚡ **الشرحُ المخزون لدرسٍ — أو فراغ.** ([ApiEndpoints.lessonExplanation])
+  ///
+  /// 🔒 لا تنادي موديلاً ولا تخصم حصة، ولا ترمي عند الفشل: السحبُ المسبق
+  ///    راحةٌ لا وظيفة. فإن تعذّر مضى الطالبُ في `/ask` كما كان بلا أن يشعر.
+  Future<String> getStoredExplanation(
+      String subject, String unit, String lesson, int grade, String track) async {
+    try {
+      final res = await _client.getRaw(ApiEndpoints.lessonExplanation(
+          subject, unit, lesson, grade, track));
+      if (res.statusCode != 200) return "";
+      final data = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return data["found"] == true ? (data["answer"] ?? "").toString() : "";
+    } catch (_) {
+      return "";
+    }
+  }
+
   // 🆕 قدرات المادة (وضع الدروس / وضع الوحدات) — استدعاء واحد
   Future<SubjectCapabilities> getCapabilities(String subject, int grade, String track) async {
     final res = await _client.getRaw(ApiEndpoints.capabilities(subject, grade, track));

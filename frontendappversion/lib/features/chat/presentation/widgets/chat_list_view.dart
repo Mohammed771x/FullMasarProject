@@ -13,9 +13,14 @@ import '../../../../core/widgets/fade_in_slide.dart';
 import '../../../../core/widgets/typewriter_text.dart';
 import '../../../../core/widgets/typing_indicator.dart';
 import '../../../../core/session/user_session.dart';
+import '../../../../core/widgets/masar_brand.dart';
+import '../../../../core/widgets/user_avatar.dart';
+import '../../data/models/chat_suggestion.dart';
 import '../../../../core/settings/app_settings.dart';
 import '../../../saved/data/saved_storage.dart';
 import '../controllers/chat_controller.dart';
+import '../controllers/stick_to_bottom.dart';
+import '../../../../core/widgets/phosphor.dart';
 
 // ==========================================
 // 💬 قائمة فقاعات المحادثة
@@ -27,7 +32,27 @@ class ChatListView extends StatelessWidget {
   /// الرياضيات). بدونه تختفي آخر رسالة خلف تلك الأزرار.
   final double bottomExtra;
 
-  const ChatListView({super.key, required this.controller, this.bottomExtra = 0});
+  /// 🃏 ارتفاعُ بطاقة إعدادات الجلسة الثابتة فوق القائمة.
+  ///
+  /// 📌 **البطاقةُ لا تُمرَّر مع المحادثة** (قرار المالك: «إعدادات الجلسة
+  /// تكون قدامي يقدر نعدّلها في أي وقت»). جرّبتُ جعلَها أوّلَ عناصر
+  /// القائمة فطارت مع أول رسالة — وهذا خطأ.
+  ///
+  /// ✅ وهي **طافيةٌ فوق القائمة** لا دافعةٌ لها: القائمةُ تمتدّ تحتها
+  /// كاملةً، وهذه الحشوةُ بمقدار ارتفاعها الحاليّ (مطويّةً كانت أو
+  /// مفتوحة) — فلا يختفي شيءٌ خلفها ولا ينشأ فاصلٌ بينهما.
+  final double topExtra;
+
+  /// شريحةُ اقتراحاتٍ تُلصَق بآخر ردٍّ للمساعد — تُبنى من الخارج.
+  final Widget Function(List<ChatSuggestion>)? followUpsBuilder;
+
+  const ChatListView({
+    super.key,
+    required this.controller,
+    this.bottomExtra = 0,
+    this.topExtra = 0,
+    this.followUpsBuilder,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -63,13 +88,28 @@ class ChatListView extends StatelessWidget {
   }
 
   Widget _buildList(BuildContext context, List<Map<String, dynamic>> messages) {
+    // 💬 **فقاعة الترحيب** — حالةُ المحادثة الفارغة في التصميم
+    //    (الرفيق الذاكي · 390:2048 عند y=547): فقاعةٌ 281×66 r14 بتعبئة
+    //    `#E6F4FF` عنوانُها 12/w900 `#21302A` ووصفُها 12/w700 `#6C7A71`،
+    //    وإلى يمينها الروبوت 45×45.
+    //
+    // 🔴 **كانت الشاشة فارغةً تماماً** قبل أول رسالة — بياضٌ لا يقول للطالب
+    //    ماذا يفعل. والتصميمُ يملؤه بترحيبٍ يشرح الدور.
+    if (messages.isEmpty && !controller.isLoading) {
+      return _Greeting(
+          isTeacher: controller.isTeacher, topExtra: topExtra);
+    }
     return ListView.builder(
       controller: controller.scrollController,
+      // 📐 **24 لا 16** — هامشُ بطاقة الجلسة نفسُه. البطاقةُ تطفو فوق
+      //    القائمة، فلو كانت الفقاعاتُ أعرضَ منها لبرز طرفُها من جانبها
+      //    عند التمرير كأنه عطل. وبتساوي الهامشين تمرّ الفقاعةُ خلفها
+      //    مستورةً تماماً.
       padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: 160 + bottomExtra, // خانة الكتابة + ما يعلوها من أزرار
-        top: MediaQuery.of(context).padding.top + 85, // مساحة للبار العلوي
+        left: 24,
+        right: 24,
+        bottom: 24 + bottomExtra,
+        top: 8 + topExtra,
       ),
       itemCount: messages.length + (controller.isLoading ? 1 : 0),
       itemBuilder: (_, i) {
@@ -85,22 +125,66 @@ class ChatListView extends StatelessWidget {
 
         final msg = messages[i];
         final isUser = msg["role"] == "user";
+        final bool isLast = i == messages.length - 1;
+        final List<ChatSuggestion> followUps = followUpsBuilder == null
+            ? const []
+            : controller.suggestions.where((s) => !s.primary).toList();
+
+        // ↗️ **اقتراحاتُ المتابعة من الرسالة نفسها** (قرار المالك):
+        //    أسهمٌ تحت آخر ردٍّ — لا شريطُ شرائحَ فوق حقل الكتابة يزاحم
+        //    الصفحات ويضيّق الشاشة. وتحت **آخر** ردٍّ وحده: تكرارُها تحت
+        //    كل ردٍّ يحوّل المحادثة قائمةَ أزرار.
+        //
+        // ⚠️ وهي **خارج صفّ الفقاعة** لا داخله: الصفُّ يحاذي أبناءه من
+        //    الأسفل، فلو دخلت فيه لانزلقت صورةُ الروبوت إلى أسفل آخر سهم
+        //    بدل أن تلازم الفقاعة. رأيتُه في المحاكي.
+        final bool showFollowUps = !isUser &&
+            isLast &&
+            msg["streaming"] != true &&
+            msg["animating"] != true &&
+            followUps.isNotEmpty;
 
         return FadeInSlide(
           delay: 0.0,
           beginOffset: Offset(isUser ? -0.05 : 0.05, 0),
-          child: Align(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+          Align(
             alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                // 👥 **الصورتان في جهةٍ واحدة: اليمين** (قرار المالك).
+                //
+                //    اليمينُ في العربية أوّلُ السطر — فمن هناك «تخرج»
+                //    الرسالةُ نحو اليسار. فصورةُ صاحبِها أوّلُ ما يُقرأ:
+                //    الروبوتُ يمينَ ردِّه، والطالبُ يمينَ رسالته. ووضعُ
+                //    صورة الطالب في اليسار كان يجعل رسالتَه تبدو خارجةً
+                //    من الجهة المقابلة.
+                //
+                // ⚠️ و`Row` في RTL يضع **أوّلَ ابنٍ في اليمين** — فكلتاهما
+                //    تُكتب قبل الفقاعة لا بعدها.
+                //
+                // 🤖 والروبوتُ نفسُه لا ثلاثُ نجمات: شخصيّةُ «مسار» هي وجهُ
+                //    الردّ، وأيقونةُ «تألّق» عامّةٌ لا تقول من يتكلّم.
                 if (!isUser)
                   Container(
                     margin: const EdgeInsets.only(left: 10, bottom: 8),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: AppColors.surfaceWhite, shape: BoxShape.circle, boxShadow: AppColors.bubbleShadow),
-                    child: Icon(Icons.auto_awesome_rounded, color: AppColors.primary, size: 16),
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                        color: AppColors.primaryTintSurface,
+                        shape: BoxShape.circle,
+                        boxShadow: AppColors.bubbleShadow),
+                    child: const MasarRobot(size: 28),
+                  ),
+                // 👤 صورةُ الطالب — `UserAvatar` نفسُه المستعمل في الرئيسية:
+                //    يعرف الزائرَ من صاحب الحساب ويتحدّث بعد رفع الصورة.
+                if (isUser)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 10, bottom: 8),
+                    child: UserAvatar(radius: 15),
                   ),
                 Flexible(
                   child: Column(
@@ -141,7 +225,39 @@ class ChatListView extends StatelessWidget {
                             if (!isUser)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
-                                child: Text("مسار AI", style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text("مسار AI", style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                    // ⚡ **وسمُ «من المحفوظ»** — شرحٌ جاهزٌ من
+                                    //    المخزون ([core/lesson_cache]) لا مولَّد:
+                                    //    يصل في جزءٍ من الثانية وبلا خصمٍ من
+                                    //    الحصة. سأل المالك «ما أدري هل يجي من
+                                    //    المخزون ولا لا» — فصار يُرى لا يُحزَر.
+                                    if (msg["cached"] == true) ...[
+                                      const SizedBox(width: 7),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withValues(alpha: 0.10),
+                                          borderRadius: BorderRadius.circular(9),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(PI.lightning.fill, size: 12, color: AppColors.primary),
+                                            const SizedBox(width: 2),
+                                            Text("من المحفوظ",
+                                                style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.primary)),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                               ),
                             // 🌊 **البثّ جارٍ**: النصّ ينمو، وحافته السفلى
                             //    تتلاشى فينبثق الجديد بهدوء بدل أن يقفز،
@@ -176,10 +292,30 @@ class ChatListView extends StatelessWidget {
                               TypewriterText(
                                 text: msg["fullText"] ?? msg["text"],
                                 stopNotifier: controller.stopTypingNotifier,
+                                // 📌 **والطابعةُ تتبع قاعدةَ التمرير كالبثّ
+                                //    تماماً** (أمرُ المالك 2026-09-19):
+                                //    «لو جات رسالة من المخزون تو على طول
+                                //    ينزل بآخر شيء… أنا أبغاه نفس لو أرسلت
+                                //    رسالة للمودل ويجيبها».
+                                //
+                                // 🔴 وكان هنا `jumpTo(maxScrollExtent)`
+                                //    **بلا شرط** مع كل حرف — يتجاوز
+                                //    [StickToBottom] كلَّه. فالشرحُ المخزون
+                                //    (وهو وحده ما يُكتب بالطابعة) كان يسحب
+                                //    الشاشةَ من تحت القارئ ولا يُفلتها، ولو
+                                //    وضع إصبعَه عليها. والبثُّ من الموديل
+                                //    يحترمها منذ 2026-09-09
+                                //    ([chat_controller._flushStream]) —
+                                //    فاختلف المساران في شيءٍ يراه الطالب.
+                                //
+                                // ⏱️ وبعد إطارٍ واحد: `maxScrollExtent` لا
+                                //    يعرف الحرفَ الجديد قبل أن يُخطَّط.
                                 onTyping: () {
-                                  if (controller.scrollController.hasClients) {
-                                    controller.scrollController.jumpTo(controller.scrollController.position.maxScrollExtent);
-                                  }
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((_) {
+                                    controller.scrollController
+                                        .followBottom(controller.stick);
+                                  });
                                 },
                                 onStopped: (stoppedText) {
                                   msg["text"] = "$stoppedText\n\n⏹️ *تم الإيقاف*";
@@ -215,7 +351,7 @@ class ChatListView extends StatelessWidget {
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Icon(Icons.link_rounded, size: 12, color: AppColors.secondary),
+                                                Icon(PI.link.bold, size: 12, color: AppColors.secondary),
                                                 const SizedBox(width: 6),
                                                 Flexible(
                                                   child: Tooltip(
@@ -263,6 +399,13 @@ class ChatListView extends StatelessWidget {
               ],
             ),
           ),
+          if (showFollowUps)
+            Padding(
+              padding: const EdgeInsets.only(right: 44),
+              child: followUpsBuilder!(followUps),
+            ),
+            ],
+          ),
         );
       },
     );
@@ -309,7 +452,7 @@ class ChatListView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: saved
-              ? Colors.amber.withValues(alpha: 0.14)
+              ? AppColors.savedSurface
               : AppColors.softSurface,
           borderRadius: BorderRadius.circular(8),
         ),
@@ -317,11 +460,11 @@ class ChatListView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              saved ? Icons.star_rounded : Icons.star_outline_rounded,
+              saved ? PI.star.fill : PI.star.regular,
               size: 15,
               color: busy
                   ? AppColors.textSecondary.withValues(alpha: 0.4)
-                  : (saved ? Colors.amber.shade700 : AppColors.textSecondary),
+                  : (saved ? AppColors.savedInk : AppColors.textSecondary),
             ),
             const SizedBox(width: 6),
             Text(
@@ -329,7 +472,7 @@ class ChatListView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: saved ? Colors.amber.shade800 : AppColors.textSecondary,
+                color: saved ? AppColors.savedInk : AppColors.textSecondary,
               ),
             ),
           ],
@@ -343,7 +486,7 @@ class ChatListView extends StatelessWidget {
     final inner = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(copied ? Icons.check_rounded : Icons.content_copy_rounded, size: dense ? 13 : 14, color: copied ? Colors.green : AppColors.textSecondary),
+        Icon(copied ? PI.check.bold : PI.copy.regular, size: dense ? 13 : 14, color: copied ? AppColors.copiedInk : AppColors.textSecondary),
         SizedBox(width: dense ? 4 : 6),
         Text(
           copied ? "تم النسخ" : "نسخ",
@@ -429,7 +572,7 @@ class _AttachedImages extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.image_not_supported_rounded,
+                      Icon(PI.imageBroken.regular,
                           color: AppColors.textSecondary, size: 24),
                       const SizedBox(height: 4),
                       Text("الصورة لم تعد متاحة",
@@ -445,6 +588,153 @@ class _AttachedImages extends StatelessWidget {
           ),
         );
       }),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════
+// 👋 فقاعة الترحيب — حالة المحادثة الفارغة
+// ══════════════════════════════════════════════════
+class _Greeting extends StatelessWidget {
+  const _Greeting({required this.isTeacher, required this.topExtra});
+
+  final bool isTeacher;
+
+  /// ما تشغله بطاقةُ الجلسة الثابتة فوق القائمة.
+  final double topExtra;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = UserSession.I.name;
+    if (isTeacher) return _TeacherWelcome(name: name, topExtra: topExtra);
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(24, 8 + topExtra, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 🤖 الروبوت في **بداية** السطر (يمين RTL) كما في التصميم.
+          const MasarRobot(size: 45),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryTintSurface,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "مرحباً $name! أنا مسار، رفيقك التعليمي",
+                    style: TextStyle(
+                        fontSize: 12,
+                        height: 22 / 12,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.headingInk),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "اسألني عن كل ما يخص مسارك التعليمي",
+                    style: TextStyle(
+                        fontSize: 12,
+                        height: 22 / 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.greetInk),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════
+// 👨‍🏫 ترحيبُ مساعد المعلم — حالةُ المحادثة الفارغة
+// ══════════════════════════════════════════════════
+// 🎨 **تصميم Figma** — `design/09-teacher/02` · إحداثيات مطلقة:
+//    الروبوت وسطَ الشاشة 104 عرضاً عند y=319 · العنوان **16**/w900
+//    `#091E42` عند y=429 · والفقرةُ **12** وسطيّةٌ `#15294B` بعرضٍ أقصاه
+//    **270** وارتفاعِ سطرٍ 22.5 (وهو مقاسُ `Small` في التوكنات حرفاً)،
+//    عند y=474.
+//
+// 📏 **والمقاسان مقيسان لا مقدَّران**: ارتفاعُ حبر العنوان في التصدير
+//    19.5 وفي فلاتر عند 18 هو 21.3 ⇒ 16؛ وسطرُ الفقرة 14.5 مقابل 17.3
+//    عند 14 ⇒ 12. (عايرتُ الطريقةَ على عنوان الشريط المعلوم: 14.3/14.)
+//
+// 🔴 **وهي ليست فقاعةَ قسم التعليم**: هناك روبوتٌ 45 إلى يمين فقاعةٍ
+//    زرقاء؛ وهنا لوحةٌ وسطيّةٌ كاملة. قِستُ الإطارين فاختلفا، فبُنيتا
+//    اثنتين — ولو وُحّدتا لظهر أحدُ القسمين بتصميم الآخر.
+//
+// 📝 **والنصُّ من التطبيق لا من الملف** (قاعدة المالك): المصمّم كتب
+//    ترحيباً توضيحياً، وهذا ترحيبُ المعلّم الذي في التطبيق باسمه.
+//
+// 📐 **ويتوسّط رأسياً ما دام يتّسع، ويعلو حين يضيق**: المصمّم وضعه في
+//    الإطار ٢ (بلا بطاقة) على بُعد 140 من الشريط، وفي الإطارات ١·٣·٤
+//    (وفوقه بطاقة) على بُعد 30 منها — أي أنه يتوسّط ما بقي. فلو ثُبّت
+//    على 30 دائماً لتكوّم في الأعلى وتُرك تحته فراغٌ بمقدار شاشةٍ نصفية.
+class _TeacherWelcome extends StatelessWidget {
+  const _TeacherWelcome({required this.name, required this.topExtra});
+
+  final String name;
+  final double topExtra;
+
+  /// 📏 عرضُ الفقرة في التصميم — أضيقُ من اللوح عمداً فتُقرأ في أربعة أسطر.
+  static const double paragraphWidth = 270;
+
+  /// 📏 فجوةُ ما بين البطاقة (أو الشريط) وأعلى اللوحة.
+  static const double gapUnderCard = 30;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(24, topExtra + gapUnderCard, 24, 24),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: (constraints.maxHeight - topExtra - gapUnderCard - 24)
+                .clamp(0, double.infinity),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const MasarRobot(size: 104, pose: MasarRobotPose.fly),
+                const SizedBox(height: 24),
+                Text("مساعد المعلم الذكي",
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.brandInk)),
+                const SizedBox(height: 18),
+                ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(maxWidth: paragraphWidth),
+                  child: Text(
+                    "مرحباً $name! أنا مسار، مساعدك في التحضير. "
+                    "اختر أداةً من الأعلى وحدّد المادة والدرس، "
+                    "أو اسألني مباشرةً عن التدريس وإدارة الحصة.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 12,
+                        height: 22.5 / 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.inkB800),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

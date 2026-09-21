@@ -148,3 +148,24 @@ def anonymous(monkeypatch):
     from core import firebase_auth as fa
     monkeypatch.setattr(fa, "bearer_token", lambda request: "")
     return None
+
+
+# ══════════════════════════════════════════════════
+# 🎯 البنكُ مطفأٌ في الاختبارات إلا حيث يُطلب صراحةً
+# ══════════════════════════════════════════════════
+#
+# 🔴 **وإلا صارت الاختباراتُ تمرّ وهي لا تفحص شيئاً.** اختباراتُ «اختبر
+#    نفسك» تُزيّف ردَّ الموديل ثم تتحقّق من رسمه ومن حرّاسه. فلمّا صار
+#    البنكُ المخزون يسبق الموديلَ ([quiz.serve_from_bank]) لم يُنادَ الزيفُ
+#    أصلاً — ومرّ الاختبارُ على أسئلةٍ حقيقيةٍ من البنك بدل ما وضعناه له.
+#    (رُصد فوراً: `assert '\sqrt{٢٥}' in …` سقط على سؤالِ كسرٍ من البنك.)
+#
+# ⚖️ ومسارُ الموديل **يبقى مسارَ إنتاجٍ حيّاً** (كلُّ درسٍ بلا بنك يمرّ به)،
+#    فاختبارُه على حاله صحيحٌ ومطلوب. ومن أراد البنكَ وسمَ اختبارَه
+#    بـ`@pytest.mark.quiz_bank`.
+@pytest.fixture(autouse=True)
+def _quiz_bank_off(monkeypatch, request):
+    if "quiz_bank" in request.keywords:
+        return
+    from core import quiz
+    monkeypatch.setattr(quiz, "serve_from_bank", lambda *a, **k: None)

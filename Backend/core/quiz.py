@@ -17,7 +17,9 @@ import re
 import random
 import asyncio
 
-from .content_store import get_lessons_book, lessons_units, lessons_in_unit, find_lesson
+from .content_store import (get_lessons_book, lessons_units,
+                            lessons_in_unit, find_lesson, _clean)
+from . import quiz_bank
 from .curriculum import model_route, normalize_grade_track, is_valid_subject
 from .serializer import serialize_lesson
 from . import quiz_prompt
@@ -91,6 +93,91 @@ def collect_lessons_text(grade, track, subject, unit, lessons):
     if not blocks:
         raise QuizError("❌ لم أجد نصّ الدروس المختارة. جرّب دروساً أخرى.")
     return "\n\n".join(blocks), used
+
+
+# ══════════════════════════════════════════════════
+# 🎯 البنكُ المخزون — قبل أي نداءِ موديل
+# ══════════════════════════════════════════════════
+#
+# ⚖️ **قرار المالك (2026-09-16):** «سوِّ كاشنج لاختبر نفسك — لكل درسٍ أسئلةٌ
+#    مخزونة بمستوياتٍ وأوزانِ أهمية، وخوارزميةُ اختيارٍ تشيل المهمّ حسب
+#    كم درساً اختار الطالبُ وكم سؤالاً طلب.»
+#
+# 🛟 **وتدهورٌ لطيف**: درسٌ بلا بنك، أو بنكٌ أصغرُ من الطلب ⇒ يمضي الطلبُ
+#    كلُّه إلى الموديل كما كان حرفاً بحرف. الميزةُ تسريعٌ وجودة لا شرطُ عمل،
+#    فلا ينكسر الاختبارُ يوماً لأن البناءَ لم يبلغ درساً بعد.
+#
+# 💳 **وبلا نداءِ موديل ⇒ لا خصمَ من الحصة** — يردّها `/quiz/generate` حين
+#    يرى `cached`، كما يفعل الشرحُ المخزون ([core/lesson_cache]).
+
+def collect_banks(grade, track, subject, unit, lessons):
+    """يعيد `(بنوكٌ حاضرة، دروسٌ بلا بنك)` — وبصمةُ كل درسٍ تُتحقَّق.
+
+    ⚠️ **واسمُ الوحدة يُحلّ من الكتاب لا من الطلب**: المولِّد يبصم النصَّ
+       باسم وحدةِ الدرس الحقيقية، فلو بصمنا هنا بـ`unit` الفارغة القادمة
+       من التطبيق لاختلفت البصمتان و**لأخطأ البنكُ دائماً بلا شكوى**
+       — وهي نفسُ علّة [lesson_cache.math_source] بعينها.
+    """
+    grade, track = normalize_grade_track(grade, track)
+    book = get_lessons_book(grade, track, subject)
+    if book is None:
+        return [], list(lessons or [])
+
+    banks, missing = [], []
+    for name in (lessons or []):
+        _u, doc = find_lesson(book, unit or "", name)
+        if doc is None:
+            _u, doc = find_lesson(book, "", name)
+        if doc is None:
+            missing.append(name)
+            continue
+        unit_name = _clean((_u or {}).get("اسم_الوحدة"))
+        source = serialize_lesson(doc, unit_name, subject=subject)
+        stored = quiz_bank.stored_for(grade, track, subject, unit_name,
+                                      name, source)
+        if stored:
+            banks.append((name, stored))
+        else:
+            missing.append(name)
+    return banks, missing
+
+
+def serve_from_bank(grade, track, subject, unit, lessons, count, seen=None):
+    """اختبارٌ من المخزون — أو `None` إن لم يكتمل العدد.
+
+    🔒 **وكلٌّ أو لا شيء**: اختبارٌ نصفُه من البنك ونصفُه من الموديل يخلط
+       أسلوبين ويكلّف نداءً على كل حال، فلا يوفّر شيئاً ولا يُجوّد.
+    """
+    wanted = [l for l in (lessons or []) if str(l).strip()][:MAX_LESSONS]
+    if not wanted:
+        return None
+    banks, missing = collect_banks(grade, track, subject, unit, wanted)
+    if missing or not banks:
+        return None
+
+    picked = quiz_bank.select(banks, count, seen=seen)
+    if len(picked) < count:
+        return None
+
+    questions = [{"q": q["q"], "options": list(q["options"]),
+                  "correct_index": q["correct_index"],
+                  "topic": q.get("topic") or q.get("lesson") or "عام",
+                  "lesson": q.get("lesson", ""),
+                  # 📋 وما يزيده البنكُ على التوليد الحيّ — يقرؤه الطالبُ
+                  #    في المراجعة، ويحكم به الاختيارُ قبل العرض.
+                  "why": q.get("why", ""),
+                  "level": q.get("level", ""),
+                  "weight": q.get("weight", 3),
+                  "id": q.get("id", "")}
+                 for q in picked]
+    spread_answers(questions)
+    return {
+        "questions": questions,
+        "model": "", "provider": "bank", "cached": True,
+        "generated": len(questions), "requested": count,
+        "subject": subject, "unit": unit or "",
+        "lessons": [name for name, _ in banks],
+    }
 
 
 # ══════════════ قراءة رد الموديل ══════════════
@@ -259,10 +346,18 @@ async def _call_model(client_key, model_name, messages, clients):
     return response.choices[0].message.content
 
 
-async def generate(grade, track, subject, unit, lessons, count, clients):
+async def generate(grade, track, subject, unit, lessons, count, clients,
+                   seen=None):
     """يولّد اختباراً. يعيد dict جاهزاً للواجهة، أو يرمي QuizError."""
     subject = (subject or "").strip()
     count = count if count in ALLOWED_COUNTS else DEFAULT_COUNT
+
+    # 🎯 **المخزونُ أولاً** — وبلا نداءٍ ولا انتظار ([serve_from_bank]).
+    served = serve_from_bank(grade, track, subject, unit, lessons, count, seen)
+    if served is not None:
+        print(f"🎯 quiz: {subject} · {count} أسئلة ← البنك المخزون")
+        return served
+
     lessons_text, used = collect_lessons_text(grade, track, subject, unit, lessons)
 
     # 🎯 موديل المادة نفسه (رياضيات→DeepSeek · فيزياء وكيمياء→GPT · الباقي→Gemini)

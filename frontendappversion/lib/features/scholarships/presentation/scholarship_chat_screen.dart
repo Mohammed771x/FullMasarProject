@@ -16,11 +16,16 @@ import '../../../core/widgets/masar_markdown.dart';
 import '../../../core/widgets/streaming_text.dart';
 import '../../../core/widgets/voice_recording_bar.dart';
 import '../../../core/widgets/typing_indicator.dart';
+import '../../../core/widgets/masar_brand.dart';
+import '../../../core/widgets/user_avatar.dart';
+import '../../../core/widgets/phosphor.dart';
+import 'widgets/scholarship_ui.dart';
 import '../data/models/scholarship.dart';
 import '../data/models/scholarship_chat.dart';
 import '../../../core/session/user_session.dart';
 import 'controllers/scholarship_chat_controller.dart';
 import 'widgets/scholarship_chat_drawer.dart';
+import '../../../../core/widgets/input_bar_metrics.dart';
 
 // ==========================================
 // 💬 شات مساعد المنحة — بسجلّ محادثات جانبي
@@ -96,12 +101,29 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
       backgroundColor: AppColors.bgLight,
       // ★ القائمة الجانبية: من اليمين في RTL — نفس مكان درج قسم التعليم.
       drawer: ScholarshipChatDrawer(controller: _c),
-      body: Column(
+      body: Stack(
+        children: [
+          // 🌈 **خلفيّةُ المحادثة ليست بيضاء** — نفسُ تدرّج قسم التعليم
+          //    حرفاً بحرف (أمرُ المالك 2026-09-21: «نفس بالضبط حق قسم
+          //    التعليم»). وهو تدرّجٌ رأسيٌّ يعمّ الشاشة: أبيضُ في الأعلى
+          //    يزرقّ حتى ذروةٍ عند ثلثيها ثم يرمدّ في القاع.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(gradient: AppColors.chatBackdrop),
+              ),
+            ),
+          ),
+          Column(
         children: [
           _appBar(context, s),
           Expanded(child: _c.isEmpty ? _intro(s) : _list()),
           if (_c.notice != null) _noticeBar(_c.notice!),
-          if (_c.isEmpty && !_c.hasAttachments) _quickPrompts(s),
+          // 🔴 **كانت تختفي بعد أول سؤال** — فيرى الطالبُ بابَ «الوثائق»
+          //    مرّةً واحدةً ثم لا يجد المواعيدَ ولا المزايا أبداً
+          //    (علّةُ المالك: «مش باين عندي»). وهي أجوبةٌ فوريّةٌ بلا
+          //    كلفة، فبقاؤها مكسبٌ لا مزاحمة.
+          if (!_c.hasAttachments && !_c.isRecording) _quickPrompts(s),
           if (_c.hasAttachments && !_c.isRecording) _attachmentStrip(),
           // 🎙️ **نفس شريط قسم التعليم حرفياً**: موجات · مؤقّت · حذف ·
           //    إيقاف→نص · إرسال مباشر. تجربة واحدة في القسمين لا اثنتان.
@@ -120,32 +142,35 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
           else
             _inputBar(),
         ],
+          ),
+        ],
       ),
     );
   }
 
   // ══════════════ الرأس ══════════════
 
+  /// 📐 مقيسٌ من `05-الرفيق الذاكي`: رأسٌ **أبيضُ** لا متدرّج، أزرارُه
+  ///    40×40 · r14 بحدٍّ `#E8EDF3` وحبرٍ `#003359`. وترتيبُه من اليمين:
+  ///    الرجوع · رمزُ الدولة · العنوانُ ووصفُه · محادثةٌ جديدة · السجلّ.
   Widget _appBar(BuildContext context, Scholarship s) {
     final count = _c.history.length;
     return Container(
-      padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 10, bottom: 12, left: 14, right: 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-            colors: s.colors, begin: Alignment.topRight, end: Alignment.bottomLeft),
-        boxShadow: [
-          BoxShadow(
-              color: s.colors.last.withValues(alpha: 0.3),
-              blurRadius: 14,
-              offset: const Offset(0, 6))
-        ],
-      ),
+      // 🌈 شفّافٌ كي يمرّ تدرّجُ الخلفية تحته — كما في رأس قسم التعليم.
+      color: Colors.transparent,
+      padding: EdgeInsets.fromLTRB(
+          SchMetrics.margin, MediaQuery.of(context).padding.top + 10,
+          SchMetrics.margin, 12),
       child: Row(
         children: [
-          _iconBtn(Icons.arrow_back_rounded, () => Navigator.maybePop(context)),
+          // ⚠️ RTL: أوّلُ ابنٍ هو الأيمن — وهناك سهمُ الرجوع في التصدير.
+          SchSquareButton(
+            icon: PI.arrowRight,
+            onTap: () => Navigator.maybePop(context),
+            tooltip: "رجوع",
+          ),
           const SizedBox(width: 10),
-          Text(s.badge, style: const TextStyle(fontSize: 24)),
+          Text(s.badge, style: const TextStyle(fontSize: 18)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -155,92 +180,102 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                 Text("مساعد ${s.name}",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white)),
-                Text(_c.isSending ? "يكتب الآن..." : s.statusLabel,
                     style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withValues(alpha: 0.88))),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.headingInk)),
+                const SizedBox(height: 3),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                          color: s.statusColor, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(_c.isSending ? "يكتب الآن..." : s.statusText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary)),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-          _iconBtn(Icons.add_comment_rounded, () {
-            _c.newChat();
-            _input.clear();
-          }, tooltip: "محادثة جديدة"),
+          const SizedBox(width: 10),
+          SchSquareButton(
+            icon: PI.plus,
+            tooltip: "محادثة جديدة",
+            onTap: () {
+              _c.newChat();
+              _input.clear();
+            },
+          ),
           const SizedBox(width: 8),
           // 📂 السجلّ — بشارة العدد كي يعرف الطالب أن له محادثات سابقة.
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              _iconBtn(Icons.forum_rounded,
-                  () => _scaffold.currentState?.openDrawer(),
-                  tooltip: "محادثاتي"),
-              if (count > 0)
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                    decoration: BoxDecoration(
-                        color: Colors.white, borderRadius: BorderRadius.circular(9)),
-                    child: Text("$count",
-                        style: TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w900,
-                            color: s.colors.last)),
-                  ),
-                ),
-            ],
+          SchSquareButton(
+            icon: PI.chat,
+            tooltip: "محادثاتي",
+            badge: count > 0 ? "$count" : null,
+            onTap: () => _scaffold.currentState?.openDrawer(),
           ),
         ],
       ),
     );
   }
 
-  Widget _iconBtn(IconData icon, VoidCallback onTap, {String? tooltip}) {
-    final btn = InkWell(
-      borderRadius: BorderRadius.circular(13),
-      onTap: onTap,
-      child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(13)),
-          child: Icon(icon, color: Colors.white, size: 20)),
-    );
-    return tooltip == null ? btn : Tooltip(message: tooltip, child: btn);
-  }
-
   // ══════════════ الرسائل ══════════════
 
   /// شاشة البدء: ترحيب ثابت **بلا نداء موديل** — لا نصرف من حصة الطالب
   /// على جملة يمكن كتابتها في الكود.
+  ///
+  /// 📐 من `05-الرفيق الذاكي`: الروبوتُ فوق هالةٍ زرقاء، ثم الترحيبُ
+  ///    18/w900، ثم الوصفُ 12/w600 — والكلُّ في وسط الشاشة لا أعلاها.
   Widget _intro(Scholarship s) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
+      padding: const EdgeInsets.fromLTRB(SchMetrics.margin, 40, SchMetrics.margin, 10),
       children: [
-        Center(child: Text(s.badge, style: const TextStyle(fontSize: 54))),
-        const SizedBox(height: 16),
-        Text("أهلاً! أنا مساعد ${s.name} 😊",
+        const SizedBox(height: 40),
+        Center(
+          child: Container(
+            width: 190,
+            height: 190,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(colors: [
+                AppColors.schTint,
+                AppColors.schTint.withValues(alpha: 0),
+              ]),
+            ),
+            child: const MasarRobotAnimated(size: 118),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Text("أهلاً! أنا مساعد ${s.name}",
             textAlign: TextAlign.center,
             style: TextStyle(
-                fontSize: 17,
+                fontSize: 18,
+                height: 1.6,
                 fontWeight: FontWeight.w900,
-                color: AppColors.textPrimary)),
-        const SizedBox(height: 10),
+                color: AppColors.headingInk)),
+        const SizedBox(height: 12),
         Text(
           "اسألني عن الشروط، المواعيد، الوثائق المطلوبة، أو طريقة التقديم.\n"
           "أجيب من بيانات هذه المنحة — وما لا أعرفه أقول لك إني لا أعرفه.",
           textAlign: TextAlign.center,
           style: TextStyle(
-              fontSize: 12.5,
+              fontSize: 12,
               height: 1.9,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary),
+              color: AppColors.chipInk),
         ),
       ],
     );
@@ -250,13 +285,19 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
     final msgs = _c.messages;
     return ListView.builder(
       controller: _scroll,
-      padding: const EdgeInsets.fromLTRB(14, 16, 14, 10),
+      padding: const EdgeInsets.fromLTRB(
+          SchMetrics.margin, 10, SchMetrics.margin, 10),
       itemCount: msgs.length + (_c.isSending ? 1 : 0),
       itemBuilder: (_, i) {
         if (i >= msgs.length) {
-          return const Padding(
-            padding: EdgeInsets.only(top: 6, bottom: 10),
-            child: Align(alignment: Alignment.centerRight, child: TypingIndicator()),
+          // ⏳ في **يسار** الشاشة كما في قسم التعليم: هناك يظهر ردُّ
+          //    المساعد، فمؤشّرُ كتابته يسبقه في مكانه لا في الجهة المقابلة.
+          return const Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: 10, bottom: 20, top: 10),
+              child: TypingIndicator(),
+            ),
           );
         }
         // 🌊 الفقاعة الأخيرة وحدها هي التي تُبثّ — وما قبلها مكتملٌ ثابت.
@@ -280,7 +321,8 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
     });
   }
 
-  /// ⭐ حفظ رد المساعد في المحفوظات — نفس زر قسم التعليم.
+  /// ⭐ حفظ رد المساعد في المحفوظات — **شريحةُ قسم التعليم نفسُها**
+  /// (أمرُ المالك 2026-09-21: «مكان النسخ واللصق… نفس حق التعليم بالضبط»).
   Widget _saveButton(SchMessage m) {
     final uid = UserSession.I.uid;
     final saved = SavedStorage.isSaved(uid, m.text);
@@ -308,147 +350,208 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                 ));
             },
       borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: saved ? AppColors.savedSurface : AppColors.softSurface,
+          borderRadius: BorderRadius.circular(8),
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(saved ? Icons.star_rounded : Icons.star_outline_rounded,
-                size: 13,
-                color: saved ? Colors.amber.shade700 : AppColors.textSecondary),
-            const SizedBox(width: 4),
+            Icon(saved ? PI.star.fill : PI.star.regular,
+                size: 15,
+                color: saved ? AppColors.savedInk : AppColors.textSecondary),
+            const SizedBox(width: 6),
             Text(saved ? "محفوظة" : "حفظ",
                 style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: saved
-                        ? Colors.amber.shade800
-                        : AppColors.textSecondary)),
+                    color:
+                        saved ? AppColors.savedInk : AppColors.textSecondary)),
           ],
         ),
       ),
     );
   }
 
-  Widget _copyButton(SchMessage m) {
+  Widget _copyButton(SchMessage m, {bool dense = false}) {
     final copied = _copiedAt == m.timestamp;
+    final inner = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(copied ? PI.check.bold : PI.copy.regular,
+            size: dense ? 13 : 14,
+            color: copied ? AppColors.copiedInk : AppColors.textSecondary),
+        SizedBox(width: dense ? 4 : 6),
+        Text(copied ? "تم النسخ" : "نسخ",
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color:
+                    copied ? AppColors.copiedInk : AppColors.textSecondary)),
+      ],
+    );
     return InkWell(
       onTap: () => _copy(m),
       borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(copied ? Icons.check_rounded : Icons.content_copy_rounded,
-                size: 13,
-                color: copied ? Colors.green : AppColors.textSecondary),
-            const SizedBox(width: 4),
-            Text(copied ? "تم النسخ" : "نسخ",
-                style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                    color: copied ? Colors.green : AppColors.textSecondary)),
-          ],
-        ),
-      ),
+      child: dense
+          ? Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: inner)
+          : AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: copied
+                    ? AppColors.copiedInk.withValues(alpha: 0.1)
+                    : AppColors.softSurface,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: inner,
+            ),
     );
   }
 
+  /// 💬 **الفقاعةُ نسخةٌ من قسم التعليم حرفاً بحرف** (أمرُ المالك
+  ///    2026-09-21: «طريقة عرض الكلام، صورة الشخص، مكان النسخ واللصق،
+  ///    وصورة الذكاء الصناعي وين تكون — نفس حق التعليم بالضبط»).
+  ///
+  ///    ⇒ الطالبُ **يميناً** بفقاعةٍ متدرّجة وصورتُه بجانبها، والمساعدُ
+  ///      يساراً بفقاعةٍ **بيضاء بحبرٍ أسود** يعلوها اسمُ «مسار AI»
+  ///      وصورةُ الروبوت — والصورتان في **جهةٍ واحدة: اليمين**، لأن
+  ///      اليمينَ أوّلُ السطر في العربية فمن هناك تخرج الرسالة.
+  ///
+  /// ⚠️ وهذا **يخالف تصدير المنح** الذي وضع فقاعةَ الطالب يساراً بتعبئةٍ
+  ///    زرقاء — والمالك حسم: تجربةُ المحادثة واحدةٌ في القسمين.
   Widget _bubble(SchMessage m, {bool streaming = false}) {
     final isUser = m.isUser;
     return Align(
-      alignment: isUser ? Alignment.centerLeft : Alignment.centerRight,
-      child: Column(
-        // ⚠️ التطبيق RTL: `start` = يمين الشاشة و`end` = يسارها — نفس منطق
-        //    قسم التعليم، فتلتصق الفقاعة بحافة صورها لا تنزاح عنها.
-        crossAxisAlignment:
-            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // 📷 الصور **فوق** الفقاعة لا داخلها — كما في قسم التعليم تماماً.
-          if (m.hasImages)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: _bubbleImages(m.imagePaths),
+          // ⚠️ `Row` في RTL يضع **أوّلَ ابنٍ في اليمين** — فالصورتان
+          //    تُكتبان قبل الفقاعة لا بعدها.
+          if (!isUser)
+            Container(
+              margin: const EdgeInsets.only(left: 10, bottom: 8),
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                  color: AppColors.primaryTintSurface,
+                  shape: BoxShape.circle,
+                  boxShadow: AppColors.bubbleShadow),
+              child: const MasarRobot(size: 28),
             ),
-
-          if (m.text.isNotEmpty)
-            GestureDetector(
-              onLongPress: () => _copy(m),
-              child: Container(
-                constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.82),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: isUser ? AppColors.bubbleGradient : null,
-                  color: isUser ? null : AppColors.surfaceWhite,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(20),
-                    topRight: const Radius.circular(20),
-                    bottomLeft: Radius.circular(isUser ? 6 : 20),
-                    bottomRight: Radius.circular(isUser ? 20 : 6),
+          if (isUser)
+            const Padding(
+              padding: EdgeInsets.only(left: 10, bottom: 8),
+              child: UserAvatar(radius: 15),
+            ),
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              // ⚠️ التطبيق RTL: `start` = يمين الشاشة و`end` = يسارها.
+              crossAxisAlignment:
+                  isUser ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+              children: [
+                // 📷 الصور **فوق** الفقاعة لا داخلها — كما في قسم التعليم.
+                if (m.hasImages)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: _bubbleImages(m.imagePaths),
                   ),
-                  boxShadow: AppColors.bubbleShadow,
-                ),
-                child: isUser
-                    ? Text(m.text,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            height: 1.7,
-                            fontWeight: FontWeight.w600))
-                    // 🚫 بلا رسّام رياضيات: المنح لا رياضيات فيها، ورفعُ
-                    //    «رقم/رقم» إلى كسر يحوّل تاريخاً (20/02/2026) إلى
-                    //    كسرٍ مرسوم على شاشة الطالب.
-                    // 🌊 أثناء البثّ: حافةٌ متلاشية ومؤشّر كتابة — نفس
-                    //    إحساس قسم التعليم حرفياً ([StreamingText]).
-                    : Column(
+                if (m.text.isNotEmpty || !isUser)
+                  GestureDetector(
+                    onLongPress: () => _copy(m),
+                    child: Container(
+                      margin: EdgeInsets.only(bottom: isUser ? 4 : 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: isUser ? AppColors.bubbleGradient : null,
+                        color: isUser ? null : AppColors.surfaceWhite,
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(24),
+                          topRight: const Radius.circular(24),
+                          bottomLeft: Radius.circular(isUser ? 24 : 4),
+                          bottomRight: Radius.circular(isUser ? 4 : 24),
+                        ),
+                        boxShadow: AppColors.bubbleShadow,
+                      ),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          StreamingText(
-                            streaming: streaming,
-                            child: MasarMarkdown(
-                              data: m.text,
-                              // ⚠️ التحديد يُعطَّل أثناء البثّ: النصّ يتغيّر
-                              //    تحت الإصبع فينفكّ التحديد ويرتجّ العرض.
-                              selectable: !streaming,
-                              math: false,
-                              styleSheet: MarkdownStyleSheet(
-                                p: TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: AppSettings.I.answerFontSize,
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.6,
+                          if (!isUser)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text("مسار AI",
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                          if (isUser)
+                            Text(m.text,
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: AppSettings.I.answerFontSize,
+                                    height: 1.6,
+                                    fontWeight: FontWeight.w500))
+                          // 🚫 بلا رسّام رياضيات: المنح لا رياضيات فيها،
+                          //    ورفعُ «رقم/رقم» إلى كسر يحوّل تاريخاً
+                          //    (20/02/2026) إلى كسرٍ مرسوم على الشاشة.
+                          // 🌊 أثناء البثّ: حافةٌ متلاشية ومؤشّرُ كتابة.
+                          else
+                            StreamingText(
+                              streaming: streaming,
+                              child: MasarMarkdown(
+                                data: m.text,
+                                // ⚠️ التحديد يُعطَّل أثناء البثّ: النصّ
+                                //    يتغيّر تحت الإصبع فينفكّ ويرتجّ العرض.
+                                selectable: !streaming,
+                                math: false,
+                                styleSheet: MarkdownStyleSheet(
+                                  p: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: AppSettings.I.answerFontSize,
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.6,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          if (streaming)
+                          if (!isUser && streaming)
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
                               child: TypingCaret(color: AppColors.primary),
                             ),
+                          // 📋 أزرارُ المساعد **داخل فقاعته** — كالتعليم.
+                          if (!isUser && !streaming) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _copyButton(m),
+                                const SizedBox(width: 8),
+                                _saveButton(m),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
-              ),
-            ),
-
-          // 📋 النسخ **على يمين الفقاعة دائماً** — للطالب وللمساعد سواء.
-          //    كان يتبع جهة الفقاعة فيقفز يميناً ويساراً بين الرسائل.
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 2, bottom: 10, right: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!isUser) ...[_saveButton(m), const SizedBox(width: 4)],
-                  _copyButton(m),
-                ],
-              ),
+                    ),
+                  ),
+                // 📋 وزرُّ الطالب **تحت فقاعته** — كالتعليم أيضاً.
+                if (isUser)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12, right: 6),
+                    child: _copyButton(m, dense: true),
+                  ),
+              ],
             ),
           ),
         ],
@@ -544,7 +647,7 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                           shape: BoxShape.circle,
                           border: Border.all(
                               color: AppColors.surfaceWhite, width: 1.5)),
-                      child: Icon(Icons.close_rounded,
+                      child: Icon(PI.x.regular,
                           size: 13, color: AppColors.surfaceWhite),
                     ),
                   ),
@@ -624,14 +727,14 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                     borderRadius: BorderRadius.circular(3))),
             const SizedBox(height: 8),
             ListTile(
-              leading: Icon(Icons.photo_camera_rounded, color: AppColors.primary),
+              leading: Icon(PI.camera.regular, color: AppColors.primary),
               title: Text("التقاط صورة",
                   style: TextStyle(
                       fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
               onTap: () => Navigator.pop(sheetContext, true),
             ),
             ListTile(
-              leading: Icon(Icons.photo_library_rounded, color: AppColors.secondary),
+              leading: Icon(PI.images.regular, color: AppColors.secondary),
               title: Text("من المعرض",
                   style: TextStyle(
                       fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
@@ -659,171 +762,251 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
   Widget _noticeBar(String text) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+      margin: const EdgeInsets.fromLTRB(SchMetrics.margin, 0, SchMetrics.margin, 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-          color: AppColors.secondary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.secondary.withValues(alpha: 0.25))),
+          color: AppColors.schRedFill,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.schRedInk)),
       child: Text(text,
           textAlign: TextAlign.center,
           style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.bold,
-              color: AppColors.secondary)),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.schRedInk)),
     );
   }
 
-  /// أسئلة جاهزة — تُعرض قبل أول سؤال فقط، ثم تختفي فلا تزاحم المحادثة.
+  /// 🧭 أبوابُ المنحة — زرٌّ لكل ما تجيبه بطاقتُها فوراً.
+  ///
+  /// 🔴 **كانت أربعةً مكتوبةً هنا** لا صلةَ لها ببيانات المنحة: فيها «كيف
+  ///    أكتب خطاب الدافع؟» (سؤالُ موديلٍ لا بطاقة) وليس فيها المزايا ولا
+  ///    التخصصات ولا المراحل. فصارت [Scholarship.doors] — يحسبها الخادم،
+  ///    ولا يظهر بابٌ لمنحةٍ لا تملك بياناتِه.
+  ///
+  /// 📐 وشكلُها من `05-الرفيق الذاكي`: شرائحُ 27 · r14 · تعبئة `#F8FAFC`
+  ///    وحدٌّ `#E7ECF2` — والأولى منها (أقربُ سؤالٍ لليمين) بحدّ الهوية.
   Widget _quickPrompts(Scholarship s) {
-    final prompts = [
-      "ما شروط التقديم؟",
-      "ما الوثائق المطلوبة؟",
-      if (s.closeDate != null) "متى آخر موعد للتقديم؟" else "متى يفتح التقديم؟",
-      "كيف أكتب خطاب الدافع؟",
-    ];
+    final doors = s.doors;
+    if (doors.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 42,
-      child: ListView(
+      height: 27,
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        children: prompts
-            .map((p) => Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: ActionChip(
-                    label: Text(p,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary)),
-                    backgroundColor: AppColors.surfaceWhite,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: AppColors.primary.withValues(alpha: 0.25)),
-                    ),
-                    onPressed: () => _send(p),
-                  ),
-                ))
-            .toList(),
+        padding: const EdgeInsets.symmetric(horizontal: SchMetrics.margin),
+        itemCount: doors.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final d = doors[i];
+          final first = i == 0;
+          return Material(
+            color: AppColors.quizChipFill,
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              // 🏷️ الزرُّ يحمل **اسمَ الباب** لا نصَّ السؤال: أقصرُ فيتّسع
+              //    الشريطُ لتسعةِ أبوابٍ بدل أربعة، والمُرسَل هو السؤالُ
+              //    الكامل الذي يفهمه الخادم.
+              onTap: () => _send(d.question),
+              child: Container(
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: first
+                          ? AppColors.primary
+                          : AppColors.quizChipBorder),
+                ),
+                child: Text(d.label,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: first ? AppColors.primary : AppColors.chipInk)),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
+  /// ⌨️ **شريطُ الكتابة نسخةٌ من قسم التعليم** (أمرُ المالك 2026-09-21:
+  ///    «الأزرار اللي تحت… نفس حق التعليم بالضبط») — وهو نفسُه ما رسمه
+  ///    المصمّم في `05-الرفيق الذاكي`: شريطٌ أبيضُ 56 · r24 · حدٌّ
+  ///    `#CAD5E2`، الكاميرا يميناً ثم الحقل ثم المايك ثم دائرةُ إرسالٍ 42.
+  ///
+  /// 🎨 والمعطَّلُ **40% من لون الإرسال** لا رماديّ — كما في التعليم:
+  ///    قِيس `#A1BEFE` فكان `#155DFC` بشفافية 0.4 فوق الأبيض بالضبط.
   Widget _inputBar() {
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
-          boxShadow: AppColors.bubbleShadow,
-        ),
-        child: Row(
-          children: [
-            // 🎤 المايك — نفس تدفّق التعليم: تسجيل ← تنظيف ← مراجعة ([23])
-            InkWell(
-                onTap: _c.isSending ? null : _startVoice,
-                borderRadius: BorderRadius.circular(22),
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: _c.isRecording
-                        ? Colors.redAccent.withValues(alpha: 0.14)
-                        : AppColors.softSurface,
-                    shape: BoxShape.circle,
-                  ),
-                  child: _c.isCleaningVoice
-                      ? Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppColors.primary))
-                      : Icon(
-                          _c.isRecording
-                              ? Icons.stop_rounded
-                              : Icons.mic_rounded,
-                          size: 21,
-                          color: _c.isRecording
-                              ? Colors.redAccent
-                              : AppColors.primary),
-                ),
-              ),
-            const SizedBox(width: 8),
-            // 📷 إرفاق صورة — لقطة من موقع المنحة أو وثيقة يسأل عنها
-            InkWell(
-              onTap: _c.isBusy ? null : _pickImage,
-              borderRadius: BorderRadius.circular(22),
-              child: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                    color: AppColors.softSurface, shape: BoxShape.circle),
-                child: Icon(Icons.add_photo_alternate_rounded,
-                    size: 21,
-                    color: _c.canAttachMore
-                        ? AppColors.primary
-                        : AppColors.textSecondary),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                    color: AppColors.softSurface,
-                    borderRadius: BorderRadius.circular(22)),
+    final bool canSend =
+        (_input.text.trim().isNotEmpty || _c.hasAttachments) && !_c.isBusy;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: SafeArea(
+        top: false,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 56),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.inputBarBorder),
+            boxShadow: AppColors.bubbleShadow,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 7),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // 📷 الكاميرا — تختفي عند بلوغ الحدّ الأقصى للمرفقات،
+              //    كما في التعليم حرفياً.
+              if (!_c.isBusy && _c.canAttachMore)
+                _roundIcon(
+                  icon: PI.camera,
+                  size: 36,
+                  color: _c.hasAttachments
+                      ? AppColors.primary
+                      : AppColors.inputBarIcon,
+                  onTap: _pickImage,
+                )
+              else
+                const SizedBox(width: 36),
+              Expanded(
                 child: TextField(
                   controller: _input,
-                  enabled: !_c.isSending,
+                  // ⌨️ يبقى مفتوحاً أثناء البثّ: الطالب يُحضّر سؤاله
+                  //    التالي وهو يقرأ. المنعُ على **الإرسال** وحده.
                   minLines: 1,
                   maxLines: 4,
                   textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _send(),
+                  onChanged: (_) => setState(() {}),
+                  onSubmitted: (_) {
+                    if (canSend) _send();
+                  },
                   style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.inputBarText),
                   decoration: InputDecoration(
-                    hintText: _c.hasAttachments
-                        ? "اكتب سؤالك عن الصورة (اختياري)..."
-                        : "اسأل عن المنحة...",
-                    hintStyle: TextStyle(
-                        color: AppColors.textSecondary.withValues(alpha: 0.7),
-                        fontSize: 13.5),
+                    isDense: true,
+                    // ⚠️ **الأربعةُ جميعاً بعد `filled`.** سمةُ التطبيق
+                    //    العامّة تملأ الحقل وتعطيه إطاراً مستديراً، فيظهر
+                    //    **مربّعٌ داخل مربّع** داخل الشريط الأبيض.
+                    filled: false,
                     border: InputBorder.none,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    hintText: _c.isCleaningVoice
+                        ? "✨ جارٍ ترتيب النص..."
+                        : _c.hasAttachments
+                            ? "اكتب سؤالك عن الصورة (اختياري)..."
+                            : "اسأل عن المنحة...",
+                    hintStyle: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.inputBarIcon),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 12),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 10),
-            // ➤ / ⏹️ — الزر نفسه يصير إيقافاً أثناء الانتظار.
-            //    ⚠️ الإيقاف يقطع الاتصال فعلاً (لا يتجاهل الرد فقط)، وإلا
-            //       بقي الطلب معلّقاً على الخادم واستهلك نداء موديل كاملاً.
-            InkWell(
-              // 🛑 أثناء البثّ أيضاً — لا في لحظة الانتظار وحدها ([isBusy]).
-              onTap: _c.isBusy ? _c.stop : _send,
-              borderRadius: BorderRadius.circular(22),
-              child: Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  gradient: _c.isBusy ? null : AppColors.mainGradient,
-                  color: _c.isBusy ? Colors.redAccent : null,
-                  shape: BoxShape.circle,
-                  boxShadow: AppColors.softShadow,
+              // 🎤 المايك — نفس تدفّق التعليم: تسجيل ← تنظيف ← مراجعة.
+              if (!_c.isBusy)
+                _c.isCleaningVoice
+                    ? SizedBox(
+                        width: 36,
+                        height: kInputSideBox,   // 📐 كالكاميرا تماماً
+                        child: Center(
+                          child: SizedBox(
+                            width: 19,
+                            height: 19,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                valueColor:
+                                    AlwaysStoppedAnimation(AppColors.primary)),
+                          ),
+                        ),
+                      )
+                    : _roundIcon(
+                        icon: PI.microphone,
+                        size: 36,
+                        color: AppColors.inputBarIcon,
+                        onTap: _startVoice,
+                      ),
+              const SizedBox(width: 2),
+              // 🚀 الإرسال — دائرةٌ 42، وتصير حمراء للإيقاف.
+              //    ⚠️ الإيقاف يقطع الاتصال فعلاً (لا يتجاهل الرد فقط)، وإلا
+              //       بقي الطلب معلّقاً على الخادم واستهلك نداء موديل كاملاً.
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  // 🛑 أثناء البثّ أيضاً — لا في لحظة الانتظار وحدها.
+                  onTap: () {
+                    if (_c.isBusy) {
+                      _c.stop();
+                    } else if (canSend) {
+                      _send();
+                    } else {
+                      _snack("✍️ اكتب سؤالك أولاً أو أرفق صورة");
+                    }
+                  },
+                  customBorder: const CircleBorder(),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: _c.isBusy
+                          ? AppColors.error500
+                          : AppColors.sendButton
+                              .withValues(alpha: canSend ? 1 : 0.4),
+                      shape: BoxShape.circle,
+                    ),
+                    // ↔️ **يشير يساراً.** خطُّ Phosphor لا يُعكس مع الاتجاه،
+                    //    والطائرةُ في التصميم تطير نحو يسار الشاشة.
+                    child: Transform.scale(
+                      scaleX: _c.isBusy ? 1 : -1,
+                      child: Icon(
+                          _c.isBusy
+                              ? PI.stopCircle.fill
+                              : PI.paperPlaneRight.fill,
+                          color: Colors.white,
+                          size: 21),
+                    ),
+                  ),
                 ),
-                child: Icon(
-                    _c.isBusy ? Icons.stop_rounded : Icons.send_rounded,
-                    color: Colors.white,
-                    size: _c.isBusy ? 22 : 21),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+
+  /// 📐 **ارتفاعُ الصندوق [kInputSideBox] لا [size].** الصفُّ محاذىً من
+  ///    الأسفل كي تبقى الأيقونات عند السطر الأخير حين يكبر الحقل — وصندوقٌ
+  ///    36 مركزُه على بُعد 18 من القاع بينما دائرةُ الإرسال 42 مركزُها 21
+  ///    ومركزُ السطر ≈20.5، فتظهر الكاميرا والمايك **أخفضَ من الكلام
+  ///    بثلاث بكسلات** (علّةُ المالك 2026-09-21). فنُساوي الصندوقَ بالدائرة:
+  ///    المراكزُ الثلاثة على خطٍّ واحد، والأيقونةُ نفسُها 20 كما هي.
+  Widget _roundIcon({
+    required PIcon icon,
+    required VoidCallback? onTap,
+    required Color color,
+    double size = 36,
+  }) =>
+      Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: size,
+            height: kInputSideBox,
+            child: Icon(icon.regular, size: 20, color: color),
+          ),
+        ),
+      );
 }
 
 /// يُستعمل من الدرج لعرض «زائر» بلا استيراد إضافي هناك.

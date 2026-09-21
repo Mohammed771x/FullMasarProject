@@ -1,9 +1,14 @@
 // محاذاة فقاعات المحادثة في تطبيق RTL:
 // رسالة الطالب (وصورها) تلتصق باليمين، ورد المساعد باليسار.
+//
+// 🖼️ وصورتا المتحدّثين **كلتاهما في اليمين** (قرار المالك ٢٠٢٦-٠٩-٢٠):
+//    الروبوت يمينَ ردّه والطالبُ يمينَ رسالته — فتبدو كلُّ رسالةٍ خارجةً
+//    من صاحبها. فأقصى اليمين صورةٌ لا فقاعة.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ye_student_tutor/features/chat/presentation/controllers/chat_controller.dart';
+import 'package:ye_student_tutor/core/widgets/user_avatar.dart';
 import 'package:ye_student_tutor/features/chat/presentation/widgets/chat_list_view.dart';
 
 Future<void> _pumpChat(WidgetTester tester, List<Map<String, dynamic>> messages) async {
@@ -65,7 +70,14 @@ void main() {
     final user = tester.getRect(bubbles.at(0));
     final ai = tester.getRect(bubbles.at(1));
 
-    expect(user.right, moreOrLessEquals(w - 16, epsilon: 0.5)); // 16 = حشوة القائمة
+    // 👤 **صورةُ الطالب هي أقصى اليمين، لا الفقاعة** (قرار المالك):
+    //    الصورتان في جهةٍ واحدة — كلُّ رسالةٍ تبدو خارجةً من صاحبها.
+    //    فحدُّ القائمة الأيمن (24) تلمسه الصورةُ، والفقاعةُ تليها يساراً.
+    final avatar = tester.getRect(find.byType(UserAvatar).first);
+    expect(avatar.right, moreOrLessEquals(w - 24, epsilon: 0.5));
+    expect(user.right, lessThan(avatar.left + 0.5));
+
+    // 🤖 وردُّ المساعد أبعدُ يساراً من رسالة الطالب.
     expect(ai.left, lessThan(user.left));
   });
 }

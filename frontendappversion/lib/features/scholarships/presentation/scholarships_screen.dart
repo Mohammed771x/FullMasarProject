@@ -4,15 +4,16 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/phosphor.dart';
 import '../../banners/data/banner_model.dart';
 import '../../banners/presentation/banner_carousel.dart';
 import '../../../core/widgets/fade_in_slide.dart';
 import '../../../core/widgets/screen_tip.dart';
-import '../../future_masar/presentation/widgets/demo_widgets.dart';
 import '../data/models/scholarship.dart';
 import '../data/scholarship_favorites.dart';
 import '../data/scholarship_repository.dart';
 import 'scholarship_detail_screen.dart';
+import 'widgets/scholarship_ui.dart';
 
 // ==========================================
 // 🎓 قائمة المنح — بيانات حقيقية من الخادم
@@ -25,6 +26,12 @@ import 'scholarship_detail_screen.dart';
 //   • **فلتر «تُغلق قريباً»** الذي ينقذ من تفويت موعد، و**عدّاد الأيام**
 //     على الكرت — أهم رقم في القسم كله.
 //   • **الترتيب:** المفتوحة أولاً ثم القريبة ثم المغلقة داخل ترتيب الأدمن.
+//
+// 🎨 **إعادة التصميم (2026-09-21):** الشكلُ كلُّه من `design/06-scholarships/
+//    01-المنح.png` — الرأس 28/w900 بأيقونة `GraduationCap` ثنائية، بطاقةُ
+//    إلحاحٍ حمراء 92، حقلُ بحثٍ 50/r16، شرائحُ فلترٍ 36/r18، وكرتٌ r24
+//    بوسومٍ 24 وخطٍّ فاصلٍ وزرِّ تفاصيل. **ولا لوجيك مسّ**: نفسُ المستودع
+//    ونفسُ الفلاتر ونفسُ المفضّلة ونفسُ النداءات.
 class ScholarshipsScreen extends StatefulWidget {
   const ScholarshipsScreen({super.key});
 
@@ -119,128 +126,185 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      body: Stack(
-        children: [
-          const GlowBackgroundStatic(),
-          Column(
-            children: [
-              GlassBar(
-                title: "المنح الدراسية 🎓",
-                subtitle: _all.isEmpty
-                    ? "فرصتك للدراسة حول العالم"
-                    : "$_openCount منحة مفتوحة الآن من ${_all.length}",
-                action: IconButton(
-                  tooltip: "تحديث",
-                  onPressed: () => _load(force: true),
-                  icon: Icon(Icons.refresh_rounded, color: AppColors.textSecondary),
-                ),
-              ),
-              _searchField(),
-              // 🎏 بانر قسم المنح — يُدار من لوحة التحكم.
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
-                child: BannerCarousel(
-                  section: BannerSection.scholarships,
-                  onAction: _onBannerAction,
-                  height: 110,
-                ),
-              ),
-              _filterChips(),
-              _closingSoonAlert(),
-              Expanded(child: _body()),
-            ],
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: () => _load(force: true),
+              child: _scroller(),
+            ),
+            const ScreenTip(
+              screenId: "scholarships",
+              text: "تصفّح المنح 🎓 افتح أي منحة لترى شروطها ومواعيدها — "
+                  "ثم اسأل مساعدها عن أي تفصيل.",
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 📜 **الصفحةُ كلُّها تمريرةٌ واحدة** — كما في التصدير (3906 بكسل من
+  ///    الرأس إلى آخر كرت). والرأسُ كان شريطاً ثابتاً فوق قائمةٍ منفصلة،
+  ///    فصار عنصرَ القائمة الأوّل: يمرّ مع المحتوى ويبقى السحبُ للتحديث
+  ///    عاملاً على الشاشة كلِّها لا على جزئها الأسفل.
+  Widget _scroller() {
+    final list = _visible;
+    final body = _bodySlivers(list);
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(
+          SchMetrics.margin, 22, SchMetrics.margin, 28),
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: body.length + 1,
+      itemBuilder: (_, i) => i == 0 ? _headerBlock() : body[i - 1],
+    );
+  }
+
+  List<Widget> _bodySlivers(List<Scholarship> list) {
+    if (_loading && _all.isEmpty) {
+      return const [
+        SizedBox(height: 80),
+        Center(child: CircularProgressIndicator()),
+      ];
+    }
+    if (_error != null && _all.isEmpty) {
+      return [
+        SchEmptyState(
+            icon: PI.wifiSlash,
+            text: _error!,
+            onRetry: () => _load(force: true)),
+      ];
+    }
+    if (_all.isEmpty) {
+      return [
+        SchEmptyState(
+          icon: PI.graduationCap,
+          text: _message ?? "لا منح متاحة حالياً 🎓\nنضيفها تباعاً — عد إلينا قريباً.",
+          onRetry: () => _load(force: true),
+        ),
+      ];
+    }
+    if (list.isEmpty) {
+      // ⚠️ رسالةٌ خاصة للمفضّلة الفارغة: «لا نتائج للفلتر» تُوهم الطالب أن
+      //    شيئاً معطوب، والحقيقة أنه لم يتابع منحةً بعد — وهو فرقٌ يغيّر
+      //    ما يفعله تالياً.
+      if (_filter == SchFilter.favorites && ScholarshipFavorites.I.isEmpty) {
+        return const [
+          SchEmptyState(
+            icon: PI.bookmarkSimple,
+            text: "لم تتابع أي منحة بعد ⭐\nاضغط العلامة على أي منحة لتتابعها،\n"
+                "وننبّهك قبل إغلاقها.",
           ),
-          const ScreenTip(
-            screenId: "scholarships",
-            text: "تصفّح المنح 🎓 افتح أي منحة لترى شروطها ومواعيدها — "
-                "ثم اسأل مساعدها عن أي تفصيل.",
+        ];
+      }
+      return const [
+        SchEmptyState(
+          icon: PI.magnifyingGlass,
+          text: "لا نتائج لهذا البحث أو الفلتر.\nجرّب «الكل».",
+        ),
+      ];
+    }
+
+    return [
+      for (var i = 0; i < list.length; i++)
+        FadeInSlide(
+          delay: 0.04 * i,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: SchMetrics.gap),
+            child: _card(list[i]),
           ),
+        ),
+      _footer(),
+    ];
+  }
+
+  // ══════════════ الرأس ══════════════
+
+  Widget _headerBlock() {
+    final soon = ScholarshipFavorites.I.closingSoon(_all);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: SchHeader(title: "المنح")),
+            // 🔄 التحديثُ اليدويُّ زرٌّ قائمٌ في التطبيق — لا يُحذف لأن
+            //    السحبَ لا يخطر ببال كل طالب.
+            SchSquareButton(
+              icon: PI.arrowCounterClockwise,
+              tooltip: "تحديث",
+              onTap: () => _load(force: true),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          _all.isEmpty
+              ? "فرصتك للدراسة حول العالم"
+              : "$_openCount منحة مفتوحة الآن من ${_all.length}",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.schMutedInk,
+          ),
+        ),
+        if (soon.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          _closingSoonAlert(soon),
         ],
-      ),
-    );
-  }
-
-  // ══════════════ الأجزاء ══════════════
-
-  Widget _searchField() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: AppColors.bubbleShadow,
+        // 🎏 بانر قسم المنح — يُدار من لوحة التحكم، وبمقاس بطاقة الإلحاح
+        //    نفسها كي لا يتنافر الشريطان.
+        const SizedBox(height: 18),
+        BannerCarousel(
+          section: BannerSection.scholarships,
+          onAction: _onBannerAction,
+          height: SchMetrics.bannerHeight,
         ),
-        child: TextField(
+        const SizedBox(height: 18),
+        SchSearchField(
           controller: _search,
+          hint: "ابحث عن منحة، دولة، أو تخصص...",
+          showClear: _query.isNotEmpty,
           onChanged: (v) => setState(() => _query = v),
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: "ابحث عن منحة أو دولة...",
-            hintStyle: TextStyle(
-                color: AppColors.textSecondary.withValues(alpha: 0.6), fontSize: 14),
-            prefixIcon: Icon(Icons.search_rounded, color: AppColors.textSecondary),
-            suffixIcon: _query.isEmpty
-                ? null
-                : IconButton(
-                    icon: Icon(Icons.close_rounded,
-                        size: 18, color: AppColors.textSecondary),
-                    onPressed: () {
-                      _search.clear();
-                      setState(() => _query = "");
-                    },
-                  ),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 15),
-          ),
+          onClear: () {
+            _search.clear();
+            setState(() => _query = "");
+          },
         ),
-      ),
+        const SizedBox(height: 16),
+        _filterChips(),
+        const SizedBox(height: 18),
+      ],
     );
   }
 
+  /// شرائحُ الفلتر — تخرج عن هامش الصفحة عمداً كي تلامس حافّتها عند التمرير.
   Widget _filterChips() {
     return SizedBox(
-      height: 44,
-      child: ListView(
+      height: SchMetrics.filterHeight,
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        children: SchFilter.values.map((f) {
-          final selected = f == _filter;
-          return Padding(
-            padding: const EdgeInsets.only(left: 8),
-            child: ChoiceChip(
-              label: Text(f.label),
-              selected: selected,
-              selectedColor: AppColors.primary,
-              showCheckmark: false,
-              labelStyle: TextStyle(
-                color: selected ? Colors.white : AppColors.textSecondary,
-                fontWeight: FontWeight.bold,
-                fontSize: 12.5,
-              ),
-              backgroundColor: AppColors.surfaceWhite,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-                side: BorderSide(color: AppColors.textSecondary.withValues(alpha: 0.1)),
-              ),
-              onSelected: (_) => setState(() => _filter = f),
-            ),
+        clipBehavior: Clip.none,
+        itemCount: SchFilter.values.length,
+        separatorBuilder: (_, _) => const SizedBox(width: SchMetrics.tagGap),
+        itemBuilder: (_, i) {
+          final f = SchFilter.values[i];
+          return SchFilterChip(
+            label: f.label,
+            selected: f == _filter,
+            onTap: () => setState(() => _filter = f),
           );
-        }).toList(),
+        },
       ),
     );
   }
 
-  /// 🔔 **تنبيهُ الإغلاق للمنح المتابَعة** — الميزة التي تجعل النجمة تساوي شيئاً.
+  /// 🔔 **تنبيهُ الإغلاق للمنح المتابَعة** — الميزة التي تجعل العلامة تساوي شيئاً.
   ///
   /// ⚠️ الطالب لا يفوّت منحةً لأنه لم يهتمّ بها، بل لأنه **نسي تاريخها**.
-  /// والبيانات كانت موجودة كلها (`daysLeft`) بلا شيء يستعملها.
-  ///
   /// ⚠️ ويظهر فقط حين يوجد ما يُنبَّه عليه: شريطٌ دائم يصير خلفيةً لا يراها أحد.
-  Widget _closingSoonAlert() {
-    final soon = ScholarshipFavorites.I.closingSoon(_all);
-    if (soon.isEmpty) return const SizedBox.shrink();
-
+  Widget _closingSoonAlert(List<Scholarship> soon) {
     final first = soon.first;
     final days = first.daysLeft ?? 0;
     final more = soon.length - 1;
@@ -250,87 +314,13 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
             ? "تُغلق غداً"
             : "تُغلق بعد $days يوماً";
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => setState(() => _filter = SchFilter.favorites),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.35)),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.notifications_active_rounded,
-                  size: 17, color: Color(0xFFB45309)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  more > 0
-                      ? "«${first.name}» $when — و$more منحة أخرى تقترب"
-                      : "«${first.name}» $when",
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 12,
-                      height: 1.4,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF92400E)),
-                ),
-              ),
-              const Icon(Icons.chevron_left_rounded, size: 18, color: Color(0xFFB45309)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _body() {
-    if (_loading && _all.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null && _all.isEmpty) {
-      return _empty(Icons.wifi_off_rounded, _error!, retry: true);
-    }
-    if (_all.isEmpty) {
-      return _empty(Icons.school_outlined,
-          _message ?? "لا منح متاحة حالياً 🎓\nنضيفها تباعاً — عد إلينا قريباً.",
-          retry: true);
-    }
-
-    final list = _visible;
-    if (list.isEmpty) {
-      // ⚠️ رسالةٌ خاصة للمفضّلة الفارغة: «لا نتائج للفلتر» تُوهم الطالب أن
-      //    شيئاً معطوب، والحقيقة أنه لم يتابع منحةً بعد — وهو فرقٌ يغيّر
-      //    ما يفعله تالياً.
-      if (_filter == SchFilter.favorites && ScholarshipFavorites.I.isEmpty) {
-        return _empty(Icons.star_border_rounded,
-            "لم تتابع أي منحة بعد ⭐\nاضغط النجمة على أي منحة لتتابعها،\nوننبّهك قبل إغلاقها.");
-      }
-      return _empty(Icons.search_off_rounded,
-          "لا نتائج لهذا البحث أو الفلتر.\nجرّب «الكل».");
-    }
-
-    return RefreshIndicator(
-      onRefresh: () => _load(force: true),
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
-        itemCount: list.length + 1,
-        itemBuilder: (_, i) {
-          if (i == list.length) return _footer();
-          return FadeInSlide(
-            delay: 0.04 * i,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: _card(list[i]),
-            ),
-          );
-        },
-      ),
+    return SchUrgentBanner(
+      title: first.name,
+      badge: "عاجل",
+      subtitle: more > 0
+          ? "$when — جهّز أوراقك الآن، و$more منحة أخرى تقترب."
+          : "$when — جهّز أوراقك الآن وراجع الشروط.",
+      onTap: () => setState(() => _filter = SchFilter.favorites),
     );
   }
 
@@ -340,35 +330,8 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
       padding: const EdgeInsets.only(top: 6),
       child: Center(
         child: Text("📴 معروضة من نسخة محفوظة — اسحب للتحديث",
-            style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
+            style: TextStyle(fontSize: 11.5, color: AppColors.schMutedInk)),
       ),
-    );
-  }
-
-  Widget _empty(IconData icon, String text, {bool retry = false}) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(30, 70, 30, 30),
-      children: [
-        Icon(icon, size: 56, color: AppColors.textSecondary.withValues(alpha: 0.5)),
-        const SizedBox(height: 16),
-        Text(text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 13.5,
-                height: 1.8,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary)),
-        if (retry) ...[
-          const SizedBox(height: 20),
-          Center(
-            child: SizedBox(
-              width: 170,
-              child: GradientButton(
-                  label: "أعد المحاولة", height: 46, onTap: () => _load(force: true)),
-            ),
-          ),
-        ],
-      ],
     );
   }
 
@@ -378,95 +341,208 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
   ///
   /// ⚠️ وضعُه في شاشة التفاصيل وحدها كان سيعني فتحَ كل منحة لمتابعتها،
   ///    وهو ما لا يفعله أحد. القرار يُتخذ أثناء التصفّح فيجب أن يكون هناك.
+  ///
+  /// 📐 في التصميم: مربّعٌ 33 في **يسار** رأس الكرت — تعبئةٌ `#FCF8DD`
+  ///    وعلامةٌ ممتلئة `#F3D31B` حين يتابعها، وأبيضُ بحدٍّ وعلامةٍ مفرغة
+  ///    حين لا يتابعها (الكرتان الثالث والخامس في التصدير).
   Widget _favoriteButton(Scholarship s) {
     final on = ScholarshipFavorites.I.contains(s.id);
-    return IconButton(
-      icon: Icon(on ? Icons.star_rounded : Icons.star_border_rounded,
-          size: 22, color: on ? const Color(0xFFF59E0B) : AppColors.textSecondary),
-      splashRadius: 20,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-      tooltip: on ? "إلغاء المتابعة" : "تابع هذه المنحة",
-      onPressed: () async {
-        final added = await ScholarshipFavorites.I.toggle(s.id);
-        if (!mounted) return;
-        setState(() {});
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(
-            duration: const Duration(seconds: 2),
-            content: Text(added
-                ? "⭐ تتابع «${s.name}» — سننبّهك قبل إغلاقها"
-                : "أُزيلت «${s.name}» من المتابَعة"),
-          ));
-      },
+    return Tooltip(
+      message: on ? "إلغاء المتابعة" : "تابع هذه المنحة",
+      child: Material(
+        color: on ? AppColors.schSaveFill : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () async {
+            final added = await ScholarshipFavorites.I.toggle(s.id);
+            if (!mounted) return;
+            setState(() {});
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(
+                duration: const Duration(seconds: 2),
+                content: Text(added
+                    ? "⭐ تتابع «${s.name}» — سننبّهك قبل إغلاقها"
+                    : "أُزيلت «${s.name}» من المتابَعة"),
+              ));
+          },
+          child: Container(
+            width: SchMetrics.bookmark,
+            height: SchMetrics.bookmark,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: on ? AppColors.schSaveFill : AppColors.quizCardBorder),
+            ),
+            child: Icon(
+              PI.bookmarkSimple(active: on),
+              size: 18,
+              color: on ? AppColors.schSaveInk : AppColors.chipInk,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _card(Scholarship s) {
-    final days = s.daysLeft;
-    return InkWell(
+    return SchCard(
       onTap: () => Navigator.push(context,
           MaterialPageRoute(builder: (_) => ScholarshipDetailScreen(scholarship: s))),
-      borderRadius: BorderRadius.circular(24),
-      child: SoftCard(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _logo(s),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(s.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.textPrimary)),
-                      ),
-                      _favoriteButton(s),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _logo(s),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(s.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.headingInk)),
+                    if (s.country.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(s.country,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.chipInk)),
                     ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    s.shortDesc.isEmpty ? s.country : s.shortDesc,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 11.5,
-                        height: 1.5,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 9),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      _chip(s.statusLabel, s.statusColor),
-                      if (s.isFullyFunded)
-                        _chip("💰 ممولة بالكامل", AppColors.primary)
-                      else
-                        _chip("💰 تمويل جزئي", AppColors.textSecondary),
-                      // ⏳ أهم رقم في الكرت: يحوّل «مفتوحة» إلى فعلٍ الآن.
-                      if (days != null && days <= 45)
-                        _chip(days == 0 ? "⏳ آخر يوم!" : "⏳ باقٍ $days يوماً",
-                            days <= 7 ? Colors.redAccent : Colors.orange),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
+              _favoriteButton(s),
+            ],
+          ),
+          if (s.shortDesc.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              s.shortDesc,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 11,
+                  height: 1.7,
+                  color: AppColors.chipInk,
+                  fontWeight: FontWeight.w600),
             ),
           ],
-        ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: SchMetrics.tagGap,
+            runSpacing: SchMetrics.tagGap,
+            children: _tags(s),
+          ),
+          const SizedBox(height: 14),
+          Divider(height: 1, thickness: 1, color: AppColors.neutralTint),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(child: _factLine(s)),
+              const SizedBox(width: 10),
+              SchGhostButton(
+                label: "التفاصيل والشروط",
+                icon: PI.arrowLeft,
+                height: SchMetrics.smallButtonHeight,
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => ScholarshipDetailScreen(scholarship: s))),
+              ),
+            ],
+          ),
+        ],
       ),
+    );
+  }
+
+  /// 🏷️ وسومُ الكرت الثلاثة كما في التصدير: التمويل (أخضر) · التخصّص
+  ///    (أزرق) · المهلة (أحمر).
+  ///
+  /// ⚠️ **وحالةُ المنحة لم تسقط**: المصمّم طوى الحالةَ في وسم المهلة
+  ///    («باقٍ 12 يوماً» · «مفتوح»)، فالمغلقةُ والتي لم تُفتح بعدُ تقولان
+  ///    ذلك في المكان نفسه — لا وسمَ رابعاً ولا معلومةً ضائعة.
+  List<Widget> _tags(Scholarship s) {
+    final days = s.daysLeft;
+    final deadline = switch (s.status) {
+      SchStatus.closed => "مغلق حالياً",
+      SchStatus.soon => "يفتح قريباً",
+      SchStatus.open => days == null
+          ? "التقديم مفتوح"
+          : days == 0
+              ? "آخر يوم!"
+              : "باقٍ $days يوماً",
+    };
+    return [
+      SchTag(
+        label: s.isFullyFunded ? "ممولة بالكامل" : "تمويل جزئي",
+        icon: PI.sparkle,
+        fill: AppColors.schGreenFill,
+        ink: AppColors.schGreenInk,
+      ),
+      if (s.fields.isNotEmpty)
+        SchTag(
+          // ⚠️ لا «+3» بعد الاسم: في سياقٍ عربيٍّ تقفز الإشارةُ إلى الطرف
+          //    الخطأ فتُقرأ «3+» ملتصقةً بالكلمة. فالعدُّ بالكلمات.
+          label: s.fields.length == 1
+              ? s.fields.first
+              : "${s.fields.first} و${s.fields.length - 1} غيرها",
+          icon: PI.graduationCap,
+          fill: AppColors.schBlueFill,
+          ink: AppColors.schBlueInk,
+          maxWidth: 240,
+        ),
+      SchTag(
+        label: deadline,
+        icon: PI.clock,
+        fill: AppColors.schRedFill,
+        ink: AppColors.schRedInk,
+      ),
+    ];
+  }
+
+  /// سطرُ الحقيقة أسفل الكرت — تسميةٌ باهتة ثم قيمةٌ داكنة، كما في التصدير.
+  ///
+  /// 🎯 **التسميةُ ثابتةٌ «المعدل المطلوب»** كما في التصميم (أمرُ المالك
+  ///    2026-09-21) — لا تتبدّل بين «المراحل» و«الدولة» كما كانت.
+  ///    والقيمةُ من **حقل المنحة في اللوحة**، وإلا فمن شروطها نفسِها
+  ///    ([gpaTextOf])، ولا تُختلق حين لا يذكرها الاثنان.
+  Widget _factLine(Scholarship s) {
+    final gpa = gpaTextOf(s.minGpa, s.requirements);
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: "المعدل المطلوب: ",
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: AppColors.schMutedInk),
+          ),
+          TextSpan(
+            text: gpa ?? "غير محدّد",
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                color: AppColors.inputBarText),
+          ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
@@ -474,19 +550,19 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
   Widget _logo(Scholarship s) {
     final box = BoxDecoration(
       gradient: LinearGradient(colors: s.colors),
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(12),
     );
     if (s.logoUrl.isEmpty) {
       return Container(
-        width: 58,
-        height: 58,
+        width: SchMetrics.flag,
+        height: SchMetrics.flag,
         decoration: box,
-        child: Center(child: Text(s.badge, style: const TextStyle(fontSize: 26))),
+        child: Center(child: Text(s.badge, style: const TextStyle(fontSize: 18))),
       );
     }
     return Container(
-      width: 58,
-      height: 58,
+      width: SchMetrics.flag,
+      height: SchMetrics.flag,
       decoration: box,
       clipBehavior: Clip.antiAlias,
       child: CachedNetworkImage(
@@ -494,22 +570,13 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
         fit: BoxFit.cover,
         // ⚠️ رابط صورة معطوب لا يجوز أن يترك مربعاً فارغاً — نعود للعلم.
         errorWidget: (_, _, _) =>
-            Center(child: Text(s.badge, style: const TextStyle(fontSize: 26))),
+            Center(child: Text(s.badge, style: const TextStyle(fontSize: 18))),
         placeholder: (_, _) =>
-            Center(child: Text(s.badge, style: const TextStyle(fontSize: 26))),
+            Center(child: Text(s.badge, style: const TextStyle(fontSize: 18))),
       ),
     );
   }
 
-  Widget _chip(String label, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10)),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 10.5, fontWeight: FontWeight.bold, color: color)),
-      );
   /// 🎏 نقر البانر داخل قسم المنح — الوجهة الوحيدة ذات المعنى هنا منحةٌ
   /// بعينها؛ ما عداها يعني الخروج من القسم فنتركه للشاشة الرئيسية.
   Future<void> _onBannerAction(String action, String value) async {
@@ -519,5 +586,4 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
     await Navigator.push(context,
         MaterialPageRoute(builder: (_) => ScholarshipDetailScreen(scholarship: match.first)));
   }
-
 }

@@ -24,6 +24,7 @@ from subjects.common import (
     draw_reminder,
     DRAW_CODES,
 )
+from . import lesson_cache
 from .content_store import get_lessons_book, find_lesson
 from .serializer import serialize_lesson
 from .curriculum import model_route
@@ -111,6 +112,24 @@ async def handle(req, clients: dict, prompts=None) -> dict:
 
     unit_name = (unit or {}).get("اسم_الوحدة", "").strip()
     lesson_text = serialize_lesson(lesson, unit_name, subject=subject)
+
+    # 🗄️ **الشرحُ المخزون — قبل أي نداءِ موديل** ([core/lesson_cache]).
+    #
+    # ⚖️ فكرةُ المالك (2026-09-14): «شرحُ الدرس واحدٌ لكل الطلاب، فلماذا
+    #    يُولَّد في كل مرة؟» وهو صحيح لسببٍ أدقّ: **هذا الطلبُ وحده لا يعتمد
+    #    على الطالب** — لا سؤالَ له ولا سياقَ محادثة، مدخلُه نصُّ الدرس فقط.
+    #    فجوابُه دالّةٌ خالصةٌ من الكتاب، وما كان كذلك يُحسب مرّةً ويُخزَّن.
+    #
+    # 🔑 و[lesson_cache.get] يتحقّق من **بصمة نصّ الدرس**: تعديلُ الكتاب
+    #    يُسقط المخزونَ من تلقائه ويعود الطلبُ إلى الموديل.
+    # 💳 وبلا نداءِ موديل ⇒ لا يُخصم من الحصة ([core/billing.py]).
+    if lesson_cache.serves(req):
+        stored = lesson_cache.get(req.grade, req.track, subject,
+                                  unit_name, req.lesson_name, lesson_text)
+        if stored:
+            return {"answer": stored, "cached": True,
+                    "references": [f"{unit_name} › {req.lesson_name}".strip(" ›")],
+                    "session_active": False}
 
     client_key, model_name = model_route(subject)
     client = clients.get(client_key) or clients["gemini"]

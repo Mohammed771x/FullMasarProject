@@ -1,0 +1,5765 @@
+{
+ "القواعد › «1» Spot the mistakes| اكتشف الأخطاء": {
+  "unit": "القواعد",
+  "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+  "hash": "e71b1865059d2b13",
+  "spec": "q1",
+  "model": "gpt-4o-mini",
+  "count": 18,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "90f286d237c7",
+    "q": "What is the mistake in the sentence: *Matter comes in four different states.*?",
+    "options": [
+     "It should be 'three' instead of 'four'.",
+     "It should be 'five' instead of 'four'.",
+     "It should be 'two' instead of 'four'.",
+     "It should be 'one' instead of 'four'."
+    ],
+    "correct_index": 0,
+    "topic": "Mistake in meaning",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The correct statement is that matter comes in three different states."
+   },
+   {
+    "id": "37c6bb757db5",
+    "q": "What is the correct form of the sentence: *He Could ride a horse, when he was young.*?",
+    "options": [
+     "He can ride a horse, when he was young.",
+     "He could ride a horse, when he was young.",
+     "He can rides a horse, when he was young.",
+     "He could rides a horse, when he was young."
+    ],
+    "correct_index": 1,
+    "topic": "Ability: can vs could",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The correct form uses 'could' for ability in the past."
+   },
+   {
+    "id": "59ceb60ec1f0",
+    "q": "What is the correct form of the sentence: *They heard the woman sang.*?",
+    "options": [
+     "They heard the woman sing.",
+     "They heard the woman singing.",
+     "They heard the woman sung.",
+     "They heard the woman sings."
+    ],
+    "correct_index": 0,
+    "topic": "Verbs of perception",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "After verbs of perception, we use the base form or -ing, not the past."
+   },
+   {
+    "id": "1bd3967a1842",
+    "q": "What is the mistake in the sentence: *Ask the boy clean the room.*?",
+    "options": [
+     "It should include 'to' before the verb.",
+     "It should be 'asking' instead of 'ask'.",
+     "It should be 'asked' instead of 'ask'.",
+     "It should be 'to ask' instead of 'ask'."
+    ],
+    "correct_index": 0,
+    "topic": "Verbs followed by (to + inf)",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The verb 'ask' requires 'to' before the infinitive."
+   },
+   {
+    "id": "46153ba9e9cf",
+    "q": "What is the correct form of the sentence: *They have open the door.*?",
+    "options": [
+     "They have opened the door.",
+     "They have opening the door.",
+     "They have opened door.",
+     "They have opens the door."
+    ],
+    "correct_index": 0,
+    "topic": "Perfect Tenses",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The third form must be used after 'have'."
+   },
+   {
+    "id": "cbba9d9ab95d",
+    "q": "What is the mistake in the sentence: *How much apples do you want?*?",
+    "options": [
+     "It should be 'many' instead of 'much'.",
+     "It should be 'few' instead of 'much'.",
+     "It should be 'a lot' instead of 'much'.",
+     "It should be 'some' instead of 'much'."
+    ],
+    "correct_index": 0,
+    "topic": "Countable vs Non-counted",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "We use 'many' with countable nouns like apples."
+   },
+   {
+    "id": "453ef337ede4",
+    "q": "What is the correct form of the sentence: *Who does live in this house?*?",
+    "options": [
+     "Who lives in this house?",
+     "Who living in this house?",
+     "Who is living in this house?",
+     "Who lived in this house?"
+    ],
+    "correct_index": 0,
+    "topic": "Questions with 'Who'",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The question about the subject with 'Who' does not need an auxiliary verb."
+   },
+   {
+    "id": "3f40b41c8547",
+    "q": "What is the mistake in the sentence: *He would prefer buying a car.*?",
+    "options": [
+     "It should be 'to buy' instead of 'buying'.",
+     "It should be 'buy' instead of 'buying'.",
+     "It should be 'buys' instead of 'buying'.",
+     "It should be 'bought' instead of 'buying'."
+    ],
+    "correct_index": 0,
+    "topic": "preference with 'would'",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "Using 'would' requires 'to' before the infinitive."
+   },
+   {
+    "id": "f8b75ccc6dc7",
+    "q": "What is the correct form of the sentence: *Ali is the same high as his brother.*?",
+    "options": [
+     "Ali is the same height as his brother.",
+     "Ali is the same tall as his brother.",
+     "Ali is the same height than his brother.",
+     "Ali is the same tall than his brother."
+    ],
+    "correct_index": 0,
+    "topic": "The use of 'Same'",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "We place the noun (height) after 'the same', not the adjective."
+   },
+   {
+    "id": "7bde0d4f84e4",
+    "q": "What is the mistake in the sentence: *The past of 'wed' is weded.*?",
+    "options": [
+     "It should be 'wedded' instead of 'weded'.",
+     "It should be 'wed' instead of 'weded'.",
+     "It should be 'weds' instead of 'weded'.",
+     "It should be 'wedding' instead of 'weded'."
+    ],
+    "correct_index": 0,
+    "topic": "Irregular Past",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "The correct spelling of the past form of 'wed' is 'wedded'."
+   },
+   {
+    "id": "43dddcc877e3",
+    "q": "What is the difference between 'can' and 'could'?",
+    "options": [
+     "'Can' is present, 'could' is past.",
+     "'Can' is past, 'could' is present.",
+     "Both are used in the present tense.",
+     "Both are used in the past tense."
+    ],
+    "correct_index": 0,
+    "topic": "Ability: can vs could",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "'Can' is used for present ability while 'could' is for past ability."
+   },
+   {
+    "id": "43629c41fd79",
+    "q": "Why do we use the base form after verbs of perception?",
+    "options": [
+     "Because it is grammatically correct.",
+     "Because it is used in questions.",
+     "Because it is used in negative sentences.",
+     "Because it is used in past tense."
+    ],
+    "correct_index": 0,
+    "topic": "Verbs of perception",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "After perception verbs, we use the base form or -ing, not the past."
+   },
+   {
+    "id": "e9baa75493db",
+    "q": "Which of the following sentences is correct?",
+    "options": [
+     "He would prefer to buy a car.",
+     "He would prefer buying a car.",
+     "He would prefers to buy a car.",
+     "He would prefer to buying a car."
+    ],
+    "correct_index": 0,
+    "topic": "preference with 'would'",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "The correct form uses 'to' before the infinitive."
+   },
+   {
+    "id": "53cfb5def5b8",
+    "q": "What is the correct form of the sentence: *How many apples do you want?*?",
+    "options": [
+     "It is correct as it is.",
+     "It should be 'How much apples do you want?'.",
+     "It should be 'How many apple do you want?'.",
+     "It should be 'How much apple do you want?'."
+    ],
+    "correct_index": 0,
+    "topic": "Countable vs Non-counted",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "مقارنة",
+    "why": "The sentence is correct because 'apples' is countable."
+   },
+   {
+    "id": "d74c98cdc429",
+    "q": "If you want to ask someone about the subject of a sentence, which question would you use?",
+    "options": [
+     "Who is the subject?",
+     "Who does the action?",
+     "Who lives in this house?",
+     "Who is living in this house?"
+    ],
+    "correct_index": 2,
+    "topic": "Questions with 'Who'",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The correct question about the subject is 'Who lives in this house?'."
+   },
+   {
+    "id": "6351b67c593a",
+    "q": "Change into the passive: *They built the house in 1990.*",
+    "options": [
+     "The house is built in 1990.",
+     "The house was built in 1990.",
+     "The house built in 1990.",
+     "The house has built in 1990."
+    ],
+    "correct_index": 1,
+    "topic": "Passive voice",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The correct passive form is 'The house was built in 1990'."
+   },
+   {
+    "id": "a294b20114cd",
+    "q": "Correct the mistake: *He can rides a horse, when he was young.*",
+    "options": [
+     "He can ride a horse, when he was young.",
+     "He could ride a horse, when he was young.",
+     "He can riding a horse, when he was young.",
+     "He can rode a horse, when he was young."
+    ],
+    "correct_index": 0,
+    "topic": "Ability: can vs could",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "The correct form uses 'can' with the base verb 'ride'."
+   },
+   {
+    "id": "e00782977d4a",
+    "q": "What happens to the meaning of a sentence when using 'to' before the verb?",
+    "options": [
+     "It makes the sentence incorrect.",
+     "It clarifies the action to be taken.",
+     "It changes the tense of the verb.",
+     "It makes the subject unclear."
+    ],
+    "correct_index": 1,
+    "topic": "Verbs followed by (to + inf)",
+    "lesson": "«1» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "Using 'to' clarifies the action that needs to be taken."
+   }
+  ]
+ },
+ "القواعد › «3» Spot the mistakes| اكتشف الأخطاء": {
+  "unit": "القواعد",
+  "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+  "hash": "0305fac432490a43",
+  "spec": "q1",
+  "model": "gpt-4o-mini",
+  "count": 19,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "4cf8bfd10e2c",
+    "q": "What is the formula after 'wish'?",
+    "options": [
+     "could",
+     "can",
+     "would",
+     "should"
+    ],
+    "correct_index": 0,
+    "topic": "Wish",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "After 'wish', we use 'could' instead of 'can'."
+   },
+   {
+    "id": "13d2022b9ffd",
+    "q": "What is the correct preposition to use with 'grateful'?",
+    "options": [
+     "in",
+     "for",
+     "to",
+     "about"
+    ],
+    "correct_index": 1,
+    "topic": "Prepositions with grateful",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "We always use 'for' after the adjective 'grateful'."
+   },
+   {
+    "id": "e454257a3f8e",
+    "q": "What is the correct phrase to use for adding information in a sentence?",
+    "options": [
+     "as well",
+     "as well as",
+     "in addition",
+     "also"
+    ],
+    "correct_index": 1,
+    "topic": "as well as",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The phrase 'as well as' is used to add information in the middle of a sentence."
+   },
+   {
+    "id": "4d063ada7919",
+    "q": "What is the correct form after 'Same'?",
+    "options": [
+     "same old",
+     "same age",
+     "same tall",
+     "same big"
+    ],
+    "correct_index": 1,
+    "topic": "Same + Noun",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "After 'Same', we should use a noun like 'age' instead of an adjective."
+   },
+   {
+    "id": "9e79ea547c4d",
+    "q": "What is the correct word order in a direct question?",
+    "options": [
+     "subject before verb",
+     "verb before subject",
+     "object before verb",
+     "verb after subject"
+    ],
+    "correct_index": 1,
+    "topic": "Question Word Order",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "In direct questions, the auxiliary verb comes before the subject."
+   },
+   {
+    "id": "ab50c72ac5ff",
+    "q": "What is the correct adjective order according to O sash C N M?",
+    "options": [
+     "opinion, size, age, color, material",
+     "size, age, color, opinion, material",
+     "color, opinion, size, age, material",
+     "age, color, opinion, size, material"
+    ],
+    "correct_index": 0,
+    "topic": "Order of adjectives",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The order of adjectives follows the rule O sash C N M."
+   },
+   {
+    "id": "2eb6d730d548",
+    "q": "What is the correct form of 'have' with the boy?",
+    "options": [
+     "have the boy to read",
+     "have the boy read",
+     "have the boy reading",
+     "have the boy reads"
+    ],
+    "correct_index": 1,
+    "topic": "Have vs Ask/Tell/Get",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "After 'have', we use the base form of the verb without 'to'."
+   },
+   {
+    "id": "3d9f4afd550c",
+    "q": "What tense should be used after 'since'?",
+    "options": [
+     "past simple",
+     "present perfect",
+     "future simple",
+     "present continuous"
+    ],
+    "correct_index": 1,
+    "topic": "Since with Present Perfect",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "After 'since', we should use the present perfect tense."
+   },
+   {
+    "id": "903fef6f2f6a",
+    "q": "What is the correct comparative form of 'young'?",
+    "options": [
+     "younger",
+     "more young",
+     "youngest",
+     "youngest than"
+    ],
+    "correct_index": 0,
+    "topic": "Comparatives",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The comparative form of 'young' is 'younger'."
+   },
+   {
+    "id": "b8dc4bcacdcb",
+    "q": "What is the correct form of 'look forward to'?",
+    "options": [
+     "look forward to meet",
+     "look forward to meeting",
+     "look forward to meets",
+     "look forward for meeting"
+    ],
+    "correct_index": 1,
+    "topic": "Look forward to",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "After 'look forward to', we use the gerund form (ing) of the verb."
+   },
+   {
+    "id": "afcbbdac3146",
+    "q": "What is the difference between 'as well' and 'as well as'?",
+    "options": [
+     "'as well' is used at the end of a sentence",
+     "'as well' is used in the middle of a sentence",
+     "'as well' means the same as 'also'",
+     "'as well' is used for negation"
+    ],
+    "correct_index": 0,
+    "topic": "as well",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "'As well' is used at the end of a sentence to add information."
+   },
+   {
+    "id": "cc384c83aa05",
+    "q": "Why do we use 'could' after 'wish'?",
+    "options": [
+     "to express ability",
+     "to express a wish",
+     "to express certainty",
+     "to express a command"
+    ],
+    "correct_index": 1,
+    "topic": "Wish",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "We use 'could' after 'wish' to express a wish or desire."
+   },
+   {
+    "id": "3dd9c08c33bd",
+    "q": "What is the mistake in the sentence: 'He is grateful in your help'?",
+    "options": [
+     "using 'in' instead of 'for'",
+     "using 'grateful' incorrectly",
+     "missing a subject",
+     "using 'your' instead of 'his'"
+    ],
+    "correct_index": 0,
+    "topic": "Prepositions with grateful",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The correct preposition to use is 'for', not 'in'."
+   },
+   {
+    "id": "e3076f7e34c9",
+    "q": "What is the error in the sentence: 'How I can drive a car?'",
+    "options": [
+     "incorrect word order",
+     "missing subject",
+     "wrong verb form",
+     "missing auxiliary verb"
+    ],
+    "correct_index": 0,
+    "topic": "Question Word Order",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The correct word order is to place the auxiliary verb before the subject."
+   },
+   {
+    "id": "7dd8dc379c2c",
+    "q": "Which sentence correctly uses 'as well as'?",
+    "options": [
+     "He speaks English as well Arabic.",
+     "He speaks Arabic as well as English.",
+     "He speaks as well as Arabic English.",
+     "He is as well as a teacher."
+    ],
+    "correct_index": 1,
+    "topic": "as well as",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The correct usage is 'as well as' to add information."
+   },
+   {
+    "id": "26e3f50c2bfc",
+    "q": "If he wishes to swim, what form should he use?",
+    "options": [
+     "he can swim",
+     "he could swim",
+     "he wishes swimming",
+     "he wished to swim"
+    ],
+    "correct_index": 1,
+    "topic": "Wish",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "After 'wish', the correct form is 'could' to express a wish."
+   },
+   {
+    "id": "a4e6c500e3f8",
+    "q": "Correct the mistake: 'They built the house since 2012.'",
+    "options": [
+     "They have built the house since 2012.",
+     "They build the house since 2012.",
+     "They are building the house since 2012.",
+     "They built the house in 2012."
+    ],
+    "correct_index": 0,
+    "topic": "Since with Present Perfect",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The correct form is to use the present perfect: 'have built'."
+   },
+   {
+    "id": "85a6a020a2bf",
+    "q": "Change into the passive: 'He speaks English and Arabic.'",
+    "options": [
+     "Arabic and English are spoken by him.",
+     "He is spoken Arabic and English.",
+     "English and Arabic are spoken by he.",
+     "He is speaking Arabic and English."
+    ],
+    "correct_index": 0,
+    "topic": "as well as",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The passive form correctly states that 'Arabic and English are spoken by him.'"
+   },
+   {
+    "id": "08be9ef0d1b1",
+    "q": "What happens to the adjective order if you add more than one adjective?",
+    "options": [
+     "it stays the same",
+     "it changes randomly",
+     "it follows O sash C N M",
+     "it doesn't matter"
+    ],
+    "correct_index": 2,
+    "topic": "Order of adjectives",
+    "lesson": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "When using multiple adjectives, they must follow the order O sash C N M."
+   }
+  ]
+ },
+ "القواعد › THE PASSIVE VOICE (المبني للمجهول)": {
+  "unit": "القواعد",
+  "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+  "hash": "75e3a76a9a3d296b",
+  "spec": "q1",
+  "model": "gpt-4o-mini",
+  "count": 19,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "047f0d2e8596",
+    "q": "What is the general formula for the passive voice?",
+    "options": [
+     "Object + be + pp",
+     "Subject + be + pp",
+     "Object + have + pp",
+     "Subject + have + pp"
+    ],
+    "correct_index": 0,
+    "topic": "Passive voice formula",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The general formula for the passive voice is Object + be + pp."
+   },
+   {
+    "id": "8d080442836a",
+    "q": "Which verb forms are used in the present simple passive voice?",
+    "options": [
+     "am, is, are",
+     "was, were",
+     "has, have",
+     "will, would"
+    ],
+    "correct_index": 0,
+    "topic": "Present simple passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The present simple passive voice uses the forms am, is, are."
+   },
+   {
+    "id": "038cc4f6e3b7",
+    "q": "What is the passive form of 'He eats meat every Friday'?",
+    "options": [
+     "Meat is eaten every Friday",
+     "Meat was eaten every Friday",
+     "Meat has been eaten every Friday",
+     "Meat will be eaten every Friday"
+    ],
+    "correct_index": 0,
+    "topic": "Present simple passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تطبيق",
+    "why": "The passive form is 'Meat is eaten every Friday'."
+   },
+   {
+    "id": "81fe933d1cd9",
+    "q": "What is the passive form of 'My father bought a new car last week'?",
+    "options": [
+     "A new car is bought last week",
+     "A new car was bought last week",
+     "A new car has been bought last week",
+     "A new car will be bought last week"
+    ],
+    "correct_index": 1,
+    "topic": "Past simple passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The passive form is 'A new car was bought last week'."
+   },
+   {
+    "id": "5addb6d8c8a8",
+    "q": "What auxiliary verb is used in the past simple passive voice for singular subjects?",
+    "options": [
+     "was",
+     "were",
+     "am",
+     "are"
+    ],
+    "correct_index": 0,
+    "topic": "was / were in the past passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "In the past simple passive voice, 'was' is used for singular subjects."
+   },
+   {
+    "id": "7057eeceb7b8",
+    "q": "What is the passive form of 'Ali is washing his car now'?",
+    "options": [
+     "His car is washed now",
+     "His car is being washed now",
+     "His car has been washed now",
+     "His car was washed now"
+    ],
+    "correct_index": 1,
+    "topic": "Present continuous passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The passive form is 'His car is being washed now'."
+   },
+   {
+    "id": "2ab91cfaafae",
+    "q": "What is the passive form of 'Omer has lost his new mobile'?",
+    "options": [
+     "His new mobile has lost",
+     "His new mobile has been lost",
+     "His new mobile is lost",
+     "His new mobile was lost"
+    ],
+    "correct_index": 1,
+    "topic": "Present perfect passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The passive form is 'His new mobile has been lost'."
+   },
+   {
+    "id": "38c702a4aa56",
+    "q": "What is the passive form of 'They will build a new school'?",
+    "options": [
+     "A new school will be built",
+     "A new school is built",
+     "A new school has been built",
+     "A new school was built"
+    ],
+    "correct_index": 0,
+    "topic": "Future simple passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The passive form is 'A new school will be built'."
+   },
+   {
+    "id": "5c876ff4d7bb",
+    "q": "What is the difference between 'was' and 'were' in the past simple passive?",
+    "options": [
+     "'Was' is for singular, 'were' is for plural",
+     "'Was' is for plural, 'were' is for singular",
+     "Both are used for singular",
+     "Both are used for plural"
+    ],
+    "correct_index": 0,
+    "topic": "was / were in the past passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "مقارنة",
+    "why": "'Was' is used for singular subjects, while 'were' is used for plural subjects."
+   },
+   {
+    "id": "9a08e96b06fc",
+    "q": "Why do we use 'being' in the present continuous passive voice?",
+    "options": [
+     "To indicate the action is ongoing",
+     "To indicate the action is completed",
+     "To indicate the action is habitual",
+     "To indicate the action is future"
+    ],
+    "correct_index": 0,
+    "topic": "Present continuous passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "'Being' indicates that the action is ongoing in the present continuous passive voice."
+   },
+   {
+    "id": "acab98967cf8",
+    "q": "What is the passive form of 'Sameera was cooking rice yesterday'?",
+    "options": [
+     "Rice was cooked yesterday",
+     "Rice was being cooked yesterday",
+     "Rice has been cooked yesterday",
+     "Rice is cooked yesterday"
+    ],
+    "correct_index": 1,
+    "topic": "Past continuous passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The passive form is 'Rice was being cooked yesterday'."
+   },
+   {
+    "id": "64a0d479e08a",
+    "q": "What is the passive form of 'He had lost his pen'?",
+    "options": [
+     "His pen has been lost",
+     "His pen had been lost",
+     "His pen was lost",
+     "His pen is lost"
+    ],
+    "correct_index": 1,
+    "topic": "Past perfect passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The passive form is 'His pen had been lost'."
+   },
+   {
+    "id": "4e1ddcf6209c",
+    "q": "What is the passive form of 'They must write a letter'?",
+    "options": [
+     "A letter must be written",
+     "A letter is written",
+     "A letter has been written",
+     "A letter will be written"
+    ],
+    "correct_index": 0,
+    "topic": "Passive with modal verbs",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The passive form is 'A letter must be written'."
+   },
+   {
+    "id": "2499132ceefb",
+    "q": "If 'He drinks tea every evening' is changed to passive, what is the result?",
+    "options": [
+     "Tea is drunk every evening",
+     "Tea was drunk every evening",
+     "Tea has been drunk every evening",
+     "Tea will be drunk every evening"
+    ],
+    "correct_index": 0,
+    "topic": "Present simple passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The passive form is 'Tea is drunk every evening'."
+   },
+   {
+    "id": "85a9597c7449",
+    "q": "Change into the passive: 'Many visitors visit Yemen every year.'",
+    "options": [
+     "Yemen is visited by many visitors every year",
+     "Yemen was visited by many visitors every year",
+     "Yemen has been visited by many visitors every year",
+     "Yemen will be visited by many visitors every year"
+    ],
+    "correct_index": 0,
+    "topic": "Present simple passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "صعب",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The passive form is 'Yemen is visited by many visitors every year'."
+   },
+   {
+    "id": "8488174167fd",
+    "q": "What happens to the subject when changing to passive voice?",
+    "options": [
+     "It becomes the object",
+     "It is removed",
+     "It remains the same",
+     "It is changed to a pronoun"
+    ],
+    "correct_index": 0,
+    "topic": "Subject and object in the passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تعليل",
+    "why": "In passive voice, the subject becomes the object of the action."
+   },
+   {
+    "id": "13a214010aea",
+    "q": "If 'They are going to buy a car soon' is changed to passive, what is the result?",
+    "options": [
+     "A car is going to be bought soon",
+     "A car will be bought soon",
+     "A car has been bought soon",
+     "A car is bought soon"
+    ],
+    "correct_index": 0,
+    "topic": "Passive with 'going to'",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The passive form is 'A car is going to be bought soon'."
+   },
+   {
+    "id": "d04fd0a73a83",
+    "q": "What is the passive form of 'Ali's father drinks three cups of tea every evening'?",
+    "options": [
+     "Three cups of tea are drunk every evening",
+     "Three cups of tea is drunk every evening",
+     "Three cups of tea have been drunk every evening",
+     "Three cups of tea will be drunk every evening"
+    ],
+    "correct_index": 0,
+    "topic": "Present simple passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The passive form is 'Three cups of tea are drunk every evening'."
+   },
+   {
+    "id": "c428db744872",
+    "q": "What is the passive form of 'The minister opened four schools in my city'?",
+    "options": [
+     "Four schools are opened in my city",
+     "Four schools were opened in my city",
+     "Four schools have been opened in my city",
+     "Four schools will be opened in my city"
+    ],
+    "correct_index": 1,
+    "topic": "Past simple passive",
+    "lesson": "THE PASSIVE VOICE (المبني للمجهول)",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "The passive form is 'Four schools were opened in my city'."
+   }
+  ]
+ },
+ "القواعد › «2» Spot the mistakes| اكتشف الأخطاء": {
+  "unit": "القواعد",
+  "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+  "hash": "c3957f8347b87133",
+  "spec": "q1",
+  "model": "gpt-4o-mini",
+  "count": 19,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "aa27bf4e18be",
+    "q": "What is the formula for the rule 'Ask / Get / Tell'?",
+    "options": [
+     "Ask / Get / Tell + to + read",
+     "Ask / Get / Tell + reading",
+     "Ask / Get / Tell + read",
+     "Ask / Get / Tell + to + reading"
+    ],
+    "correct_index": 0,
+    "topic": "Ask / Get / Tell",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "The formula for 'Ask / Get / Tell' is 'Ask / Get / Tell + to + read'."
+   },
+   {
+    "id": "daa3ad9ae547",
+    "q": "What is the correct form of the sentence: 'Ask the boy clean the room.'?",
+    "options": [
+     "Ask the boy to clean the room.",
+     "Ask the boy cleaned the room.",
+     "Ask the boy cleaning the room.",
+     "Ask the boy to cleaning the room."
+    ],
+    "correct_index": 0,
+    "topic": "Ask / Get / Tell",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The correct form is 'Ask the boy to clean the room.'."
+   },
+   {
+    "id": "f9453b786a07",
+    "q": "What do the verbs 'prefer, hate, like, love' require when preceded by 'would'?",
+    "options": [
+     "to + infinitive",
+     "ing form",
+     "base form",
+     "no change"
+    ],
+    "correct_index": 0,
+    "topic": "prefer / hate / like / love",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "These verbs require 'to + infinitive' when preceded by 'would'."
+   },
+   {
+    "id": "c243b083c25f",
+    "q": "What is the correct form of the sentence: 'He would prefer buying a car.'?",
+    "options": [
+     "He would prefer to buy a car.",
+     "He would prefer buy a car.",
+     "He would prefer to buying a car.",
+     "He would prefer bought a car."
+    ],
+    "correct_index": 0,
+    "topic": "prefer / hate / like / love",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The correct form is 'He would prefer to buy a car.'."
+   },
+   {
+    "id": "ad0104421c22",
+    "q": "What is the difference between 'Same' and 'As'?",
+    "options": [
+     "Same + noun // as + adjective + as",
+     "Same + adjective // as + noun + as",
+     "Same + noun // as + noun + as",
+     "Same + adjective // as + adjective + as"
+    ],
+    "correct_index": 0,
+    "topic": "Same vs As",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "The correct structure is 'Same + noun // as + adjective + as'."
+   },
+   {
+    "id": "36e25296b6a8",
+    "q": "What is the correct form of the sentence: 'Ali is the same high as his brother.'?",
+    "options": [
+     "Ali is the same height as his brother.",
+     "Ali is the same height as his brother's.",
+     "Ali is the same high than his brother.",
+     "Ali is the same high as his brother's."
+    ],
+    "correct_index": 0,
+    "topic": "Same vs As",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The correct form is 'Ali is the same height as his brother.'."
+   },
+   {
+    "id": "5a0b27809983",
+    "q": "How do we correct a 'Mistake in meaning'?",
+    "options": [
+     "By changing the grammatical structure",
+     "By correcting the meaning",
+     "By adding more details",
+     "By using synonyms"
+    ],
+    "correct_index": 1,
+    "topic": "Mistake in meaning",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "A 'Mistake in meaning' is corrected by addressing the meaning, not the grammar."
+   },
+   {
+    "id": "16ba358c488a",
+    "q": "What is the correct form of the sentence: 'Matter comes in four different states.'?",
+    "options": [
+     "Matter comes in three different states.",
+     "Matter comes in four states.",
+     "Matter comes in different four states.",
+     "Matter comes in state four different."
+    ],
+    "correct_index": 0,
+    "topic": "Mistake in meaning",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The correct form is 'Matter comes in three different states.'."
+   },
+   {
+    "id": "115ac0812b4f",
+    "q": "What do we use after the helping verbs 'have / has / had'?",
+    "options": [
+     "Base form",
+     "Infinitive",
+     "Past participle",
+     "Gerund"
+    ],
+    "correct_index": 2,
+    "topic": "Helping Verbs: have / has / had",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "We use the past participle after the helping verbs 'have / has / had'."
+   },
+   {
+    "id": "9a21a1bd4b4d",
+    "q": "What is the correct form of the sentence: 'They have open the door.'?",
+    "options": [
+     "They have opened the door.",
+     "They have opening the door.",
+     "They have opened door the.",
+     "They have to open the door."
+    ],
+    "correct_index": 0,
+    "topic": "Helping Verbs: have / has / had",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The correct form is 'They have opened the door.'."
+   },
+   {
+    "id": "fb243d86ce85",
+    "q": "What is the difference between 'How many' and 'How much'?",
+    "options": [
+     "How many: Counted // How much: non Counted",
+     "How many: non Counted // How much: Counted",
+     "Both are used for counted nouns",
+     "Both are used for non counted nouns"
+    ],
+    "correct_index": 0,
+    "topic": "How many vs How much",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "مقارنة",
+    "why": "'How many' is used for counted nouns, while 'How much' is used for non counted nouns."
+   },
+   {
+    "id": "462d8805a2be",
+    "q": "What is the correct form of the sentence: 'How much apples do you want?'?",
+    "options": [
+     "How many apples do you want?",
+     "How much apple do you want?",
+     "How many apple do you want?",
+     "How much do you want apples?"
+    ],
+    "correct_index": 0,
+    "topic": "How many vs How much",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The correct form is 'How many apples do you want?'."
+   },
+   {
+    "id": "d2bf21964d73",
+    "q": "What is the rule for questions with 'Who'?",
+    "options": [
+     "Who -> no change!",
+     "Who -> change the verb tense",
+     "Who -> add auxiliary verbs",
+     "Who -> change the subject"
+    ],
+    "correct_index": 0,
+    "topic": "Question with Who",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "The rule states that 'Who' requires no change in the sentence."
+   },
+   {
+    "id": "69a081ff37b2",
+    "q": "What is the correct form of the sentence: 'Who does live in this house?'?",
+    "options": [
+     "Who lives in this house?",
+     "Who live in this house?",
+     "Who does living in this house?",
+     "Who does lived in this house?"
+    ],
+    "correct_index": 0,
+    "topic": "Question with Who",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The correct form is 'Who lives in this house?'."
+   },
+   {
+    "id": "efa777cdf83d",
+    "q": "What is the correct usage of verbs of perception?",
+    "options": [
+     "See / hear / feel / smell -> base form",
+     "See / hear / feel / smell -> past participle",
+     "See / hear / feel / smell -> play or playing",
+     "See / hear / feel / smell -> infinitive"
+    ],
+    "correct_index": 2,
+    "topic": "Verbs of Perception",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "قانون",
+    "why": "We use the verb in base form or with 'ing' after these verbs."
+   },
+   {
+    "id": "d5a485f60cfa",
+    "q": "What is the correct form of the sentence: 'They heard the woman sang.'?",
+    "options": [
+     "They heard the woman sing.",
+     "They heard the woman singing.",
+     "They heard the woman sang.",
+     "They heard the woman to sing."
+    ],
+    "correct_index": 0,
+    "topic": "Verbs of Perception",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The correct form is 'They heard the woman sing.'."
+   },
+   {
+    "id": "af6ad6e3626f",
+    "q": "If 'wed' is transformed into the past, what is the correct form?",
+    "options": [
+     "wedded",
+     "weded",
+     "weds",
+     "wed"
+    ],
+    "correct_index": 0,
+    "topic": "Spelling rules",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The past of 'wed' is 'wedded', requiring the last letter to be doubled."
+   },
+   {
+    "id": "61df7dc1820c",
+    "q": "What happens if we use 'can' instead of 'could' in a past context?",
+    "options": [
+     "It indicates present ability.",
+     "It indicates future ability.",
+     "It indicates past ability.",
+     "It indicates no ability."
+    ],
+    "correct_index": 2,
+    "topic": "Can vs Could",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "Using 'can' in a past context is incorrect; 'could' indicates past ability."
+   },
+   {
+    "id": "3a30e4238e7c",
+    "q": "What is the correct form of the sentence: 'He can ride a horse, when he was young.'?",
+    "options": [
+     "He could ride a horse, when he was young.",
+     "He can rode a horse, when he was young.",
+     "He can riding a horse, when he was young.",
+     "He can rides a horse, when he was young."
+    ],
+    "correct_index": 0,
+    "topic": "Can vs Could",
+    "lesson": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "The correct form is 'He could ride a horse, when he was young.'."
+   }
+  ]
+ },
+ "القواعد › «4» Spot the mistakes| اكتشف الأخطاء": {
+  "unit": "القواعد",
+  "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+  "hash": "3bc4ed218dd31a3c",
+  "spec": "q1",
+  "model": "gpt-4o-mini",
+  "count": 19,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "1787bc67ced3",
+    "q": "What is the correct preposition to use after the word 'famous'?",
+    "options": [
+     "for",
+     "of",
+     "with",
+     "about"
+    ],
+    "correct_index": 0,
+    "topic": "famous for vs famous of",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "We use 'for' after 'famous' instead of 'of'."
+   },
+   {
+    "id": "0c4968590fa4",
+    "q": "Choose the correct relative pronoun for the following sentence: 'This is the man ____ I know.'",
+    "options": [
+     "who",
+     "whom",
+     "which",
+     "that"
+    ],
+    "correct_index": 1,
+    "topic": "Relative Pronouns",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "We use 'whom' for people in the object position."
+   },
+   {
+    "id": "0ab019343dc5",
+    "q": "What is the correct adjective form of the noun 'rectangle'?",
+    "options": [
+     "rectangular",
+     "rectangle",
+     "rectanglish",
+     "rectangulate"
+    ],
+    "correct_index": 0,
+    "topic": "Noun vs Adjective",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The correct adjective to describe the shape is 'rectangular'."
+   },
+   {
+    "id": "3a5718e8a927",
+    "q": "What should replace 'may be' in the sentence: 'It may be a lion.' if we are certain?",
+    "options": [
+     "must be",
+     "could be",
+     "might be",
+     "should be"
+    ],
+    "correct_index": 0,
+    "topic": "Certainty vs Uncertainty",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "We use 'must be' when we are certain."
+   },
+   {
+    "id": "a14821d38042",
+    "q": "What is the correct form of the verb in the question: 'Did you ____ to London last year?'",
+    "options": [
+     "went",
+     "go",
+     "going",
+     "gone"
+    ],
+    "correct_index": 1,
+    "topic": "Questions with did/do/does",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The base form 'go' should be used after 'did'."
+   },
+   {
+    "id": "d2cb36d71219",
+    "q": "Which word should be used for uncountable nouns? 'How ____ is the milk?'",
+    "options": [
+     "many",
+     "much",
+     "few",
+     "less"
+    ],
+    "correct_index": 1,
+    "topic": "How many vs How much",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "We use 'much' for uncountable nouns like 'milk'."
+   },
+   {
+    "id": "fe42d9c15a59",
+    "q": "What article should be used before the word 'banana'?",
+    "options": [
+     "a",
+     "an",
+     "the",
+     "none"
+    ],
+    "correct_index": 0,
+    "topic": "Articles (a / an)",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "We use 'a' before words that start with a consonant sound."
+   },
+   {
+    "id": "5d1215b3c7f6",
+    "q": "What is the correct verb form in the sentence: 'I will ____ you on Sunday.'?",
+    "options": [
+     "saw",
+     "see",
+     "seen",
+     "sees"
+    ],
+    "correct_index": 1,
+    "topic": "Modal verbs",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The base form 'see' should be used after 'will'."
+   },
+   {
+    "id": "df991b04625b",
+    "q": "What is the mistake in the sentence: 'An apple is rectangular.'?",
+    "options": [
+     "It is round.",
+     "It is square.",
+     "It is oval.",
+     "It is flat."
+    ],
+    "correct_index": 0,
+    "topic": "Mistake in meaning",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The correct shape of an apple is round, not rectangular."
+   },
+   {
+    "id": "411144f650e2",
+    "q": "What is the correct verb form for the second action: 'While the water was boiling, she ____ the salt.'?",
+    "options": [
+     "adds",
+     "added",
+     "add",
+     "adding"
+    ],
+    "correct_index": 1,
+    "topic": "Past Continuous with while",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "The second action should be in the simple past: 'added'."
+   },
+   {
+    "id": "923d649d3679",
+    "q": "What is the difference between 'who' and 'whom'?",
+    "options": [
+     "'Who' is for subjects, 'whom' is for objects.",
+     "'Who' is for objects, 'whom' is for subjects.",
+     "They are interchangeable.",
+     "Both are used for objects."
+    ],
+    "correct_index": 0,
+    "topic": "Relative Pronouns",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "'Who' is used for subjects, while 'whom' is used for objects."
+   },
+   {
+    "id": "8a6b6d337dd3",
+    "q": "Why do we use 'must be' instead of 'may be' in a certain context?",
+    "options": [
+     "Because we are unsure.",
+     "Because we are certain.",
+     "Because it is a question.",
+     "Because it is a negative sentence."
+    ],
+    "correct_index": 1,
+    "topic": "Certainty vs Uncertainty",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "We use 'must be' when we are certain about something."
+   },
+   {
+    "id": "e0e9a1e42975",
+    "q": "What is the mistake in the sentence: 'Did you went to London last year?'?",
+    "options": [
+     "'went' should be 'go'.",
+     "'you' should be 'he'.",
+     "'last year' is incorrect.",
+     "There is no mistake."
+    ],
+    "correct_index": 0,
+    "topic": "Questions with did/do/does",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The base form 'go' should be used after 'did'."
+   },
+   {
+    "id": "0c3a330f9d76",
+    "q": "Which one is the correct usage of 'how many' and 'how much'?",
+    "options": [
+     "How many apples do you have?",
+     "How much apples do you have?",
+     "How many water do you have?",
+     "How much waters do you have?"
+    ],
+    "correct_index": 0,
+    "topic": "How many vs How much",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "'How many' is used for countable nouns like 'apples'."
+   },
+   {
+    "id": "ea1f9553121a",
+    "q": "What is the correct form of the sentence: 'Would you mind close the door.'?",
+    "options": [
+     "Would you mind closing the door?",
+     "Would you mind to close the door?",
+     "Would you mind closes the door?",
+     "Would you mind closed the door?"
+    ],
+    "correct_index": 0,
+    "topic": "Would you mind",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The expression 'would you mind' is always followed by a verb in -ing form."
+   },
+   {
+    "id": "f534d88c4141",
+    "q": "If you want to compare speed, how should you phrase it: 'The more you exercise, the ____ you run.'?",
+    "options": [
+     "fast",
+     "faster",
+     "fastest",
+     "more fast"
+    ],
+    "correct_index": 1,
+    "topic": "The Comparative... the Comparative",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "We should use the comparative form 'faster'."
+   },
+   {
+    "id": "2b7c04f0ed95",
+    "q": "Transform the sentence: 'She is famous of her kindness.' to the correct form.",
+    "options": [
+     "She is famous for her kindness.",
+     "She is famous about her kindness.",
+     "She is famous with her kindness.",
+     "She is famous in her kindness."
+    ],
+    "correct_index": 0,
+    "topic": "famous for vs famous of",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The correct preposition to use is 'for'."
+   },
+   {
+    "id": "9f134524e5f4",
+    "q": "Change the following sentence to the correct form: 'This door has a rectangle shape.'",
+    "options": [
+     "This door has a rectangular shape.",
+     "This door has a rectangle shapes.",
+     "This door have a rectangular shape.",
+     "This door has rectangle shape."
+    ],
+    "correct_index": 0,
+    "topic": "Noun vs Adjective",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The correct adjective form 'rectangular' should be used."
+   },
+   {
+    "id": "589ef0d1b6af",
+    "q": "What would happen if you used 'may be' instead of 'must be' when you are certain?",
+    "options": [
+     "It shows uncertainty.",
+     "It shows certainty.",
+     "It is grammatically correct.",
+     "It changes the meaning."
+    ],
+    "correct_index": 0,
+    "topic": "Certainty vs Uncertainty",
+    "lesson": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "level": "متوسط",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "Using 'may be' indicates uncertainty."
+   }
+  ]
+ },
+ "القواعد › Circle the different word | اختر الكلمة المختلفة": {
+  "unit": "القواعد",
+  "lesson": "Circle the different word | اختر الكلمة المختلفة",
+  "hash": "2a106e5cb5d63a5e",
+  "spec": "q1",
+  "model": "gpt-4o-mini",
+  "count": 19,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "300cdec91b29",
+    "q": "Which word does not belong: wool / metal / fur / skin?",
+    "options": [
+     "wool",
+     "metal",
+     "fur",
+     "skin"
+    ],
+    "correct_index": 1,
+    "topic": "material types",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "Metal is not a type of fur or wool."
+   },
+   {
+    "id": "d1354cbe660e",
+    "q": "Which word does not belong: chemistry / history / geography / valley?",
+    "options": [
+     "chemistry",
+     "history",
+     "geography",
+     "valley"
+    ],
+    "correct_index": 3,
+    "topic": "subject classification",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "Valley is not a subject like the others."
+   },
+   {
+    "id": "acaa55b4996b",
+    "q": "Which word does not belong: rounds / beautiful / nice / good?",
+    "options": [
+     "rounds",
+     "beautiful",
+     "nice",
+     "good"
+    ],
+    "correct_index": 0,
+    "topic": "word types",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "Rounds is a noun while the others are adjectives."
+   },
+   {
+    "id": "efc18ef7bc9f",
+    "q": "Which word does not belong: bananas / milk / tea / soda?",
+    "options": [
+     "bananas",
+     "milk",
+     "tea",
+     "soda"
+    ],
+    "correct_index": 0,
+    "topic": "food and drink",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "Bananas are a fruit, while the others are drinks."
+   },
+   {
+    "id": "e4d1a9823420",
+    "q": "Which word does not belong: plastic / square / glass / wood?",
+    "options": [
+     "plastic",
+     "square",
+     "glass",
+     "wood"
+    ],
+    "correct_index": 1,
+    "topic": "material vs shape",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "Square is a shape, while the others are materials."
+   },
+   {
+    "id": "1c0d1a75b5ab",
+    "q": "Which word does not belong: acid / solid / liquid / gas?",
+    "options": [
+     "acid",
+     "solid",
+     "liquid",
+     "gas"
+    ],
+    "correct_index": 0,
+    "topic": "states of matter",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "Acid is a chemical substance, while the others are states of matter."
+   },
+   {
+    "id": "003695a089f9",
+    "q": "What is the difference between beautiful and good?",
+    "options": [
+     "Both are adjectives",
+     "Beautiful is a noun",
+     "Good is a verb",
+     "Beautiful is a synonym for nice"
+    ],
+    "correct_index": 0,
+    "topic": "adjective comparison",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "مقارنة",
+    "why": "Both beautiful and good are adjectives, but they describe different qualities."
+   },
+   {
+    "id": "3a92cc82fe13",
+    "q": "Why does valley not belong with chemistry, history, and geography?",
+    "options": [
+     "Valley is a place",
+     "Valley is a subject",
+     "Valley is a material",
+     "Valley is a type of food"
+    ],
+    "correct_index": 0,
+    "topic": "subject classification",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "تعليل",
+    "why": "Valley is a geographical feature, while the others are academic subjects."
+   },
+   {
+    "id": "3b0f063e8a6d",
+    "q": "Which word does not belong: famine / earthquake / epidemic / acids?",
+    "options": [
+     "famine",
+     "earthquake",
+     "epidemic",
+     "acids"
+    ],
+    "correct_index": 3,
+    "topic": "natural disasters vs substances",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "مقارنة",
+    "why": "Acids are substances, while the others are types of natural disasters."
+   },
+   {
+    "id": "6697d3242686",
+    "q": "What is the difference between plastic and wood?",
+    "options": [
+     "Plastic is a synthetic material",
+     "Wood is a natural material",
+     "Both are used in construction",
+     "Plastic is more durable"
+    ],
+    "correct_index": 0,
+    "topic": "material comparison",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "Plastic is synthetic, while wood is a natural material."
+   },
+   {
+    "id": "9923864b0889",
+    "q": "If you have bananas, milk, tea, and soda, which is the fruit?",
+    "options": [
+     "bananas",
+     "milk",
+     "tea",
+     "soda"
+    ],
+    "correct_index": 0,
+    "topic": "food categorization",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Bananas are the only fruit among the options."
+   },
+   {
+    "id": "08f6b527ff29",
+    "q": "If you have acid, solid, liquid, and gas, which one is a chemical substance?",
+    "options": [
+     "acid",
+     "solid",
+     "liquid",
+     "gas"
+    ],
+    "correct_index": 0,
+    "topic": "substance classification",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Acid is a chemical substance, while the others are states of matter."
+   },
+   {
+    "id": "701b5e11f736",
+    "q": "Calculate the difference between the materials: plastic, glass, wood, and square. Which is the odd one out?",
+    "options": [
+     "plastic",
+     "glass",
+     "wood",
+     "square"
+    ],
+    "correct_index": 3,
+    "topic": "material vs shape",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Square is a shape, while the others are materials."
+   },
+   {
+    "id": "3483a5485507",
+    "q": "Determine which of the following is a drink: bananas, milk, tea, or soda?",
+    "options": [
+     "bananas",
+     "milk",
+     "tea",
+     "soda"
+    ],
+    "correct_index": 0,
+    "topic": "food and drink",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Bananas are the only food item, while the others are drinks."
+   },
+   {
+    "id": "4ca2ed357965",
+    "q": "Identify the word that does not belong: chemistry, history, geography, or valley?",
+    "options": [
+     "chemistry",
+     "history",
+     "geography",
+     "valley"
+    ],
+    "correct_index": 3,
+    "topic": "subject classification",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "صعب",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Valley is a geographical feature, while the others are subjects."
+   },
+   {
+    "id": "56de63c91b79",
+    "q": "What happens if you categorize rounds, beautiful, nice, and good? Which does not fit?",
+    "options": [
+     "rounds",
+     "beautiful",
+     "nice",
+     "good"
+    ],
+    "correct_index": 0,
+    "topic": "word types",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "Rounds is a noun while the others are adjectives."
+   },
+   {
+    "id": "16db3b0aa377",
+    "q": "Which of the following is not a state of matter: acid, solid, liquid, or gas?",
+    "options": [
+     "acid",
+     "solid",
+     "liquid",
+     "gas"
+    ],
+    "correct_index": 0,
+    "topic": "states of matter",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "Acid is not a state of matter."
+   },
+   {
+    "id": "ceea29b189f6",
+    "q": "Which of the following does not belong: famine, earthquake, epidemic, or acids?",
+    "options": [
+     "famine",
+     "earthquake",
+     "epidemic",
+     "acids"
+    ],
+    "correct_index": 3,
+    "topic": "natural disasters vs substances",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "Acids are substances, while the others are types of natural disasters."
+   },
+   {
+    "id": "7dea13749da5",
+    "q": "Identify the word that does not belong: beautiful, nice, good, or rounds?",
+    "options": [
+     "beautiful",
+     "nice",
+     "good",
+     "rounds"
+    ],
+    "correct_index": 3,
+    "topic": "word types",
+    "lesson": "Circle the different word | اختر الكلمة المختلفة",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "Rounds is a noun while the others are adjectives."
+   }
+  ]
+ },
+ "القواعد › Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة": {
+  "unit": "القواعد",
+  "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+  "hash": "75bad3ed9a9a1030",
+  "spec": "q1",
+  "model": "gpt-4o-mini",
+  "count": 19,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "49d06a1a0b2b",
+    "q": "What is the basic sentence structure in English?",
+    "options": [
+     "Subject + Verb + Object",
+     "Verb + Subject + Object",
+     "Object + Subject + Verb",
+     "Subject + Object + Verb"
+    ],
+    "correct_index": 0,
+    "topic": "Basic sentence structure",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The basic sentence structure in English is Subject + Verb + Object."
+   },
+   {
+    "id": "a2f17474aba7",
+    "q": "Re-order to make a sentence: *the / big / house / is*",
+    "options": [
+     "The house is big.",
+     "Is big the house.",
+     "House is the big.",
+     "Big is the house."
+    ],
+    "correct_index": 0,
+    "topic": "Re-ordering words",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The correct order is Subject (The house) + Verb (is) + Adjective (big)."
+   },
+   {
+    "id": "2cc81b480ff6",
+    "q": "Re-order to make a sentence: *has / beautiful / she / hair*",
+    "options": [
+     "She hair has beautiful.",
+     "She has beautiful hair.",
+     "Hair has beautiful she.",
+     "Beautiful hair she has."
+    ],
+    "correct_index": 1,
+    "topic": "Re-ordering words",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The correct order is Subject (She) + Verb (has) + Adjective (beautiful) + Noun (hair)."
+   },
+   {
+    "id": "fda61ade7b16",
+    "q": "What comes after the subject in a sentence with a helping verb?",
+    "options": [
+     "Main verb",
+     "Object",
+     "Adjective",
+     "Adverb"
+    ],
+    "correct_index": 0,
+    "topic": "Helping verb structure",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "In a sentence with a helping verb, the main verb comes after the subject."
+   },
+   {
+    "id": "13526a74c9f1",
+    "q": "Re-order to make a sentence: *is / driving / he / the car / carefully*",
+    "options": [
+     "He is driving the car carefully.",
+     "Driving he is the car carefully.",
+     "The car is driving he carefully.",
+     "Carefully he is driving the car."
+    ],
+    "correct_index": 0,
+    "topic": "Re-ordering words",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The correct order is Subject (He) + Helping verb (is) + Main verb (driving) + Object (the car) + Adverb (carefully)."
+   },
+   {
+    "id": "1d5dbaeafd46",
+    "q": "What is the correct order of adjectives and nouns?",
+    "options": [
+     "Noun + Adjective",
+     "Adjective + Noun",
+     "Verb + Noun",
+     "Noun + Verb"
+    ],
+    "correct_index": 1,
+    "topic": "Adjective and noun order",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "In English, adjectives come before nouns."
+   },
+   {
+    "id": "af559f431088",
+    "q": "Re-order to make a sentence: *quickly / spread / gases*",
+    "options": [
+     "Gases spread quickly.",
+     "Spread gases quickly.",
+     "Quickly gases spread.",
+     "Gases quickly spread."
+    ],
+    "correct_index": 0,
+    "topic": "Re-ordering words",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The correct order is Subject (Gases) + Verb (spread) + Adverb (quickly)."
+   },
+   {
+    "id": "a4ef3f61f794",
+    "q": "What is the structure of a sentence with long phrases?",
+    "options": [
+     "Subject + Verb + Object",
+     "Subject + Object + Verb",
+     "Verb + Subject + Object",
+     "Object + Subject + Verb"
+    ],
+    "correct_index": 0,
+    "topic": "Long phrases structure",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The structure for long phrases is Subject + Verb + Complement."
+   },
+   {
+    "id": "1e66c2f7ab06",
+    "q": "Re-order to make a sentence: *a very large wood / is called / a forest*",
+    "options": [
+     "A forest is called a very large wood.",
+     "A very large wood is called a forest.",
+     "Is called a very large wood a forest.",
+     "A very large wood a forest is called."
+    ],
+    "correct_index": 1,
+    "topic": "Re-ordering words",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The correct order is Subject (A very large wood) + Verb (is called) + Complement (a forest)."
+   },
+   {
+    "id": "cc684eb6ed72",
+    "q": "What usually comes at the end of a sentence?",
+    "options": [
+     "Subject",
+     "Object",
+     "Adverb",
+     "Verb"
+    ],
+    "correct_index": 2,
+    "topic": "Adverb placement",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "In English, adverbs often come at the end of a sentence."
+   },
+   {
+    "id": "ad0f3ec9f3ed",
+    "q": "Re-order to make a sentence: *applied / she / for a job*",
+    "options": [
+     "She applied for a job.",
+     "For a job she applied.",
+     "Applied she for a job.",
+     "She for a job applied."
+    ],
+    "correct_index": 0,
+    "topic": "Re-ordering words",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The correct order is Subject (She) + Verb (applied) + Object (for a job)."
+   },
+   {
+    "id": "c5c24bdff3ff",
+    "q": "What is the difference between a subject and an object in a sentence?",
+    "options": [
+     "Subject performs the action, object receives it.",
+     "Subject receives the action, object performs it.",
+     "Both are the same.",
+     "Subject is always a noun, object is always a verb."
+    ],
+    "correct_index": 0,
+    "topic": "Subject vs Object",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "The subject performs the action, while the object receives it."
+   },
+   {
+    "id": "ff4222f3672a",
+    "q": "Why do adjectives come before nouns in English?",
+    "options": [
+     "To describe the noun clearly.",
+     "To make sentences longer.",
+     "To confuse the reader.",
+     "To follow a different structure."
+    ],
+    "correct_index": 0,
+    "topic": "Adjective placement",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "Adjectives come before nouns to describe them clearly."
+   },
+   {
+    "id": "93ae470bf71a",
+    "q": "Re-order to make a sentence: *and / alkalis / neutralize / acids / each other*",
+    "options": [
+     "Acids neutralize each other and alkalis.",
+     "Alkalis and acids neutralize each other.",
+     "Alkalis neutralize acids each other.",
+     "Acids and alkalis neutralize each other."
+    ],
+    "correct_index": 3,
+    "topic": "Re-ordering words",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The correct order is Subject (Acids and alkalis) + Verb (neutralize) + Object (each other)."
+   },
+   {
+    "id": "5118e4e3b3b4",
+    "q": "Re-order to make a sentence: *the / quickly / spread / gases*",
+    "options": [
+     "Gases quickly spread.",
+     "Quickly gases spread.",
+     "Spread gases quickly.",
+     "Quickly spread gases."
+    ],
+    "correct_index": 0,
+    "topic": "Re-ordering words",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The correct order is Subject (Gases) + Verb (spread) + Adverb (quickly)."
+   },
+   {
+    "id": "88019961bb2b",
+    "q": "If a sentence has a helping verb, what comes next?",
+    "options": [
+     "Adjective",
+     "Noun",
+     "Main verb",
+     "Subject"
+    ],
+    "correct_index": 2,
+    "topic": "Helping verb structure",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "After the helping verb, the main verb comes next."
+   },
+   {
+    "id": "ed28e44c248e",
+    "q": "What happens if you change the order of the subject and object in a sentence?",
+    "options": [
+     "The meaning changes.",
+     "The sentence becomes incorrect.",
+     "Nothing happens.",
+     "It becomes a question."
+    ],
+    "correct_index": 0,
+    "topic": "Sentence structure",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تعليل",
+    "why": "Changing the order of the subject and object can change the meaning of the sentence."
+   },
+   {
+    "id": "f53f2c0b7739",
+    "q": "Re-order to make a sentence: *the / quickly / spread / gases*",
+    "options": [
+     "Gases quickly spread.",
+     "Quickly gases spread.",
+     "Spread gases quickly.",
+     "Gases spread quickly."
+    ],
+    "correct_index": 3,
+    "topic": "Re-ordering words",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The correct order is Subject (Gases) + Verb (spread) + Adverb (quickly)."
+   },
+   {
+    "id": "b1f36a5026b3",
+    "q": "Re-order to make a sentence: *she / eyes / has / brown*",
+    "options": [
+     "She has brown eyes.",
+     "Brown she has eyes.",
+     "Eyes brown has she.",
+     "She brown has eyes."
+    ],
+    "correct_index": 0,
+    "topic": "Re-ordering words",
+    "lesson": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "The correct order is Subject (She) + Verb (has) + Adjective (brown) + Noun (eyes)."
+   }
+  ]
+ },
+ "القواعد › Complete the paragraph | أكمل الفقرة بالكلمات المناسبة": {
+  "unit": "القواعد",
+  "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+  "hash": "35b5a4774318fafc",
+  "spec": "q1",
+  "model": "gpt-4o-mini",
+  "count": 17,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "c37ee64510c6",
+    "q": "What is the first rule for completing the paragraph? *Read the whole paragraph first*",
+    "options": [
+     "Read the whole paragraph first",
+     "Look for meaning clues",
+     "Understand the topic of the paragraph",
+     "Each word is used once"
+    ],
+    "correct_index": 0,
+    "topic": "Reading the whole paragraph",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The first rule emphasizes the importance of reading the entire paragraph to understand the context."
+   },
+   {
+    "id": "ffaf3601c265",
+    "q": "What is the second rule for completing the paragraph? *Adjective / Noun / Verb*",
+    "options": [
+     "Adjective / Noun / Verb",
+     "Look for meaning clues",
+     "Each word is used once",
+     "Understand the topic of the paragraph"
+    ],
+    "correct_index": 0,
+    "topic": "Identifying the type of word needed",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The second rule helps identify the type of word required to fill in the blanks."
+   },
+   {
+    "id": "af02cbacab2e",
+    "q": "What does the third rule state? *Each word is used once*",
+    "options": [
+     "Each word is used once",
+     "Understand the topic of the paragraph",
+     "Look for meaning clues",
+     "Read the whole paragraph first"
+    ],
+    "correct_index": 0,
+    "topic": "Using words only once",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The third rule indicates that each word from the list should only be used one time."
+   },
+   {
+    "id": "1cfd1d31aac4",
+    "q": "What is the fourth rule for completing the paragraph? *Look for meaning clues*",
+    "options": [
+     "Look for meaning clues",
+     "Read the whole paragraph first",
+     "Each word is used once",
+     "Understand the topic of the paragraph"
+    ],
+    "correct_index": 0,
+    "topic": "Finding meaning clues",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The fourth rule emphasizes the importance of finding clues in the sentence to determine the correct word."
+   },
+   {
+    "id": "3859c332e64e",
+    "q": "What is the fifth rule for completing the paragraph? *Understand the topic of the paragraph*",
+    "options": [
+     "Understand the topic of the paragraph",
+     "Each word is used once",
+     "Look for meaning clues",
+     "Read the whole paragraph first"
+    ],
+    "correct_index": 0,
+    "topic": "Understanding the overall meaning",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The fifth rule focuses on comprehending the main idea of the paragraph."
+   },
+   {
+    "id": "8d650bf7a903",
+    "q": "Choose the correct word: *Fareeda is ____ and gets on well with people.* (hard-working / doctors / hobbies)",
+    "options": [
+     "hard-working",
+     "doctors",
+     "hobbies",
+     "business"
+    ],
+    "correct_index": 0,
+    "topic": "Describing a person",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The sentence describes Fareeda's personality, requiring an adjective."
+   },
+   {
+    "id": "425c74eba0e8",
+    "q": "Which word fits best? *She has two ____: painting and cooking.* (hobbies / business / company)",
+    "options": [
+     "hobbies",
+     "business",
+     "company",
+     "doctors"
+    ],
+    "correct_index": 0,
+    "topic": "Identifying plural nouns",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The sentence indicates a need for a plural noun to describe activities."
+   },
+   {
+    "id": "cc438c546599",
+    "q": "Complete the sentence: *Powerful ____ like hurricanes can cause terrible damage.* (storms / winds / heavy)",
+    "options": [
+     "storms",
+     "winds",
+     "heavy",
+     "hobbies"
+    ],
+    "correct_index": 0,
+    "topic": "Identifying types of weather",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The sentence refers to a type of weather phenomenon, requiring a noun."
+   },
+   {
+    "id": "ea30e6d97359",
+    "q": "Fill in the blank: *The very strong ____ will destroy the wooden houses.* (winds / storms / damage)",
+    "options": [
+     "winds",
+     "storms",
+     "damage",
+     "hobbies"
+    ],
+    "correct_index": 0,
+    "topic": "Describing strong forces",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The sentence describes a force that can cause destruction, needing a noun."
+   },
+   {
+    "id": "a77aed127650",
+    "q": "Complete: *Ali is ____ in his school.* (popular / doctor / parents)",
+    "options": [
+     "popular",
+     "doctor",
+     "parents",
+     "hobbies"
+    ],
+    "correct_index": 0,
+    "topic": "Describing a person's status",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "مبتدئ",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The sentence describes Ali's reputation, requiring an adjective."
+   },
+   {
+    "id": "04bf6cc3b1d7",
+    "q": "What is the meaning of 'ambition' in the context? *My ____ after leaving school is to become a doctor.* (ambition / hospitals / chemistry)",
+    "options": [
+     "ambition",
+     "hospitals",
+     "chemistry",
+     "doctors"
+    ],
+    "correct_index": 0,
+    "topic": "Understanding personal goals",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تعليل",
+    "why": "The word 'ambition' refers to a personal goal or aspiration."
+   },
+   {
+    "id": "3d1f119b5abf",
+    "q": "What word describes strong winds? *The very strong ____ will destroy the wooden houses.* (winds / storms / damage)",
+    "options": [
+     "winds",
+     "storms",
+     "damage",
+     "hobbies"
+    ],
+    "correct_index": 0,
+    "topic": "Identifying natural phenomena",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تعليل",
+    "why": "The sentence requires a word that describes a natural force capable of destruction."
+   },
+   {
+    "id": "e63b2bf4c95f",
+    "q": "Why is it important to read the paragraph first? *Read the whole paragraph first*",
+    "options": [
+     "To understand the context",
+     "To find meaning clues",
+     "To identify the type of word needed",
+     "To ensure each word is used once"
+    ],
+    "correct_index": 0,
+    "topic": "Importance of reading",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "متوسط",
+    "weight": 1,
+    "kind": "تعليل",
+    "why": "Reading the paragraph first helps in understanding the overall meaning."
+   },
+   {
+    "id": "4498df007865",
+    "q": "What is the difference between 'hobbies' and 'business' in this context? *She has two ____: painting and cooking.*",
+    "options": [
+     "hobbies",
+     "business",
+     "company",
+     "doctors"
+    ],
+    "correct_index": 0,
+    "topic": "Understanding word meanings",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "متوسط",
+    "weight": 1,
+    "kind": "تعليل",
+    "why": "The sentence highlights activities done for pleasure, which are hobbies."
+   },
+   {
+    "id": "c2f7c75d257b",
+    "q": "If the sentence is about future goals, what word fits? *My ____ after leaving school is to become a doctor.* (ambition / hospitals / chemistry)",
+    "options": [
+     "ambition",
+     "hospitals",
+     "chemistry",
+     "doctors"
+    ],
+    "correct_index": 0,
+    "topic": "Identifying future aspirations",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "صعب",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The sentence refers to a future goal, which is represented by the word 'ambition'."
+   },
+   {
+    "id": "a5606bb1218c",
+    "q": "What happens if you don't understand the topic of the paragraph? *Understand the topic of the paragraph*",
+    "options": [
+     "You may fill in the blanks incorrectly",
+     "You will use words multiple times",
+     "You won't find meaning clues",
+     "You will read the paragraph too quickly"
+    ],
+    "correct_index": 0,
+    "topic": "Consequences of misunderstanding",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "صعب",
+    "weight": 4,
+    "kind": "تعليل",
+    "why": "Not understanding the topic can lead to incorrect answers in filling the blanks."
+   },
+   {
+    "id": "168d2c118340",
+    "q": "Choose the correct form: *Fareeda is ____ and gets on well with people.* (hard-working / doctors / hobbies)",
+    "options": [
+     "hard-working",
+     "doctors",
+     "hobbies",
+     "business"
+    ],
+    "correct_index": 0,
+    "topic": "Describing personality traits",
+    "lesson": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+    "level": "صعب",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The sentence describes Fareeda's character, needing an adjective."
+   }
+  ]
+ },
+ "القواعد › Use the suitable linking words | استخدام أدوات الربط المناسبة": {
+  "unit": "القواعد",
+  "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+  "hash": "988793d0cedbc4e9",
+  "spec": "q1",
+  "model": "gpt-4o-mini",
+  "count": 19,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "70ed381c5993",
+    "q": "Choose the correct linking word: *He was punished ____ he lied.*",
+    "options": [
+     "because",
+     "although",
+     "whereas",
+     "like"
+    ],
+    "correct_index": 0,
+    "topic": "Because",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "We use 'because' to indicate the reason."
+   },
+   {
+    "id": "e7ef0a9c7579",
+    "q": "Choose the correct linking word: *Although he is rich, he is unhappy.*",
+    "options": [
+     "because",
+     "although",
+     "whereas",
+     "like"
+    ],
+    "correct_index": 1,
+    "topic": "Although",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "We use 'although' to show contrast between two ideas."
+   },
+   {
+    "id": "86eff8e06120",
+    "q": "Choose the correct linking word: *I study English ____ mathematics.*",
+    "options": [
+     "as well as",
+     "because",
+     "although",
+     "whereas"
+    ],
+    "correct_index": 0,
+    "topic": "Also / As well",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "We use 'as well as' to add information."
+   },
+   {
+    "id": "55f7b5596296",
+    "q": "Choose the correct linking word: *He is hardworking, ____ his brother isn't.*",
+    "options": [
+     "because",
+     "although",
+     "whereas",
+     "like"
+    ],
+    "correct_index": 2,
+    "topic": "Whereas",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "We use 'whereas' to compare two different ideas."
+   },
+   {
+    "id": "198d1608bb96",
+    "q": "Choose the correct linking word: *Omar is smart. ____, he is polite.*",
+    "options": [
+     "furthermore",
+     "although",
+     "whereas",
+     "like"
+    ],
+    "correct_index": 0,
+    "topic": "Also / As well",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "We use 'furthermore' to add another idea."
+   },
+   {
+    "id": "76423a23c3ef",
+    "q": "Choose the correct linking word: *Like my mother, I love reading books.*",
+    "options": [
+     "like",
+     "unlike",
+     "although",
+     "because"
+    ],
+    "correct_index": 0,
+    "topic": "Like / Unlike",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "We use 'like' to show similarity."
+   },
+   {
+    "id": "8e41578e829e",
+    "q": "What is the purpose of using linking words?",
+    "options": [
+     "To connect ideas",
+     "To create confusion",
+     "To make sentences longer",
+     "To change the meaning of words"
+    ],
+    "correct_index": 0,
+    "topic": "Linking words",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "Linking words are used to connect ideas and sentences."
+   },
+   {
+    "id": "9993dad60ce2",
+    "q": "What does 'although' indicate in a sentence?",
+    "options": [
+     "Cause",
+     "Contrast",
+     "Addition",
+     "Comparison"
+    ],
+    "correct_index": 1,
+    "topic": "Although",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "'Although' indicates a contrast between two ideas."
+   },
+   {
+    "id": "147c1e28e94e",
+    "q": "What is the difference between 'like' and 'unlike'?",
+    "options": [
+     "'Like' shows similarity while 'unlike' shows difference",
+     "Both mean the same",
+     "'Like' is used for contrast",
+     "'Unlike' is used for addition"
+    ],
+    "correct_index": 0,
+    "topic": "Like / Unlike",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "'Like' shows similarity while 'unlike' indicates difference."
+   },
+   {
+    "id": "84312a390deb",
+    "q": "Why do we use 'because' in a sentence?",
+    "options": [
+     "To add information",
+     "To show contrast",
+     "To indicate reason",
+     "To compare ideas"
+    ],
+    "correct_index": 2,
+    "topic": "Because",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "We use 'because' to indicate the reason for something."
+   },
+   {
+    "id": "24b1b92cd78e",
+    "q": "Which linking word would best fit: *She was tired, ____ she went to bed early.*",
+    "options": [
+     "because",
+     "although",
+     "whereas",
+     "like"
+    ],
+    "correct_index": 0,
+    "topic": "Because",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تعليل",
+    "why": "We use 'because' to explain why she went to bed early."
+   },
+   {
+    "id": "868a84b7ea0f",
+    "q": "Choose the correct linking word: *The weather was bad; ____ they cancelled the trip.*",
+    "options": [
+     "because",
+     "although",
+     "whereas",
+     "like"
+    ],
+    "correct_index": 0,
+    "topic": "Because",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تعليل",
+    "why": "We use 'because' to show the reason for cancelling the trip."
+   },
+   {
+    "id": "aa480fd4de7b",
+    "q": "Complete: *Although it was raining, they decided to go out. They were very ____.*",
+    "options": [
+     "happy",
+     "sad",
+     "angry",
+     "tired"
+    ],
+    "correct_index": 0,
+    "topic": "Although",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The sentence shows a contrast between the rain and their happiness."
+   },
+   {
+    "id": "dc50763f6a19",
+    "q": "Complete: *I enjoy reading books, ____ I also like watching movies.*",
+    "options": [
+     "but",
+     "and",
+     "or",
+     "so"
+    ],
+    "correct_index": 1,
+    "topic": "Also / As well",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "متوسط",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "We use 'and' to add another idea."
+   },
+   {
+    "id": "107c6f920331",
+    "q": "If Ali likes football, what can we say about his brother? *He ____ basketball.*",
+    "options": [
+     "likes",
+     "doesn't like",
+     "also likes",
+     "unlike"
+    ],
+    "correct_index": 2,
+    "topic": "Whereas",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "صعب",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The sentence implies a contrast, so we can say he also likes basketball."
+   },
+   {
+    "id": "672c72ccfba3",
+    "q": "Complete: *He is hardworking; ____ his brother is lazy.*",
+    "options": [
+     "because",
+     "although",
+     "whereas",
+     "like"
+    ],
+    "correct_index": 2,
+    "topic": "Whereas",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "صعب",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "We use 'whereas' to indicate contrast between two ideas."
+   },
+   {
+    "id": "14db911f222e",
+    "q": "What happens if we use 'although' incorrectly in a sentence?",
+    "options": [
+     "It creates confusion",
+     "It makes the sentence longer",
+     "It adds more information",
+     "It shows similarity"
+    ],
+    "correct_index": 0,
+    "topic": "Although",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "صعب",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "Using 'although' incorrectly can lead to confusion about the ideas."
+   },
+   {
+    "id": "04a25a1adc4f",
+    "q": "Complete: *My mother prefers tea; ____ my father prefers coffee.*",
+    "options": [
+     "because",
+     "although",
+     "whereas",
+     "like"
+    ],
+    "correct_index": 2,
+    "topic": "Whereas",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "صعب",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "We use 'whereas' to compare two different preferences."
+   },
+   {
+    "id": "71dc15f79e40",
+    "q": "Choose the correct linking word: *I enjoy swimming; ____ I don't like diving.*",
+    "options": [
+     "because",
+     "although",
+     "whereas",
+     "like"
+    ],
+    "correct_index": 1,
+    "topic": "Although",
+    "lesson": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+    "level": "صعب",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "We use 'although' to show contrast between enjoying swimming and not liking diving."
+   }
+  ]
+ },
+ "القواعد › اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options": {
+  "unit": "القواعد",
+  "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+  "hash": "6559d2fdc7350595",
+  "spec": "q1",
+  "model": "deepseek-chat",
+  "count": 20,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "a8a1287dcf96",
+    "q": "Choose the correct verb: My father always ____ tea. (drink / drank / drinks)",
+    "options": [
+     "drinks",
+     "drink",
+     "drank",
+     "drinking"
+    ],
+    "correct_index": 0,
+    "topic": "Present Simple with third person singular",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "My father is singular, so the present simple verb takes -s: drinks."
+   },
+   {
+    "id": "16756a9cfd5f",
+    "q": "Which time word signals the Present Simple tense?",
+    "options": [
+     "always",
+     "yesterday",
+     "now",
+     "last week"
+    ],
+    "correct_index": 0,
+    "topic": "Time markers of Present Simple",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "Always is listed among the Present Simple time words in the lesson."
+   },
+   {
+    "id": "33ab2592c5bc",
+    "q": "Which time word signals the Past Simple tense?",
+    "options": [
+     "yesterday",
+     "now",
+     "tomorrow",
+     "already"
+    ],
+    "correct_index": 0,
+    "topic": "Time markers of Past Simple",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "Yesterday is one of the Past Simple time words given in the lesson."
+   },
+   {
+    "id": "b69b51298268",
+    "q": "Which time word signals the Present Continuous tense?",
+    "options": [
+     "now",
+     "since",
+     "every day",
+     "in 1990"
+    ],
+    "correct_index": 0,
+    "topic": "Time markers of Present Continuous",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "Now is listed among the Present Continuous time words in the lesson."
+   },
+   {
+    "id": "ebc12cebcc2e",
+    "q": "What is the form of the Present Continuous tense?",
+    "options": [
+     "(is / are / am) + playing",
+     "play / s",
+     "(has / have) + played",
+     "will play"
+    ],
+    "correct_index": 0,
+    "topic": "Form of Present Continuous",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "قانون",
+    "why": "The lesson gives the Present Continuous form as (is / are / am) + Playing."
+   },
+   {
+    "id": "b496d9de0d45",
+    "q": "What is the form of the Present Perfect tense?",
+    "options": [
+     "(has / have) + played (P.P)",
+     "(is / are / am) + playing",
+     "play / s",
+     "played"
+    ],
+    "correct_index": 0,
+    "topic": "Form of Present Perfect",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "قانون",
+    "why": "The lesson states the Present Perfect form as (has / have) + played (P.P)."
+   },
+   {
+    "id": "28fc3dad7903",
+    "q": "Complete: She ____ a teacher. (is / am / are)",
+    "options": [
+     "is",
+     "am",
+     "are",
+     "be"
+    ],
+    "correct_index": 0,
+    "topic": "Verb to be with third person singular",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "She takes is, as in the lesson exercise: she is a teacher."
+   },
+   {
+    "id": "ce35a3bdbbdd",
+    "q": "Complete: He ____ written the letter. (has / have / having)",
+    "options": [
+     "has",
+     "have",
+     "having",
+     "had"
+    ],
+    "correct_index": 0,
+    "topic": "Has with Present Perfect for singular subjects",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "He takes has before the past participle written, as in the lesson example."
+   },
+   {
+    "id": "fe238cf1438c",
+    "q": "Which time word signals the Future tense?",
+    "options": [
+     "tomorrow",
+     "yesterday",
+     "since",
+     "at the moment"
+    ],
+    "correct_index": 0,
+    "topic": "Time markers of Future",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "Tomorrow is listed among the Future time words in the lesson."
+   },
+   {
+    "id": "e2f5afd38ead",
+    "q": "What is the difference between 'last week' and 'next week' in this lesson?",
+    "options": [
+     "Last week signals the Past Simple, while next week signals the Future",
+     "Both signal the Present Perfect",
+     "Both signal the Present Continuous",
+     "Last week signals the Future, while next week signals the Past Simple"
+    ],
+    "correct_index": 0,
+    "topic": "Contrast between Past Simple and Future markers",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "Last week is a Past Simple marker and next week is a Future marker in the lesson."
+   },
+   {
+    "id": "2d7a2b005da1",
+    "q": "Why do we use 'drinks' in 'My father always drinks tea'?",
+    "options": [
+     "Because the subject is singular and always shows a habit",
+     "Because the subject is plural and the action is happening now",
+     "Because the action finished in the past",
+     "Because the sentence is in the future"
+    ],
+    "correct_index": 0,
+    "topic": "Reason for -s in Present Simple",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The lesson explains drinks is used because My father is singular and always shows a habit."
+   },
+   {
+    "id": "8561d7d5dd99",
+    "q": "Why do we use 'playing' in 'They are playing now'?",
+    "options": [
+     "Because are is used and now shows the action is continuing",
+     "Because the action is a daily habit",
+     "Because the action happened last week",
+     "Because has is used before the verb"
+    ],
+    "correct_index": 0,
+    "topic": "Reason for -ing in Present Continuous",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The lesson explains playing is used because of are and now, which show continuity."
+   },
+   {
+    "id": "854198fe3fbb",
+    "q": "Which of these is NOT a Present Perfect time word in the lesson?",
+    "options": [
+     "yesterday",
+     "since",
+     "yet",
+     "already"
+    ],
+    "correct_index": 0,
+    "topic": "Distinguishing Present Perfect markers",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "Yesterday is a Past Simple marker, while since, yet and already are Present Perfect markers."
+   },
+   {
+    "id": "67bcf3d08e91",
+    "q": "Complete: They ____ tomorrow. (come / will come / coming)",
+    "options": [
+     "will come",
+     "come",
+     "coming",
+     "came"
+    ],
+    "correct_index": 0,
+    "topic": "Will for Future",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Tomorrow signals the future, so will come is used, as in the lesson example."
+   },
+   {
+    "id": "16cbb252af3d",
+    "q": "Complete: They ____ now. (play / played / playing)",
+    "options": [
+     "are playing",
+     "play",
+     "played",
+     "have played"
+    ],
+    "correct_index": 0,
+    "topic": "Present Continuous with now",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Now signals the Present Continuous, so are playing is correct."
+   },
+   {
+    "id": "52df781aa949",
+    "q": "Complete: We ____ here for a month. We may finish today. (have been working / have worked / worked)",
+    "options": [
+     "have been working",
+     "have worked",
+     "worked",
+     "work"
+    ],
+    "correct_index": 0,
+    "topic": "Present Perfect Continuous with for",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The lesson uses have been working because of the duration for a month."
+   },
+   {
+    "id": "5fe41d632290",
+    "q": "Choose the correct verb: She ____ her homework every day. (do / does / did)",
+    "options": [
+     "does",
+     "do",
+     "did",
+     "doing"
+    ],
+    "correct_index": 0,
+    "topic": "Present Simple with every day",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "Every day signals the Present Simple, and she is singular, so does is used."
+   },
+   {
+    "id": "a30192a0a79b",
+    "q": "Choose the correct verb: They ____ to London last week. (go / went / will go)",
+    "options": [
+     "went",
+     "go",
+     "will go",
+     "going"
+    ],
+    "correct_index": 0,
+    "topic": "Past Simple with last week",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "Last week signals the Past Simple, so the past form went is used."
+   },
+   {
+    "id": "26c583d25eed",
+    "q": "Choose the correct verb: I ____ just finished my work. (have / has / had)",
+    "options": [
+     "have",
+     "has",
+     "had",
+     "having"
+    ],
+    "correct_index": 0,
+    "topic": "Have with Present Perfect for I",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "Just signals the Present Perfect, and I takes have before the past participle."
+   },
+   {
+    "id": "ebc42dfdcc62",
+    "q": "Choose the correct verb: Look! The children ____ in the garden. (play / are playing / played)",
+    "options": [
+     "are playing",
+     "play",
+     "played",
+     "have played"
+    ],
+    "correct_index": 0,
+    "topic": "Present Continuous with look",
+    "lesson": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "Look signals the Present Continuous, so are playing is the correct form."
+   }
+  ]
+ },
+ "القواعد › Change into passive|حول الجمل إلى المبني للمجهول": {
+  "unit": "القواعد",
+  "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+  "hash": "7b0846e3557dbfcb",
+  "spec": "q1",
+  "model": "deepseek-chat",
+  "count": 20,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "c79a60ca878a",
+    "q": "Which form of the main verb is used in all passive sentences?",
+    "options": [
+     "The past participle (P.P)",
+     "The present participle (V-ing)",
+     "The base form of the verb",
+     "The past simple form"
+    ],
+    "correct_index": 0,
+    "topic": "Past participle (P.P) in passive",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The lesson states that the past participle (P.P) is used in all passive sentences."
+   },
+   {
+    "id": "e9b2eb391ba8",
+    "q": "What is the passive form of the past simple?",
+    "options": [
+     "was/were + played",
+     "is/are + played",
+     "have/has + been + played",
+     "was/were + being + played"
+    ],
+    "correct_index": 0,
+    "topic": "Passive of past simple",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "The lesson gives the past simple passive formula as was/were + played."
+   },
+   {
+    "id": "a6f7de852ebc",
+    "q": "What is the passive form of the present simple?",
+    "options": [
+     "is/are + played",
+     "was/were + played",
+     "is/are + being + played",
+     "have/has + been + played"
+    ],
+    "correct_index": 0,
+    "topic": "Passive of present simple",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "The lesson gives the present simple passive formula as is/are + played."
+   },
+   {
+    "id": "7c3bddda00ad",
+    "q": "What is the passive form of the present perfect?",
+    "options": [
+     "have/has + been + played",
+     "have/has + played",
+     "had + been + played",
+     "is/are + being + played"
+    ],
+    "correct_index": 0,
+    "topic": "Passive of present perfect",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "The lesson gives the present perfect passive formula as have/has + been + played."
+   },
+   {
+    "id": "6482a3dc712b",
+    "q": "Which of these is a modal verb listed in the lesson?",
+    "options": [
+     "should",
+     "been",
+     "played",
+     "received"
+    ],
+    "correct_index": 0,
+    "topic": "Modal verbs list",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The lesson lists should among the modal verbs that take + be + P.P in the passive."
+   },
+   {
+    "id": "9a19236db537",
+    "q": "What is the passive form of the past continuous?",
+    "options": [
+     "was/were being played",
+     "was/were played",
+     "had been played",
+     "is/are being played"
+    ],
+    "correct_index": 0,
+    "topic": "Passive of past continuous",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "قانون",
+    "why": "The lesson gives was/were playing → was/were being played."
+   },
+   {
+    "id": "5dd2084b2077",
+    "q": "What is the passive form of the past perfect?",
+    "options": [
+     "had been played",
+     "had played",
+     "have been played",
+     "was being played"
+    ],
+    "correct_index": 0,
+    "topic": "Passive of past perfect",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "قانون",
+    "why": "The lesson gives had played → had been played."
+   },
+   {
+    "id": "908ab5e96aec",
+    "q": "What is the passive form of the present continuous?",
+    "options": [
+     "is/are being played",
+     "is/are played",
+     "was/were being played",
+     "have been played"
+    ],
+    "correct_index": 0,
+    "topic": "Passive of present continuous",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "قانون",
+    "why": "The lesson gives is/are playing → is/are being played."
+   },
+   {
+    "id": "1834ba677ef0",
+    "q": "Change into the passive: *She received the message yesterday.*",
+    "options": [
+     "The message was received yesterday.",
+     "The message is received yesterday.",
+     "The message has been received yesterday.",
+     "The message were received yesterday."
+    ],
+    "correct_index": 0,
+    "topic": "Passive of past simple sentences",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "The message is singular and the tense is past simple, so was + received is used."
+   },
+   {
+    "id": "a61ca8fde135",
+    "q": "Change into the passive: *The factory makes new things every day.*",
+    "options": [
+     "New things are made every day by the factory.",
+     "New things is made every day by the factory.",
+     "New things were made every day by the factory.",
+     "New things have been made every day by the factory."
+    ],
+    "correct_index": 0,
+    "topic": "Passive of present simple sentences",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "New things is plural and the tense is present simple, so are + made is used."
+   },
+   {
+    "id": "4aa47b2929ed",
+    "q": "Change into the passive: *Children should respect their parents.*",
+    "options": [
+     "Their parents should be respected.",
+     "Their parents should respected.",
+     "Their parents should been respected.",
+     "Their parents are should respected."
+    ],
+    "correct_index": 0,
+    "topic": "Passive with modals",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "After the modal should we put be + the past participle respected."
+   },
+   {
+    "id": "07d40f0f8f86",
+    "q": "Change into the passive: *They are going to buy a new car.*",
+    "options": [
+     "A new car is going to be bought.",
+     "A new car is going to bought.",
+     "A new car are going to be bought.",
+     "A new car was going to be bought."
+    ],
+    "correct_index": 0,
+    "topic": "Passive with going to",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "After going to we add be + the past participle bought, and a new car is singular."
+   },
+   {
+    "id": "8790647d7fb0",
+    "q": "Change into the passive: *The flood has killed thousands of people.*",
+    "options": [
+     "Thousands of people have been killed by the flood.",
+     "Thousands of people has been killed by the flood.",
+     "Thousands of people have killed by the flood.",
+     "Thousands of people were been killed by the flood."
+    ],
+    "correct_index": 0,
+    "topic": "Passive of present perfect sentences",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Thousands of people is plural, so have been + killed is used."
+   },
+   {
+    "id": "72671248bc7f",
+    "q": "Why do we use (was) in: *The message was received yesterday.*?",
+    "options": [
+     "Because the object The message is singular and the tense is past simple",
+     "Because the subject She is singular and the tense is past simple",
+     "Because the verb received is regular and ends in -ed",
+     "Because the sentence has no object at all"
+    ],
+    "correct_index": 0,
+    "topic": "Choosing was or were",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The lesson explains that was is used because the object The message is singular in the past simple."
+   },
+   {
+    "id": "6a8e49893385",
+    "q": "Why do we use (are) in: *New things are made every day by the factory.*?",
+    "options": [
+     "Because the object New things is plural and the tense is present simple",
+     "Because the subject The factory is singular and the tense is present simple",
+     "Because the verb makes is irregular",
+     "Because the sentence is in the past simple"
+    ],
+    "correct_index": 0,
+    "topic": "Choosing is or are",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The lesson explains that are is used because the object New things is plural in the present simple."
+   },
+   {
+    "id": "435fcbb41dbb",
+    "q": "Which sentence is NOT correct in the passive?",
+    "options": [
+     "Their parents should respected.",
+     "Their parents should be respected.",
+     "A new car is going to be bought.",
+     "The message was received yesterday."
+    ],
+    "correct_index": 0,
+    "topic": "Modal + be + P.P rule",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "مقارنة",
+    "why": "A modal must be followed by be + the past participle, so should respected is wrong."
+   },
+   {
+    "id": "3752d4e12d4c",
+    "q": "Complete the passive sentence: *The window ____ by the boy yesterday.* (break)",
+    "options": [
+     "was broken",
+     "is broken",
+     "has broken",
+     "were broken"
+    ],
+    "correct_index": 0,
+    "topic": "Passive of past simple with irregular verbs",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The window is singular and the time is yesterday, so was + the past participle broken is used."
+   },
+   {
+    "id": "68ffbb73d02c",
+    "q": "Change into the passive: *They must clean the room before the guests arrive.*",
+    "options": [
+     "The room must be cleaned before the guests arrive.",
+     "The room must cleaned before the guests arrive.",
+     "The room must been cleaned before the guests arrive.",
+     "The room is must cleaned before the guests arrive."
+    ],
+    "correct_index": 0,
+    "topic": "Passive with must",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "After the modal must we put be + the past participle cleaned."
+   },
+   {
+    "id": "4c39b52c4a46",
+    "q": "Change into the passive: *The teacher has corrected the exam papers.*",
+    "options": [
+     "The exam papers have been corrected by the teacher.",
+     "The exam papers has been corrected by the teacher.",
+     "The exam papers have corrected by the teacher.",
+     "The exam papers were been corrected by the teacher."
+    ],
+    "correct_index": 0,
+    "topic": "Passive of present perfect with plural object",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "The exam papers is plural, so have been + corrected is used in the present perfect passive."
+   },
+   {
+    "id": "d136f47a3577",
+    "q": "Change into the passive: *They are going to build a new hospital next year.*",
+    "options": [
+     "A new hospital is going to be built next year.",
+     "A new hospital is going to built next year.",
+     "A new hospital are going to be built next year.",
+     "A new hospital was going to be built next year."
+    ],
+    "correct_index": 0,
+    "topic": "Passive with going to and irregular verbs",
+    "lesson": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "After going to we add be + the past participle built, and a new hospital is singular."
+   }
+  ]
+ },
+ "القواعد › كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word": {
+  "unit": "القواعد",
+  "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+  "hash": "16dd18f1ebc20dfa",
+  "spec": "q1",
+  "model": "deepseek-chat",
+  "count": 20,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "b16177a635e6",
+    "q": "Choose the correct question word: *He comes to school by bus.*",
+    "options": [
+     "How does he come to school?",
+     "What does he come to school?",
+     "Where does he come to school?",
+     "Who does he come to school?"
+    ],
+    "correct_index": 0,
+    "topic": "How for means of transport",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "'By bus' asks about the way, so we use How + does + subject + infinitive."
+   },
+   {
+    "id": "bd834a02bfb9",
+    "q": "Choose the correct question word: *They can meet in Sana'a.*",
+    "options": [
+     "Where can they meet?",
+     "When can they meet?",
+     "Why can they meet?",
+     "Which can they meet?"
+    ],
+    "correct_index": 0,
+    "topic": "Where for place",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "'In Sana'a' is a place, so the suitable question word is Where."
+   },
+   {
+    "id": "0ab85a727faf",
+    "q": "Choose the correct question word: *This pen is mine.*",
+    "options": [
+     "Whose is this pen?",
+     "Who is this pen?",
+     "Whom is this pen?",
+     "Which is this pen?"
+    ],
+    "correct_index": 0,
+    "topic": "Whose for possession",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "'Mine' shows possession, so we ask with Whose."
+   },
+   {
+    "id": "2e4ec8e44a78",
+    "q": "Choose the correct question word: *I prefer the yellow color.*",
+    "options": [
+     "Which color do you prefer?",
+     "What color do you prefer?",
+     "Whose color do you prefer?",
+     "How color do you prefer?"
+    ],
+    "correct_index": 0,
+    "topic": "Which for choice among items",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "Choosing one color from a set takes Which + noun."
+   },
+   {
+    "id": "764547be82b9",
+    "q": "Choose the correct question word: *They played football every Friday.*",
+    "options": [
+     "When did they play football?",
+     "Where did they play football?",
+     "How did they play football?",
+     "Who did they play football?"
+    ],
+    "correct_index": 0,
+    "topic": "When for time",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "'Every Friday' is a time expression, so the question word is When."
+   },
+   {
+    "id": "88f9142f4e0a",
+    "q": "Complete the rule: when we ask about the subject with *who*, the word order of the sentence ____.",
+    "options": [
+     "does not change",
+     "changes to question order",
+     "takes do or does",
+     "takes did"
+    ],
+    "correct_index": 0,
+    "topic": "No change when using who",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "Rule 2: no change in word order when who asks about the subject."
+   },
+   {
+    "id": "fa56916cd7ea",
+    "q": "Choose the correct question: *Fatima eats an apple a day.*",
+    "options": [
+     "Who eats an apple a day?",
+     "Who does eat an apple a day?",
+     "Whom eats an apple a day?",
+     "Who eat an apple a day?"
+    ],
+    "correct_index": 0,
+    "topic": "Who as subject without do",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "Who replaces the subject Fatima, so the order stays the same."
+   },
+   {
+    "id": "1fccee66643d",
+    "q": "Complete the rule: in a question, the helping verb comes ____ the subject.",
+    "options": [
+     "before",
+     "after",
+     "instead of",
+     "without"
+    ],
+    "correct_index": 0,
+    "topic": "Helping verb before subject",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "Rule 3: the helping verb is placed before the subject."
+   },
+   {
+    "id": "d134d6e4e862",
+    "q": "Which pair is correct for the question word and what it asks about?",
+    "options": [
+     "How often — the number of times",
+     "How long — the distance",
+     "How far — the duration of time",
+     "How many — the price"
+    ],
+    "correct_index": 0,
+    "topic": "How often for frequency",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "مقارنة",
+    "why": "How often asks about frequency, as in 'two times a month'."
+   },
+   {
+    "id": "6b697d3237ca",
+    "q": "What is the difference between *How long* and *How far*?",
+    "options": [
+     "How long asks about duration of time; How far asks about distance",
+     "How long asks about distance; How far asks about duration of time",
+     "How long asks about number; How far asks about price",
+     "Both ask about the same thing"
+    ],
+    "correct_index": 0,
+    "topic": "How long vs How far",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "How long = duration of time, How far = distance."
+   },
+   {
+    "id": "5b6dc162c5f9",
+    "q": "Complete the question: *He used the medicine two times a month.* → ____ did he use the medicine?",
+    "options": [
+     "How often",
+     "How long",
+     "How much",
+     "How far"
+    ],
+    "correct_index": 0,
+    "topic": "How often for repeated action",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "'Two times a month' tells how often the action is repeated."
+   },
+   {
+    "id": "16d27f9bdfd6",
+    "q": "Complete the question: *They are teaching English.* → What ____ they teaching?",
+    "options": [
+     "are",
+     "do",
+     "did",
+     "does"
+    ],
+    "correct_index": 0,
+    "topic": "Helping verb before subject",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The helping verb are moves before the subject they."
+   },
+   {
+    "id": "6bc316229444",
+    "q": "Complete the question: *The tourists will visit the country.* → Who ____ visit the country?",
+    "options": [
+     "will",
+     "does",
+     "did",
+     "do"
+    ],
+    "correct_index": 0,
+    "topic": "Who as subject without do",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "Who replaces the subject, so the order stays the same and will is kept."
+   },
+   {
+    "id": "c34b2c58a4f6",
+    "q": "Which question word is used to ask about a person as the object of the sentence?",
+    "options": [
+     "Whom",
+     "Who",
+     "Whose",
+     "Which"
+    ],
+    "correct_index": 0,
+    "topic": "Whom for object",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "Whom asks about the object, as in 'Whom the president met with?'"
+   },
+   {
+    "id": "1cc77aa0f41a",
+    "q": "Which question word asks about the reason for an action?",
+    "options": [
+     "Why",
+     "When",
+     "Where",
+     "Which"
+    ],
+    "correct_index": 0,
+    "topic": "Why for reason",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تعريف",
+    "why": "Why is the question word used to ask about a reason."
+   },
+   {
+    "id": "96480e22e2ef",
+    "q": "Complete the question: *They played football every Friday.* → When ____ they play football?",
+    "options": [
+     "did",
+     "do",
+     "does",
+     "are"
+    ],
+    "correct_index": 0,
+    "topic": "Did with past simple",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The verb played is past, so the helping verb is did + infinitive."
+   },
+   {
+    "id": "cf6257f3f210",
+    "q": "Change the verb correctly: *She plays tennis.* → How often ____ she ____ tennis?",
+    "options": [
+     "does / play",
+     "does / plays",
+     "do / play",
+     "did / played"
+    ],
+    "correct_index": 0,
+    "topic": "Does with infinitive",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "After does the finite verb returns to the infinitive: does + play."
+   },
+   {
+    "id": "4e61aa9f372f",
+    "q": "Make a question for the underlined words: *He comes to school __by bus__.*",
+    "options": [
+     "How does he come to school?",
+     "How he comes to school?",
+     "How does he comes to school?",
+     "How do he come to school?"
+    ],
+    "correct_index": 0,
+    "topic": "Question order with does",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "How + does + subject + infinitive, with no change to the main verb."
+   },
+   {
+    "id": "42182ca83000",
+    "q": "Make a question for the underlined words: *They can meet __in Sana'a__.*",
+    "options": [
+     "Where can they meet?",
+     "Where they can meet?",
+     "Where do they can meet?",
+     "Where can they meeting?"
+    ],
+    "correct_index": 0,
+    "topic": "Question order with modal",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "The modal can moves before the subject, and the main verb stays in the infinitive."
+   },
+   {
+    "id": "3e0b01556978",
+    "q": "Make a question for the underlined words: *The president met __the ambassador__.*",
+    "options": [
+     "Whom did the president meet with?",
+     "Whom the president met with?",
+     "Who did the president met with?",
+     "Whom does the president meet with?"
+    ],
+    "correct_index": 0,
+    "topic": "Whom with did",
+    "lesson": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "Whom asks about the object, so did + subject + infinitive is used."
+   }
+  ]
+ },
+ "القواعد › Parts of Speech|أقسام الكلام": {
+  "unit": "القواعد",
+  "lesson": "Parts of Speech|أقسام الكلام",
+  "hash": "f56a08ae5df66662",
+  "spec": "q1",
+  "model": "deepseek-chat",
+  "count": 20,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "ed654024c5ed",
+    "q": "What is a verb?",
+    "options": [
+     "A word that expresses an action or an event",
+     "A word that names a person, place, thing, or idea",
+     "A word that describes a noun",
+     "A word that joins two sentences"
+    ],
+    "correct_index": 0,
+    "topic": "Definition of verb",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "A verb expresses an action or an event, as in 'cut', 'ride', 'drink', 'heat'."
+   },
+   {
+    "id": "5fa5d2fbe4a3",
+    "q": "What is a noun?",
+    "options": [
+     "A word that names a person, place, thing, or idea",
+     "A word that expresses an action or an event",
+     "A word that describes a verb",
+     "A word that shows possession"
+    ],
+    "correct_index": 0,
+    "topic": "Definition of noun",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "A noun names a person, place, thing, or idea, as in 'the cut on his arm'."
+   },
+   {
+    "id": "46bd5a0f6667",
+    "q": "What does 'parts of speech' mean?",
+    "options": [
+     "The classes of words in English, such as noun, verb, and adjective",
+     "The punctuation marks used in a sentence",
+     "The order of words in a sentence",
+     "The sounds produced when speaking"
+    ],
+    "correct_index": 0,
+    "topic": "Meaning of parts of speech",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "Parts of speech are the classes of words in English, such as noun, verb, and adjective."
+   },
+   {
+    "id": "bf680cd32f89",
+    "q": "In which sentence is 'cut' used as a verb?",
+    "options": [
+     "*Sharp knives can cut you.*",
+     "*The cut on his arm was bleeding badly.*",
+     "*The cut was deep and painful.*",
+     "*He had a cut above his eye.*"
+    ],
+    "correct_index": 0,
+    "topic": "Cut as verb",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "In 'Sharp knives can cut you', 'cut' expresses the action of cutting."
+   },
+   {
+    "id": "7801c302ac43",
+    "q": "In which sentence is 'cut' used as a noun?",
+    "options": [
+     "*The cut on his arm was bleeding badly.*",
+     "*Sharp knives can cut you.*",
+     "*Be careful, the knife can cut you.*",
+     "*She will cut the cake now.*"
+    ],
+    "correct_index": 0,
+    "topic": "Cut as noun",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "In 'The cut on his arm was bleeding badly', 'cut' names the wound."
+   },
+   {
+    "id": "d54b8c54f0ca",
+    "q": "In which sentence is 'ride' used as a noun?",
+    "options": [
+     "*Ali decided to go for a ride on his bicycle.*",
+     "*The horse was too wild to ride.*",
+     "*He likes to ride his bike.*",
+     "*She can ride very well.*"
+    ],
+    "correct_index": 0,
+    "topic": "Ride as noun",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "In 'go for a ride', 'ride' names the trip or journey."
+   },
+   {
+    "id": "771a58477d32",
+    "q": "In which sentence is 'drink' used as a verb?",
+    "options": [
+     "*I want to drink tea.*",
+     "*I'd like a soft drink, please.*",
+     "*Would you like a cold drink?*",
+     "*The drink was very sweet.*"
+    ],
+    "correct_index": 0,
+    "topic": "Drink as verb",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "In 'I want to drink tea', 'drink' expresses the action of drinking."
+   },
+   {
+    "id": "86f82b0c126b",
+    "q": "In which sentence is 'heat' used as a noun?",
+    "options": [
+     "*I don't like heat.*",
+     "*If you heat metal, it expands.*",
+     "*Please heat the soup now.*",
+     "*They heat the room in winter.*"
+    ],
+    "correct_index": 0,
+    "topic": "Heat as noun",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "In 'I don't like heat', 'heat' names the quality of being hot."
+   },
+   {
+    "id": "acaf9a2e31eb",
+    "q": "What is the difference between 'cut' in *Sharp knives can cut you* and 'cut' in *The cut on his arm was bleeding badly*?",
+    "options": [
+     "In the first it is a verb, in the second it is a noun",
+     "In the first it is a noun, in the second it is a verb",
+     "In both sentences it is a verb",
+     "In both sentences it is a noun"
+    ],
+    "correct_index": 0,
+    "topic": "Cut: verb vs noun",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "متوسط",
+    "weight": 5,
+    "kind": "مقارنة",
+    "why": "The first 'cut' expresses an action (verb); the second names a wound (noun)."
+   },
+   {
+    "id": "3f3d22e9a440",
+    "q": "What is the difference between 'ride' in *Ali decided to go for a ride on his bicycle* and 'ride' in *The horse was too wild to ride*?",
+    "options": [
+     "In the first it is a noun, in the second it is a verb",
+     "In the first it is a verb, in the second it is a noun",
+     "In both sentences it is a noun",
+     "In both sentences it is a verb"
+    ],
+    "correct_index": 0,
+    "topic": "Ride: noun vs verb",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "مقارنة",
+    "why": "'A ride' names a journey (noun); 'to ride' expresses an action (verb)."
+   },
+   {
+    "id": "78bf25eb78b5",
+    "q": "What is the difference between 'drink' in *I'd like a soft drink, please* and 'drink' in *I want to drink tea*?",
+    "options": [
+     "In the first it is a noun, in the second it is a verb",
+     "In the first it is a verb, in the second it is a noun",
+     "In both sentences it is a noun",
+     "In both sentences it is a verb"
+    ],
+    "correct_index": 0,
+    "topic": "Drink: noun vs verb",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "'A soft drink' names a beverage (noun); 'to drink tea' expresses an action (verb)."
+   },
+   {
+    "id": "09dbe623f215",
+    "q": "What is the difference between 'heat' in *If you heat metal, it expands* and 'heat' in *I don't like heat*?",
+    "options": [
+     "In the first it is a verb, in the second it is a noun",
+     "In the first it is a noun, in the second it is a verb",
+     "In both sentences it is a verb",
+     "In both sentences it is a noun"
+    ],
+    "correct_index": 0,
+    "topic": "Heat: verb vs noun",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "'To heat metal' is an action (verb); 'heat' as a thing disliked is a noun."
+   },
+   {
+    "id": "8951e1653fe6",
+    "q": "Why can the same word be a verb in one sentence and a noun in another?",
+    "options": [
+     "Because its part of speech depends on how it is used in the sentence",
+     "Because its spelling changes from one sentence to another",
+     "Because English words always have two meanings",
+     "Because verbs are always longer than nouns"
+    ],
+    "correct_index": 0,
+    "topic": "Part of speech depends on use",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The lesson shows that a word's part of speech is decided by its role in the sentence, not by its form."
+   },
+   {
+    "id": "6520a98270b1",
+    "q": "Which word does NOT change its written form when used as a verb or as a noun?",
+    "options": [
+     "*cut / ride / drink / heat*",
+     "*walk / talk / read / write*",
+     "*run / jump / swim / fly*",
+     "*open / close / start / finish*"
+    ],
+    "correct_index": 0,
+    "topic": "Words unchanged in form",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "Cut, ride, drink, and heat keep the same spelling whether used as verb or noun."
+   },
+   {
+    "id": "b5c4b5c8f181",
+    "q": "Which of these is the correct part of speech of the underlined word? *The __cut__ on his arm was bleeding badly.*",
+    "options": [
+     "Noun",
+     "Verb",
+     "Adjective",
+     "Adverb"
+    ],
+    "correct_index": 0,
+    "topic": "Identifying noun in context",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "'The cut' is the subject of the sentence and names a wound, so it is a noun."
+   },
+   {
+    "id": "22db22cb5590",
+    "q": "Which of these is the correct part of speech of the underlined word? *If you __heat__ metal, it expands.*",
+    "options": [
+     "Verb",
+     "Noun",
+     "Adjective",
+     "Adverb"
+    ],
+    "correct_index": 0,
+    "topic": "Identifying verb in context",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "'Heat' here is the action done to the metal, so it is a verb."
+   },
+   {
+    "id": "652da6647d89",
+    "q": "Choose the correct part of speech of the underlined word: *Ali decided to go for a __ride__ on his bicycle.*",
+    "options": [
+     "Noun",
+     "Verb",
+     "Adjective",
+     "Adverb"
+    ],
+    "correct_index": 0,
+    "topic": "Identifying noun after preposition",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "After 'for a', 'ride' names the journey, so it is a noun."
+   },
+   {
+    "id": "ec22148b5062",
+    "q": "Choose the correct part of speech of the underlined word: *I want to __drink__ tea.*",
+    "options": [
+     "Verb",
+     "Noun",
+     "Adjective",
+     "Adverb"
+    ],
+    "correct_index": 0,
+    "topic": "Identifying verb after 'to'",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "After 'to', 'drink' expresses an action, so it is a verb."
+   },
+   {
+    "id": "f3a4f66138e1",
+    "q": "Complete the sentence with the correct form of 'cut': *Be careful with that knife — it can ____ you.*",
+    "options": [
+     "cut",
+     "a cut",
+     "cutting",
+     "cuts"
+    ],
+    "correct_index": 0,
+    "topic": "Using cut as verb in a sentence",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "After the modal 'can', the base form 'cut' is used as a verb."
+   },
+   {
+    "id": "a5e74e2778c3",
+    "q": "Complete the sentence with the correct form of 'heat': *I don't like the ____ in summer.*",
+    "options": [
+     "heat",
+     "hot",
+     "heated",
+     "heating"
+    ],
+    "correct_index": 0,
+    "topic": "Using heat as noun in a sentence",
+    "lesson": "Parts of Speech|أقسام الكلام",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "After 'the', the noun 'heat' is needed to name the quality disliked."
+   }
+  ]
+ },
+ "القواعد › Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول": {
+  "unit": "القواعد",
+  "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+  "hash": "6fcdb0bc21db4b93",
+  "spec": "q1",
+  "model": "deepseek-chat",
+  "count": 21,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "b11866e0d34b",
+    "q": "Choose the correct answer: A smartphone is a mobile phone ____ can do many things.",
+    "options": [
+     "that",
+     "who",
+     "where",
+     "when"
+    ],
+    "correct_index": 0,
+    "topic": "Starting a paragraph with a definition using is/was",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "Rule 1: start by defining the thing or person with is/was, as in 'A smartphone is a mobile phone that can do many things.'"
+   },
+   {
+    "id": "cb49fbb43a31",
+    "q": "Complete the sentence: It ____ first introduced in 1992.",
+    "options": [
+     "was",
+     "is",
+     "were",
+     "has"
+    ],
+    "correct_index": 0,
+    "topic": "Using the past with an invention date (was introduced)",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "Rule 2: with an old date we use the past simple, so 'was first introduced in 1992.'"
+   },
+   {
+    "id": "2c21a4d57860",
+    "q": "Choose the correct answer: After mentioning the name once, we use the pronoun ____ for a thing.",
+    "options": [
+     "It",
+     "He",
+     "She",
+     "They"
+    ],
+    "correct_index": 0,
+    "topic": "Using pronouns to avoid repetition",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "Rule 3: after the first mention of the name we use the right pronoun such as It or He."
+   },
+   {
+    "id": "1e891201e6a5",
+    "q": "Complete the sentence: It is used ____ fishing and transportation.",
+    "options": [
+     "for",
+     "to",
+     "of",
+     "in"
+    ],
+    "correct_index": 0,
+    "topic": "Turning usage information into a sentence (used for + V+ing)",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "قانون",
+    "why": "Rule 4: after 'for' we use a noun or a verb with ing, as in 'used for fishing.'"
+   },
+   {
+    "id": "15565477a7d7",
+    "q": "Choose the correct answer: It is made ____ wood.",
+    "options": [
+     "of",
+     "from",
+     "with",
+     "by"
+    ],
+    "correct_index": 0,
+    "topic": "Describing the material with made of",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "Rule 5: we use 'made of' when talking about the material a thing is made from."
+   },
+   {
+    "id": "01cfd917bfa3",
+    "q": "Complete the sentence: It can be ____ in stores or online.",
+    "options": [
+     "found",
+     "find",
+     "finding",
+     "finds"
+    ],
+    "correct_index": 0,
+    "topic": "Turning place information into a sentence (can be found)",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "قانون",
+    "why": "Rule 6: we use 'can be found' to express where a thing exists."
+   },
+   {
+    "id": "cc79288927df",
+    "q": "Choose the correct answer: It is light and long ____ shape.",
+    "options": [
+     "in",
+     "of",
+     "on",
+     "at"
+    ],
+    "correct_index": 0,
+    "topic": "Describing shape with in shape",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "Rule 5: we can use 'in shape' to describe the shape, as in 'It is light and long in shape.'"
+   },
+   {
+    "id": "8bd40340f68b",
+    "q": "Complete the sentence: He invented the pH scale ____ 1909.",
+    "options": [
+     "in",
+     "on",
+     "at",
+     "since"
+    ],
+    "correct_index": 0,
+    "topic": "Using invented with the inventor and a date",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "قانون",
+    "why": "Rule 2: 'invented' can be used directly with the inventor, as in 'He invented the pH scale in 1909.'"
+   },
+   {
+    "id": "2c9a6e340c2f",
+    "q": "What is the difference between 'It was first introduced in 1992' and 'It is first introduced in 1992'?",
+    "options": [
+     "The first uses the past simple because the date is old, the second wrongly uses the present",
+     "The first is about the future, the second is about the past",
+     "The first describes shape, the second describes material",
+     "There is no difference in meaning at all"
+    ],
+    "correct_index": 0,
+    "topic": "Choosing past simple with old dates",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "مقارنة",
+    "why": "Rule 2 says that when there is an old date we use the past simple, so 'was introduced' is correct."
+   },
+   {
+    "id": "8158a2a72e16",
+    "q": "Why do we write 'A smartphone is useful. It is used for calling' instead of repeating 'smartphone' three times?",
+    "options": [
+     "Because after the first mention we use the pronoun It to avoid repetition",
+     "Because the pronoun makes the sentence longer",
+     "Because 'smartphone' cannot be repeated in English",
+     "Because It is only used with people"
+    ],
+    "correct_index": 0,
+    "topic": "Purpose of pronouns in a paragraph",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "Rule 3: after mentioning the name the first time we use the right pronoun such as It or He to avoid repetition."
+   },
+   {
+    "id": "7c4815f8015d",
+    "q": "Which sentence correctly turns the table note 'Used for: cutting food, peeling and chopping' into a full sentence?",
+    "options": [
+     "It is used for cutting food, peeling and chopping.",
+     "It is used for cut food, peel and chop.",
+     "It uses for cutting food, peeling and chopping.",
+     "It is used to cutting food, peeling and chopping."
+    ],
+    "correct_index": 0,
+    "topic": "V+ing after for in usage sentences",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Rule 4: after 'for' we use a noun or a verb with ing, so 'cutting, peeling and chopping' is correct."
+   },
+   {
+    "id": "60ce5ac9bf92",
+    "q": "Which of these is NOT a correct way to start a paragraph about a thing?",
+    "options": [
+     "A smartphone is a mobile phone that can do many things.",
+     "It was first introduced in 1992.",
+     "It is made of wood.",
+     "Smartphone calling and messaging."
+    ],
+    "correct_index": 3,
+    "topic": "Writing a full sentence from a table note",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تعليل",
+    "why": "A table note is not a sentence; every point must be turned into a correct sentence with a subject and a verb."
+   },
+   {
+    "id": "6511884e657a",
+    "q": "Which sentence correctly describes the material and the shape of a thing?",
+    "options": [
+     "It is made of wood and it is light and long in shape.",
+     "It is made of light and long in wood.",
+     "It is made in wood and shape light.",
+     "It makes of wood and it shapes light and long."
+    ],
+    "correct_index": 0,
+    "topic": "Combining material and shape in one sentence",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "Rule 5 gives 'It is made of wood' for material and 'It is light and long in shape' for shape."
+   },
+   {
+    "id": "638482e2201d",
+    "q": "Which sentence correctly turns the table note 'Found: stores or online' into a full sentence?",
+    "options": [
+     "It can be found in stores or online.",
+     "It can found in stores or online.",
+     "It can be find in stores or online.",
+     "It is can be found in stores or online."
+    ],
+    "correct_index": 0,
+    "topic": "Forming can be found sentences",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "Rule 6: we use 'can be found' to express where a thing exists, as in 'It can be found in stores or online.'"
+   },
+   {
+    "id": "35d74c2cdcfe",
+    "q": "Which sentence uses the pronoun correctly after the first mention of the name?",
+    "options": [
+     "A kayak is a small boat. It is made of wood.",
+     "A kayak is a small boat. He is made of wood.",
+     "A kayak is a small boat. She is made of wood.",
+     "A kayak is a small boat. They is made of wood."
+    ],
+    "correct_index": 0,
+    "topic": "Choosing the right pronoun for a thing",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 1,
+    "kind": "مقارنة",
+    "why": "Rule 3: for a thing we use It, so 'It is made of wood' is correct."
+   },
+   {
+    "id": "b9ba81e75275",
+    "q": "Read: *A smartphone is a mobile phone that can do many things. It was first introduced in 1992. It is used for calling and messaging.* What is the smartphone used for?",
+    "options": [
+     "Calling and messaging",
+     "Fishing and transportation",
+     "Cutting food and peeling",
+     "Peeling and chopping"
+    ],
+    "correct_index": 0,
+    "topic": "Reading a paragraph built from a table",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 1,
+    "kind": "تعليل",
+    "why": "The passage says 'It is used for calling and messaging,' which answers the question."
+   },
+   {
+    "id": "4835e178c528",
+    "q": "Read: *A knife is a tool with a sharp blade. It is made of metal. It is mostly found in kitchens.* Where is a knife mostly found?",
+    "options": [
+     "In kitchens",
+     "In stores or online",
+     "In 1909",
+     "In 1992"
+    ],
+    "correct_index": 0,
+    "topic": "Reading a paragraph built from a table",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 1,
+    "kind": "تعليل",
+    "why": "The passage says 'It is mostly found in kitchens,' which answers the question."
+   },
+   {
+    "id": "4f2eeb7e3a1a",
+    "q": "Write a sentence using: ( pH scale / 1909 )",
+    "options": [
+     "The pH scale was invented in 1909.",
+     "The pH scale is invented in 1909.",
+     "The pH scale invented in 1909.",
+     "The pH scale was invent in 1909."
+    ],
+    "correct_index": 0,
+    "topic": "Writing a past simple sentence from a date",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "صعب",
+    "weight": 5,
+    "kind": "تطبيق",
+    "why": "Rule 2: with an old date we use the past simple, so 'was invented in 1909' is correct."
+   },
+   {
+    "id": "7d87905da7b5",
+    "q": "Write a sentence using: ( kayak / made of wood )",
+    "options": [
+     "A kayak is made of wood.",
+     "A kayak made of wood.",
+     "A kayak is make of wood.",
+     "A kayak is made from wood by wood."
+    ],
+    "correct_index": 0,
+    "topic": "Writing a sentence from a material note",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Rule 5: we use 'made of' with the material, so 'A kayak is made of wood' is correct."
+   },
+   {
+    "id": "a51aa5bb6d6d",
+    "q": "Write a sentence using: ( knife / kitchens )",
+    "options": [
+     "A knife is mostly found in kitchens.",
+     "A knife can found in kitchens.",
+     "A knife is find in kitchens.",
+     "A knife found in kitchens mostly can."
+    ],
+    "correct_index": 0,
+    "topic": "Writing a sentence from a place note",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Rule 6: we use 'can be found' or 'is found' to express where a thing exists, as in 'A knife is mostly found in kitchens.'"
+   },
+   {
+    "id": "bd4d5f063f8a",
+    "q": "Write a sentence using: ( smartphone / calling and messaging )",
+    "options": [
+     "A smartphone is used for calling and messaging.",
+     "A smartphone is used for call and message.",
+     "A smartphone used for calling and messaging.",
+     "A smartphone is using for calling and messaging."
+    ],
+    "correct_index": 0,
+    "topic": "Writing a usage sentence with V+ing after for",
+    "lesson": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "Rule 4: after 'for' we use a verb with ing, so 'used for calling and messaging' is correct."
+   }
+  ]
+ },
+ "القواعد › فهم القطعة والإجابة على الأسئلة | Reading Comprehension": {
+  "unit": "القواعد",
+  "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+  "hash": "0f339be96e665eee",
+  "spec": "q1",
+  "model": "deepseek-chat",
+  "count": 19,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "a4cb705e64fd",
+    "q": "Read: *We all need air for breathing. Air contains oxygen, which the body must have to live.* What do we need for breathing?",
+    "options": [
+     "air",
+     "water",
+     "food",
+     "sunlight"
+    ],
+    "correct_index": 0,
+    "topic": "Answering 'what' questions from the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The passage says 'We all need air for breathing', so the answer is air."
+   },
+   {
+    "id": "276cc3635879",
+    "q": "Read: *Cholesterol is a type of fat found in blood. Too much of it can harm the heart.* What is cholesterol?",
+    "options": [
+     "A type of fat found in blood",
+     "A kind of acid in the stomach",
+     "A gas inside the lungs",
+     "A vitamin in green vegetables"
+    ],
+    "correct_index": 0,
+    "topic": "Answering 'what is' definition questions",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The passage defines cholesterol as 'a type of fat found in blood'."
+   },
+   {
+    "id": "ea95cdf516d0",
+    "q": "Read: *Gas exchange takes place inside the lungs. Oxygen passes into the blood and carbon dioxide passes out.* Where does gas exchange take place?",
+    "options": [
+     "Inside the lungs",
+     "Inside the heart",
+     "Inside the stomach",
+     "Inside the muscles"
+    ],
+    "correct_index": 0,
+    "topic": "Answering 'where' questions from the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The passage states that gas exchange takes place inside the lungs."
+   },
+   {
+    "id": "72e76268a724",
+    "q": "Read: *Fish cannot breathe air. They use their gills to take in oxygen from the water.* What helps fish to take in oxygen from water?",
+    "options": [
+     "The gills",
+     "The fins",
+     "The scales",
+     "The tail"
+    ],
+    "correct_index": 0,
+    "topic": "Answering 'what helps' questions from the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The passage says fish use their gills to take in oxygen from the water."
+   },
+   {
+    "id": "7dec7539f0e2",
+    "q": "Read: *Nitric acid is used to sterilize foods because it kills bacteria.* Why is nitric acid used to sterilize foods?",
+    "options": [
+     "Because it kills bacteria",
+     "Because it adds a good taste",
+     "Because it gives a nice colour",
+     "Because it makes food softer"
+    ],
+    "correct_index": 0,
+    "topic": "Answering 'why' questions from the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعليل",
+    "why": "The passage gives the reason directly: it kills bacteria."
+   },
+   {
+    "id": "8d87e16c5428",
+    "q": "Read: *Malic acid is found in apples. It gives them their sour taste.* Are these statements True or False: *Apples contain malic acid.*",
+    "options": [
+     "True",
+     "False",
+     "Not given",
+     "Both True and False"
+    ],
+    "correct_index": 0,
+    "topic": "True or False questions",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "مقارنة",
+    "why": "The passage says malic acid is found in apples, so the sentence is True."
+   },
+   {
+    "id": "a739f8c0ee6a",
+    "q": "Read: *Strong acids can cause chemical burns. Always wear goggles to protect your eyes.* Are these statements True or False: *Use goggles to protect your hands.*",
+    "options": [
+     "False",
+     "True",
+     "Not given",
+     "Sometimes True"
+    ],
+    "correct_index": 0,
+    "topic": "True or False questions",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "مقارنة",
+    "why": "The passage says goggles protect your eyes, not your hands, so the sentence is False."
+   },
+   {
+    "id": "cc84ef2f844f",
+    "q": "Read: *Strong acids can cause chemical burns. Always wear goggles to protect your eyes.* Can strong acids burn your skin?",
+    "options": [
+     "Yes",
+     "No",
+     "Not mentioned",
+     "Only in laboratories"
+    ],
+    "correct_index": 0,
+    "topic": "Yes or No questions",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "The passage says strong acids can cause chemical burns, so the answer is Yes."
+   },
+   {
+    "id": "697c73f50bd8",
+    "q": "Which question word do we use when we want to know the reason for something? *____ is nitric acid used to sterilize foods?*",
+    "options": [
+     "Why",
+     "Where",
+     "When",
+     "How many"
+    ],
+    "correct_index": 0,
+    "topic": "Question words used in comprehension questions",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "'Why' asks about the reason, and the answer starts with 'because'."
+   },
+   {
+    "id": "8563a99de8ac",
+    "q": "Which question word do we use to ask about a place? *____ does gas exchange take place?*",
+    "options": [
+     "Where",
+     "What",
+     "Why",
+     "How"
+    ],
+    "correct_index": 0,
+    "topic": "Question words used in comprehension questions",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "'Where' asks about place, and the answer is 'inside the lungs'."
+   },
+   {
+    "id": "85d29d2cb068",
+    "q": "What is the difference between skimming and searching for a keyword?",
+    "options": [
+     "Skimming is reading quickly for the general idea, while searching for a keyword is looking for one specific word",
+     "Skimming is looking for one specific word, while searching for a keyword is reading quickly for the general idea",
+     "Skimming is reading aloud, while searching for a keyword is reading silently",
+     "Skimming is done after answering, while searching for a keyword is done before reading"
+    ],
+    "correct_index": 0,
+    "topic": "Difference between skimming and keyword searching",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "مقارنة",
+    "why": "Skimming gives the general idea quickly; searching for a keyword locates one word in the passage."
+   },
+   {
+    "id": "3f5e36a76878",
+    "q": "Read: *Lactic acid is formed in our muscles when we exercise.* When is lactic acid formed in our muscles?",
+    "options": [
+     "When we exercise",
+     "When we sleep",
+     "When we eat",
+     "When we drink water"
+    ],
+    "correct_index": 0,
+    "topic": "Answering 'when' questions from the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The passage says lactic acid is formed in our muscles when we exercise."
+   },
+   {
+    "id": "8b4388c294a9",
+    "q": "Read: *The most commonly used acids are hydrochloric, sulphuric and nitric acid.* How many acids are used in laboratories?",
+    "options": [
+     "Three",
+     "Two",
+     "Four",
+     "Five"
+    ],
+    "correct_index": 0,
+    "topic": "Answering 'how many' questions from the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "حساب",
+    "why": "The passage lists three acids: hydrochloric, sulphuric and nitric acid."
+   },
+   {
+    "id": "f502e8725587",
+    "q": "Read: *Lactic acid is formed in our muscles when we exercise. It makes the muscles feel tired.* Why do the muscles feel tired?",
+    "options": [
+     "Because lactic acid is formed in them",
+     "Because they lose oxygen",
+     "Because they become cold",
+     "Because they lose water"
+    ],
+    "correct_index": 0,
+    "topic": "Inferring a reason from the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The passage links the formation of lactic acid in the muscles with the feeling of tiredness."
+   },
+   {
+    "id": "198916963478",
+    "q": "Read: *Fish cannot breathe air. They use their gills to take in oxygen from the water.* Which sentence agrees with the passage?",
+    "options": [
+     "Fish take in oxygen from the water",
+     "Fish take in oxygen from the air",
+     "Fish do not need oxygen",
+     "Fish take in oxygen through their skin"
+    ],
+    "correct_index": 0,
+    "topic": "Choosing the sentence that agrees with the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "The passage says fish use their gills to take in oxygen from the water."
+   },
+   {
+    "id": "36fa28bf868e",
+    "q": "Read: *Cholesterol is a type of fat found in blood. Too much of it can harm the heart.* What can too much cholesterol do?",
+    "options": [
+     "Harm the heart",
+     "Help the lungs",
+     "Clean the blood",
+     "Strengthen the muscles"
+    ],
+    "correct_index": 0,
+    "topic": "Inferring a result from the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تعليل",
+    "why": "The passage says too much cholesterol can harm the heart."
+   },
+   {
+    "id": "26f8a2d600e9",
+    "q": "Read: *We all need air for breathing. Air contains oxygen, which the body must have to live.* If a person cannot get air, what will happen to the body?",
+    "options": [
+     "It will not get the oxygen it must have to live",
+     "It will get more oxygen than it needs",
+     "It will use cholesterol instead of oxygen",
+     "It will breathe through the gills"
+    ],
+    "correct_index": 0,
+    "topic": "Drawing a conclusion from the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The passage says the body must have oxygen from the air to live, so without air it gets no oxygen."
+   },
+   {
+    "id": "3ff98524cb3d",
+    "q": "Read: *Nitric acid is used to sterilize foods because it kills bacteria. Strong acids can cause chemical burns.* What can we conclude about using nitric acid in food?",
+    "options": [
+     "It is useful for killing bacteria but must be handled carefully",
+     "It is safe to touch with bare hands",
+     "It makes food taste better",
+     "It should never be used at all"
+    ],
+    "correct_index": 0,
+    "topic": "Drawing a conclusion from two facts in the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The passage says nitric acid kills bacteria but also that strong acids cause chemical burns, so it is useful yet needs care."
+   },
+   {
+    "id": "cc8834ce2400",
+    "q": "Read: *Malic acid is found in apples. Lactic acid is formed in our muscles when we exercise. The most commonly used acids are hydrochloric, sulphuric and nitric acid.* Which of these acids is found in food?",
+    "options": [
+     "Malic acid",
+     "Lactic acid",
+     "Sulphuric acid",
+     "Hydrochloric acid"
+    ],
+    "correct_index": 0,
+    "topic": "Comparing acids mentioned in the passage",
+    "lesson": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "The passage says malic acid is found in apples, which is food; lactic acid is formed in muscles."
+   }
+  ]
+ },
+ "القواعد › Match to make compound words | وصل الكلمات لتكوين كلمات مركبة": {
+  "unit": "القواعد",
+  "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+  "hash": "f1794a66a116ff72",
+  "spec": "q1",
+  "model": "deepseek-chat",
+  "count": 20,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "39f9766870aa",
+    "q": "What is a compound word?",
+    "options": [
+     "Two words joined together to give a new meaning",
+     "A word with a prefix added to the beginning",
+     "A word that joins two sentences together",
+     "The base form of a word before any ending is added"
+    ],
+    "correct_index": 0,
+    "topic": "Definition of a compound word",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "A compound word is made of two words that together give a new meaning, as in smart + phone = smartphone."
+   },
+   {
+    "id": "702d5867a1a2",
+    "q": "Which two words make one compound word? *smart / phone / quickly*",
+    "options": [
+     "smart + phone",
+     "smart + quickly",
+     "phone + quickly",
+     "quickly + smart"
+    ],
+    "correct_index": 0,
+    "topic": "Forming compound words with smart",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تطبيق",
+    "why": "smart + phone = smartphone, a new word meaning a clever phone."
+   },
+   {
+    "id": "4208eaa5f248",
+    "q": "Complete the compound word: *class + ____ = classroom*",
+    "options": [
+     "room",
+     "paper",
+     "ball",
+     "light"
+    ],
+    "correct_index": 0,
+    "topic": "Forming compound words with class",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تطبيق",
+    "why": "class + room = classroom, meaning the room where a class is taught."
+   },
+   {
+    "id": "28971e25e245",
+    "q": "Which two words make one compound word? *foot / ball / table*",
+    "options": [
+     "foot + ball",
+     "foot + table",
+     "ball + table",
+     "table + foot"
+    ],
+    "correct_index": 0,
+    "topic": "Common compound words in the syllabus",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تطبيق",
+    "why": "foot + ball = football, one of the most common compound words in ministerial exams."
+   },
+   {
+    "id": "4871bdd2dee6",
+    "q": "Complete the compound word: *news + ____ = newspaper*",
+    "options": [
+     "paper",
+     "room",
+     "light",
+     "thing"
+    ],
+    "correct_index": 0,
+    "topic": "Forming compound words with news",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "news + paper = newspaper, written as one word with no space."
+   },
+   {
+    "id": "8e442f36aa56",
+    "q": "Which two words make one compound word? *sun / light / paper*",
+    "options": [
+     "sun + light",
+     "sun + paper",
+     "light + paper",
+     "paper + sun"
+    ],
+    "correct_index": 0,
+    "topic": "Matching beginnings and endings",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تطبيق",
+    "why": "sun + light = sunlight; we choose the ending that makes a correct word with meaning."
+   },
+   {
+    "id": "77298e934648",
+    "q": "Complete the compound word: *some + ____ = something*",
+    "options": [
+     "thing",
+     "body",
+     "time",
+     "where"
+    ],
+    "correct_index": 0,
+    "topic": "Common compound words with some",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "some + thing = something, a very common compound word in English."
+   },
+   {
+    "id": "3053daab7259",
+    "q": "Which of these is written as ONE word with no space?",
+    "options": [
+     "haircut",
+     "hair cut",
+     "hair-cut",
+     "hair/cut"
+    ],
+    "correct_index": 0,
+    "topic": "Compound words written as one word",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "Some compound words are written as one word without a space, as in hair + cut = haircut."
+   },
+   {
+    "id": "8177ce8856c6",
+    "q": "What is the difference between the two words in a compound word and the compound word itself?",
+    "options": [
+     "The two words give a new meaning when joined",
+     "The two words keep exactly the same meaning",
+     "The compound word has no meaning at all",
+     "The compound word is always two separate words"
+    ],
+    "correct_index": 0,
+    "topic": "Meaning connection in compound words",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "مقارنة",
+    "why": "The two words are connected in meaning and together give a new word, as in class + room = classroom."
+   },
+   {
+    "id": "21459ceba495",
+    "q": "Why is 'classroom' easy to understand from its two parts?",
+    "options": [
+     "Because the two words are connected in meaning",
+     "Because it is written with a space",
+     "Because it has a prefix and a suffix",
+     "Because the two words have opposite meanings"
+    ],
+    "correct_index": 0,
+    "topic": "Meaning connection in compound words",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "تعليل",
+    "why": "classroom means the room of the class, so the two words are linked in meaning."
+   },
+   {
+    "id": "09f87692d2d8",
+    "q": "Which of these is NOT a correct compound word?",
+    "options": [
+     "phone + smart",
+     "smart + phone",
+     "class + room",
+     "foot + ball"
+    ],
+    "correct_index": 0,
+    "topic": "Correct order of words in a compound word",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "The correct compound is smart + phone = smartphone; the order phone + smart is not used."
+   },
+   {
+    "id": "e72d4d6b9e6f",
+    "q": "Which pair of words gives a new meaning when joined?",
+    "options": [
+     "sun + light",
+     "sun + sun",
+     "light + light",
+     "sun + and"
+    ],
+    "correct_index": 0,
+    "topic": "Choosing the right ending for a beginning",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "sun + light = sunlight, a new word with a new meaning, while the other pairs give no correct word."
+   },
+   {
+    "id": "24b4b3f58d23",
+    "q": "Which of these compound words is written as one word?",
+    "options": [
+     "newspaper",
+     "news paper",
+     "news-paper",
+     "news/paper"
+    ],
+    "correct_index": 0,
+    "topic": "Written form of compound words",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "Some compound words are written as one word with no space, as in news + paper = newspaper."
+   },
+   {
+    "id": "35472bd0ac78",
+    "q": "Why must a student know the meaning of each word before matching?",
+    "options": [
+     "To choose the words that are used together correctly",
+     "To count the letters in each word",
+     "To change the word into a verb",
+     "To write the words with a space"
+    ],
+    "correct_index": 0,
+    "topic": "Understanding meaning before matching",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "تعليل",
+    "why": "The student must understand the meaning and know which words are used together correctly in English."
+   },
+   {
+    "id": "cfc239f045a5",
+    "q": "Which of these pairs does NOT make a correct compound word?",
+    "options": [
+     "foot + paper",
+     "foot + ball",
+     "news + paper",
+     "class + room"
+    ],
+    "correct_index": 0,
+    "topic": "Matching beginnings and endings correctly",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "foot + paper is not a compound word; the correct pairs are football and newspaper."
+   },
+   {
+    "id": "75fa45dac6b4",
+    "q": "Complete the sentence with the correct compound word: *I read the ____ every morning.*",
+    "options": [
+     "newspaper",
+     "newspapers room",
+     "papernews",
+     "newsroom paper"
+    ],
+    "correct_index": 0,
+    "topic": "Using compound words in sentences",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "newspaper is the compound word formed from news + paper, and it fits the sentence."
+   },
+   {
+    "id": "643e909f4b41",
+    "q": "If a student joins 'sun' with 'paper', what is the result?",
+    "options": [
+     "It is not a correct compound word",
+     "It makes the word sunlight",
+     "It makes the word newspaper",
+     "It makes the word football"
+    ],
+    "correct_index": 0,
+    "topic": "Testing whether a pair makes a real word",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "sun + paper gives no correct English word; the correct ending for sun is light, giving sunlight."
+   },
+   {
+    "id": "378f456a2e98",
+    "q": "A student wants to make a compound word meaning 'a room for a class'. Which two words must be joined?",
+    "options": [
+     "class + room",
+     "room + class",
+     "class + paper",
+     "room + light"
+    ],
+    "correct_index": 0,
+    "topic": "Building a compound word from its meaning",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The meaning 'a room for a class' is given by class + room = classroom, in that order."
+   },
+   {
+    "id": "ee1f1edeaf7a",
+    "q": "Which of these words can be joined with 'thing' to make a correct compound word?",
+    "options": [
+     "some",
+     "sun",
+     "foot",
+     "hair"
+    ],
+    "correct_index": 0,
+    "topic": "Choosing the right beginning for an ending",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "some + thing = something; the other words join with different endings such as sunlight and football."
+   },
+   {
+    "id": "bf7a13f2e7c1",
+    "q": "A student joins 'hair' with 'cut' and writes 'hair cut'. What is the mistake?",
+    "options": [
+     "The compound word must be written as one word: haircut",
+     "The order of the two words is wrong",
+     "The word 'cut' cannot be used in a compound",
+     "The word 'hair' cannot be used in a compound"
+    ],
+    "correct_index": 0,
+    "topic": "Written form of compound words",
+    "lesson": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+    "level": "متوسط",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "hair + cut = haircut is written as one word with no space, so 'hair cut' is wrong."
+   }
+  ]
+ },
+ "القواعد › Prefixes and Suffixes|البادئات واللواحق": {
+  "unit": "القواعد",
+  "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+  "hash": "ab416b24f3d2e9af",
+  "spec": "q1",
+  "model": "deepseek-chat",
+  "count": 20,
+  "built_at": "2026-09-18",
+  "questions": [
+   {
+    "id": "b0ebd5eb1a37",
+    "q": "What is a prefix?",
+    "options": [
+     "A group of letters added to the beginning of a word to change its meaning",
+     "A group of letters added to the end of a word to change its part of speech",
+     "The base form of a word before any ending is added",
+     "A word that joins two sentences together"
+    ],
+    "correct_index": 0,
+    "topic": "Definition of a prefix",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "A prefix is added at the beginning of a word and changes its meaning, as in un- + usual = unusual."
+   },
+   {
+    "id": "838d38556742",
+    "q": "What is a suffix?",
+    "options": [
+     "A group of letters added to the end of a word to change its part of speech",
+     "A group of letters added to the beginning of a word to change its meaning",
+     "A letter added in the middle of a word",
+     "A word that stands before a noun"
+    ],
+    "correct_index": 0,
+    "topic": "Definition of a suffix",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "A suffix is added at the end of a word and changes its part of speech, e.g. enjoy → enjoyment."
+   },
+   {
+    "id": "38de531418e0",
+    "q": "Which prefix means 'again'?",
+    "options": [
+     "re-",
+     "un-",
+     "im-",
+     "-less"
+    ],
+    "correct_index": 0,
+    "topic": "Meaning of the prefix re-",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "مبتدئ",
+    "weight": 5,
+    "kind": "تعريف",
+    "why": "The lesson states that (re) means repeating the action, as in retake."
+   },
+   {
+    "id": "c272af5f89f7",
+    "q": "Which prefix gives the opposite meaning in the word 'impolite'?",
+    "options": [
+     "im-",
+     "re-",
+     "-ment",
+     "-ful"
+    ],
+    "correct_index": 0,
+    "topic": "Meaning of the prefix im-",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The lesson says (im) gives the opposite meaning, as in impolite."
+   },
+   {
+    "id": "7a4eeb2d8b83",
+    "q": "Which suffix turns the verb 'enjoy' into a noun?",
+    "options": [
+     "-ment",
+     "-ful",
+     "-less",
+     "-y"
+    ],
+    "correct_index": 0,
+    "topic": "Suffix -ment forming nouns",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "Adding (ment) to enjoy gives enjoyment, a noun."
+   },
+   {
+    "id": "12566e9dc7ec",
+    "q": "Which suffix is added to the verb 'discover' to make the noun 'discovery'?",
+    "options": [
+     "-y",
+     "-ion",
+     "-ness",
+     "-er"
+    ],
+    "correct_index": 0,
+    "topic": "Suffix -y forming nouns",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "The lesson shows that (y) changes discover into the noun discovery."
+   },
+   {
+    "id": "2163dc8ba078",
+    "q": "Which suffix means 'full of' the adjective?",
+    "options": [
+     "-ful",
+     "-less",
+     "-ness",
+     "-ion"
+    ],
+    "correct_index": 0,
+    "topic": "Meaning of the suffix -ful",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "مبتدئ",
+    "weight": 4,
+    "kind": "تعريف",
+    "why": "The lesson states that (ful) means full of the adjective, as in careful."
+   },
+   {
+    "id": "0c6feb8b367a",
+    "q": "Which suffix means 'without' the adjective?",
+    "options": [
+     "-less",
+     "-ful",
+     "-ment",
+     "-er"
+    ],
+    "correct_index": 0,
+    "topic": "Meaning of the suffix -less",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "مبتدئ",
+    "weight": 3,
+    "kind": "تعريف",
+    "why": "The lesson states that (less) means without the adjective, as in careless."
+   },
+   {
+    "id": "3cbc81ccccda",
+    "q": "What is the difference between a prefix and a suffix?",
+    "options": [
+     "A prefix is added at the beginning of a word, while a suffix is added at the end",
+     "A prefix changes the part of speech, while a suffix changes the meaning",
+     "A prefix is added at the end of a word, while a suffix is added at the beginning",
+     "A prefix is only used with verbs, while a suffix is only used with nouns"
+    ],
+    "correct_index": 0,
+    "topic": "Prefix position vs suffix position",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "متوسط",
+    "weight": 5,
+    "kind": "مقارنة",
+    "why": "The lesson defines a prefix as letters added at the beginning and a suffix as letters added at the end."
+   },
+   {
+    "id": "f83d1837b51f",
+    "q": "Which word does NOT belong with the others?",
+    "options": [
+     "retake",
+     "unusual",
+     "unbelievable",
+     "impolite"
+    ],
+    "correct_index": 0,
+    "topic": "Prefix re- vs un- and im-",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "Retake uses (re) meaning 'again', while the other three use prefixes that give the opposite meaning."
+   },
+   {
+    "id": "9e73404e5c5e",
+    "q": "Why does the word 'unbelievable' mean 'not able to be believed'?",
+    "options": [
+     "Because the prefix un- gives the opposite meaning to the word",
+     "Because the suffix -able gives the opposite meaning to the word",
+     "Because the prefix re- means 'again'",
+     "Because the suffix -ness turns the word into a noun"
+    ],
+    "correct_index": 0,
+    "topic": "Opposite meaning with un-",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "تعليل",
+    "why": "The lesson says (un) gives the opposite meaning, as in unusual and unbelievable."
+   },
+   {
+    "id": "d9b41684203c",
+    "q": "Which pair shows a verb changed into a noun by a suffix?",
+    "options": [
+     "enjoy → enjoyment",
+     "careful → careless",
+     "polite → impolite",
+     "usual → unusual"
+    ],
+    "correct_index": 0,
+    "topic": "Verb to noun by adding -ment",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "متوسط",
+    "weight": 3,
+    "kind": "مقارنة",
+    "why": "The lesson shows that adding (ment) to the verb enjoy gives the noun enjoyment."
+   },
+   {
+    "id": "86336f9f421e",
+    "q": "Which suffix is used most to change verbs into nouns?",
+    "options": [
+     "-ion / -tion",
+     "-ful",
+     "-less",
+     "-er"
+    ],
+    "correct_index": 0,
+    "topic": "Suffix -ion forming nouns",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "متوسط",
+    "weight": 4,
+    "kind": "تعليل",
+    "why": "The lesson says (ion/tion) is added a lot to verbs to change them into nouns, as in collection and suggestion."
+   },
+   {
+    "id": "69f2d9b79fe3",
+    "q": "Which word is a noun formed by adding -ness to an adjective?",
+    "options": [
+     "darkness",
+     "careful",
+     "successful",
+     "careless"
+    ],
+    "correct_index": 0,
+    "topic": "Suffix -ness forming nouns",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "مقارنة",
+    "why": "The lesson states that (ness) is added to an adjective to make a noun, as in dark → darkness."
+   },
+   {
+    "id": "344bc0be2b27",
+    "q": "Which of these words contains BOTH a prefix and a suffix?",
+    "options": [
+     "unbelievably",
+     "unusual",
+     "enjoyment",
+     "careless"
+    ],
+    "correct_index": 0,
+    "topic": "Combining a prefix and a suffix",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "متوسط",
+    "weight": 1,
+    "kind": "مقارنة",
+    "why": "Unbelievably has the prefix un- at the beginning and the suffix -ly at the end, unlike the other single-affix words."
+   },
+   {
+    "id": "7a4fbafa9083",
+    "q": "Which word is NOT a noun formed with a suffix?",
+    "options": [
+     "careful",
+     "movement",
+     "greeting",
+     "explanation"
+    ],
+    "correct_index": 0,
+    "topic": "Suffix -ful forming adjectives",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "متوسط",
+    "weight": 2,
+    "kind": "مقارنة",
+    "why": "Careful is an adjective formed with (ful), while movement, greeting and explanation are nouns."
+   },
+   {
+    "id": "e385161129eb",
+    "q": "Complete the sentence with the correct form: *He had to ____ write the letter because he made a mistake.* (re- / un- / -ful)",
+    "options": [
+     "re",
+     "un",
+     "ful",
+     "less"
+    ],
+    "correct_index": 0,
+    "topic": "Using the prefix re- in context",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "صعب",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The prefix (re) means doing the action again, so 'rewrite' means write the letter again."
+   },
+   {
+    "id": "388d761f5e86",
+    "q": "Complete the sentence with the correct form: *She was very ____ and forgot her keys at home.* (care + less / care + ful / care + ness)",
+    "options": [
+     "careless",
+     "careful",
+     "careness",
+     "caring"
+    ],
+    "correct_index": 0,
+    "topic": "Using -less to form adjectives",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "صعب",
+    "weight": 2,
+    "kind": "تطبيق",
+    "why": "The suffix (less) means 'without', so careless means without care, which fits forgetting the keys."
+   },
+   {
+    "id": "da366db891f9",
+    "q": "Change the verb into a noun: *The teacher gave a clear ____ of the lesson.* (explain)",
+    "options": [
+     "explanation",
+     "explaining",
+     "explained",
+     "explainful"
+    ],
+    "correct_index": 0,
+    "topic": "Changing a verb into a noun with -ion",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "صعب",
+    "weight": 3,
+    "kind": "تطبيق",
+    "why": "The lesson shows that (ion/tion) changes a verb into a noun, as in explain → explanation."
+   },
+   {
+    "id": "cab4fc405527",
+    "q": "Complete the sentence with the correct form: *His hard work brought him great ____ in the exam.* (succeed + ful / succeed + ness / succeed + less)",
+    "options": [
+     "success",
+     "successful",
+     "successless",
+     "successness"
+    ],
+    "correct_index": 0,
+    "topic": "Forming nouns from adjectives with -ness",
+    "lesson": "Prefixes and Suffixes|البادئات واللواحق",
+    "level": "صعب",
+    "weight": 1,
+    "kind": "تطبيق",
+    "why": "The lesson shows that (ness) turns an adjective into a noun, as in dark → darkness, so successful → success."
+   }
+  ]
+ }
+}

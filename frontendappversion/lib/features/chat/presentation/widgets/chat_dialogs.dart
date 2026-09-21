@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/curriculum.dart';
 import '../../../../core/config/resources.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/masar_dialog.dart';
+import '../../../../core/widgets/phosphor.dart';
 import '../../data/models/chat_model.dart';
 import '../controllers/chat_controller.dart';
 
@@ -16,7 +18,15 @@ class ChatDialogs {
   // ===== مركز الموارد =====
   // 📚 يتبع الصف والمسار: مواده = مواد الصف نفسها، وروابطه من
   //    `core/config/resources.dart`. مادة بلا روابط → شارة «قريباً».
-  static void showResources(BuildContext context, {required int grade, required Track track}) {
+  // ══════════════════════════════════════════════════
+  // 📁 مركز الموارد — بلغة التصميم الجديد
+  // ══════════════════════════════════════════════════
+  // 🎨 كان `AlertDialog` من عهدٍ سابق: r28 · أيقونات Material · بطاقاتٌ
+  //    رمادية r20 · و`ExpansionTile` بسهمٍ افتراضيّ. صار على [MasarDialog]:
+  //    صفوفٌ 46 بحدٍّ خفيف تُفتح فتصير زرقاءَ خفيفةً بحدٍّ أزرق — كصفوف
+  //    المواد في القائمة الجانبية حرفياً.
+  static void showResources(BuildContext context,
+      {required int grade, required Track track}) {
     final t = Curriculum.normalizeTrack(grade, track);
     final subjects = Curriculum.subjectsFor(grade, t);
     final scopeLabel = Curriculum.hasTracks(grade)
@@ -25,115 +35,56 @@ class ChatDialogs {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-            child: Icon(Icons.folder_special_rounded, color: AppColors.primary),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text("مركز الموارد", style: TextStyle(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 2),
-                // 🏷️ شارة النطاق: يعرف الطالب أن هذه موارد صفه هو
-                Text(scopeLabel,
-                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.primary)),
-              ],
-            ),
-          ),
-        ]),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (!Resources.hasAny(grade, t))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
+      builder: (ctx) => ThemeScope(
+        builder: (ctx) => MasarDialog(
+          icon: PD.folderOpen,
+          title: "مركز الموارد",
+          // 🏷️ شارةُ النطاق: يعرف الطالب أن هذه مواردُ صفّه هو.
+          subtitle: scopeLabel,
+          primaryLabel: "إغلاق",
+          fullWidthAction: true,
+          closable: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (!Resources.hasAny(grade, t))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningTintSurface,
+                      borderRadius: BorderRadius.circular(12),
+                      border:
+                          Border.all(color: AppColors.warningTintBorder),
+                    ),
                     child: Text(
-                      "🚧 موارد $scopeLabel قيد التجهيز — المواد أدناه جاهزة وستُضاف روابطها قريباً.",
+                      "🚧 موارد $scopeLabel قيد التجهيز — المواد أدناه جاهزة "
+                      "وستُضاف روابطها قريباً.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12.5, height: 1.6, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          height: 1.7,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.warning900),
                     ),
                   ),
-                ...subjects.map((s) => _resourceCard(context, s, Resources.forSubject(grade, t, s))),
+                ),
+              for (final sbj in subjects) ...[
+                _ResourceRow(
+                    subject: sbj,
+                    items: Resources.forSubject(grade, t, sbj)),
+                const SizedBox(height: 8),
               ],
-            ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text("إغلاق", style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-          ),
-        ],
       ),
     );
   }
 
-  static Widget _resourceCard(BuildContext context, String subject, List<ResourceLink> items) {
-    final empty = items.isEmpty;
-    // 🐛 Material لا Container: ListTile يرسم خلفيته وتموّجه على أقرب Material،
-    //    فلو لوّنّا Container فوقه لأخفى التموّج — وFlutter يرمي تأكيداً بذلك.
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: AppColors.softSurface,
-        borderRadius: BorderRadius.circular(20),
-        clipBehavior: Clip.antiAlias,
-        child: Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            enabled: !empty,
-            title: Row(
-              children: [
-                Expanded(
-                  child: Text(Resources.displayName(subject),
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: empty ? AppColors.textSecondary : AppColors.textPrimary)),
-                ),
-                if (empty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: AppColors.surfaceWhite, borderRadius: BorderRadius.circular(8)),
-                    child: Text("قريباً",
-                        style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: AppColors.textSecondary)),
-                  ),
-              ],
-            ),
-            trailing: empty ? const SizedBox.shrink() : null,
-            children: items
-                .map((item) => ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                      leading: Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 20),
-                      title: Text(item.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                      trailing: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(color: AppColors.surfaceWhite, borderRadius: BorderRadius.circular(10)),
-                        child: Icon(Icons.download_rounded, color: AppColors.primary, size: 16),
-                      ),
-                      onTap: () async {
-                        final uri = Uri.parse(item.url);
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        }
-                      },
-                    ))
-                .toList(),
-          ),
-        ),
-      ),
-    );
-  }
 
   // ===== نافذة الدعم والمطور =====
   static void showDeveloperInfo(BuildContext context) {
@@ -149,7 +100,7 @@ class ChatDialogs {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(gradient: AppColors.mainGradient, shape: BoxShape.circle, boxShadow: AppColors.softShadow),
-              child: Icon(Icons.code_rounded, color: Colors.white, size: 40),
+              child: Icon(PI.code.bold, color: Colors.white, size: 40),
             ),
             const SizedBox(height: 20),
             Text("م. محمد الديني", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
@@ -161,21 +112,21 @@ class ChatDialogs {
             ),
             const SizedBox(height: 28),
             _contactRow(
-              icon: Icons.phone_rounded,
+              icon: PI.phone.regular,
               title: "رقم الهاتف (واتساب / اتصال)",
               subtitle: "917736388574+",
               onTap: () => launchUrl(Uri.parse("https://wa.me/917736388574"), mode: LaunchMode.externalApplication),
             ),
             const SizedBox(height: 12),
             _contactRow(
-              icon: Icons.camera_alt_rounded,
+              icon: PI.camera.regular,
               title: "انستقرام",
               subtitle: "@mo_37ui",
               onTap: () => launchUrl(Uri.parse("https://www.instagram.com/mo_37ui?igsh=MTJxZHB1cTQ5bmEwdg%3D%3D&utm_source=qr"), mode: LaunchMode.externalApplication),
             ),
             const SizedBox(height: 12),
             _contactRow(
-              icon: Icons.email_rounded,
+              icon: PI.envelope.regular,
               title: "البريد الإلكتروني",
               subtitle: "bfsak530156@gmail.com",
               onTap: () => launchUrl(Uri.parse("mailto:bsak530156@gmail.com")),
@@ -217,7 +168,7 @@ class ChatDialogs {
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
+            Icon(PI.caretLeft.regular, size: 14, color: AppColors.textSecondary),
           ],
         ),
       ),
@@ -225,84 +176,248 @@ class ChatDialogs {
   }
 
   // ===== إعادة تسمية المحادثة =====
-  static void showRename(BuildContext context, ChatController controller, ChatConversation conversation) {
-    final TextEditingController renameController = TextEditingController(text: conversation.title);
+  // ══════════════════════════════════════════════════
+  // ✏️ تعديل اسم المحادثة — تصميم `design/03-home/19`
+  // ══════════════════════════════════════════════════
+  // 🎨 مربّعُ قلمٍ أزرقُ فاتحٌ 48 r14 · عنوانٌ 17/w900 · حقلٌ **رماديٌّ بلا
+  //    حدّ** r14 بارتفاع 52 · وزرُّ «حفظ» أزرقُ ممتلئ و«إلغاء» نصّاً.
+  //
+  // 📏 **سطرٌ واحدٌ لا يكبر مع الكتابة** (ملاحظة المالك): كان الحقل بلا
+  //    `maxLines` فاسمُ المحادثة الطويل يلتفّ سطراً بعد سطرٍ ويطول
+  //    الحوارُ تحت الإصبع وهو يكتب.
+  static void showRename(BuildContext context, ChatController controller,
+      ChatConversation conversation) {
+    final TextEditingController renameController =
+        TextEditingController(text: conversation.title);
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Text("تعديل اسم المحادثة", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: TextField(
-          controller: renameController,
-          style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            hintText: "اسم جديد...",
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            filled: true,
-            fillColor: AppColors.softSurface,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      builder: (ctx) => ThemeScope(
+        builder: (ctx) => MasarDialog(
+          icon: PD.pencilSimple,
+          title: "تعديل أسم المحادثة",
+          primaryLabel: "حفظ",
+          cancelLabel: "إلغاء",
+          onPrimary: () async {
+            final newTitle = renameController.text.trim();
+            if (newTitle.isEmpty) return;
+            await controller.renameConversation(conversation, newTitle);
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text("✅ تم تعديل الاسم",
+                    style: TextStyle(fontWeight: FontWeight.w900)),
+                backgroundColor: AppColors.success700,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          },
+          child: SizedBox(
+            height: 52,
+            child: TextField(
+              controller: renameController,
+              maxLines: 1,
+              textAlignVertical: TextAlignVertical.center,
+              style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: "اسم جديد…",
+                hintStyle: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.dropdownCaret),
+                filled: true,
+                fillColor: AppColors.fieldFill,
+                // ⚠️ الأربعةُ صراحةً: سمةُ التطبيق ترسم `enabledBorder`
+                //    فيظهر إطارٌ لا وجودَ له في التصميم.
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide:
+                        BorderSide(color: AppColors.primary, width: 1.4)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+              ),
+            ),
           ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text("إلغاء", style: TextStyle(color: AppColors.textSecondary))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
-            onPressed: () async {
-              final newTitle = renameController.text.trim();
-              if (newTitle.isNotEmpty) {
-                await controller.renameConversation(conversation, newTitle);
-                if (!ctx.mounted) return;
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(content: Text("✅ تم تعديل الاسم"), backgroundColor: Colors.green.shade600, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), behavior: SnackBarBehavior.floating),
-                );
-              }
-            },
-            child: Text("حفظ", style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
       ),
     );
   }
 
-  // ===== تأكيد الحذف =====
-  static void showDeleteConfirmation(BuildContext context, ChatController controller, String id) {
+  // ══════════════════════════════════════════════════
+  // 🗑️ حذف المحادثة — تصميم `design/03-home/18`
+  // ══════════════════════════════════════════════════
+  // 🎨 مربّعُ تحذيرٍ أحمرُ فاتحٌ 48 r14 في بداية الرأس · عنوانٌ 17/w900 ·
+  //    نصٌّ كحليٌّ سطران · وزرُّ «حذف» **أحمرُ ممتلئ** في نهاية السطر
+  //    و«إلغاء» نصّاً إلى يمينه.
+  static void showDeleteConfirmation(
+      BuildContext context, ChatController controller, String id) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-              child: Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-            ),
-            const SizedBox(width: 12),
-            Text("حذف المحادثة", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: Text(
-          "هل أنت متأكد أنك تريد حذف هذه المحادثة نهائياً؟ لا يمكن التراجع عن هذا الإجراء.",
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 15, height: 1.5),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text("إلغاء", style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-            onPressed: () {
-              Navigator.pop(ctx);
-              controller.deleteConversation(id);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("🗑️ تم حذف المحادثة بنجاح"), backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), behavior: SnackBarBehavior.floating),
-              );
-            },
-            child: Text("حذف", style: TextStyle(fontWeight: FontWeight.bold)),
+      builder: (ctx) => ThemeScope(
+        builder: (ctx) => MasarDialog(
+          icon: PD.warning,
+          iconTint: AppColors.errorTint,
+          iconInk: AppColors.error500,
+          title: "حذف المحادثة",
+          primaryLabel: "حذف",
+          primaryColor: AppColors.error500,
+          cancelLabel: "إلغاء",
+          onPrimary: () async {
+            controller.deleteConversation(id);
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text("🗑️ تم حذف المحادثة بنجاح",
+                    style: TextStyle(fontWeight: FontWeight.w900)),
+                backgroundColor: AppColors.error600,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          },
+          child: Text(
+            "هل أنت متأكد أنك تريد حذف هذه المحادثة نهائياً؟ "
+            "لا يمكن التراجع عن هذا الإجراء.",
+            style: TextStyle(
+                fontSize: 13.5,
+                height: 1.9,
+                fontWeight: FontWeight.w800,
+                color: AppColors.panelTitle),
           ),
-        ],
+        ),
       ),
     );
+  }
+}
+
+// ══════════════════════════════════════════════════
+// 📚 صفُّ مادةٍ في مركز الموارد — يُفتح فيُظهر ملفّاتها
+// ══════════════════════════════════════════════════
+// 🔄 **يُفتح بدل `ExpansionTile`**: ذاك يرسم سهمَه وحشوتَه وخطوطَه بمقاسات
+//    Material، فلا يطابق صفوفَ القائمة الجانبية. وهذا صفٌّ 46 بحدٍّ خفيف
+//    كسائر صفوف التطبيق، يصير عند الفتح أزرقَ خفيفاً بحدٍّ أزرق — وهي
+//    الحالةُ المختارة نفسُها في قائمة المواد.
+class _ResourceRow extends StatefulWidget {
+  const _ResourceRow({required this.subject, required this.items});
+
+  final String subject;
+  final List<ResourceLink> items;
+
+  @override
+  State<_ResourceRow> createState() => _ResourceRowState();
+}
+
+class _ResourceRowState extends State<_ResourceRow> {
+  bool _open = false;
+
+  bool get _empty => widget.items.isEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MasarDialogRow(
+          highlighted: _open,
+          // ⛔ المادةُ بلا ملفّاتٍ لا تُفتح — وتقول «قريباً» بدل أن تُفتح
+          //    على فراغ.
+          onTap: _empty ? null : () => setState(() => _open = !_open),
+          child: Row(
+            children: [
+              PDuo(PD.filePdf,
+                  size: 20,
+                  color: _empty ? AppColors.cardHint : AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(Resources.displayName(widget.subject),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: _empty
+                            ? AppColors.cardHint
+                            : AppColors.textPrimary)),
+              ),
+              if (_empty)
+                Text("قريباً",
+                    style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.warning900))
+              else ...[
+                Text("${widget.items.length}",
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary)),
+                const SizedBox(width: 6),
+                AnimatedRotation(
+                  turns: _open ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(PI.caretDown.regular,
+                      size: 15, color: AppColors.dropdownCaret),
+                ),
+              ],
+            ],
+          ),
+        ),
+        // 📂 الملفّات — تنزلق بحركةٍ يتابعها الطالب لا تظهر فجأةً.
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: !_open
+              ? const SizedBox(width: double.infinity)
+              : Padding(
+                  padding: const EdgeInsets.only(top: 8, right: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final item in widget.items) ...[
+                        MasarDialogRow(
+                          height: 44,
+                          onTap: () => _open_(item),
+                          child: Row(
+                            children: [
+                              Icon(PI.filePdf.regular,
+                                  size: 18, color: AppColors.error500),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(item.name,
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary)),
+                              ),
+                              Icon(PI.downloadSimple.bold,
+                                  size: 16, color: AppColors.primary),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                      ],
+                    ],
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _open_(ResourceLink item) async {
+    final uri = Uri.parse(item.url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }

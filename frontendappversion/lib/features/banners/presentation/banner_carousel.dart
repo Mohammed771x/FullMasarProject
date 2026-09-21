@@ -16,7 +16,7 @@ class BannerCarousel extends StatefulWidget {
     super.key,
     required this.section,
     required this.onAction,
-    this.height = 140,
+    this.height = 106,
   });
 
   final String section;
@@ -106,68 +106,94 @@ class _BannerCarouselState extends State<BannerCarousel> {
     );
   }
 
+  // ══════════════════════════════════════════════════
+  // 🎏 بطاقة البانر — مقاسات Figma: 342×106 · r14
+  // ══════════════════════════════════════════════════
+  // 📐 من ملف التصميم (الرئيسية · 24:21174 ← البانر عند y=344):
+  //    تدرّجٌ من أعلى اليسار إلى أسفل اليمين · عنوان 12/w700 `#F8F4F4`
+  //    ووصف 10/w400 · النصّ **مصفوفٌ لليمين** وينتهي عند حافّة البطاقة
+  //    ناقص 8 · وثلاثُ دوائر زخرفية شفيفة بلون التدرّج الفاتح.
+  //
+  // ⚠️ **النصّ من الخادم لا من التصميم**: عنوان بانر المصمّم «منحة تركيا»
+  //    محتوىً توضيحي، والبانرات الحقيقية يكتبها المالك من اللوحة.
   Widget _card(AppBanner b) {
     final gradient = b.gradient;
     return GestureDetector(
       onTap: () => widget.onAction(b.action, b.actionValue),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.all(20),
+        clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: gradient,
-            begin: Alignment.topRight,
-            end: Alignment.bottomLeft,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: gradient.last.withValues(alpha: 0.3),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(14),
         ),
-        child: Row(
+        child: Stack(
           children: [
-            Expanded(
+            // 🫧 دوائرُ زخرفية بلون التدرّج الفاتح — في التصميم ثلاثٌ
+            //    تخرج من الحافّة وتعطي البطاقة عمقاً بلا صورة.
+            Positioned(right: -2, top: -30, child: _bubble(54, gradient.first)),
+            Positioned(right: 122, top: 2, child: _bubble(47, gradient.first)),
+            Positioned(right: 84, top: 90, child: _bubble(23, gradient.first)),
+            // 🖼️ أيقونة البانر ختمٌ كبير خافت في **يسار** البطاقة.
+            Positioned(
+              left: 18,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: Icon(b.iconData,
+                    color: Colors.white.withValues(alpha: 0.9), size: 52),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(96, 8, 8, 8),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     b.title,
+                    textAlign: TextAlign.start,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      height: 1.3,
+                      color: Color(0xFFF8F4F4),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      height: 22 / 12,
                     ),
                   ),
                   if (b.subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
                       b.subtitle,
+                      textAlign: TextAlign.start,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                      style: const TextStyle(
+                        color: Color(0xFFF8F4F4),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        height: 19 / 10,
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            Icon(b.iconData,
-                color: Colors.white.withValues(alpha: 0.9), size: 48),
           ],
         ),
       ),
     );
   }
+
+  Widget _bubble(double d, Color c) => Container(
+        width: d,
+        height: d,
+        decoration: BoxDecoration(
+            color: c.withValues(alpha: 0.55), shape: BoxShape.circle),
+      );
 }

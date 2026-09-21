@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/session/role_home.dart';
 
@@ -11,8 +12,16 @@ import 'onboarding_screen.dart';
 import '../../../onboarding/presentation/force_update_screen.dart';
 
 // ==========================================
-// 💫 شاشة البداية (Splash) — الشعار الرسمي ثم التوجيه
+// 💫 شاشة البداية (Splash)
 // ==========================================
+// 🎨 **تصميم Figma** — «الشاشة الافتتاحية» (24:18598):
+//    صفحةٌ بيضاء · روبوت مسار في الوسط · رقم الإصدار أسفلها بلون `#006EBF`.
+//
+// ⛔ **ما حُذف ولماذا:**
+//    · `MasarBrand` (الشعار + «مسار» + الشعار النصي) — التصميم يكتفي بالروبوت.
+//    · حلقة التحميل السفلية — لا وجود لها في التصميم، والشاشة تنتقل بعد
+//      ١٤٠٠ms على أي حال فالمؤشّر يومض ويختفي بلا فائدة.
+//    · `SoftWaveBackground` — التصميم صفحةٌ بيضاء نظيفة.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -20,13 +29,16 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _c;
 
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..repeat(reverse: true);
+    _c = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1100))
+      ..repeat(reverse: true);
     _route();
   }
 
@@ -65,32 +77,43 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // 🌗 خلفية الصفحة تتبع الوضع — كانت ثابتةً فاتحة، فيصير الوضع
-      //    الداكن بطاقاتٍ داكنة تطفو على صفحةٍ بيضاء.
-      backgroundColor: AppColors.bgLight,
-      body: Stack(
-        children: [
-          Positioned.fill(child: SoftWaveBackground()),
-          Center(
-            child: ScaleTransition(
-              scale: Tween(begin: 0.94, end: 1.06).animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
-              child: MasarBrand(logoSize: 150, titleSize: 44),
-            ),
-          ),
-          Positioned(
-            bottom: 46,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(strokeWidth: 2.6, valueColor: AlwaysStoppedAnimation(kBlueBtn.first)),
+    // 🌗 يُعاد البناء عند تبدّل الوضع — شرطُ قبولٍ لكل شاشة في هذا المشروع.
+    return ThemeScope(
+      builder: (context) => Scaffold(
+        backgroundColor: AppColors.bgLight,
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Center(
+                // ✨ نبضةٌ خفيفة تُبقي الشاشة حيّة في الثانية والنصف التي
+                //    تسبق التوجيه — بديلُ حلقة التحميل المحذوفة.
+                child: ScaleTransition(
+                  scale: Tween(begin: 0.94, end: 1.06).animate(
+                      CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
+                  child: const MasarRobot(size: 152),
+                ),
               ),
-            ),
+              Positioned(
+                bottom: 24,
+                left: 0,
+                right: 0,
+                child: Center(
+                  // 🔢 من [AppConstants] لا نصّاً مكتوباً — الرقم يتبع
+                  //    `pubspec.yaml` فلا تكذب الشاشةُ على الطالب.
+                  child: Text(
+                    "v${AppConstants.appVersionName}",
+                    textDirection: TextDirection.ltr,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.primary800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

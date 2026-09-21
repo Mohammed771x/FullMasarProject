@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/phosphor.dart';
 import '../../../../core/services/image_service.dart';
 import '../controllers/chat_controller.dart';
 import '../../../../core/media/image_editor_screen.dart';
 import '../../../../core/widgets/voice_recording_bar.dart';
+import '../../../../core/widgets/input_bar_metrics.dart';
 
 // ==========================================
 // ⌨️ خانة الكتابة وأزرار الإرسال/الإيقاف
@@ -15,10 +17,15 @@ class ChatInputArea extends StatelessWidget {
   final ChatController controller;
   final VoidCallback onEmptyWarning;
 
+  /// ⌨️ هل الكيبورد مرفوع؟ (يُقرأ فوق الـ`Scaffold` ويُمرَّر — هو يبتلع
+  /// `viewInsets` عن جسمه.)
+  final bool keyboardOpen;
+
   const ChatInputArea({
     super.key,
     required this.controller,
     required this.onEmptyWarning,
+    this.keyboardOpen = false,
   });
 
   @override
@@ -40,10 +47,13 @@ class ChatInputArea extends StatelessWidget {
             controller.hasAttachments) &&
         !controller.isBusy;
     final bool isGenerating = controller.isBusy || (controller.messages.isNotEmpty && controller.messages.last["animating"] == true);
-    final bool showTextInput = !(controller.selectedSubject == "رياضيات" && controller.mathMode == "شرح" && !controller.isMathExplanationStarted);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      // ⌨️ **ملاصقٌ للكيبورد وقت الكتابة** (ملاحظة المالك): حشوةٌ سفليّةٌ
+      //    24 تحت الحقل معناها شريطٌ يطفو بعيداً فوق الكيبورد ويأكل سطراً
+      //    من المحادثة بلا فائدة. وهي 24 حين لا كيبورد (مساحةُ الإبهام).
+      padding: EdgeInsets.fromLTRB(16, keyboardOpen ? 6 : 12, 16,
+          keyboardOpen ? 6 : 24),
       color: Colors.transparent,
       child: SafeArea(
         top: false,
@@ -89,7 +99,7 @@ class ChatInputArea extends StatelessWidget {
                                   width: 72, height: 72, fit: BoxFit.cover,
                                   errorBuilder: (_, _, _) => Container(
                                     width: 72, height: 72, color: AppColors.softSurface,
-                                    child: Icon(Icons.broken_image_rounded,
+                                    child: Icon(PI.imageBroken.regular,
                                         color: AppColors.textSecondary),
                                   ),
                                 ),
@@ -119,11 +129,11 @@ class ChatInputArea extends StatelessWidget {
                                 child: Container(
                                   padding: const EdgeInsets.all(3),
                                   decoration: BoxDecoration(
-                                    color: Colors.redAccent, shape: BoxShape.circle,
+                                    color: AppColors.error500, shape: BoxShape.circle,
                                     border: Border.all(
                                         color: AppColors.surfaceWhite, width: 2),
                                   ),
-                                  child: const Icon(Icons.close_rounded,
+                                  child: Icon(PI.x.bold,
                                       color: Colors.white, size: 13),
                                 ),
                               ),
@@ -135,149 +145,166 @@ class ChatInputArea extends StatelessWidget {
                   ),
                 ),
               ),
-            Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            // 1️⃣ زر الإعدادات
-            InkWell(
-              onTap: () => controller.toggleSettingsPanel(),
-              child: Container(
-                width: 50,
-                height: 50,
+            // ══════════════════════════════════════════════════
+            // ⌨️ شريط الكتابة — 342×56 · r24 · حدّ `#CAD5E2`
+            // ══════════════════════════════════════════════════
+            // 📐 مواصفات Figma (الرفيق الذاكي · 390:2048 عند y=740):
+            //    الكاميرا (323) 36×36 · الحقل (109) 214×34 ·
+            //    المايك (73) 36×36 · الإرسال (31) 42×42 دائرةٌ `#155DFC`.
+            //    وترتيب RTL: الكاميرا يميناً والإرسالُ يساراً.
+            //
+            // ⛔ **زرّ الإعدادات (`tune`) أُزيل من هنا**: لوحة الجلسة صارت
+            //    بطاقةً في أعلى الشاشة لها رأسٌ يطويها ويفتحها — فزرٌّ
+            //    ثانٍ لنفس الوظيفة تكرار.
+            if (controller.isRecording)
+              VoiceRecordingBar(
+                onDelete: () => controller.deleteVoiceRecording(),
+                onStopToText: () => controller.stopVoiceToText(),
+                onSend: () => controller.stopVoiceAndSend(),
+              )
+            else
+              Container(
+                constraints: const BoxConstraints(minHeight: 56),
                 decoration: BoxDecoration(
-                  color: controller.showSettingsPanel ? AppColors.primary : AppColors.surfaceWhite,
+                  color: AppColors.surfaceWhite,
                   borderRadius: BorderRadius.circular(24),
-                  boxShadow: AppColors.softShadow,
-                  border: Border.all(color: controller.showSettingsPanel ? Colors.transparent : AppColors.textSecondary.withValues(alpha: 0.1), width: 1),
+                  border: Border.all(color: AppColors.inputBarBorder),
+                  boxShadow: AppColors.bubbleShadow,
                 ),
-                child: Icon(Icons.tune_rounded, color: controller.showSettingsPanel ? Colors.white : AppColors.textSecondary, size: 24),
-              ),
-            ),
-
-            if (controller.isRecording) ...[
-              const SizedBox(width: 10),
-              // 🎙️ شريط التسجيل (يحل محل خانة الكتابة)
-              Expanded(
-                child: VoiceRecordingBar(
-                  onDelete: () => controller.deleteVoiceRecording(),
-                  onStopToText: () => controller.stopVoiceToText(),
-                  onSend: () => controller.stopVoiceAndSend(),
-                ),
-              ),
-            ] else if (showTextInput) ...[
-              const SizedBox(width: 10),
-
-              // 2️⃣ خانة الكتابة
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceWhite,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: AppColors.softShadow,
-                    border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1), width: 1),
-                  ),
-                  child: Row(
-                    children: [
-                      // 📷 زر الصورة (يختفي عند بلوغ الحد الأقصى)
-                      if (!isGenerating && controller.canAttachMore)
-                        InkWell(
-                          onTap: () => _pickImage(context),
-                          borderRadius: BorderRadius.circular(30),
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 2, top: 10, bottom: 10, right: 8),
-                            child: Icon(Icons.camera_alt_rounded,
-                                color: controller.attachedImages.isNotEmpty
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
-                                size: 23),
-                          ),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 7),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // 📷 الكاميرا — تختفي عند بلوغ الحدّ الأقصى للمرفقات.
+                    if (!isGenerating && controller.canAttachMore)
+                      _RoundIcon(
+                        icon: PI.camera.regular,
+                        size: 36,
+                        color: controller.attachedImages.isNotEmpty
+                            ? AppColors.primary
+                            : AppColors.inputBarIcon,
+                        onTap: () => _pickImage(context),
+                      )
+                    else
+                      const SizedBox(width: 36),
+                    Expanded(
+                      child: TextField(
+                        controller: controller.inputController,
+                        // ⌨️ يبقى مفتوحاً أثناء البثّ: الطالب يُحضّر سؤاله
+                        //    التالي وهو يقرأ. المنعُ على **الإرسال** وحده.
+                        enabled:
+                            !controller.isLoading || controller.messages.isEmpty,
+                        minLines: 1,
+                        maxLines: 4,
+                        onChanged: (_) => controller.refresh(),
+                        style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.inputBarText),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          // 🩹 **بلا تعبئة.** سمةُ التطبيق العامة
+                          //    (`inputDecorationTheme`) تملأ كلَّ حقلٍ بلونٍ
+                          //    رمادي، فظهر لوحٌ داخل الشريط الأبيض. وفي
+                          //    التصميم الشريطُ **أبيضُ متّصل** من المايك إلى
+                          //    الكاميرا — قِستُ بكسلاته: 255 بلا انقطاع.
+                          filled: false,
+                          hintText: controller.isCleaningVoice
+                              ? "✨ جارٍ ترتيب النص..."
+                              : "اسأل مسار أو اكتب مسألتك هنا...",
+                          hintStyle: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.inputBarIcon),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 12),
+                          // ⚠️ **الأربعةُ جميعاً.** `border` وحدها لا تكفي:
+                          //    فلاتر تأخذ `enabledBorder` و`focusedBorder`
+                          //    من سمة التطبيق حين لا تُذكر هنا — فبقي إطارٌ
+                          //    رماديٌّ مستديرٌ حول الحقل داخل الشريط الأبيض.
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
                         ),
-
-                      // 🎤 زر المايك — يبدأ شريط التسجيل
-                      if (!isGenerating)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 4),
-                          child: InkWell(
-                            onTap: () => controller.startVoiceRecording(),
-                            borderRadius: BorderRadius.circular(30),
-                            child: Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: controller.isCleaningVoice
-                                  ? SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2.2,
-                                          valueColor: AlwaysStoppedAnimation(AppColors.primary)),
-                                    )
-                                  : Icon(Icons.mic_rounded,
-                                      color: AppColors.textSecondary, size: 24),
-                            ),
-                          ),
-                        ),
-                      Expanded(
-                        child: TextField(
-                          controller: controller.inputController,
-                          // ⌨️ يبقى مفتوحاً أثناء البثّ: الطالب يُحضّر سؤاله
-                          //    التالي وهو يقرأ. المنعُ على **الإرسال** وحده.
-                          enabled: !controller.isLoading || controller.messages.isEmpty,
-                          minLines: 1,
-                          maxLines: 4,
-                          onChanged: (_) => controller.refresh(),
-                          style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                          decoration: InputDecoration(
-                            hintText: controller.isRecording
-                                ? "🎙️ أنا أسمعك... تكلّم"
-                                : (controller.isCleaningVoice
-                                    ? "✨ جارٍ ترتيب النص..."
-                                    : "اكتب سؤالك..."),
-                            hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.6), fontSize: 14),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                            border: InputBorder.none,
-                          ),
-                          onSubmitted: (_) {
-                            if (canSend) controller.processRequest();
-                          },
-                        ),
+                        onSubmitted: (_) {
+                          if (canSend) controller.processRequest();
+                        },
                       ),
-
-                      // زر الإرسال
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InkWell(
-                          onTap: () {
-                            if (isGenerating) {
-                              controller.stopCurrentRequest();
-                            } else if (canSend) {
-                              controller.processRequest();
-                            } else {
-                              onEmptyWarning();
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(30),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              gradient: isGenerating ? null : (canSend ? AppColors.mainGradient : null),
-                              color: isGenerating ? Colors.redAccent : (canSend ? null : AppColors.softSurface),
-                              shape: BoxShape.circle,
+                    ),
+                    // 🎤 المايك
+                    if (!isGenerating)
+                      controller.isCleaningVoice
+                          ? SizedBox(
+                              width: 36,
+                              height: kInputSideBox,
+                              child: Center(
+                                child: SizedBox(
+                                  width: 19,
+                                  height: 19,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      valueColor: AlwaysStoppedAnimation(
+                                          AppColors.primary)),
+                                ),
+                              ),
+                            )
+                          : _RoundIcon(
+                              icon: PI.microphone.regular,
+                              size: 36,
+                              color: AppColors.inputBarIcon,
+                              onTap: () => controller.startVoiceRecording(),
                             ),
+                    const SizedBox(width: 2),
+                    // 🚀 الإرسال — دائرةٌ 42 ممتلئة. وتصير حمراء للإيقاف.
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          if (isGenerating) {
+                            controller.stopCurrentRequest();
+                          } else if (canSend) {
+                            controller.processRequest();
+                          } else {
+                            onEmptyWarning();
+                          }
+                        },
+                        customBorder: const CircleBorder(),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            // 🎨 **المعطّل = 40% من لون الإرسال لا رماديّ.**
+                            //    قِستُ بكسلة التصميم `#A1BEFE` فكانت حاصلَ
+                            //    `#155DFC` بشفافية 0.4 فوق الأبيض بالضبط —
+                            //    والمصمّم رسم الشريطَ فارغاً، فهذه حالةُ
+                            //    «لا شيء لِيُرسَل» كما تخيّلها.
+                            color: isGenerating
+                                ? AppColors.error500
+                                : AppColors.sendButton
+                                    .withValues(alpha: canSend ? 1 : 0.4),
+                            shape: BoxShape.circle,
+                          ),
+                          // ↔️ **يشير يساراً.** خطُّ Phosphor لا يُعكس مع
+                          //    الاتجاه (ثوابتُه بلا `matchTextDirection`)،
+                          //    والطائرةُ في التصميم تطير نحو يسار الشاشة.
+                          child: Transform.scale(
+                            scaleX: isGenerating ? 1 : -1,
                             child: Icon(
-                              isGenerating ? Icons.stop_rounded : Icons.arrow_upward_rounded,
-                              color: isGenerating ? Colors.white : (canSend ? Colors.white : AppColors.textSecondary),
-                              size: 22,
+                              isGenerating
+                                  ? PI.stopCircle.fill
+                                  : PI.paperPlaneRight.fill,
+                              color: Colors.white,
+                              size: 21,
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-              ],
-            ),
           ],
         ),
       ),
@@ -310,7 +337,7 @@ class ChatInputArea extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4))),
             const SizedBox(height: 14),
             ListTile(
-              leading: Icon(Icons.camera_alt_rounded, color: AppColors.primary),
+              leading: Icon(PI.camera.regular, color: AppColors.primary),
               title: const Text("التقاط صورة",
                   style: TextStyle(fontWeight: FontWeight.bold)),
               onTap: () {
@@ -319,7 +346,7 @@ class ChatInputArea extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: Icon(Icons.photo_library_rounded, color: AppColors.secondary),
+              leading: Icon(PI.images.regular, color: AppColors.secondary),
               title: const Text("اختيار من المعرض",
                   style: TextStyle(fontWeight: FontWeight.bold)),
               onTap: () {
@@ -352,7 +379,7 @@ class ChatInputArea extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.menu_book_rounded, size: 15, color: AppColors.primary),
+                  Icon(PI.bookOpen.regular, size: 15, color: AppColors.primary),
                   const SizedBox(width: 5),
                   Text("الصفحات",
                       style: TextStyle(
@@ -368,7 +395,7 @@ class ChatInputArea extends StatelessWidget {
                     backgroundColor: AppColors.primary,
                     // ⚠️ الحذف بضغطةٍ واحدة على الشريحة نفسها: الطالب يرفعها
                     //    وهو ينظر إليها، فلا يعود إلى الإعدادات ليلغي اختياراً.
-                    deleteIcon: const Icon(Icons.close_rounded,
+                    deleteIcon: Icon(PI.x.bold,
                         size: 16, color: Colors.white),
                     onDeleted: () => controller.removePage(p),
                     shape: RoundedRectangleBorder(
@@ -381,4 +408,33 @@ class ChatInputArea extends StatelessWidget {
         ),
       );
 
+}
+
+/// أيقونةٌ دائرية داخل شريط الكتابة — 36×36 كما في التصميم.
+class _RoundIcon extends StatelessWidget {
+  const _RoundIcon(
+      {required this.icon,
+      required this.size,
+      required this.color,
+      required this.onTap});
+
+  final IconData icon;
+  final double size;
+  final Color color;
+  final VoidCallback onTap;
+
+  /// 📐 **الارتفاع [kInputSideBox] لا [size]** — انظر شرحَ الثابت.
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: size,
+            height: kInputSideBox,
+            child: Icon(icon, size: 20, color: color),
+          ),
+        ),
+      );
 }

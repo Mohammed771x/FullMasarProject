@@ -19,6 +19,12 @@ class AskResponse {
   /// للطالب ولا يُرسل في السجلّ — لا هو ولا السؤال الذي أثاره.
   final bool offTopic;
 
+  /// ⚡ **جاء الجوابُ من الشرح المحفوظ** لا من الموديل
+  /// ([core/lesson_cache] على الخادم) — فيصل في جزءٍ من الثانية وبلا خصمٍ
+  /// من الحصة. تعرضه الواجهةُ بوسمٍ صغير: سألني المالك «ما أدري هل يجي من
+  /// المخزون ولا لا» — والجوابُ يجب أن يكون **مرئياً** لا مقيساً بالسرّ.
+  final bool cached;
+
   /// 📄 نصّ الصورة كما قرأه الخادم — يُخزَّن مع رسالة الطالب ويُرسل في
   /// السياق لاحقاً. بدونه تُنسى الصورة في السؤال التالي (التاريخ نصٌّ لا صور).
   final String imageText;
@@ -32,6 +38,7 @@ class AskResponse {
     this.quotaRefunded = false,
     this.offTopic = false,
     this.imageText = "",
+    this.cached = false,
   });
 
   // نفس قراءة الحقول الأصلية حرفياً (مع القيم الافتراضية ذاتها)
@@ -44,5 +51,6 @@ class AskResponse {
         quotaRefunded: json["quota_refunded"] == true,
         offTopic: json["off_topic"] == true,
         imageText: (json["extracted_text"] ?? "").toString(),
+        cached: json["cached"] == true,
       );
 }

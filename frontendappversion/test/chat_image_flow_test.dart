@@ -38,6 +38,8 @@ import 'package:ye_student_tutor/features/chat/data/repositories/ask_stream.dart
 import 'package:ye_student_tutor/features/chat/presentation/controllers/chat_controller.dart';
 import 'package:ye_student_tutor/features/chat/presentation/widgets/chat_input_area.dart';
 
+import 'package:ye_student_tutor/core/widgets/phosphor.dart';
+
 // ══════════════ أدوات ══════════════
 
 PickedImage _img(String name) =>
@@ -129,16 +131,29 @@ Future<List<String>> _pumpInput(WidgetTester tester, ChatController c) async {
   return warnings;
 }
 
+// 🎨 **بعد إعادة التصميم**: أيقونات الشريط صارت Phosphor لا Material —
+//    سهمُ الإرسال `PaperPlaneRight` وزرُّ الإيقاف `StopCircle` والكاميرا
+//    `Camera`. والاختباراتُ تسأل عن السلوك نفسه، لا عن اسم الأيقونة القديم.
+final Finder _sendFinder = find.byIcon(PI.paperPlaneRight.fill);
+final Finder _stopFinder = find.byIcon(PI.stopCircle.fill);
+final Finder _cameraFinder = find.byIcon(PI.camera.regular);
+
+/// 🚦 الزرُّ حيٌّ أم رمادي.
+///
+/// ⚠️ **لا يُقاس بلون السهم بعد اليوم**: السهمُ أبيضُ في الحالتين كما في
+///    التصميم، والفرقُ في **تعبئة الدائرة** — كاملةٌ حين يمكن الإرسال،
+///    و40% منها حين لا شيءَ لِيُرسَل.
 bool _sendEnabled(WidgetTester tester) {
-  final arrow = find.byIcon(Icons.arrow_upward_rounded);
-  if (arrow.evaluate().isEmpty) return false;   // صار زرَّ إيقاف
-  return tester.widget<Icon>(arrow).color == Colors.white;
+  if (_sendFinder.evaluate().isEmpty) return false;   // صار زرَّ إيقاف
+  final box = tester.widget<AnimatedContainer>(
+      find.ancestor(of: _sendFinder, matching: find.byType(AnimatedContainer))
+          .first);
+  return (box.decoration as BoxDecoration).color!.a == 1.0;
 }
 
 Future<void> _tapSend(WidgetTester tester) async {
-  final send = find.byIcon(Icons.arrow_upward_rounded).evaluate().isNotEmpty
-      ? find.byIcon(Icons.arrow_upward_rounded)
-      : find.byIcon(Icons.stop_rounded);
+  final send =
+      _sendFinder.evaluate().isNotEmpty ? _sendFinder : _stopFinder;
   await tester.tap(send);
   await tester.pump();
 }
@@ -191,7 +206,7 @@ void main() {
       await _pumpInput(tester, c);
 
       expect(_sendEnabled(tester), isTrue);
-      expect(find.byIcon(Icons.camera_alt_rounded), findsNothing,
+      expect(_cameraFinder, findsNothing,
           reason: 'بلغ الحدّ الأقصى — فلا بابَ لثالثة');
       expect(find.byType(Image), findsNWidgets(2), reason: 'معاينتان');
     });
@@ -226,10 +241,10 @@ void main() {
       addTearDown(c.dispose);
       await _pumpInput(tester, c);
 
-      expect(find.byIcon(Icons.stop_rounded), findsOneWidget,
+      expect(_stopFinder, findsOneWidget,
           reason: '🔴 كان يظهر سهمَ إرسالٍ فيُطلق طلباً ثانياً فوق الأول');
-      expect(find.byIcon(Icons.arrow_upward_rounded), findsNothing);
-      expect(find.byIcon(Icons.camera_alt_rounded), findsNothing);
+      expect(_sendFinder, findsNothing);
+      expect(_cameraFinder, findsNothing);
     });
 
     testWidgets('⏳ أثناء التحميل ⇒ زرُّ إيقاف', (tester) async {
@@ -237,7 +252,7 @@ void main() {
       c.attachedImages.add(_img("a"));
       addTearDown(c.dispose);
       await _pumpInput(tester, c);
-      expect(find.byIcon(Icons.stop_rounded), findsOneWidget);
+      expect(_stopFinder, findsOneWidget);
     });
 
     testWidgets('✕ على المعاينة يرفع الصورة وحدها', (tester) async {
@@ -246,7 +261,8 @@ void main() {
       addTearDown(c.dispose);
       await _pumpInput(tester, c);
 
-      await tester.tap(find.byIcon(Icons.close_rounded).first);
+      // ✕ المعاينة صارت Phosphor كبقيّة أيقونات الشريط.
+      await tester.tap(find.byIcon(PI.x.bold).first);
       await tester.pump();
       expect(c.attachedImages, hasLength(1));
       expect(c.attachedImages.single.path, contains("masar_b"));

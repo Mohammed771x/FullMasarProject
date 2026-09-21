@@ -270,6 +270,48 @@ def test_funding_type_whitelisted(client, db):
     assert create(client, funding_type="نصف").status_code == 400
 
 
+# ── المعدّل المطلوب (حقلٌ أضافه المالك 2026-09-21) ──
+# ⚖️ قبله كانت الشاشة تستخرجه من نصّ الشروط بتعبيرٍ نمطيّ. والحقلُ الصريح
+#    يجعل المشرفَ هو من يقرّر، والاستخراجُ احتياطاً لمنحةٍ لم تُحدَّث بعد.
+
+def test_min_gpa_is_stored_and_public(client, db):
+    create(client, min_gpa=70)
+    assert db.cols["scholarships"]["turkey"]["min_gpa"] == 70
+    assert client.get("/scholarships/turkey").json()["min_gpa"] == 70
+
+
+def test_min_gpa_defaults_to_zero_meaning_unspecified(client, db):
+    """الفراغُ «غير محدّد» — والتطبيق يقولها صراحةً بدل رقمٍ مخترَع."""
+    create(client)
+    assert client.get("/scholarships/turkey").json()["min_gpa"] == 0
+
+
+def test_min_gpa_accepts_text_from_the_panel(client, db):
+    """اللوحة حقلُ `number` لكنها ترسل نصّاً حين يكتب المشرفُ فيه."""
+    create(client, min_gpa="85")
+    assert client.get("/scholarships/turkey").json()["min_gpa"] == 85
+
+
+def test_min_gpa_empty_string_is_unspecified(client, db):
+    create(client, min_gpa="")
+    assert client.get("/scholarships/turkey").json()["min_gpa"] == 0
+
+
+@pytest.mark.parametrize("bad", [101, -5, "ممتاز", 150])
+def test_min_gpa_out_of_range_rejected_in_arabic(client, db, bad):
+    r = create(client, min_gpa=bad)
+    assert r.status_code == 400
+    assert "المعدّل المطلوب" in r.json()["error"]
+
+
+def test_min_gpa_reaches_the_assistant_card(client, db):
+    """مساعدٌ يقول «غير مذكور» وتقول البطاقةُ «70%» تناقضٌ أمام الطالب."""
+    card = assistant.scholarship_card({**FULL, "min_gpa": 70, "status": "open"})
+    assert "المعدّل المطلوب: 70%" in card
+    assert "المعدّل المطلوب" not in assistant.scholarship_card(
+        {**FULL, "min_gpa": 0, "status": "open"})
+
+
 # ══════════════ 4. الحالة تُحسب لا تُخزَّن ══════════════
 
 @pytest.mark.parametrize("today,expected", [
@@ -435,14 +477,115 @@ def test_ask_injects_scholarship_data(client, db, monkeypatch):
 
 
 def test_ask_consumes_quota(client, db, monkeypatch):
-    """نداء موديل ⇒ يُحتسب — وإلا صار المساعد باباً خلفياً للفاتورة."""
+    """نداء موديل ⇒ يُحتسب — وإلا صار المساعد باباً خلفياً للفاتورة.
+
+    ⚠️ **والسؤال هنا مقصود**: «خطاب الدافع» لا تجيبه بطاقةُ المنحة، فيمضي
+       إلى الموديل. وكان السؤالُ «الشروط؟» فصار يُجاب من البطاقة بلا نداء
+       (2026-09-20) — فلم يعد يقيس ما وُضع له. **والمقياسُ يتبع ما يقيسه.**
+    """
     create(client)
     monkeypatch.setattr(q, "STUDENT_DAILY_ASKS", 1)
     headers = student_token(monkeypatch)
-    body = {"scholarship_id": "turkey", "question": "الشروط؟"}
+    body = {"scholarship_id": "turkey", "question": "كيف أكتب خطاب الدافع؟"}
     assert client.post("/scholarship/ask", headers=headers, json=body).status_code == 200
-    second = client.post("/scholarship/ask", headers=headers, json=body)
+    second = client.post("/scholarship/ask", headers=headers,
+                         json={**body, "request_id": "second"})
     assert second.status_code == 429 and second.json()["quota_exceeded"] is True
+
+
+# ══════════════ ⚡ الجواب من البطاقة — بلا نداءٍ ولا حصة ══════════════
+#
+# ⚖️ **أمرُ المالك (2026-09-20):** «الأسئلة المقترحة ماشي داعي الذكاء
+#    الصناعي يجيبها… يشيل النصّ ويرتّبه ويجيبه بدون API. وبعدين أي سؤالٍ
+#    آخر خلاص البرومبت يطلع للموديل.»
+
+def test_card_answer_costs_no_quota(client, db, monkeypatch):
+    """🎟️ سؤالُ الحقل لا يُخصم من الحصة مهما تكرّر — ولا يُنادي موديلاً."""
+    create(client, documents=["جواز سفر ساري", "كشف درجات الثانوية"])
+    monkeypatch.setattr(q, "STUDENT_DAILY_ASKS", 1)
+    headers = student_token(monkeypatch)
+    for i in range(4):
+        r = client.post("/scholarship/ask", headers=headers,
+                        json={"scholarship_id": "turkey",
+                              "question": "ما الوثائق المطلوبة؟",
+                              "request_id": f"doc-{i}"})
+        assert r.status_code == 200, f"النداء {i} رُفض: {r.json()}"
+        assert r.json().get("from_card") is True
+
+    # 🔒 والحصةُ لم تُمسّ: سؤالٌ حقيقيّ بعدها يمرّ
+    real = client.post("/scholarship/ask", headers=headers,
+                       json={"scholarship_id": "turkey",
+                             "question": "كيف أكتب خطاب الدافع؟",
+                             "request_id": "real"})
+    assert real.status_code == 200 and not real.json().get("from_card")
+
+
+def test_card_answer_carries_the_field_text(client, db):
+    """📄 الجوابُ نصُّ الحقل نفسُه مرتَّباً — لا إعادةَ صياغة."""
+    from core import scholarship_facts as facts
+    # ⚠️ عناصرُ من سطرين — وهو ما طلبه المالك صراحةً: «حقل أبو سطرين».
+    create(client, documents=["جواز سفر ساري لمدة سنة",
+                              "كشف درجات الثانوية\nمصدَّقاً من الوزارة"])
+    sch = client.get("/scholarships/turkey").json()
+    answer = facts.answer_for(sch, "ما الوثائق المطلوبة؟")
+    assert answer
+    # 🔠 السطرُ الثاني في العنصر **يُزاح مسافتين** كي يبقى داخل نقطته في
+    #    الماركداون؛ فالمقارنةُ على النصّ بعد ردّ الإزاحة لا على حرفه.
+    flat = answer.replace("\n  ", "\n")
+    for item in sch["documents"]:
+        assert item in flat, f"عنصرٌ سقط من الجواب: {item}"
+    assert "\n  مصدَّقاً من الوزارة" in answer, \
+        "السطرُ الثاني انفصل عن نقطته — سيُعرض فقرةً مستقلّة"
+
+
+def test_min_gpa_rides_along_with_the_conditions_answer(client, db):
+    """📊 «ما شروط التقديم؟» يُجاب من البطاقة — والمعدّلُ شرطٌ فيها."""
+    from core import scholarship_facts as facts
+    create(client, min_gpa=70)
+    sch = client.get("/scholarships/turkey").json()
+    assert "المعدّل المطلوب: 70% فأعلى" in facts.answer_for(sch, "ما شروط التقديم؟")
+
+    create(client, id="qatar", name="منحة قطر", min_gpa=0)
+    other = client.get("/scholarships/qatar").json()
+    assert "المعدّل المطلوب" not in facts.answer_for(other, "ما شروط التقديم؟")
+
+
+def test_a_compound_question_still_reaches_the_model(client, db, monkeypatch):
+    """🧠 «الوثائق **لطلاب الهندسة**» سؤالٌ لا تجيبه قائمةٌ عامة."""
+    from core import scholarship_facts as facts
+    create(client, documents=["جواز سفر"])
+    sch = client.get("/scholarships/turkey").json()
+    assert facts.answer_for(sch, "ما الوثائق المطلوبة؟")
+    assert facts.answer_for(sch, "ما الوثائق المطلوبة لطلاب الهندسة؟") is None
+    assert facts.answer_for(sch, "وضّح أكثر") is None
+
+
+def test_an_image_always_reaches_the_model(client, db):
+    """📷 من أرفق كشفَ درجاتٍ يريد مطابقةً، لا قائمةً محفوظة."""
+    from core import scholarship_facts as facts
+    create(client, documents=["جواز سفر"])
+    sch = client.get("/scholarships/turkey").json()
+    assert facts.answer_for(sch, "ما الوثائق المطلوبة؟", has_image=True) is None
+
+
+def test_an_empty_field_is_left_to_the_model(client, db):
+    """🕳️ لا نردّ «غير متوفّر» — الموديل يعرف كيف يحوّله للموقع الرسميّ."""
+    from core import scholarship_facts as facts
+    create(client, documents=[])
+    sch = client.get("/scholarships/turkey").json()
+    assert facts.answer_for(sch, "ما الوثائق المطلوبة؟") is None
+
+
+def test_both_scholarship_endpoints_consult_the_card():
+    """🛡️ حارسٌ بنيويّ: القرارُ في الحارس المشترك لا منسوخاً في نقطتين."""
+    import pathlib
+    # 📦 تُمسح الواجهةُ وأجزاؤها معاً: انتقل الجسدُ إلى [apiparts/] يوم
+    #    فُكّك `api.py` (2026-09-20)، ومسحُ الواجهة وحدها كان سيمرّ فارغاً.
+    root = pathlib.Path(__file__).resolve().parent.parent
+    src = "\n".join(f.read_text(encoding="utf-8") for f in
+                    [root / "api.py", *sorted((root / "apiparts").glob("*.py"))])
+    assert src.count("v3_sch_facts.answer_for") == 1,         "قرارُ البطاقة منسوخ — وحّده في `_scholarship_guards`"
+    assert src.count("_scholarship_guards(req, request)") == 2,         "إحدى نقطتَي المنح لا تمرّ بالحارس المشترك"
 
 
 # ══════════════ 8. بناء الرسالة النظامية ══════════════
@@ -892,3 +1035,101 @@ class TestLogos:
                     json={"image_base64": _PNG_B64})
         client.delete("/admin/scholarships/turkey", headers=HDR)
         assert fake_storage == {}
+
+
+# ══════════════ 🔣 علاماتُ التعداد التي يكتبها الأدمن بيده ══════════════
+#
+# ☢️ **رُصد على بيانات المنحة التركية الحقيقية** (2026-09-20، بعد أن مرّت
+#    الاختباراتُ كلُّها): الحقلُ فيه «• جواز سفر» فيصير الجوابُ «- • جواز
+#    سفر» — نقطتان في كل سطر. والفحصُ ببياناتٍ من صنعي لم يكن ليراه أبداً.
+
+def test_admin_written_bullets_are_not_doubled():
+    """🔣 «• نصّ» لا تصير «- • نصّ»."""
+    from core import scholarship_facts as facts
+    out = facts._line("الوثائق", ["• جواز سفر", "▪ صورة شخصية", "* كشف درجات"])
+    assert "- جواز سفر" in out and "• " not in out and "▪" not in out
+
+
+def test_a_sub_item_stays_under_its_parent():
+    """🪜 «- مقترح بحث» تحت «• لمتقدمي الدكتوراه» شرطٌ عليهم وحدهم.
+
+    ⚖️ ورفعُه إلى المستوى الأول يجعله شرطاً على الجميع — فيقرأ طالبُ
+       البكالوريوس أنه يحتاج مقترحَ بحث. وهذا خطأٌ في المعنى لا في الشكل.
+    """
+    from core import scholarship_facts as facts
+    out = facts._line("الوثائق", ["• شهادة التخرج", "• لمتقدمي الدكتوراه:",
+                                  "- مقترح بحث", "- بحث سابق"])
+    assert "\n- لمتقدمي الدكتوراه:" in out
+    assert "\n  - مقترح بحث" in out, "البندُ الفرعيّ صعد إلى المستوى الأول"
+
+
+def test_numbering_does_not_stack_on_existing_numbers():
+    """🔢 «1. سجّل» لا تصير «1. 1. سجّل»."""
+    from core import scholarship_facts as facts
+    out = facts._line("الخطوات", ["1. سجّل", "2) ارفع الوثائق", "٣- انتظر"],
+                      numbered=True)
+    assert "1. سجّل" in out and "2. ارفع الوثائق" in out and "3. انتظر" in out
+    assert "1. 1." not in out
+
+
+# ══════════════ 🧭 الأبواب — كلُّ نيّةٍ لها زرٌّ يُرى ══════════════
+#
+# 🔴 **علّةُ المالك (2026-09-20):** «تسع نيّات تُجاب من البطاقة، حلو — وين
+#    هالنيّات؟ **مش موجودة**. بغيت المواعيد، مش موجود… خلّها من ضمن
+#    الاقتراحات. **لأنه مش باين عندي.**» وكانت الأزرارُ أربعةً مكتوبةً
+#    باليد لا صلةَ لها ببيانات المنحة.
+
+def _rich(client):
+    create(client, documents=["جواز سفر"], benefits=["راتب شهري"],
+           fields=["الهندسة", "الطب"], degree_levels=["بكالوريوس", "ماجستير"])
+    return client.get("/scholarships/turkey").json()
+
+
+def test_every_suggestion_is_answerable_from_the_card(client, db):
+    """🚪 لا بابَ بلا غرفة: كلُّ زرٍّ يُعرض يفتح جواباً مخزوناً حتماً.
+
+    ⚖️ وهذا **جوهرُ الميزة**: زرٌّ يذهب إلى الموديل يُدفع ثمنُه ويتأخّر —
+       والطالبُ لا يفرّق، فلا يشتكي أحدٌ من تسرّبٍ في الفاتورة.
+    """
+    from core import scholarship_facts as facts
+    sch = _rich(client)
+    doors = facts.suggestions(sch)
+    assert doors, "لم يُشتقّ بابٌ واحد من منحةٍ كاملة البيانات"
+    for door in doors:
+        assert facts.answer_for(sch, door["question"]), \
+            f"بابٌ بلا غرفة: {door['label']} → {door['question']}"
+
+
+def test_the_doors_cover_every_intent_the_card_can_answer(client, db):
+    """🧭 منحةٌ كاملةُ البيانات تفتح النيّات التسع كلَّها."""
+    from core import scholarship_facts as facts
+    labels = [d["label"] for d in facts.suggestions(_rich(client))]
+    for expected in ("الشروط", "الوثائق المطلوبة", "المواعيد", "المزايا",
+                     "خطوات التقديم", "التخصصات", "المراحل", "التمويل",
+                     "نبذة عن المنحة"):
+        assert expected in labels, f"نيّةٌ بلا باب: {expected}"
+
+
+def test_a_door_vanishes_when_its_field_is_empty(client, db):
+    """🕳️ منحةٌ بلا تخصصاتٍ لا يظهر لها بابُ التخصصات."""
+    from core import scholarship_facts as facts
+    create(client, documents=[], fields=[])
+    sch = client.get("/scholarships/turkey").json()
+    labels = [d["label"] for d in facts.suggestions(sch)]
+    assert "التخصصات" not in labels and "الوثائق المطلوبة" not in labels
+    assert "الشروط" in labels, "بابٌ له بياناتٌ اختفى كذلك"
+
+
+def test_the_api_payload_carries_the_doors(client, db):
+    """📡 التطبيق يقرؤها جاهزةً — لا يعيد حسابَ قرارٍ يملكه الخادم."""
+    sch = _rich(client)
+    assert sch["suggestions"], "حمولةُ المنحة بلا أبواب"
+    assert {"label", "question"} <= set(sch["suggestions"][0])
+
+
+def test_quick_prompts_follow_the_card(client, db):
+    """⛔ ولا «كيف أكتب خطاب الدافع؟» بين الأزرار — لا تجيبها بطاقة."""
+    from core import scholarship_assistant as sa
+    prompts = sa.quick_prompts(_rich(client))
+    assert "كيف أكتب خطاب الدافع؟" not in prompts
+    assert "ما الوثائق المطلوبة؟" in prompts

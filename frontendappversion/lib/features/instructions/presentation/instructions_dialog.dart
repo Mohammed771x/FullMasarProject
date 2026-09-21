@@ -4,6 +4,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/storage/prefs_keys.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/masar_dialog.dart';
+import '../../../core/widgets/masar_markdown.dart';
+import '../../../core/widgets/phosphor.dart';
 import '../data/app_instructions.dart';
 
 // ==========================================
@@ -14,33 +17,23 @@ class InstructionsDialog {
   static void _showMissing(BuildContext context, String subject) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppColors.softSurface, borderRadius: BorderRadius.circular(16)),
-              child: Icon(Icons.tips_and_updates_rounded, color: AppColors.primary, size: 24),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Text("تعليمات $subject",
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-            ),
-          ],
-        ),
-        content: Text(
-          "تعليمات هذه المادة قيد الإعداد 🚧\n\nيمكنك الآن اختيار الوضع والوحدة من زر إعدادات الجلسة ثم كتابة سؤالك مباشرة.",
-          style: TextStyle(color: AppColors.textSecondary, height: 1.8, fontWeight: FontWeight.w600),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text("حسناً", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+      builder: (ctx) => ThemeScope(
+        builder: (ctx) => MasarDialog(
+          icon: PD.lightbulbFilament,
+          title: "تعليمات $subject",
+          primaryLabel: "حسناً",
+          fullWidthAction: true,
+          child: Text(
+            "تعليمات هذه المادة قيد الإعداد 🚧\n\n"
+            "يمكنك الآن اختيار الوضع والوحدة من «إعدادات الجلسة» في أعلى "
+            "الشاشة، ثم كتابة سؤالك مباشرة.",
+            style: TextStyle(
+                fontSize: 13,
+                height: 1.9,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -101,6 +94,7 @@ class InstructionsDialog {
       context,
       text: data["text"]!,
       videoUrl: data["video_url"]!,
+      teacher: true,
       onUnderstood: () => prefs.setBool(key, true),
     );
   }
@@ -112,90 +106,244 @@ class InstructionsDialog {
     required String text,
     required String videoUrl,
     required Future<void> Function() onUnderstood,
+    bool teacher = false,
   }) async {
     final String instructionText = text;
 
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceWhite.withValues(alpha: 0.98),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-            side: BorderSide(color: AppColors.primary.withValues(alpha: 0.1))),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppColors.softSurface, borderRadius: BorderRadius.circular(16)),
-              child: Icon(Icons.tips_and_updates_rounded, color: AppColors.primary, size: 24),
-            ),
-            const SizedBox(width: 15),
-            Text("كيف تستخدم مسار؟", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-          ],
+      builder: (context) => ThemeScope(
+        builder: (context) => MasarDialog(
+          icon: PD.lightbulbFilament,
+          title: "دليل استخدام تطبيق مسار",
+          primaryLabel: "فهمت، ابدأ الآن",
+          fullWidthAction: true,
+          closable: true,
+          divider: true,
+          onPrimary: onUnderstood,
+          child: _GuideBody(
+              text: instructionText, videoUrl: videoUrl, teacher: teacher),
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════
+// 🧭 جسمُ «دليل استخدام تطبيق مسار» — بطاقاتُ الأوضاع
+// ══════════════════════════════════════════════════
+// 🎨 **تصميم Figma** (`design/03-home/20`): أربعُ بطاقاتٍ ملوّنة بارتفاع 88
+//    وفجوةٍ 12، في كلٍّ منها مربّعُ تشغيلٍ 36 r10 على يمينها، وعنوانٌ
+//    مرقّمٌ بحبرها، ووصفٌ سطرين. ثم زرٌّ بعرض اللوح.
+//
+// 📚 **والأوضاعُ من التطبيق لا من الملف**: المصمّم رسم أربعةً، والتطبيق
+//    فيه **خمسة** — و«وزاري» ليس زينةً بل بابُ أسئلة الامتحانات. فبُنيت
+//    خامسةً بلغته نفسِها (سلّمُ الرمادي من التوكنات) ولم تُحذف.
+//
+// 📝 **والأوصافُ مكتوبةٌ من سلوك التطبيق** لا منقولةً عن الملف: نصوصُ
+//    المصمّم عيّناتٌ توضيحية (قاعدة المالك).
+//
+// ▶️ **ومربّعُ التشغيل يفتح فيديو القسم** حين يوجد — وهو واحدٌ لكل مادة
+//    يشرحها كلَّها. وحين لا فيديو، يصير المربّعُ أيقونةَ الوضع نفسِه
+//    ولا يُنقر: زرٌّ لا يفعل شيئاً أسوأُ من لا زرّ.
+//
+// 🆕 **وتفاصيلُ المادة تحتها** قابلةً للطيّ: نصُّ التعليمات الكامل الذي
+//    كان يملأ النافذة (نطاقاتُ الصفحات وأسماءُ الوحدات والأمثلة). لا
+//    مكان له في تصميم المصمّم، وحذفُه يُضيع معلوماتٍ يحتاجها الطالب.
+class _GuideBody extends StatefulWidget {
+  const _GuideBody({
+    required this.text,
+    required this.videoUrl,
+    this.teacher = false,
+  });
+
+  final String text;
+  final String videoUrl;
+
+  /// 👨‍🏫 **دليلُ المعلّم أدواتُه لا أوضاعُ الطالب.**
+  ///
+  /// 🔴 كانت النافذةُ تعرض للمعلّم «وضع الشرح · التلخيص · السؤال · الوزاري
+  ///    · الاختبارات» — أوضاعُ قسمٍ لا يدخله أصلاً. وتصديرُ دليله
+  ///    (`design/09-teacher/08`) يعرض **أوضاعَه هو** ثلاثةً بألوانها.
+  final bool teacher;
+
+  @override
+  State<_GuideBody> createState() => _GuideBodyState();
+}
+
+class _GuideBodyState extends State<_GuideBody> {
+  bool _details = false;
+
+  /// 🎨 **اللونُ باسم الوضع لا بترتيبه**: المصمّم لوّن أربعةً —
+  ///    الشرحُ أزرق · التلخيصُ عنبريّ · السؤالُ أخضر · **الاختباراتُ
+  ///    بنفسجية**. والتطبيقُ فيه خامسٌ («وزاري») بينهما في الترتيب، فلو
+  ///    وُزّعت الألوانُ بالفهرس لسرق الوزاريُّ بنفسجيَّ الاختبارات.
+  ///    فالوزاريُّ يأخذ الدرجةَ الحياديّة الخامسة من سلّم المصمّم.
+  /// 👨‍🏫 أدواتُ المعلم — بترتيب التصدير وألوانِه: خطةٌ زرقاء، تبسيطٌ
+  ///    أصفر، واجبٌ أخضر. و«اسأل المساعد» 🆕 تأخذ الدرجةَ الحيادية
+  ///    الخامسة (كما فعل «الوزاري» عند الطالب) فلا تسرق لوناً مرسوماً.
+  static const List<List<dynamic>> _teacherModes = [
+    ["📖", "وضع خطة درس", "خطةُ تحضيرٍ من نصّ درسك: الأهداف، خطوات الشرح بأزمنتها، النشاط والتقويم.", 0],
+    ["💡", "وضع تبسيط مفهوم", "تشبيهان بحدودهما وتمثيلٌ بلا وسائل وسؤالٌ كاشف — لمفهومٍ يتعثّر فيه طلابك.", 1],
+    ["📝", "وضع واجب واختبار", "واجبٌ متدرّج الصعوبة من الدرس وحده، ومعه سلّمُ تصحيحٍ بالدرجات.", 2],
+    ["🤖", "وضع اسأل المساعد", "محادثةٌ مفتوحةٌ لأي سؤالٍ تربويّ — إدارةُ الحصة، التقويم السريع، الطلاب الضعاف.", 4],
+  ];
+
+  static const List<List<dynamic>> _modes = [
+    ["📖", "وضع الشرح", "يشرح لك الدرس خطوةً خطوة بالأمثلة، وتسأله عمّا لم يتّضح.", 0],
+    ["⚡", "وضع التلخيص", "يجمع لك الدرس في نقاطٍ مركّزة، ومستواه بيدك من واحدٍ إلى خمسة.", 1],
+    ["❓", "وضع السؤال", "اكتب سؤالك أو أرفق صورةَ مسألةٍ من كتابك — ويحلّها بالخطوات.", 2],
+    ["📝", "وضع الوزاري", "أسئلةُ الامتحانات الوزارية بسنواتها وأقسامها كما وردت.", 4],
+    ["🧪", "وضع الاختبارات", "اختبارٌ مؤقّتٌ يُبنى من درسك، ويُصحَّح لك فور انتهائه.", 3],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final modes = widget.teacher ? _teacherModes : _modes;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int i = 0; i < modes.length; i++) ...[
+          _GuideCard(
+            index: i,
+            colorSlot: modes[i][3] as int,
+            emoji: modes[i][0] as String,
+            name: modes[i][1] as String,
+            desc: modes[i][2] as String,
+            videoUrl: widget.videoUrl,
+          ),
+          const SizedBox(height: 12),
+        ],
+        // 🆕 تفاصيلُ المادة — مطويّةٌ كي لا تُغرق الدليل.
+        MasarDialogRow(
+          height: 46,
+          highlighted: _details,
+          onTap: () => setState(() => _details = !_details),
+          child: Row(
             children: [
-              if (videoUrl.isNotEmpty) ...[
-                InkWell(
-                  onTap: () async {
-                    final Uri url = Uri.parse(videoUrl);
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                          child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            "اضغط هنا لمشاهدة الفيديو التعليمي لاستخدام هذا القسم",
-                            style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13, height: 1.4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Divider(color: AppColors.softSurface, height: 1),
-                const SizedBox(height: 16),
-              ],
-              Text(
-                instructionText,
-                style: TextStyle(fontSize: 15, height: 1.8, color: AppColors.textSecondary),
+              PDuo(PD.notebook, size: 20, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                    widget.teacher
+                        ? "تفاصيل هذه الأداة"
+                        : "تفاصيل هذا القسم ونطاق صفحاته",
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.textPrimary)),
+              ),
+              AnimatedRotation(
+                turns: _details ? 0.5 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(PI.caretDown.regular,
+                    size: 15, color: AppColors.dropdownCaret),
               ),
             ],
           ),
         ),
-        actions: [
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(gradient: AppColors.mainGradient, borderRadius: BorderRadius.circular(20)),
-            child: TextButton(
-              onPressed: () async {
-                // ✅ حفظ في الذاكرة الدائمة أن التعليمات قُرئت ولن تظهر مجدداً
-                await onUnderstood();
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: Text("فهمت، ابدأ الآن 🚀", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: !_details
+              ? const SizedBox(width: double.infinity)
+              : Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: MasarMarkdown(data: widget.text),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════
+// 🃏 بطاقةُ وضعٍ واحدة
+// ══════════════════════════════════════════════════
+class _GuideCard extends StatelessWidget {
+  const _GuideCard({
+    required this.index,
+    required this.colorSlot,
+    required this.emoji,
+    required this.name,
+    required this.desc,
+    required this.videoUrl,
+  });
+
+  final int index;
+
+  /// خانةُ اللون في سلّم [AppColors.guideFills] — لا الفهرسُ نفسُه.
+  final int colorSlot;
+
+  final String emoji;
+  final String name;
+  final String desc;
+  final String videoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final int c = colorSlot;
+    final bool hasVideo = videoUrl.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.guideFills[c],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.guideBorders[c]),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("${index + 1}. $emoji $name",
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.guideInks[c])),
+                const SizedBox(height: 4),
+                Text(desc,
+                    style: TextStyle(
+                        fontSize: 11,
+                        height: 1.7,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.chipInk)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // ▶️ مربّعُ التشغيل — في **يسار** البطاقة كما في التصميم.
+          //    ⚠️ فآخرُ أبناء `Row` في RTL هو أقصى اليسار.
+          Material(
+            color: AppColors.guideTiles[c],
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: hasVideo
+                  ? () async {
+                      final uri = Uri.parse(videoUrl);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri,
+                            mode: LaunchMode.externalApplication);
+                      }
+                    }
+                  : null,
+              child: SizedBox(
+                width: 36,
+                height: 36,
+                child: Icon(
+                  hasVideo ? PI.play.regular : PI.info.regular,
+                  size: 17,
+                  color: AppColors.guideAccents[c],
+                ),
+              ),
             ),
           ),
         ],

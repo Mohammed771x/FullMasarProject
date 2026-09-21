@@ -238,8 +238,8 @@ def test_no_book_reader_forgets_its_subject():
     """
     readers = ("extract_all_texts_and_metas_physics", "pages_with_headers")
     offenders = []
-    for path in sorted((_ROOT / "subjects").glob("*.py")) + \
-            sorted((_ROOT / "core").glob("*.py")):
+    for path in sorted((_ROOT / "subjects").rglob("*.py")) + \
+            sorted((_ROOT / "core").rglob("*.py")):
         for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if line.strip().startswith(("#", "def ", "async def ")):
                 continue

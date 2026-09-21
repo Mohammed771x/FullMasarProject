@@ -27,6 +27,7 @@ import time
 from datetime import date, datetime, timezone
 
 from . import quota
+from . import scholarship_numbers as numbers
 
 # مدة كاش القراءة على الخادم (ثوانٍ) — نفس كاش البرومبتات في [v3 §3.3].
 CACHE_TTL = 300
@@ -82,9 +83,16 @@ def _text(value, limit: int) -> str:
 
 
 def _string_list(value, max_items=MAX_LIST_ITEMS, max_chars=MAX_ITEM_CHARS):
-    """قائمة نصوص نظيفة: تُقصّ ولا تُرفض — سطر زائد لا يُفشل حفظ منحة."""
+    """قائمة نصوص نظيفة: تُقصّ ولا تُرفض — سطر زائد لا يُفشل حفظ منحة.
+
+    📝 **والعنصرُ قد يكون أكثر من سطر** (أمرُ المالك 2026-09-20: «حقل أبو
+       سطرين»): اللوحةُ ترسل قائمةً فتصل سطورُ العنصر كما هي. وفي النصّ
+       الواحد: السطرُ الفارغ فاصلُ العناصر إن وُجد، وإلا فسطرٌ لكلّ عنصر —
+       **وهو السلوكُ القديم حرفاً** فلا تنكسر منحةٌ محفوظة.
+    """
     if isinstance(value, str):
-        value = [ln for ln in value.splitlines()]
+        value = (re.split(r"\n\s*\n", value) if re.search(r"\n\s*\n", value)
+                 else value.splitlines())
     if not isinstance(value, (list, tuple)):
         return []
     out = []
@@ -153,11 +161,6 @@ def validate(payload: dict) -> dict:
 
     levels = [l for l in _string_list(payload.get("degree_levels"), 8, 40) if l in DEGREE_LEVELS]
 
-    try:
-        order = int(payload.get("order", 0) or 0)
-    except (TypeError, ValueError):
-        order = 0
-
     return {
         "name": name,
         "country": country,
@@ -176,9 +179,10 @@ def validate(payload: dict) -> dict:
         "open_date": open_date,
         "close_date": close_date,
         "funding_type": funding,
+        "min_gpa": numbers.min_gpa(payload.get("min_gpa")),
         "gradient": _gradient(payload.get("gradient")),
         "enabled": payload.get("enabled") is not False,
-        "order": max(0, min(order, 9999)),
+        "order": numbers.order(payload.get("order")),
     }
 
 
@@ -248,6 +252,16 @@ def _decorate(doc_id: str, data: dict) -> dict:
     out["status"] = status
     out["status_label"] = STATUS_LABELS[status]
     out["days_left"] = days_left(out.get("close_date", ""))
+    # 🧭 **أبوابُ المنحة** — تُحسب ولا تُخزَّن، كالحالة تماماً: فهي تابعةٌ
+    #    لما تملكه المنحةُ من حقول، وتخزينُها كان سيُبقي باباً بلا غرفةٍ
+    #    بعد حذف حقلٍ من اللوحة. والاستيرادُ كسولٌ لأن [scholarship_facts]
+    #    يستورد هذا الملفَّ (STATUS_LABELS) — فالحلقةُ تُفكّ هنا.
+    try:
+        from . import scholarship_facts
+        out["suggestions"] = scholarship_facts.suggestions(out)
+    except Exception as e:                  # زينةٌ لا تُسقط قائمةَ المنح
+        print(f"⚠️ تعذّر اشتقاقُ اقتراحات «{doc_id}»: {e}")
+        out["suggestions"] = []
     return out
 
 

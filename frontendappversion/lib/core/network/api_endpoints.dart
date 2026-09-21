@@ -67,6 +67,25 @@ class ApiEndpoints {
   static String capabilities(String subject, int grade, String track) =>
       "$_base/content/capabilities?subject=$subject&grade=$grade&track=$track";
 
+  /// ⚡ **الشرحُ المخزون لدرسٍ بعينه — بلا موديلٍ ولا حصة.**
+  ///
+  /// 🔴 علّةُ المالك (2026-09-16): «لما أضغط شرح المفروض على طول يطلع لي
+  ///    الشرح، ما ينتظر ثانيتين ولا ثلاثة — كما قسم الوزارة».
+  ///
+  /// 🎯 ولذلك يُسحب **لحظةَ اختيار الدرس** لا لحظةَ الضغط: الخادم يقرؤه من
+  ///    القرص في مللي ثانية، والانتظارُ كان في الطريق (رحلةُ الشبكة وحرّاسُ
+  ///    `/ask` وخصمُ الحصة وردُّها). فبالسحب المسبق تصير الضغطةُ عرضاً
+  ///    فورياً بلا أي رحلة.
+  ///
+  /// 🔒 ولا تنادي موديلاً بحال: مخزونٌ أو `found: false` — فلا كلفةَ لسحبها
+  ///    عند كل اختيار درس. ومن لا شرحَ مخزونَ لدرسه يمضي في `/ask` كما كان.
+  static String lessonExplanation(String subject, String unit, String lesson,
+          int grade, String track) =>
+      "$_base/lesson/explanation?subject=${Uri.encodeComponent(subject)}"
+      "&unit=${Uri.encodeComponent(unit)}"
+      "&lesson=${Uri.encodeComponent(lesson)}"
+      "&grade=$grade&track=${Uri.encodeComponent(track)}";
+
   // 🎓 المنح — قائمة محكومة ببروتوكول النسخة ([32§4]).
   //    `version < 0` يعني «لا نسخة عندي، أرسل كل شيء».
   static String scholarships(int version) =>

@@ -510,7 +510,8 @@ void main() {
       expect(hasMathMarkup('س $token{١} ص'), isTrue, reason: token);
     }
     expect(hasMathMarkup('نصٌّ عربيّ بلا ترميز'), isFalse);
-    expect(kMathTokens.length, 10);
+    // 📌 `\sub` أُضيفت 2026-09-17 — الدليلُ المنخفض، نظيرُ `\sup` الغائب.
+    expect(kMathTokens.length, 11);
   });
 
   testWidgets('🧪 ورسّامُ المعادلات لا يعمل خارج الكيمياء والأحياء', (t) async {

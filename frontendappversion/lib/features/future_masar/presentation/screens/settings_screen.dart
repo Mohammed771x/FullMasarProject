@@ -89,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           borderRadius: BorderRadius.circular(14),
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(color: sel ? AppColors.primary : AppColors.surfaceWhite, borderRadius: BorderRadius.circular(14), border: Border.all(color: sel ? Colors.transparent : AppColors.textSecondary.withValues(alpha: 0.1))),
+                            decoration: BoxDecoration(color: sel ? AppColors.primaryFill : AppColors.surfaceWhite, borderRadius: BorderRadius.circular(14), border: Border.all(color: sel ? Colors.transparent : AppColors.textSecondary.withValues(alpha: 0.1))),
                             child: Center(child: Text(switch (g) { 1 => "أول", 2 => "ثاني", _ => "ثالث" }, style: TextStyle(fontWeight: FontWeight.bold, color: sel ? Colors.white : AppColors.textSecondary))),
                           ),
                         ),
@@ -109,7 +109,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
-                                color: sel ? AppColors.secondary : AppColors.surfaceWhite,
+                                color: sel ? AppColors.secondaryFill : AppColors.surfaceWhite,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(color: sel ? Colors.transparent : AppColors.textSecondary.withValues(alpha: 0.1)),
                               ),
@@ -346,7 +346,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: sel ? AppColors.primary : AppColors.surfaceWhite,
+            color: sel ? AppColors.primaryFill : AppColors.surfaceWhite,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
                 color: sel

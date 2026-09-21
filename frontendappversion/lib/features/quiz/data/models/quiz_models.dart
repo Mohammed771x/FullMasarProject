@@ -18,12 +18,29 @@ class QuizQuestion {
   final String topic;   // المفهوم الدقيق — عليه يُبنى تحليل نقاط الضعف
   final String lesson;
 
+  /// 💡 **سببُ الصواب في سطر** — يأتي من البنك المخزون وحده.
+  ///
+  /// 🔴 أكبرُ فجوةٍ بقيت في شاشة المراجعة: الطالبُ يرى **ما** الصواب ولا
+  ///    يعرف **لماذا**. والدقائقُ التي تلي الاختبارَ أخصبُ لحظةِ تعلّمٍ في
+  ///    المنتج كلِّه، وكانت تمرّ بنصف فائدة.
+  /// ⚠️ وفارغٌ في التوليد الحيّ — فالواجهةُ تُخفيه ولا تحجز له مكاناً.
+  final String why;
+
+  /// 🎚️ مستوى السؤال (مبتدئ · متوسط · صعب) — من البنك، وفارغٌ في الحيّ.
+  final String level;
+
+  /// 🔁 بصمةُ السؤال — عليها تقوم ذاكرةُ «لا تُعده عليّ» ([QuizSeenStore]).
+  final String id;
+
   const QuizQuestion({
     required this.q,
     required this.options,
     required this.correctIndex,
     required this.topic,
     required this.lesson,
+    this.why = '',
+    this.level = '',
+    this.id = '',
   });
 
   factory QuizQuestion.fromJson(Map<String, dynamic> j) => QuizQuestion(
@@ -32,6 +49,9 @@ class QuizQuestion {
         correctIndex: (j['correct_index'] is int) ? j['correct_index'] as int : 0,
         topic: (j['topic'] ?? '').toString(),
         lesson: (j['lesson'] ?? '').toString(),
+        why: (j['why'] ?? '').toString(),
+        level: (j['level'] ?? '').toString(),
+        id: (j['id'] ?? '').toString(),
       );
 
   bool isCorrect(int? choice) => choice != null && choice == correctIndex;
@@ -247,6 +267,7 @@ class QuizReviewItem {
     required this.chosenIndex,
     required this.lesson,
     required this.topic,
+    this.why = '',
   });
 
   final String question;
@@ -258,6 +279,9 @@ class QuizReviewItem {
 
   final String lesson;
   final String topic;
+
+  /// 💡 سببُ الصواب — من البنك المخزون، وفارغٌ فيما وُلّد حيّاً.
+  final String why;
 
   bool get isCorrect => chosenIndex != null && chosenIndex == correctIndex;
   bool get isSkipped => chosenIndex == null;
@@ -278,6 +302,7 @@ class QuizReviewItem {
         "chosen": chosenIndex,
         "lesson": lesson,
         "topic": topic,
+        if (why.isNotEmpty) "why": why,
       };
 
   factory QuizReviewItem.fromJson(Map<String, dynamic> j) => QuizReviewItem(
@@ -286,6 +311,7 @@ class QuizReviewItem {
         correctIndex: j["correct"] is int ? j["correct"] as int : 0,
         chosenIndex: j["chosen"] is int ? j["chosen"] as int : null,
         lesson: (j["lesson"] ?? "").toString(),
+        why: (j["why"] ?? "").toString(),
         topic: (j["topic"] ?? "").toString(),
       );
 
@@ -297,5 +323,6 @@ class QuizReviewItem {
         chosenIndex: chosen,
         lesson: q.lesson,
         topic: q.topic,
+        why: q.why,
       );
 }

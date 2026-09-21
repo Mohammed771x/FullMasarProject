@@ -57,6 +57,17 @@ def build_all(verbose: bool = True) -> dict:
 
     started = time.time()
     index_store._stats["warm_started_at"] = time.strftime("%H:%M:%S")
+
+    # 🎯 **بنوكُ الأسئلة تُحمَّل أوّلاً** — تحليلُ JSON مرّةً هنا بدل أن يدفعه
+    #    **أوّلُ طالبٍ** يفتح «اختبر نفسك». وهي قراءةُ قرصٍ لا شبكة، فثمنُها
+    #    أجزاءُ ثانيةٍ مرّةً واحدة ([core/quiz_bank.warm]).
+    try:
+        from core import quiz_bank
+        n = quiz_bank.warm()
+        if verbose and n:
+            print(f"🎯 بنوكُ الأسئلة: {n} درساً في الذاكرة")
+    except Exception as e:                       # noqa: BLE001
+        print(f"⚠️ تعذّر إحماءُ بنوك الأسئلة: {e}")
     providers = _providers()
     built = loaded = skipped = 0
     errors = []

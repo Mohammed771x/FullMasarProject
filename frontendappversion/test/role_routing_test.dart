@@ -10,8 +10,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ye_student_tutor/core/auth/user_repository.dart';
 import 'package:ye_student_tutor/core/session/role_home.dart';
 import 'package:ye_student_tutor/core/session/user_session.dart';
-import 'package:ye_student_tutor/features/future_masar/presentation/screens/home_screen.dart';
+import 'package:ye_student_tutor/core/shell/masar_shell.dart';
+import 'package:ye_student_tutor/features/teacher/data/teacher_tool.dart';
 import 'package:ye_student_tutor/features/teacher/presentation/teacher_home_screen.dart';
+import 'package:ye_student_tutor/features/teacher/presentation/widgets/teacher_settings_panel.dart';
+import 'package:ye_student_tutor/features/teacher/presentation/widgets/teacher_tool_bar.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +23,12 @@ void main() {
     // 💡 تلميح الشاشة يجدول مؤقّتاً حيّاً بعد انتهاء الاختبار فيُسقطه
     //    («A Timer is still pending»). نعلّمه «عُرض» فيخرج مبكراً — نحن
     //    نختبر الترويسة لا التلميح.
-    SharedPreferences.setMockInitialValues({'screen_tip_shown_teacher_home': true});
+    SharedPreferences.setMockInitialValues({
+      'screen_tip_shown_teacher_chat': true,
+      // 💡 دليلُ الأداة يُعرض عند أول فتح — نعلّمه «عُرض» فلا يحجب الشاشة.
+      'teacher_instruction_shown_ask': true,
+      'teacher_instruction_shown_plan': true,
+    });
     UserSession.I
       ..isGuest = false
       ..role = AppRole.student
@@ -29,7 +37,7 @@ void main() {
   });
 
   test('حساب الطالب يفتح على رئيسية الطالب', () {
-    expect(RoleHome.screen(), isA<FutureHomeScreen>());
+    expect(RoleHome.screen(), isA<MasarShell>());
   });
 
   test('حساب المعلّم يفتح على أدوات المعلم — وكبيتٍ لا كشاشةٍ فرعية', () {
@@ -52,10 +60,11 @@ void main() {
   test('الزائر يبدأ طالباً حتى يبدّل بنفسه', () {
     UserSession.I.isGuest = true;
     expect(UserSession.I.isTeacher, isFalse);
-    expect(RoleHome.screen(), isA<FutureHomeScreen>());
+    expect(RoleHome.screen(), isA<MasarShell>());
   });
 
-  testWidgets('رئيسية المعلّم تعرض ترويسة حسابه ولا شريط رجوع', (tester) async {
+  testWidgets('رئيسيةُ المعلّم هي شاتُه: شريطُ الأدوات وترحيبُه، ولا شريط رجوع',
+      (tester) async {
     UserSession.I
       ..role = AppRole.teacher
       ..name = 'أستاذ خالد'
@@ -70,25 +79,45 @@ void main() {
     ));
     await tester.pump();
 
+    // 🧰 شريطُ الأدوات — أربعُ شرائح بترتيب التصميم.
+    expect(find.byType(TeacherToolBar), findsOneWidget);
+    for (final t in TeacherToolX.bar) {
+      expect(find.text(t.chipLabel), findsOneWidget,
+          reason: 'شريحةُ «${t.chipLabel}» مفقودة من الشريط');
+    }
+
+    // 👋 لوحةُ الترحيب باسم المعلّم (لا فقاعةُ الطالب).
     expect(find.textContaining('أستاذ خالد'), findsOneWidget);
-    // 👨‍🏫 «أُدرّس …» لا «الصف …» — والمسار يظهر معه.
-    expect(find.textContaining('أُدرّس الثاني الثانوي'), findsOneWidget);
-    expect(find.textContaining('أدبي'), findsOneWidget);
+
+    // 🔘 **ولا بطاقةَ إعداداتٍ في البداية** — الإطار ٢ من التصميم.
+    expect(find.byType(TeacherSettingsPanel), findsNothing);
+
     // بيتُ الدور لا يُرجع إلى شيء.
     expect(find.byType(BackButton), findsNothing);
   });
 
-  testWidgets('نفس الشاشة كصفحةٍ فرعية: شريط عنوان بدل الترويسة', (tester) async {
-    UserSession.I.name = 'أستاذ خالد';
+  testWidgets('لمسةُ شريحةٍ تفتح بطاقتَها، ولمسةٌ ثانيةٌ تطويها', (tester) async {
+    UserSession.I
+      ..role = AppRole.teacher
+      ..name = 'أستاذ خالد'
+      ..grade = 1;
+
     await tester.pumpWidget(const MaterialApp(
       home: Directionality(
         textDirection: TextDirection.rtl,
-        child: TeacherHomeScreen(),
+        child: TeacherHomeScreen(isHome: true),
       ),
     ));
     await tester.pump();
 
-    expect(find.text('مساعد المعلم 👨‍🏫'), findsOneWidget);
-    expect(find.textContaining('أستاذ خالد'), findsNothing);
+    await tester.tap(find.text('خطة درس'));
+    await tester.pump();
+    expect(find.byType(TeacherSettingsPanel), findsOneWidget);
+    // 🎨 عنوانُ البطاقة من التصميم حرفاً.
+    expect(find.text('إعداد خطة التحضير الوزاري'), findsOneWidget);
+
+    await tester.tap(find.text('خطة درس'));
+    await tester.pump();
+    expect(find.byType(TeacherSettingsPanel), findsNothing);
   });
 }

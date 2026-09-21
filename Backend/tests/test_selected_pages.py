@@ -116,7 +116,8 @@ def test_no_subject_parses_page_numbers_on_its_own():
     import pathlib
     root = pathlib.Path(__file__).resolve().parent.parent
     offenders = []
-    for path in list((root / "subjects").glob("*.py")) + list((root / "core").glob("*.py")):
+    for path in list((root / "subjects").rglob("*.py")) + \
+            list((root / "core").rglob("*.py")):
         src = path.read_text(encoding="utf-8")
         if "page_source" not in src:
             continue
@@ -167,8 +168,8 @@ def test_pages_are_only_read_where_pages_are_served():
 
     root = pathlib.Path(__file__).resolve().parent.parent
     readers = []
-    for path in list((root / "subjects").glob("*.py")) + \
-               list((root / "core").glob("*.py")):
+    for path in list((root / "subjects").rglob("*.py")) + \
+               list((root / "core").rglob("*.py")):
         src = path.read_text(encoding="utf-8")
         if "selected_pages" not in src:
             continue
@@ -177,5 +178,9 @@ def test_pages_are_only_read_where_pages_are_served():
                 body = ast.get_source_segment(src, node) or ""
                 if "selected_pages" in body:
                     readers.append(f"{path.name}:{node.name}")
-    assert readers == ["common.py:requested_pages"], \
+    # 📦 انتقل الجسدُ إلى [subjects/shared/pages.py] يوم فُكّك `common`
+    #    (2026-09-20)، و`common.py` صار باباً يُعيد التصدير. ولاحظ أن
+    #    المسحَ صار `rglob` — فبـ`glob` وحده **لم يعد يرى شيئاً**، أي أن
+    #    الحارسَ كان سيمرّ فارغاً لولا أنه يشترط القارئَ بالاسم.
+    assert readers == ["pages.py:requested_pages"], \
         f"قرّاءٌ غير متوقّعين للصفحات: {readers}"

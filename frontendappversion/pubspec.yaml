@@ -66,7 +66,6 @@ dependencies:
   #    iOS ← قدرة Push Notifications ومفتاح APNs في Firebase Console.
   #    راجع docs/06-admin.md — بلا مفتاح APNs لا يصل إشعارٌ واحد لآيفون.
   firebase_messaging: ^16.6.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -107,12 +106,40 @@ flutter:
   # 🖼️ الأصول (الشعار الرسمي يُستخدم في السبلاش والتوثيق)
   assets:
     - assets/icon/icon.png
+    - assets/brand/logo_mark.png
+    - assets/brand/logo_full.png
+    - assets/brand/robot_face.png
+    - assets/brand/robot_fly.png
+    - assets/art/art_analysis.png
+    - assets/art/art_checklist.png
+    - assets/art/art_services.png
+    - assets/art/art_scholarship.png
+    - assets/art/art_student_info.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
+
+  fonts:
+    # ✒️ أيقونات Phosphor — مكتبة المصمّم. أربعة أنماطٍ فقط ممّا يستعمله
+    #    التصميم؛ وباقي أنماط المكتبة لم تُنسخ لأنها وزنٌ بلا استعمال.
+    - family: Phosphor
+      fonts:
+        - asset: assets/fonts/Phosphor.ttf
+    - family: PhosphorFill
+      fonts:
+        - asset: assets/fonts/Phosphor-Fill.ttf
+    - family: PhosphorBold
+      fonts:
+        - asset: assets/fonts/Phosphor-Bold.ttf
+    # 🎨 **الثنائيّ (Duotone)** — نمطُ رأس الشاشة في التصميم: طبقةٌ باهتة
+    #    تحت الخطوط. قِستُه من التصدير: المصباح والقائمة وفاضل الإعدادات
+    #    كلُّها ذاتُ ظِلٍّ داخليّ فاتح، وهذا لا يُصنع بنمطٍ ممتلئ ولا عادي.
+    - family: PhosphorDuotone
+      fonts:
+        - asset: assets/fonts/Phosphor-Duotone.ttf
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

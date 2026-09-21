@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ye_student_tutor/core/storage/chat_storage.dart';
 import 'package:ye_student_tutor/features/chat/data/models/chat_model.dart';
+import 'package:ye_student_tutor/features/chat/presentation/controllers/chat_controller.dart';
 
 const _ahmed = "uid-ahmed";
 const _sara = "uid-sara";
@@ -143,6 +144,90 @@ void main() {
 
       expect(ChatStorage.getConversation("a1")!.ownerUid, _ahmed);
       expect(ChatStorage.getAllConversations(_ahmed).single.title, "عنوان جديد");
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // ✏️ إعادة التسمية لا تُيتّم المحادثة
+  // ══════════════════════════════════════════════════
+  // 🔴 **عطلٌ حقيقيّ وقع** (٢٠٢٦-٠٩-٢٠): `renameConversation` كانت تبني
+  //    نسخةً جديدة بنسخ الحقول يدوياً، و`ownerUid` ليس فيها — فيأخذ `""`.
+  //    وكلُّ استعلامات التخزين محكومةٌ بالمالك، فتختفي المحادثةُ من
+  //    القائمة عن كل حساب. وصفَها المالك بأنها «تنحذف».
+  //
+  // 🛡️ والحارسُ يسأل عن **الأثر** لا عن طريقة التنفيذ: بعد التسمية،
+  //    هل ما زالت المحادثةُ في قائمة صاحبها بالاسم الجديد ورسائلها؟
+  group('إعادة تسمية المحادثة', () {
+    test('⭐ لا تختفي من قائمة صاحبها ولا تفقد رسائلها', () async {
+      // 👤 صاحبُ المحادثة **غيرُ** صاحب المتحكّم (وهو `""` في الاختبار)
+      //    — وهذا بالضبط ما يكشف العطل: النسخُ اليدويّ كان يستبدل المالك
+      //    بالفراغ، والمُصلَحُ يُبقيه كما هو.
+      final c = ChatController();
+      addTearDown(c.dispose);
+
+      final conv = _conv("r1", owner: _ahmed);
+      await ChatStorage.saveConversation(conv);
+
+      expect(ChatStorage.getConversationsByScope(conv.scopeKey, _ahmed).length, 1,
+          reason: "قبل التسمية: موجودة");
+
+      await c.renameConversation(conv, "اسمٌ جديد");
+
+      final after = ChatStorage.getConversationsByScope(conv.scopeKey, _ahmed);
+      expect(after.length, 1, reason: "بعد التسمية: ما زالت في قائمة صاحبها");
+      expect(after.first.title, "اسمٌ جديد");
+      expect(after.first.ownerUid, _ahmed, reason: "المالك لم يُمحَ");
+      expect(after.first.messages.length, 1, reason: "الرسائل لم تضِع");
+    });
+
+    // 🔴 **والاسمُ كان يُمحى عند السؤال التالي.** `saveCurrentConversation`
+    //    تشتقّ العنوانَ من `messages.first` في **كل** حفظ — والرسالةُ الأولى
+    //    لا تتغيّر، فالمشتقُّ ثابتٌ ويكتب فوق ما سمّاه الطالب: «مراجعة
+    //    الفيزياء» تعود «اشرح لي قانون نيوتن» بعد رسالةٍ واحدة.
+    //    وُجدت 2026-09-21 وأنا أضيف الزرَّ نفسَه في مساعد المنحة.
+    test('⭐ ولا يُمحى الاسمُ عند حفظ الرسالة التالية', () async {
+      final c = ChatController();
+      addTearDown(c.dispose);
+
+      // 👤 صاحبُها هو صاحبُ المتحكّم هنا (`""`) لأن الحفظَ يقرأ العنوانَ
+      //    المخزون **محكوماً بالمالك**.
+      final conv = _conv("r3");
+      await ChatStorage.saveConversation(conv);
+      await c.renameConversation(conv, "مراجعة الفيزياء");
+
+      c.currentConversationId = conv.id;
+      c.messages = [
+        {"role": "user", "text": "اشرح لي قانون نيوتن"},
+        {"role": "ai", "text": "…"},
+      ];
+      await c.saveCurrentConversation();
+
+      expect(ChatStorage.getConversation(conv.id)?.title, "مراجعة الفيزياء");
+    });
+
+    test('والمحادثةُ الجديدة ما زالت تأخذ عنوانَها من أوّل سؤال', () async {
+      final c = ChatController();
+      addTearDown(c.dispose);
+
+      c.currentConversationId = "r4";
+      c.messages = [
+        {"role": "user", "text": "ما هو قانون أوم؟"},
+        {"role": "ai", "text": "…"},
+      ];
+      await c.saveCurrentConversation();
+
+      expect(ChatStorage.getConversation("r4")?.title, "ما هو قانون أوم؟");
+    });
+
+    test('لا تظهر عند حسابٍ آخر بعد التسمية', () async {
+      final c = ChatController();
+      addTearDown(c.dispose);
+
+      final conv = _conv("r2", owner: _ahmed);
+      await ChatStorage.saveConversation(conv);
+      await c.renameConversation(conv, "اسمٌ آخر");
+
+      expect(ChatStorage.getConversationsByScope(conv.scopeKey, _sara), isEmpty);
     });
   });
 }

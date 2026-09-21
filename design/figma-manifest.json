@@ -1,0 +1,490 @@
+[
+ {
+  "name": "مساعد المعلم الذكي2",
+  "sec": "واجهات المعلم",
+  "dir": "09-teacher",
+  "file": "01-مساعد المعلم الذكي2.png",
+  "id": "660:14340",
+  "path": "design/09-teacher/01-مساعد المعلم الذكي2.png"
+ },
+ {
+  "name": "مساعد المعلم الذكي 1",
+  "sec": "واجهات المعلم",
+  "dir": "09-teacher",
+  "file": "02-مساعد المعلم الذكي 1.png",
+  "id": "660:14826",
+  "path": "design/09-teacher/02-مساعد المعلم الذكي 1.png"
+ },
+ {
+  "name": "مساعد المعلم الذكي3",
+  "sec": "واجهات المعلم",
+  "dir": "09-teacher",
+  "file": "03-مساعد المعلم الذكي3.png",
+  "id": "660:14482",
+  "path": "design/09-teacher/03-مساعد المعلم الذكي3.png"
+ },
+ {
+  "name": "مساعد المعلم الذكي4",
+  "sec": "واجهات المعلم",
+  "dir": "09-teacher",
+  "file": "04-مساعد المعلم الذكي4.png",
+  "id": "660:14626",
+  "path": "design/09-teacher/04-مساعد المعلم الذكي4.png"
+ },
+ {
+  "name": "Frame 2147224836",
+  "sec": "واجهات المعلم",
+  "dir": "09-teacher",
+  "file": "05-Frame 2147224836.png",
+  "id": "660:14941",
+  "path": "design/09-teacher/05-Frame 2147224836.png"
+ },
+ {
+  "name": "Background+Border+Shadow2",
+  "sec": "واجهات المعلم",
+  "dir": "09-teacher",
+  "file": "06-Background_Border_Shadow2.png",
+  "id": "660:15065",
+  "path": "design/09-teacher/06-Background_Border_Shadow2.png"
+ },
+ {
+  "name": "Background+Border+Shadow",
+  "sec": "واجهات المعلم",
+  "dir": "09-teacher",
+  "file": "07-Background_Border_Shadow.png",
+  "id": "660:15079",
+  "path": "design/09-teacher/07-Background_Border_Shadow.png"
+ },
+ {
+  "name": "Background+Border+Shadow1",
+  "sec": "واجهات المعلم",
+  "dir": "09-teacher",
+  "file": "08-Background_Border_Shadow1.png",
+  "id": "660:15095",
+  "path": "design/09-teacher/08-Background_Border_Shadow1.png"
+ },
+ {
+  "name": "الخدمات",
+  "sec": "الخدمات",
+  "dir": "10-misc",
+  "file": "01-الخدمات.png",
+  "id": "638:9663",
+  "path": "design/10-misc/01-الخدمات.png"
+ },
+ {
+  "name": "المنح",
+  "sec": "المنح",
+  "dir": "06-scholarships",
+  "file": "01-المنح.png",
+  "id": "573:1166",
+  "path": "design/06-scholarships/01-المنح.png"
+ },
+ {
+  "name": "المنح2",
+  "sec": "المنح",
+  "dir": "06-scholarships",
+  "file": "02-المنح2.png",
+  "id": "582:4187",
+  "path": "design/06-scholarships/02-المنح2.png"
+ },
+ {
+  "name": "المنح1",
+  "sec": "المنح",
+  "dir": "06-scholarships",
+  "file": "03-المنح1.png",
+  "id": "618:8077",
+  "path": "design/06-scholarships/03-المنح1.png"
+ },
+ {
+  "name": "المنح3",
+  "sec": "المنح",
+  "dir": "06-scholarships",
+  "file": "04-المنح3.png",
+  "id": "589:4765",
+  "path": "design/06-scholarships/04-المنح3.png"
+ },
+ {
+  "name": "الرفيق الذاكي",
+  "sec": "المنح",
+  "dir": "06-scholarships",
+  "file": "05-الرفيق الذاكي.png",
+  "id": "594:5164",
+  "path": "design/06-scholarships/05-الرفيق الذاكي.png"
+ },
+ {
+  "name": "الرفيق الذاكي1",
+  "sec": "المنح",
+  "dir": "06-scholarships",
+  "file": "06-الرفيق الذاكي1.png",
+  "id": "615:5429",
+  "path": "design/06-scholarships/06-الرفيق الذاكي1.png"
+ },
+ {
+  "name": "Group 1",
+  "sec": "المنح",
+  "dir": "06-scholarships",
+  "file": "07-Group 1.png",
+  "id": "780:616",
+  "path": "design/06-scholarships/07-Group 1.png"
+ },
+ {
+  "name": "اختبر نفسك",
+  "sec": "اختبر نفسك",
+  "dir": "05-quiz",
+  "file": "01-اختبر نفسك.png",
+  "id": "616:7386",
+  "path": "design/05-quiz/01-اختبر نفسك.png"
+ },
+ {
+  "name": "سؤال1",
+  "sec": "اختبر نفسك",
+  "dir": "05-quiz",
+  "file": "02-سؤال1.png",
+  "id": "621:8274",
+  "path": "design/05-quiz/02-سؤال1.png"
+ },
+ {
+  "name": "تحميل للصفحة الاخرى",
+  "sec": "اختبر نفسك",
+  "dir": "05-quiz",
+  "file": "03-تحميل للصفحة الاخرى.png",
+  "id": "621:9172",
+  "path": "design/05-quiz/03-تحميل للصفحة الاخرى.png"
+ },
+ {
+  "name": "سؤال تحديد",
+  "sec": "اختبر نفسك",
+  "dir": "05-quiz",
+  "file": "04-سؤال تحديد.png",
+  "id": "621:8318",
+  "path": "design/05-quiz/04-سؤال تحديد.png"
+ },
+ {
+  "name": "اختيار صح ",
+  "sec": "اختبر نفسك",
+  "dir": "05-quiz",
+  "file": "05-اختيار صح.png",
+  "id": "621:8366",
+  "path": "design/05-quiz/05-اختيار صح.png"
+ },
+ {
+  "name": "اختيار خطاء",
+  "sec": "اختبر نفسك",
+  "dir": "05-quiz",
+  "file": "06-اختيار خطاء.png",
+  "id": "621:8418",
+  "path": "design/05-quiz/06-اختيار خطاء.png"
+ },
+ {
+  "name": "تقييم",
+  "sec": "اختبر نفسك",
+  "dir": "05-quiz",
+  "file": "07-تقييم.png",
+  "id": "621:8470",
+  "path": "design/05-quiz/07-تقييم.png"
+ },
+ {
+  "name": "راجع إجاباتك",
+  "sec": "اختبر نفسك",
+  "dir": "05-quiz",
+  "file": "08-راجع إجاباتك.png",
+  "id": "621:8550",
+  "path": "design/05-quiz/08-راجع إجاباتك.png"
+ },
+ {
+  "name": "الشاشة الافتتاحية 5",
+  "sec": "واجهات الدخول",
+  "dir": "01-onboarding",
+  "file": "01-الشاشة الافتتاحية 5.png",
+  "id": "33:29665",
+  "path": "design/01-onboarding/01-الشاشة الافتتاحية 5.png"
+ },
+ {
+  "name": "الشاشة الافتتاحية 6",
+  "sec": "واجهات الدخول",
+  "dir": "01-onboarding",
+  "file": "02-الشاشة الافتتاحية 6.png",
+  "id": "747:1622",
+  "path": "design/01-onboarding/02-الشاشة الافتتاحية 6.png"
+ },
+ {
+  "name": "الشاشة الافتتاحية 4",
+  "sec": "واجهات الدخول",
+  "dir": "01-onboarding",
+  "file": "03-الشاشة الافتتاحية 4.png",
+  "id": "24:18572",
+  "path": "design/01-onboarding/03-الشاشة الافتتاحية 4.png"
+ },
+ {
+  "name": "الشاشة الافتتاحية",
+  "sec": "واجهات الدخول",
+  "dir": "01-onboarding",
+  "file": "04-الشاشة الافتتاحية.png",
+  "id": "24:18598",
+  "path": "design/01-onboarding/04-الشاشة الافتتاحية.png"
+ },
+ {
+  "name": "Button",
+  "sec": "واجهات الدخول",
+  "dir": "02-auth",
+  "file": "05-Button.png",
+  "id": "28:29627",
+  "path": "design/02-auth/05-Button.png"
+ },
+ {
+  "name": "تسجيل دخول",
+  "sec": "واجهات الدخول",
+  "dir": "02-auth",
+  "file": "06-تسجيل دخول.png",
+  "id": "703:15904",
+  "path": "design/02-auth/06-تسجيل دخول.png"
+ },
+ {
+  "name": "إنشاء حساب جديد",
+  "sec": "واجهات الدخول",
+  "dir": "02-auth",
+  "file": "07-إنشاء حساب جديد.png",
+  "id": "703:15946",
+  "path": "design/02-auth/07-إنشاء حساب جديد.png"
+ },
+ {
+  "name": "اختيار الدور",
+  "sec": "واجهات الدخول",
+  "dir": "02-auth",
+  "file": "08-اختيار الدور.png",
+  "id": "706:16209",
+  "path": "design/02-auth/08-اختيار الدور.png"
+ },
+ {
+  "name": "اختيار الصف+المسار",
+  "sec": "واجهات الدخول",
+  "dir": "02-auth",
+  "file": "09-اختيار الصف_المسار.png",
+  "id": "716:16821",
+  "path": "design/02-auth/09-اختيار الصف_المسار.png"
+ },
+ {
+  "name": "تاكيد",
+  "sec": "واجهات الدخول",
+  "dir": "02-auth",
+  "file": "10-تاكيد.png",
+  "id": "738:17469",
+  "path": "design/02-auth/10-تاكيد.png"
+ },
+ {
+  "name": "التحقق من البريد الإلكتروني",
+  "sec": "واجهات الدخول",
+  "dir": "02-auth",
+  "file": "11-التحقق من البريد الإلكتروني.png",
+  "id": "716:16784",
+  "path": "design/02-auth/11-التحقق من البريد الإلكتروني.png"
+ },
+ {
+  "name": "تغيير كلمة المرور",
+  "sec": "واجهات الدخول",
+  "dir": "02-auth",
+  "file": "12-تغيير كلمة المرور.png",
+  "id": "713:16506",
+  "path": "design/02-auth/12-تغيير كلمة المرور.png"
+ },
+ {
+  "name": "نسيت كلمة المرور؟",
+  "sec": "واجهات الدخول",
+  "dir": "02-auth",
+  "file": "13-نسيت كلمة المرور؟.png",
+  "id": "713:16540",
+  "path": "design/02-auth/13-نسيت كلمة المرور؟.png"
+ },
+ {
+  "name": "الخدمات",
+  "sec": "واجهات الطالب",
+  "dir": "10-misc",
+  "file": "01-الخدمات.png",
+  "id": "24:20429",
+  "path": "design/10-misc/01-الخدمات.png"
+ },
+ {
+  "name": "الرئيسية",
+  "sec": "واجهات الطالب",
+  "dir": "03-home",
+  "file": "02-الرئيسية.png",
+  "id": "24:21174",
+  "path": "design/03-home/02-الرئيسية.png"
+ },
+ {
+  "name": "اختبر نفسك",
+  "sec": "واجهات الطالب",
+  "dir": "05-quiz",
+  "file": "03-اختبر نفسك.png",
+  "id": "24:21400",
+  "path": "design/05-quiz/03-اختبر نفسك.png"
+ },
+ {
+  "name": "اختبر نفسك",
+  "sec": "واجهات الطالب",
+  "dir": "05-quiz",
+  "file": "04-اختبر نفسك.png",
+  "id": "780:617",
+  "path": "design/05-quiz/04-اختبر نفسك.png"
+ },
+ {
+  "name": "المنح",
+  "sec": "واجهات الطالب",
+  "dir": "06-scholarships",
+  "file": "05-المنح.png",
+  "id": "746:1280",
+  "path": "design/06-scholarships/05-المنح.png"
+ },
+ {
+  "name": "الرفيق الذاكي",
+  "sec": "واجهات الطالب",
+  "dir": "04-education",
+  "file": "06-الرفيق الذاكي.png",
+  "id": "390:2048",
+  "path": "design/04-education/06-الرفيق الذاكي.png"
+ },
+ {
+  "name": "الرفيق الذاكي",
+  "sec": "واجهات الطالب",
+  "dir": "04-education",
+  "file": "07-الرفيق الذاكي.png",
+  "id": "814:1558",
+  "path": "design/04-education/07-الرفيق الذاكي.png"
+ },
+ {
+  "name": "الرفيق الذاكي",
+  "sec": "واجهات الطالب",
+  "dir": "04-education",
+  "file": "08-الرفيق الذاكي.png",
+  "id": "554:206",
+  "path": "design/04-education/08-الرفيق الذاكي.png"
+ },
+ {
+  "name": "الرفيق الذاكي",
+  "sec": "واجهات الطالب",
+  "dir": "04-education",
+  "file": "09-الرفيق الذاكي.png",
+  "id": "559:329",
+  "path": "design/04-education/09-الرفيق الذاكي.png"
+ },
+ {
+  "name": "الرفيق الذاكي",
+  "sec": "واجهات الطالب",
+  "dir": "04-education",
+  "file": "10-الرفيق الذاكي.png",
+  "id": "450:2964",
+  "path": "design/04-education/10-الرفيق الذاكي.png"
+ },
+ {
+  "name": "الرفيق الذاكي",
+  "sec": "واجهات الطالب",
+  "dir": "04-education",
+  "file": "11-الرفيق الذاكي.png",
+  "id": "444:2585",
+  "path": "design/04-education/11-الرفيق الذاكي.png"
+ },
+ {
+  "name": "الرفيق الذاكي",
+  "sec": "واجهات الطالب",
+  "dir": "04-education",
+  "file": "12-الرفيق الذاكي.png",
+  "id": "450:3060",
+  "path": "design/04-education/12-الرفيق الذاكي.png"
+ },
+ {
+  "name": "الرفيق الذاكي",
+  "sec": "واجهات الطالب",
+  "dir": "04-education",
+  "file": "13-الرفيق الذاكي.png",
+  "id": "448:2798",
+  "path": "design/04-education/13-الرفيق الذاكي.png"
+ },
+ {
+  "name": "الرفيق الذاكي",
+  "sec": "واجهات الطالب",
+  "dir": "04-education",
+  "file": "14-الرفيق الذاكي.png",
+  "id": "450:3169",
+  "path": "design/04-education/14-الرفيق الذاكي.png"
+ },
+ {
+  "name": "الرفيق الذاكي",
+  "sec": "واجهات الطالب",
+  "dir": "04-education",
+  "file": "15-الرفيق الذاكي.png",
+  "id": "565:1056",
+  "path": "design/04-education/15-الرفيق الذاكي.png"
+ },
+ {
+  "name": "Frame 2147224834",
+  "sec": "واجهات الطالب",
+  "dir": "03-home",
+  "file": "16-Frame 2147224834.png",
+  "id": "468:4290",
+  "path": "design/03-home/16-Frame 2147224834.png"
+ },
+ {
+  "name": "Background+Border+Shadow",
+  "sec": "واجهات الطالب",
+  "dir": "03-home",
+  "file": "17-Background_Border_Shadow.png",
+  "id": "454:3710",
+  "path": "design/03-home/17-Background_Border_Shadow.png"
+ },
+ {
+  "name": "Background+Border+Shadow",
+  "sec": "واجهات الطالب",
+  "dir": "03-home",
+  "file": "18-Background_Border_Shadow.png",
+  "id": "471:4612",
+  "path": "design/03-home/18-Background_Border_Shadow.png"
+ },
+ {
+  "name": "Background+Border+Shadow",
+  "sec": "واجهات الطالب",
+  "dir": "03-home",
+  "file": "19-Background_Border_Shadow.png",
+  "id": "480:4740",
+  "path": "design/03-home/19-Background_Border_Shadow.png"
+ },
+ {
+  "name": "Background+Border+Shadow",
+  "sec": "واجهات الطالب",
+  "dir": "03-home",
+  "file": "20-Background_Border_Shadow.png",
+  "id": "484:5032",
+  "path": "design/03-home/20-Background_Border_Shadow.png"
+ },
+ {
+  "name": "معلومات  ",
+  "sec": "واجهات الطالب",
+  "dir": "03-home",
+  "file": "21-معلومات.png",
+  "id": "746:623",
+  "path": "design/03-home/21-معلومات.png"
+ },
+ {
+  "name": "معلومات  ",
+  "sec": "واجهات الطالب",
+  "dir": "03-home",
+  "file": "22-معلومات.png",
+  "id": "788:1029",
+  "path": "design/03-home/22-معلومات.png"
+ },
+ {
+  "name": "Background+Border+Shaيdow",
+  "sec": "واجهات الطالب",
+  "dir": "03-home",
+  "file": "23-Background_Border_Shaيdow.png",
+  "id": "788:1268",
+  "path": "design/03-home/23-Background_Border_Shaيdow.png"
+ },
+ {
+  "name": "Background+Border+Shadow",
+  "sec": "واجهات الطالب",
+  "dir": "03-home",
+  "file": "24-Background_Border_Shadow.png",
+  "id": "788:1332",
+  "path": "design/03-home/24-Background_Border_Shadow.png"
+ }
+]

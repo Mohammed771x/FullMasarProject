@@ -1,37 +1,58 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/config/curriculum.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/masar_brand.dart';
 import '../../../../core/session/user_session.dart';
 import '../../../../core/storage/chat_storage.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/masar_brand.dart';
+import '../../../../core/widgets/phosphor.dart';
 import '../../data/conversation_search.dart';
 import '../../data/models/chat_model.dart';
 import '../controllers/chat_controller.dart';
 import '../../../teacher/data/teacher_tool.dart';
 import 'chat_dialogs.dart';
+import '../../../banners/data/banner_model.dart';
+import '../../../banners/presentation/banner_carousel.dart';
+import '../../../future_masar/presentation/screens/notifications_screen.dart';
+import '../../../future_masar/presentation/screens/settings_screen.dart';
+import '../../../saved/presentation/saved_screen.dart';
+import '../../../../core/notifications/notifications_repository.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 // ==========================================
-// 📂 القائمة الجانبية (Drawer)
+// 📂 القائمة الجانبية
 // ==========================================
-// الترتيب: الشعار → محادثة جديدة → الصف → المسار → المواد → المحادثات.
-// 🔻 نُقل إلى الإعدادات: "المطور" و"الوضع الداكن".
-// 🔻 حُذف: "تحديث الكود" (لم يعد هناك نظام أكواد).
+// 🎨 **تصميم Figma** — `Frame 2147224834` (468:4290) · إحداثيات مطلقة:
+//    اللوح 342×1024 · محتواه 310 عرضاً بهامش 16.
+//    الرأس (16,23) 310×53 والشعار 57×45 في يمينه ·
+//    «محادثة جديدة» (16,84) 310×52 r16 بتدرّج `#0092FF→#1D5783` ·
+//    «الموارد» (16,144) 310×36 r8 · عنوان «اختر المادة الدراسية» 10/w700
+//    `#62748E` · صفوفُ المواد 310×46 r8 (المختارة `#EFF6FF` بحدّ `#51A2FF`)
+//    · «المحدثات» + شارةُ النطاق 136×27 r12 `#D9EFFF` ·
+//    وصفوفُ المحادثات 311×64 r8 بزرَّي حذفٍ وتعديلٍ 27×27.
+//
+// ✅ **البحث أُبقي رغم غيابه عن التصميم** — ميزةٌ قائمة، وسبقَ أن رفعها
+//    المالك إلى أعلى القائمة لعلّةٍ حقيقية (انظر [_searchField]).
 class ChatDrawer extends StatefulWidget {
+  const ChatDrawer({super.key, required this.controller, this.isHome = false});
+
   final ChatController controller;
 
-  const ChatDrawer({super.key, required this.controller});
+  /// 🏠 هل الشاشةُ خلفَ هذا الدرج **بيتُ الدور**؟ (رئيسيةُ المعلّم في
+  ///    التصميم الجديد هي الشاتُ نفسُه) — فلا شيءَ يُرجَع إليه، ويُخفى
+  ///    زرُّ الخروج.
+  final bool isHome;
 
   @override
   State<ChatDrawer> createState() => _ChatDrawerState();
 }
 
 class _ChatDrawerState extends State<ChatDrawer> {
-  // 🔎 نصّ البحث الحالي — فارغٌ يعني «اعرض محادثات هذا القسم كالمعتاد».
+  /// 🔎 نصّ البحث الحالي — فارغٌ يعني «اعرض محادثات هذا القسم كالمعتاد».
   final TextEditingController _search = TextEditingController();
   String _query = "";
 
-  ChatController get controller => widget.controller;
+  ChatController get c => widget.controller;
 
   @override
   void dispose() {
@@ -45,428 +66,737 @@ class _ChatDrawerState extends State<ChatDrawer> {
   /// وهذا صحيحٌ للتصفّح. لكن الطالب الباحث عن «الأكسدة» **لا يتذكّر في أي
   /// مادةٍ سألها**، وحصرُ البحث في القسم المفتوح كان سيُرجع «لا نتائج» عن
   /// محادثةٍ موجودةٍ عنده فعلاً. فالبحث على كل محادثات الحساب.
-  List<ChatConversation> get _visibleConversations {
-    if (_query.trim().isEmpty) return controller.conversations;
+  List<ChatConversation> get _visible {
+    if (_query.trim().isEmpty) return c.conversations;
     final all = ChatStorage.getAllConversations(UserSession.I.uid);
     return ConversationSearch.filter(all, _query);
   }
 
   @override
   Widget build(BuildContext context) {
-    final c = controller;
-    return Container(
-      width: MediaQuery.of(context).size.width * 0.86,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
-        border: Border(left: BorderSide(color: AppColors.softSurface)),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            _header(),
-            _newChatButton(context),
-            const SizedBox(height: 10),
-            // 📚 الموارد (ملخصات وأسئلة وزارية على Drive)
-            _drawerItem(context, Icons.library_books_rounded, "الموارد", () {
-              Navigator.pop(context);
-              ChatDialogs.showResources(context, grade: c.grade, track: c.track);
-            }),
-
-            // ══════════════════════════════════════════════════
-            // 🔎 البحث **ثابتٌ في الأعلى** لا داخل القائمة
-            // ══════════════════════════════════════════════════
-            // 🔴 **علّة رآها المالك:** كان أسفل القائمة، فيلزم تمريرٌ طويل
-            //    للوصول إليه — ثم يفتح الكيبورد **فيغطّيه هو ونتائجه**،
-            //    فيكتب الطالب في حقلٍ لا يراه ويقرأ نتائج لا تظهر.
-            //
-            // ✅ خارج `ListView` فلا يتحرّك، وفوق النتائج فيراهما معاً،
-            //    والكيبورد يقضم من أسفل القائمة لا من الحقل.
-            _searchField(),
-
-            // القوائم القابلة للتمرير
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.only(
-                  // ⌨️ ارتفاع الكيبورد يُضاف كحشوة سفلية: بدونه تبقى آخر
-                  //    نتيجتين خلفه ولا سبيل للوصول إليهما.
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+    return ThemeScope(
+      builder: (context) => Container(
+        width: MediaQuery.of(context).size.width * 0.88,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceWhite,
+          borderRadius: const BorderRadiusDirectional.horizontal(
+              start: Radius.circular(26)),
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                _header(),
+                const SizedBox(height: 8),
+                _newChatButton(context),
+                const SizedBox(height: 8),
+                _resourcesRow(context),
+                const SizedBox(height: 8),
+                // 🔎 **البحث ثابتٌ في الأعلى** لا داخل القائمة.
+                //
+                // 🔴 **علّة رآها المالك:** كان أسفل القائمة، فيلزم تمريرٌ
+                //    طويل للوصول إليه — ثم يفتح الكيبورد **فيغطّيه هو
+                //    ونتائجه**، فيكتب الطالب في حقلٍ لا يراه.
+                _searchField(),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.only(
+                      // ⌨️ ارتفاع الكيبورد حشوةً سفلية: بدونه تبقى آخر
+                      //    نتيجتين خلفه ولا سبيل للوصول إليهما.
+                      bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                    ),
+                    children: [
+                      // 🎓 لا مُبدِّل صفٍّ ولا مسارٍ هنا (قرار المالك):
+                      //    الصفُّ يُختار مرةً في الإعدادات ويرافق الحساب،
+                      //    وتكرارُه في قائمةٍ تُفتح يومياً يُغري بتبديلٍ
+                      //    عرَضيّ يقلب المحتوى كلَّه.
+                      // 👨‍🏫 **منافذُ المعلّم** — ما كان في ترويسة شاشة
+                      //    البوابة قبل أن يحلّ الشاتُ محلَّها. لم يرسمها
+                      //    المصمّم في درج المعلم، فبُنيت بمفردته نفسِها
+                      //    (`_OutlineRow` بارتفاع 46) ولم تُفقد.
+                      if (c.isTeacher) ..._teacherEntries(context),
+                      // 🎓 **مبدّلُ الصفّ — للمعلّم وحده** وهو في تصدير
+                      //    درجه (`09-teacher/05`): ثلاثُ شرائحَ 41 r14،
+                      //    المختارةُ مصمتةٌ بلون الهوية.
+                      //
+                      //    وهو محذوفٌ من درج الطالب بقرار المالك (يُختار
+                      //    مرّةً في الإعدادات)، أمّا المعلّم فيدرّس ثلاثةَ
+                      //    صفوفٍ في يومٍ واحد — فبقاؤه بعيداً عنه عبث.
+                      if (c.isTeacher) ..._gradeSwitcher(),
+                      _label("اختر المادة الدراسية"),
+                      const SizedBox(height: 8),
+                      ..._subjectRows(context),
+                      const SizedBox(height: 16),
+                      _label("المحادثات"),
+                      const SizedBox(height: 8),
+                      _scopeChip(),
+                      const SizedBox(height: 8),
+                      ..._conversationRows(context),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
-                children: [
-                  // ══════════════════════════════════════════════════
-                  // 🎓 لا مُبدِّل صفٍّ ولا مسارٍ هنا (قرار المالك 2026-09-09)
-                  // ══════════════════════════════════════════════════
-                  // طالبُ الأول الثانوي لا يعنيه «الثاني» و«الثالث»، ولا
-                  // «علمي/أدبي». والصفُّ يُختار مرةً في **الإعدادات** ويرافق
-                  // الحساب، فتكرارُه هنا زحمةٌ في قائمةٍ تُفتح عشرات المرات
-                  // يومياً — ويُغري بتبديلٍ عرَضيّ يقلب المحتوى كلَّه.
-                  //
-                  // 📚 وتُعرض **مواد صفّه وحدها** — وهي معروضة أصلاً، لأن
-                  //    `_subjectList` تشتقّها من `c.grade` و`c.track`.
-                  _sectionLabel("المواد الدراسية"),
-                  _subjectList(context),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-                  _divider(),
-                  _conversationsHeader(),
-                  _conversationsList(context),
-                  const SizedBox(height: 24),
+  // ───────────────────────── الرأس ─────────────────────────
+  Widget _header() => SizedBox(
+        height: 53,
+        child: Row(
+          children: [
+            // 🌀 الشعار في **بداية** السطر (يمين RTL) كما في التصميم.
+            const MasarLogo(size: 46),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("مسار",
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.brandInk)),
+                  // 👨‍🏫 **سطرُ القسم** — «مساعد المعلم الذكي» في تصدير
+                  //    درج المعلم (`design/09-teacher/05`).
+                  Text(
+                      c.isTeacher
+                          ? "مساعد المعلم الذكي"
+                          : "سفير الطالب اليمني 🇾🇪",
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.cardHint)),
                 ],
               ),
             ),
+            // 🆕 **الخروج من المحادثة.** ليس في التصميم — ورأسُ شاشة
+            //    المحادثة عنده ثلاثةُ أزرارٍ لا رابعَ لها (قائمة · عنوان ·
+            //    مصباح)، فلو وُضع هناك لأخلَّ بالنسخ الحرفيّ.
+            //
+            // 🔴 **ولا بدَّ منه:** الشاشة تُفتح ملءَ الشاشة من زرّ «مسار»،
+            //    فلا شريطَ سفليّاً تحتها ولا سهمَ رجوع. ولا يبقى للطالب
+            //    إلا سحبةُ الحافّة — وهي **نفسُ حافّة فتح هذه القائمة** في
+            //    الواجهة العربية، فتتنازعان. جرّبتُها في المحاكي فنجحت،
+            //    لكنّ ميزةً لا تُرى ليست ميزة.
+            //
+            // 🎨 وبلغة المصمّم نفسها: مربّعٌ 40 بنصف قطر 16 وحدٍّ فاتح —
+            //    مواصفاتُ أزرار رأس المحادثة عنده حرفياً.
+            // 🏠 **ولا يُعرض في بيت الدور**: رئيسيةُ المعلّم هي الشاتُ
+            //    نفسُه، فلا شاشةَ تحته يُرجَع إليها — وزرٌّ يقفل التطبيق
+            //    بلا قصدٍ أسوأُ من لا زرّ.
+            if (!widget.isHome)
+              _HomeButton(onTap: () {
+                Navigator.pop(context);          // القائمة
+                Navigator.pop(context);          // شاشة المحادثة
+              }),
+          ],
+        ),
+      );
+
+  // ─────────────────── محادثة جديدة (310×52 r16) ───────────────────
+  Widget _newChatButton(BuildContext context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            c.createNewConversation();
+            Navigator.pop(context);
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: AppColors.newChatGradient,
+                begin: Alignment.centerRight,
+                end: Alignment.centerLeft,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(PI.plus.bold, size: 19, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text("محادثة جديدة",
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white)),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  // ─────────────────── الموارد ───────────────────
+  // 📏 **46 لا 36** (ملاحظة المالك: «كبّرها عشان يشوفها الطالب»).
+  //    و36 دون الحدّ الأدنى لمساحة اللمس (44) أصلاً، فالصفُّ كان صغيراً
+  //    على العين وعلى الإصبع معاً. وصار بارتفاع صفوف المواد نفسه.
+  Widget _resourcesRow(BuildContext context) => _OutlineRow(
+        height: 46,
+        onTap: () {
+          Navigator.pop(context);
+          ChatDialogs.showResources(context, grade: c.grade, track: c.track);
+        },
+        child: Row(
+          children: [
+            PDuo(PD.notebook, size: 22, color: AppColors.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text("الموارد",
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textPrimary)),
+            ),
+            Icon(PI.caretLeft.regular,
+                size: 16, color: AppColors.dropdownCaret),
+          ],
+        ),
+      );
+
+  // ─────────────────── البحث ───────────────────
+  // 🔎 **مربّعُ بحثٍ واحد** (ملاحظة المالك: «مربّعٌ داخل مربّع»).
+  //
+  // 🔴 سمةُ التطبيق العامّة (`inputDecorationTheme`) تملأ كلَّ حقلٍ بلونٍ
+  //    رماديّ وترسم حوله `enabledBorder` مستديراً — و`border: none` وحدها
+  //    **لا تنفيهما**. فظهر لوحٌ ثانٍ داخل الصندوق. تُنفى الأربعةُ صراحةً.
+  //
+  // 📏 و**46 لا 40** كبقيّة صفوف القائمة، فيراه الطالب ويصيبه إصبعُه.
+  Widget _searchField() => Container(
+        height: 46,
+        padding: const EdgeInsets.symmetric(horizontal: 13),
+        decoration: BoxDecoration(
+          color: AppColors.fieldFill,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.rowBorder),
+        ),
+        child: Row(
+          children: [
+            Icon(PI.magnifyingGlass.bold,
+                size: 19, color: AppColors.dropdownCaret),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: _search,
+                onChanged: (v) => setState(() => _query = v),
+                textAlignVertical: TextAlignVertical.center,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  hintText: "ابحث في كل محادثاتك…",
+                  hintStyle: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.dropdownCaret),
+                ),
+              ),
+            ),
+            if (_query.isNotEmpty)
+              InkWell(
+                onTap: () {
+                  _search.clear();
+                  setState(() => _query = "");
+                },
+                child: Icon(PI.x.bold, size: 15, color: AppColors.cardHint),
+              ),
+          ],
+        ),
+      );
+
+  // ─────────────────── المواد (310×46 r8) ───────────────────
+  List<Widget> _subjectRows(BuildContext context) => [
+        for (final s in c.subjects) ...[
+          Builder(builder: (_) {
+            final sel = c.selectedSubject == s;
+            final available = Curriculum.isAvailable(c.grade, c.track, s);
+            return Opacity(
+              opacity: available ? 1 : 0.5,
+              child: _OutlineRow(
+                // 📏 **52 لا 46** (ملاحظة المالك: «كبّرها شوية»).
+                height: 52,
+                selected: sel,
+                onTap: () async {
+                  if (!available) return;
+                  await c.setSubject(s);
+                  if (context.mounted) Navigator.pop(context);
+                },
+                child: Row(
+                  children: [
+                    // 🔤 حرفُ المادة الأول في مربّعٍ — كما في التصميم.
+                    Container(
+                      width: 34,
+                      height: 34,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: sel
+                            ? AppColors.primaryFill
+                            : AppColors.primaryTintSurface,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(s.characters.first,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              color: sel ? Colors.white : AppColors.primary)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(s,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              color: sel
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary)),
+                    ),
+                    if (!available)
+                      Text("قريباً",
+                          style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.warning900))
+                    else if (sel)
+                      Icon(PI.checkCircle.fill,
+                          size: 19, color: AppColors.primary),
+                  ],
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
+        ],
+      ];
+
+  // ─────────────────── شارة النطاق (136×27 r12) ───────────────────
+  Widget _scopeChip() {
+    final mode = c.isTeacher
+        ? c.teacherTool!.label
+        : (c.selectedSubject == "رياضيات" ? c.mathMode : c.selectedMode);
+    final text = "${c.selectedSubject} · $mode · "
+        "${Curriculum.gradeShort(c.grade)}"
+        "${Curriculum.hasTracks(c.grade) ? ' ${c.track.label}' : ''}";
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      // ⚠️ **بلا `alignment`**: `Container` ذو محاذاةٍ يتمدّد إلى أقصى
+      //    القيد، فكانت الشارةُ تمتدّ عرضَ القائمة كلَّه بينما هي في
+      //    التصميم 136 بمقدار نصّها. و`Row(min)` يقيسها على محتواها
+      //    ويوسّطها رأسياً في الـ27 معاً.
+      child: Container(
+        height: 27,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.scopeSurface,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(text,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.scopeInk)),
           ],
         ),
       ),
     );
   }
 
-  // ───────────────────────── الشعار ─────────────────────────
-  Widget _header() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      child: Row(
-        children: [
-          const MasarLogo(size: 46),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("مسار",
-                    style: TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w900)),
-                Text("سفير الطالب اليمني 🇾🇪",
-                    style: TextStyle(color: AppColors.primary, fontSize: 10.5, fontWeight: FontWeight.bold)),
-              ],
-            ),
+  // ─────────────────── المحادثات (311×64 r8) ───────────────────
+  List<Widget> _conversationRows(BuildContext context) {
+    final items = _visible;
+    if (items.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            _query.trim().isEmpty
+                ? "لا توجد محادثات في هذا القسم بعد."
+                : "لا توجد محادثة تطابق «${_query.trim()}».",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.cardHint),
           ),
-        ],
-      ),
-    );
+        ),
+      ];
+    }
+    return [
+      for (final conv in items) ...[
+        _OutlineRow(
+          height: 64,
+          selected: c.currentConversationId == conv.id,
+          onTap: () {
+            Navigator.pop(context);
+            // 🌍 نتيجةُ بحثٍ قد تكون من مادةٍ أخرى — `openFromSearch` ينقل
+            //    السياق كاملاً، و`loadConversation` يكفي داخل القسم نفسه.
+            if (_query.trim().isEmpty) {
+              c.loadConversation(conv);
+            } else {
+              c.openFromSearch(conv);
+            }
+          },
+          child: Row(
+            children: [
+              Icon(PI.chatCircleDots.regular,
+                  size: 20, color: AppColors.dropdownCaret),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(conv.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary)),
+                    Text("${conv.subject} · ${conv.mode}",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.cardHint)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // ✏️ 🗑️ زرّان 27×27 — تعديلُ الاسم وحذفُ المحادثة.
+              _MiniAction(
+                icon: PI.pencilSimple.regular,
+                fill: AppColors.secondary100,
+                border: AppColors.secondary200,
+                ink: AppColors.secondary700,
+                onTap: () => ChatDialogs.showRename(context, c, conv),
+              ),
+              const SizedBox(width: 6),
+              _MiniAction(
+                icon: PI.trash.regular,
+                fill: AppColors.error100,
+                border: AppColors.error200,
+                ink: AppColors.error500,
+                onTap: () =>
+                    ChatDialogs.showDeleteConfirmation(context, c, conv.id),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    ];
   }
 
-  // ──────────────────── زر محادثة جديدة ────────────────────
-  Widget _newChatButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: InkWell(
-        onTap: () {
-          controller.createNewConversation();
-          Navigator.pop(context);
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          decoration: BoxDecoration(
-            gradient: AppColors.mainGradient,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+  // ─────────────── منافذُ المعلّم (🆕) ───────────────
+  List<Widget> _teacherEntries(BuildContext context) {
+    final s = UserSession.I;
+    return [
+      _OutlineRow(
+        height: 52,
+        onTap: () => _go(context, const SettingsScreen()),
+        child: Row(
+          children: [
+            UserAvatar(radius: 17, editable: false),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(s.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textPrimary)),
+                  // 👨‍🏫 «أُدرّس …» لا «الصف …»: الصفُّ نفسُه والمعنى مختلف.
+                  Text("أُدرّس ${Curriculum.gradeLabel(s.grade)}",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.cardHint)),
+                ],
+              ),
+            ),
+            Icon(PI.gear.regular, size: 18, color: AppColors.dropdownCaret),
+          ],
+        ),
+      ),
+      const SizedBox(height: 8),
+      _OutlineRow(
+        height: 46,
+        onTap: () => _go(context, const SavedScreen()),
+        child: Row(
+          children: [
+            PDuo(PD.folderOpen, size: 22, color: AppColors.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text("المحفوظات",
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textPrimary)),
+            ),
+            Icon(PI.caretLeft.regular, size: 16, color: AppColors.dropdownCaret),
+          ],
+        ),
+      ),
+      const SizedBox(height: 8),
+      ListenableBuilder(
+        listenable: NotificationsRepository.I,
+        builder: (_, _) => _OutlineRow(
+          height: 46,
+          onTap: () => _go(context, const NotificationsScreen()),
+          child: Row(
             children: [
-              Icon(Icons.add_rounded, color: Colors.white, size: 19),
-              SizedBox(width: 8),
-              Text("محادثة جديدة", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+              PDuo(PD.chat, size: 22, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text("الإشعارات",
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.textPrimary)),
+              ),
+              if (NotificationsRepository.I.hasUnread)
+                Container(
+                  width: 9,
+                  height: 9,
+                  decoration: BoxDecoration(
+                      color: AppColors.error500, shape: BoxShape.circle),
+                ),
+              const SizedBox(width: 8),
+              Icon(PI.caretLeft.regular,
+                  size: 16, color: AppColors.dropdownCaret),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  // ──────────────────────── المواد ────────────────────────
-  Widget _subjectList(BuildContext context) {
-    final c = controller;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: c.subjects.map((s) {
-          final sel = c.selectedSubject == s;
-          final available = Curriculum.isAvailable(c.grade, c.track, s);
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () async {
-                if (!available) {
-                  _snack(context, "🚧 محتوى «$s» لهذا الصف قيد الإضافة");
-                  return;
-                }
-                await c.setSubject(s);
-                // ★ اختيار المادة = نهاية الاختيار → نعود للمحادثة.
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: Opacity(
-                opacity: available ? 1 : 0.45,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                  decoration: BoxDecoration(
-                    color: sel ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(available ? Icons.book_rounded : Icons.lock_outline_rounded,
-                          size: 18, color: sel ? AppColors.primary : AppColors.textSecondary),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(s,
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: sel ? AppColors.primary : AppColors.textPrimary,
-                                fontWeight: sel ? FontWeight.bold : FontWeight.w600)),
-                      ),
-                      if (!available)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                          decoration: BoxDecoration(
-                              color: AppColors.softSurface, borderRadius: BorderRadius.circular(8)),
-                          child: Text("قريباً",
-                              style: TextStyle(
-                                  fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.textSecondary)),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
+      const SizedBox(height: 8),
+      // 🎏 بانرُ قسم المعلم — كان في شاشة البوابة، ولا يرسم شيئاً حين لا بانر.
+      BannerCarousel(
+        section: BannerSection.teacher,
+        onAction: (_, _) {},
+        height: 100,
       ),
-    );
+      const SizedBox(height: 8),
+    ];
   }
 
-  // ──────────────────────── المحادثات ────────────────────────
-  Widget _conversationsHeader() {
-    final c = controller;
-    // 👨‍🏫 في قسم المعلم `selectedMode` معرّفٌ داخلي («معلم:plan») يدخل في
-    //    مفتاح النطاق — فلا يُعرض للمعلّم كما هو، بل باسم الأداة.
-    final mode = c.isTeacher
-        ? c.teacherTool!.label
-        : (c.selectedSubject == "رياضيات" ? c.mathMode : c.selectedMode);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text("المحادثات",
-                style: TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.3)),
-          ),
-          const SizedBox(height: 6),
-          // 🏷️ شارة النطاق: توضّح للطالب أن هذه محادثات هذا السياق تحديداً
-          Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(10)),
-              child: Text(
-                "${c.selectedSubject} · $mode · ${Curriculum.gradeShort(c.grade)}"
-                "${Curriculum.hasTracks(c.grade) ? ' ${c.track.label}' : ''}",
-                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.primary),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  /// ⚠️ **يُلتقط `Navigator` قبل الإغلاق**: بعد `pop` يبدأ الدرجُ رحلةَ
+  ///    الخروج وقد يُنزع ابنُه من الشجرة، فاستعمالُ سياقِه بعدها مخاطرة.
+  Future<void> _go(BuildContext context, Widget screen) async {
+    final nav = Navigator.of(context);
+    nav.pop();
+    await nav.push(MaterialPageRoute(builder: (_) => screen));
+    if (mounted) setState(() {});
   }
 
-  // ──────────────────────── 🔎 البحث ────────────────────────
-  Widget _searchField() {
-    final searching = _query.trim().isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-      child: TextField(
-        controller: _search,
-        onChanged: (v) => setState(() => _query = v),
-        textInputAction: TextInputAction.search,
-        style: TextStyle(fontSize: 13, color: AppColors.textPrimary),
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: "ابحث في كل محادثاتك…",
-          hintStyle: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-          prefixIcon: Icon(Icons.search_rounded, size: 18, color: AppColors.textSecondary),
-          suffixIcon: searching
-              ? IconButton(
-                  icon: Icon(Icons.close_rounded, size: 17, color: AppColors.textSecondary),
-                  splashRadius: 18,
-                  onPressed: () {
-                    _search.clear();
-                    setState(() => _query = "");
+  // ─────────────── مبدّلُ الصفّ (41 · r14) ───────────────
+  List<Widget> _gradeSwitcher() => [
+        _label("الصف الدراسي"),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            for (final g in const [1, 2, 3]) ...[
+              Expanded(
+                child: _GradeChip(
+                  label: Curriculum.gradeShort(g),
+                  selected: c.grade == g,
+                  onTap: () async {
+                    await c.setGrade(g);
+                    if (mounted) setState(() {});
                   },
-                )
-              : null,
-          filled: true,
-          fillColor: AppColors.softSurface,
-          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _conversationsList(BuildContext context) {
-    final searching = _query.trim().isNotEmpty;
-    final convs = _visibleConversations;
-    if (convs.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
-        child: Column(
-          children: [
-            Icon(searching ? Icons.search_off_rounded : Icons.forum_outlined,
-                size: 30, color: AppColors.textSecondary.withValues(alpha: 0.4)),
-            const SizedBox(height: 10),
-            // ⚠️ رسالتان لا واحدة: «لا محادثات بعد» على نتيجةِ بحثٍ فارغة
-            //    تُوهم الطالب أن محادثاته ضاعت — وهي موجودة ولا تطابق فقط.
-            Text(
-                searching
-                    ? "لا توجد محادثة تطابق «${_query.trim()}»."
-                    : "لا توجد محادثات في هذا القسم بعد.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                ),
+              ),
+              if (g != 3) const SizedBox(width: 12),
+            ],
           ],
         ),
-      );
-    }
+        const SizedBox(height: 16),
+      ];
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
-      itemCount: convs.length,
-      itemBuilder: (context, index) {
-        final conv = convs[index];
-        final isActive = conv.id == controller.currentConversationId;
-        return InkWell(
-          onTap: () {
-            // 🔎 نتيجةُ بحثٍ قد تكون من مادةٍ أو صفٍّ آخر ⇒ يُنقَل النطاق
-            //    معها. أما التصفّح العادي فداخل النطاق أصلاً.
-            if (searching) {
-              controller.openFromSearch(conv);
-            } else {
-              controller.loadConversation(conv);
-            }
-            Navigator.pop(context);
-          },
+  Widget _label(String t) => Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(t,
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: AppColors.sectionLabel)),
+      );
+}
+
+// ══════════════════════════════════════════════════
+// ▭ صفٌّ محدَّد بحدٍّ — مفردةُ الدرج المتكرّرة
+// ══════════════════════════════════════════════════
+class _OutlineRow extends StatelessWidget {
+  const _OutlineRow({
+    required this.child,
+    required this.onTap,
+    required this.height,
+    this.selected = false,
+  });
+
+  final Widget child;
+  final VoidCallback onTap;
+  final double height;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            color: isActive ? AppColors.softSurface : Colors.transparent,
-            child: Row(
-              children: [
-                Icon(Icons.chat_bubble_outline_rounded,
-                    size: 17, color: isActive ? AppColors.primary : AppColors.textSecondary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        conv.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                            color: isActive ? AppColors.primary : AppColors.textPrimary),
-                      ),
-                      // 📄 أثناء البحث: أين وُجدت الكلمة + من أي مادة —
-                      //    فالنتائج تأتي من كل الأقسام وعناوينها متشابهة.
-                      if (searching) ...[
-                        const SizedBox(height: 3),
-                        Text(
-                          _resultSubtitle(conv),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 10.5,
-                              height: 1.35,
-                              color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.edit_rounded, size: 17, color: AppColors.secondary),
-                  onPressed: () => ChatDialogs.showRename(context, controller, conv),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  splashRadius: 20,
-                ),
-                const SizedBox(width: 10),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, size: 17, color: Colors.redAccent),
-                  onPressed: () => ChatDialogs.showDeleteConfirmation(context, controller, conv.id),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  splashRadius: 20,
-                ),
-              ],
+            height: height,
+            padding: const EdgeInsets.symmetric(horizontal: 13),
+            decoration: BoxDecoration(
+              color: selected
+                  ? AppColors.drawerRowSelected
+                  : AppColors.surfaceWhite,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                  color: selected
+                      ? AppColors.drawerRowSelectedBorder
+                      : AppColors.rowBorder),
+            ),
+            child: child,
+          ),
+        ),
+      );
+}
+
+/// زرٌّ صغير 27×27 داخل صفّ المحادثة.
+class _MiniAction extends StatelessWidget {
+  const _MiniAction({
+    required this.icon,
+    required this.fill,
+    required this.border,
+    required this.ink,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color fill, border, ink;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: 27,
+            height: 27,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: border),
+            ),
+            child: Icon(icon, size: 15, color: ink),
+          ),
+        ),
+      );
+}
+
+// ══════════════════════════════════════════════════
+// 🏠 زرّ العودة إلى الرئيسية — 40×40 r16 (مواصفات رأس المحادثة)
+// ══════════════════════════════════════════════════
+class _HomeButton extends StatelessWidget {
+  const _HomeButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: "الرئيسية",
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceWhite,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.rowBorder),
+              ),
+              child: Icon(PI.house.regular,
+                  size: 20, color: AppColors.primary990Ink),
             ),
           ),
-        );
-      },
-    );
-  }
-
-  /// سطر النتيجة: المادة ثم مقتطف الكلمة إن وُجدت في متن المحادثة.
-  String _resultSubtitle(ChatConversation conv) {
-    final snippet = ConversationSearch.snippet(conv, _query);
-    final where = "${conv.subject} · ${Curriculum.gradeShort(conv.grade)}";
-    return snippet.isEmpty ? where : "$where — $snippet";
-  }
-
-  // ──────────────────────── مساعدات ────────────────────────
-  Widget _drawerItem(BuildContext context, IconData icon, String title, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(color: AppColors.softSurface, borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, color: AppColors.textPrimary, size: 16),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(title,
-                  style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary, fontSize: 13)),
-            ),
-            Icon(Icons.chevron_left_rounded, size: 18, color: AppColors.textSecondary),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _divider() => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Divider(height: 1, color: AppColors.softSurface),
-      );
-
-  Widget _sectionLabel(String t) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: Text(t,
-              style: TextStyle(
-                  color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.3)),
         ),
       );
+}
 
-  void _snack(BuildContext context, String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(m, style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ));
+// ══════════════════════════════════════════════════
+// 🎓 شريحةُ صفٍّ — 41 · r14 (تصدير درج المعلم)
+// ══════════════════════════════════════════════════
+class _GradeChip extends StatelessWidget {
+  const _GradeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: selected ? AppColors.primaryFill : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            height: 41,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: selected
+                      ? AppColors.primaryFill
+                      : AppColors.quizCardBorder),
+            ),
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: selected ? Colors.white : AppColors.rowAction)),
+          ),
+        ),
+      );
 }

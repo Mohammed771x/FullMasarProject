@@ -121,6 +121,12 @@ class QuizSnapshot {
         "track": track,
         "unit": unit,
         "lessons": lessons,
+        // 🔴 **واللقطةُ تحمل السؤالَ كاملاً لا نصفَه** (رُئي في المحاكي
+        //    2026-09-18): كانت تُسقط `why` و`id` و`level`، فاختبارٌ
+        //    **استُؤنف** يصل شاشةَ المراجعة **بلا سطر «لماذا»** — وهو
+        //    أخصبُ سطرٍ في المنتج ويأتي من البنك مجّاناً. و`id` معه
+        //    تُفقد ذاكرةُ «لا تُعِد ما سُئل» ([QuizSeenStore]) فيتكرّر
+        //    السؤالُ على الطالب في المحاولة التالية.
         "questions": questions
             .map((q) => {
                   "q": q.q,
@@ -128,6 +134,9 @@ class QuizSnapshot {
                   "correct_index": q.correctIndex,
                   "topic": q.topic,
                   "lesson": q.lesson,
+                  "why": q.why,
+                  "level": q.level,
+                  "id": q.id,
                 })
             .toList(),
         "answers": answers,

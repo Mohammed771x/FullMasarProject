@@ -127,9 +127,25 @@ class SchConversation {
         createdAt = createdAt ?? DateTime.now(),
         lastUpdated = lastUpdated ?? DateTime.now();
 
+  /// العنوانُ الافتراضيّ قبل أوّل سؤال — ومفتاحُ [retitleFromFirstQuestion].
+  static const String defaultTitle = "محادثة جديدة";
+
   /// أول سؤال حقيقي للطالب هو العنوان — لا «محادثة ١» بلا معنى.
   /// (رسالة الترحيب من المساعد لا تصلح عنواناً: هي نفسها في كل محادثة.)
+  ///
+  /// 🔴 **ولا يُشتقّ فوق اسمٍ اختاره الطالب.** تُستدعى هذه الدالّة مع
+  ///    **كلّ** رسالة، والسؤالُ الأوّل لا يتغيّر — فكانت تُعيد كتابة العنوان
+  ///    نفسِه في كل مرة، ومعناه أن **إعادة التسمية تُمحى عند أوّل سؤالٍ
+  ///    تالٍ**: يسمّيها الطالبُ «منحة أخي» فتعود «ما شروط التقديم؟».
+  ///    رأيتُه في المحاكي بعد إضافة زرّ التعديل مباشرةً (2026-09-21).
+  ///
+  /// ✅ فصار الاشتقاقُ **مرّةً واحدة**: ما دام العنوانُ هو الافتراضيّ.
   void retitleFromFirstQuestion() {
+    if (title.trim().isNotEmpty &&
+        title.trim() != defaultTitle &&
+        title.trim() != "محادثة") {
+      return;
+    }
     final first = messages.where((m) => m.isUser).map((m) => m.text).firstOrNull;
     if (first == null || first.trim().isEmpty) return;
     final clean = first.trim().replaceAll(RegExp(r'\s+'), ' ');

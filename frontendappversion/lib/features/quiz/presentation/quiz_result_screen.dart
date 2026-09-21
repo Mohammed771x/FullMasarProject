@@ -1,20 +1,29 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/masar_markdown.dart';
 import '../../../core/widgets/fade_in_slide.dart';
-import '../../../core/widgets/robot_widget.dart';
+import '../../../core/widgets/masar_brand.dart';
+import '../../../core/widgets/masar_markdown.dart';
+import '../../../core/widgets/phosphor.dart';
 import '../../chat/presentation/screens/main_chat_screen.dart';
 import '../data/models/quiz_models.dart';
 import 'quiz_controller.dart';
 import 'quiz_play_screen.dart';
 import 'quiz_review_screen.dart';
+import 'widgets/quiz_ui.dart';
 
 // ==========================================
 // 🏁 نتيجة الاختبار + خريطة نقاط الضعف
 // ==========================================
 // **الحلقة الذهبية** ([31§7]): كل نقطة ضعف تحمل **درسها**، فزر «اشرح لي 📚»
 // يفتح الشات على ذلك الدرس بعينه — لا على المادة عموماً.
+//
+// 🎨 **إعادة التصميم** (`design/05-quiz/07-تقييم`): زرُّ إغلاقٍ 32 في أعلى
+//    اليمين · حلقةٌ 138 بسماكة 10.5 · عنوانٌ وسطرُ نطاق · ثلاثُ بطاقات
+//    إحصاءٍ ملوّنة بارتفاع 75 · صفوفُ «تحتاج تركيزاً في» · زرّان 53.
+//
+// ⚠️ **ولا شيءَ من الحساب تغيّر**: النسبةُ واللونُ والعنوانُ ودروسُ الضعف
+//    تُحسب كما كانت حرفاً بحرف — تغيّر الرسمُ وحده.
 class QuizResultScreen extends StatefulWidget {
   final QuizController controller;
   final QuizResult result;
@@ -48,8 +57,8 @@ class _QuizResultScreenState extends State<QuizResultScreen>
   }
 
   Color get _color => r.percent >= 80
-      ? Colors.green.shade600
-      : (r.percent >= 50 ? Colors.orange.shade700 : Colors.redAccent);
+      ? AppColors.quizRight
+      : (r.percent >= 50 ? AppColors.warning800 : AppColors.quizWrong);
 
   String get _headline => r.percent >= 90
       ? "ممتاز! أنت متمكّن 🌟"
@@ -78,30 +87,39 @@ class _QuizResultScreenState extends State<QuizResultScreen>
       body: SafeArea(
         child: FadeInSlide(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+            padding: const EdgeInsets.fromLTRB(
+                QuizMetrics.margin, 27, QuizMetrics.margin, 28),
             children: [
+              // ⚠️ RTL: `centerRight` هو موضعُ الزرّ في التصميم — أعلى اليمين.
               Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  icon: Icon(Icons.close_rounded, color: AppColors.textSecondary),
-                  onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                alignment: Alignment.centerRight,
+                child: QuizSquareButton(
+                  icon: PI.x,
+                  onTap: () =>
+                      Navigator.of(context).popUntil((route) => route.isFirst),
                 ),
               ),
+              const SizedBox(height: 51),
               _circle(),
-              const SizedBox(height: 18),
+              const SizedBox(height: 44),
               Text(_headline,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
-              const SizedBox(height: 6),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.panelTitle)),
+              const SizedBox(height: 8),
               Text("${r.subject} · ${r.unit}",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
-              const SizedBox(height: 20),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.chipInk)),
+              const SizedBox(height: 22),
               _stats(),
               const SizedBox(height: 22),
               if (_weakLessons.isNotEmpty) _weakMap() else _perfect(),
-              const SizedBox(height: 22),
+              const SizedBox(height: 33),
               _actions(),
             ],
           ),
@@ -110,21 +128,25 @@ class _QuizResultScreenState extends State<QuizResultScreen>
     );
   }
 
+  // ───────────────────── ⭕ الحلقة ─────────────────────
+  //
+  // 📐 قطرُها 138 وسماكتُها 10.5 — مقيسةٌ من التصدير.
+
   Widget _circle() => AnimatedBuilder(
         animation: _percent,
         builder: (_, _) => SizedBox(
-          height: 190,
+          height: 138,
           child: Stack(
             alignment: Alignment.center,
             children: [
               SizedBox(
-                width: 160,
-                height: 160,
+                width: 138,
+                height: 138,
                 child: CircularProgressIndicator(
                   value: _percent.value,
-                  strokeWidth: 14,
+                  strokeWidth: 10.5,
                   strokeCap: StrokeCap.round,
-                  backgroundColor: AppColors.softSurface,
+                  backgroundColor: AppColors.rowBorder,
                   valueColor: AlwaysStoppedAnimation(_color),
                 ),
               ),
@@ -133,11 +155,15 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                 children: [
                   Text("${(_percent.value * 100).round()}%",
                       style: TextStyle(
-                          fontSize: 34, fontWeight: FontWeight.w900, color: _color)),
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: _color)),
+                  const SizedBox(height: 2),
                   Text("${r.score} من ${r.total}",
                       style: TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w700,
-                          color: AppColors.textSecondary)),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.panelTitle)),
                 ],
               ),
             ],
@@ -145,13 +171,24 @@ class _QuizResultScreenState extends State<QuizResultScreen>
         ),
       );
 
+  // ───────────────────── 📊 بطاقات الإحصاء ─────────────────────
+  //
+  // 📐 ثلاثٌ بارتفاع 75 وفراغ 5، وكلٌّ بتعبئةِ حالتها وحبرِها.
+  // ⚠️ RTL: أوّلُ ابنٍ هو الأيمن — و**الصحيحة في اليمين** في التصميم.
+
   Widget _stats() => Row(
         children: [
-          _stat("✅ صحيحة", "${r.score}", Colors.green.shade600),
-          const SizedBox(width: 10),
-          _stat("❌ خاطئة", "${r.total - r.score}", Colors.redAccent),
-          const SizedBox(width: 10),
-          _stat("⏱️ الوقت", _fmt(r.durationSec), AppColors.primary),
+          Expanded(
+              child: _stat("✓ صحيحة", "${r.score}", AppColors.quizEmerald,
+                  AppColors.quizRightFill)),
+          const SizedBox(width: 5),
+          Expanded(
+              child: _stat("✗ خاطئة", "${r.total - r.score}",
+                  AppColors.quizPink, AppColors.quizPinkFill)),
+          const SizedBox(width: 5),
+          Expanded(
+              child: _stat("⏱ الوقت", _fmt(r.durationSec), AppColors.quizSky,
+                  AppColors.quizTint)),
         ],
       );
 
@@ -160,38 +197,48 @@ class _QuizResultScreenState extends State<QuizResultScreen>
     return m > 0 ? "$m:${s.toString().padLeft(2, '0')}" : "$s ث";
   }
 
-  Widget _stat(String label, String value, Color color) => Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-              color: AppColors.surfaceWhite, borderRadius: BorderRadius.circular(18)),
-          child: Column(
-            children: [
-              Text(value,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
-              const SizedBox(height: 2),
-              Text(label,
-                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600)),
-            ],
-          ),
+  Widget _stat(String label, String value, Color ink, Color fill) => Container(
+        height: 75,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+            color: fill, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w900, color: ink)),
+            const SizedBox(height: 4),
+            Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w700, color: ink)),
+          ],
         ),
       );
+
+  // ───────────────────── 🎯 خريطة الضعف ─────────────────────
 
   Widget _perfect() => Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-            color: Colors.green.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(20)),
+            color: AppColors.quizRightFill,
+            borderRadius: BorderRadius.circular(QuizMetrics.cardRadius),
+            border: Border.all(color: AppColors.quizRight)),
         child: Row(
           children: [
-            RobotWidget(size: 52, state: RobotState.wave),
+            MasarRobot(size: 52, pose: MasarRobotPose.fly),
             const SizedBox(width: 12),
             Expanded(
               child: Text("لا أخطاء في هذا الاختبار — أتقنت هذه الدروس 🎯",
                   style: TextStyle(
-                      fontSize: 13, height: 1.7,
-                      fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                      fontSize: 13,
+                      height: 1.7,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.panelTitle)),
             ),
           ],
         ),
@@ -204,51 +251,66 @@ class _QuizResultScreenState extends State<QuizResultScreen>
             alignment: Alignment.centerRight,
             child: Text("🎯 تحتاج تركيزاً في:",
                 style: TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.panelTitle)),
           ),
           const SizedBox(height: 10),
-          ..._weakLessons.map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                      color: AppColors.surfaceWhite,
-                      borderRadius: BorderRadius.circular(18)),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          for (final e in _weakLessons)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: QuizCard(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 11),
+                child: Row(
+                  children: [
+                    // ⚠️ RTL: الشارةُ أوّلُ ابنٍ ⇒ يميناً، والزرُّ آخرُه ⇒ يساراً.
+                    QuizBadge("x${e.value}",
+                        fill: AppColors.quizPinkFill,
+                        ink: AppColors.quizPink),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      // 🖌️ بالرسّام لا بنصٍّ خام: الموضوع قد يكون صيغةً
+                      //    («\frac{ن}{ر}») — و[MathOrText] تعود نصّاً
+                      //    عادياً حين لا ترميزَ فيه، فلا كلفةَ لها.
+                      child: MathOrText(e.key,
+                          maxLines: 2,
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.panelTitle)),
+                    ),
+                    const SizedBox(width: 10),
+                    // 🔁 الحلقة الذهبية: من الخطأ إلى شرح الدرس نفسه
+                    InkWell(
+                      onTap: () => _explain(e.key),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        height: 40,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                            color: Colors.redAccent.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8)),
-                        child: Text("${e.value}✗",
-                            style: const TextStyle(
-                                fontSize: 11, fontWeight: FontWeight.w900,
-                                color: Colors.redAccent)),
+                          color: AppColors.quizTint,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text("اشرح لي",
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.primary)),
+                            const SizedBox(width: 7),
+                            Icon(PI.bookOpen.regular,
+                                size: 16, color: AppColors.primary),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        // 🖌️ بالرسّام لا بنصٍّ خام: الموضوع قد يكون صيغةً
-                        //    («\frac{ن}{ر}») — و[MathOrText] تعود نصّاً
-                        //    عادياً حين لا ترميزَ فيه، فلا كلفةَ لها.
-                        child: MathOrText(e.key,
-                            style: TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary)),
-                      ),
-                      // 🔁 الحلقة الذهبية: من الخطأ إلى شرح الدرس نفسه
-                      TextButton.icon(
-                        onPressed: () => _explain(e.key),
-                        icon: Icon(Icons.menu_book_rounded, size: 16, color: AppColors.primary),
-                        label: Text("اشرح لي",
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.bold,
-                                color: AppColors.primary)),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              )),
+              ),
+            ),
         ],
       );
 
@@ -268,49 +330,37 @@ class _QuizResultScreenState extends State<QuizResultScreen>
     );
   }
 
+  // ───────────────────── ▶️ الزرّان ─────────────────────
+
   Widget _actions() => Column(
         children: [
-          SizedBox(
-            height: 52,
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.surfaceWhite,
-                foregroundColor: AppColors.textPrimary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              ),
-              onPressed: () => Navigator.push(
+          QuizPrimaryButton(
+            label: "اختبار جديد بنفس الدروس",
+            icon: PI.arrowCounterClockwise,
+            height: 53,
+            onTap: () {
+              final c = widget.controller;
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => QuizReviewScreen.live(controller: widget.controller)),
-              ),
-              icon: const Icon(Icons.fact_check_rounded, size: 20),
-              label: const Text("راجع إجاباتك 📋",
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            ),
+                    builder: (_) =>
+                        QuizPlayScreen(controller: c..questions = const [])),
+              );
+            },
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            height: 52,
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              ),
-              onPressed: () {
-                final c = widget.controller;
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => QuizPlayScreen(controller: c..questions = const [])),
-                );
-              },
-              icon: const Icon(Icons.refresh_rounded, size: 20),
-              label: const Text("اختبار جديد بنفس الدروس 🔄",
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          // 🎨 ثانويٌّ في التصميم: تعبئةٌ باهتةٌ بلون الهوية وحبرٌ أزرق.
+          QuizPrimaryButton(
+            label: "راجع إجاباتك",
+            icon: PI.notePencil,
+            height: 53,
+            fill: AppColors.quizTint,
+            ink: AppColors.primary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) =>
+                      QuizReviewScreen.live(controller: widget.controller)),
             ),
           ),
         ],

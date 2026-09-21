@@ -191,6 +191,27 @@ final RegExp _arabicBlock = RegExp(r'[\u0600-\u06FF]');
 
 bool isPureLatin(String text) => !_arabicBlock.hasMatch(text);
 
+// 🔢 **ثلاثُ أبجدياتِ أرقامٍ في كتبنا لا اثنتان**: لاتينية `7` · عربية `٧` ·
+//    **وفارسية `۷`** (U+06F7). ومسحُ الصفوف الثلاثة (2026-09-17): **٨٤٨٣
+//    محرفاً فارسياً في ٣١٥ درساً** — فيُعرض الجدولُ الواحد فيه «٦٠» و«۱۰۰»
+//    بخطّين مختلفَي الشكل (٤ و۴ · ٥ و۵ · ٦ و۶ لا تتشابه).
+//
+// ⚖️ **وعلاجُه عند العرض لا في المصدر**: فيشمل المخزونَ كلَّه (٨١٣ شرحاً
+//    و٣١٥ درساً) بلا نداءٍ واحد، وبلا إبطال بصمةِ درسٍ فيبطل شرحُه المخزون.
+const Map<String, String> _persianToArabic = {
+  '۰': '٠', '۱': '١', '۲': '٢', '۳': '٣', '۴': '٤',
+  '۵': '٥', '۶': '٦', '۷': '٧', '۸': '٨', '۹': '٩',
+};
+
+String arabizeDigits(String text) {
+  if (text.isEmpty) return text;
+  final b = StringBuffer();
+  for (final ch in text.split('')) {
+    b.write(_persianToArabic[ch] ?? ch);
+  }
+  return b.toString();
+}
+
 /// هل يحتاج هذا السطر رسّام الرياضيات؟ — القائمةُ في [kMathTokens] وحدها.
 bool _needsMath(String line) => hasMathMarkup(line);
 
@@ -318,6 +339,44 @@ List<_Block> _splitPlain(String data, {bool equations = true}) {
   return blocks;
 }
 
+// ══════════════════════════════════════════════════
+// ↩️ سطرُ الكاتب سطرٌ على الشاشة · والعنوانُ يُرى عنواناً
+// ══════════════════════════════════════════════════
+//
+// 🔴 **علّةُ المالك (2026-09-16): «الكلام محشو، كله ورا بعض».** وهي علّتان:
+//
+// ① **الماركداونُ يَلحم الأسطرَ المتتالية** في فقرةٍ واحدة ما لم يفصلها
+//    سطرٌ فارغ. وقوائمُنا مرقّمةٌ **بأرقامٍ عربية** بقرار المالك
+//    ([[arabic-numerals-in-answers]])، و«١-» ليست بنداً في عُرف الماركداون
+//    (يعرف `1.` وحدها) — فالبنودُ تُعرض سطراً واحداً متّصلاً. ومسحُ
+//    المخزون: **١١٩٩ بنداً ملتحماً في ١٨٢ درساً**. والعلاجُ
+//    `softLineBreak` يُرفع — **وفي مسارَي العرض معاً**، فنسيانُ أحدهما
+//    يعني عودةَ العلّة في نصف الدروس وهي أصعبُ من عودتها كلِّها.
+//
+// ② **العنوانُ كان يُرسم بنمط الفقرة**: الشاشاتُ تمرّر
+//    `MarkdownStyleSheet(p: …)` وفيها **حقلٌ واحد** وبقيةُ الحقول `null`،
+//    فيسقط `h1..h3` إلى الافتراضيّ ويتساوى العنوانُ ونصُّه (قيس: ١٦/w500
+//    للاثنين). فشرحٌ من ستّة أقسامٍ يصل كتلةً بلا فاصلٍ يُرى.
+//
+// ⚖️ **وحجمُ العنوان يُشتقّ من حجم الفقرة لا من الثيم** — وإلا ثبت العنوانُ
+//    بينما يكبر النصُّ حوله ([AppSettings.answerFontSize])، فينقلب العنوانُ
+//    أصغرَ من فقرته عند من كبّر الخطّ.
+MarkdownStyleSheet _withHeadings(MarkdownStyleSheet? sheet, BuildContext ctx) {
+  final base = sheet ?? MarkdownStyleSheet.fromTheme(Theme.of(ctx));
+  final p = base.p ??
+      DefaultTextStyle.of(ctx).style.copyWith(fontSize: 16, height: 1.6);
+  final size = p.fontSize ?? 16;
+  TextStyle head(double factor) => p.copyWith(
+      fontSize: size * factor, fontWeight: FontWeight.w900, height: 1.45);
+  return base.copyWith(
+    h1: head(1.45),
+    h2: head(1.30),
+    h3: head(1.18),
+    h4: head(1.10),
+    listBullet: p,
+  );
+}
+
 class MasarMarkdown extends StatelessWidget {
   const MasarMarkdown({
     super.key,
@@ -389,8 +448,9 @@ class MasarMarkdown extends StatelessWidget {
         data: _latinSign
             ? isolateSignedNumbers(math ? prepared : data)
             : (math ? prepared : data),
-        styleSheet: styleSheet,
+        styleSheet: _withHeadings(styleSheet, context),
         selectable: selectable,
+        softLineBreak: true,
       );
     }
 
@@ -425,8 +485,9 @@ class MasarMarkdown extends StatelessWidget {
               data: _latinSign
                   ? isolateSignedNumbers(block.text)
                   : block.text,
-              styleSheet: styleSheet,
+              styleSheet: _withHeadings(styleSheet, context),
               selectable: selectable,
+              softLineBreak: true,
             ),
       ],
     );
@@ -767,6 +828,100 @@ class MasarTable extends StatelessWidget {
 
 /// نصّ قصير (سؤال اختبار · خيار) قد يحوي كسراً.
 /// يرسم بالرسّام عند الحاجة، وإلا فـ`Text` عادي بنفس النمط تماماً.
+
+
+
+/// جملةٌ إنجليزيةٌ كاملة — تُرسم من اليسار كما تُكتب.
+///
+/// 🔴 **رُئي في المحاكي (2026-09-18)** بعد أن صار «اختبر نفسك» في الإنجليزية
+///    كلُّه إنجليزياً: «?What is the passive form of 'Ali is washing his car
+///    now» يلتفّ في فقرةٍ عربيةِ الاتجاه، فتقفز علامةُ الاستفهام والاقتباسُ
+///    إلى **يسار السطر الثاني**: «?'car now». والعلامةُ محايدةُ الاتجاه
+///    فتأخذ اتجاهَ الفقرة — وهو عينُ علّةِ «-1» ([isolateSignedNumbers]).
+///
+/// ⚖️ **وحدُّه ثلاثُ كلماتٍ فأكثر** كي لا يُزحزح رمزٌ مفرد: «NaCl» و«pH»
+///    و«CO2» تبقى في مكانها من الفقرة العربية.
+final RegExp _latinWords = RegExp("[A-Za-z][A-Za-z'\u2019-]*");
+
+bool isLatinSentence(String text) =>
+    isPureLatin(text) && _latinWords.allMatches(text).length >= 3;
+
+/// 🇬🇧 بطاقةُ سؤالٍ إنجليزيةٌ كلُّها — نصّاً وخياراتٍ — فتُرسم من اليسار.
+///
+/// ⚖️ **والمجموعةُ تعرف ما لا يعرفه الخيارُ وحده**: «Noun + Adjective»
+///    كلمتان فلا تبلغان حدَّ [isLatinSentence]، لكنّها في بطاقةٍ سؤالُها
+///    «?What is the correct order of adjectives and nouns» وخياراتُها
+///    الأربعةُ لاتينية — فاتجاهُها يسارٌ قطعاً. أمّا سؤالٌ عربيٌّ خياراتُه
+///    صيغٌ كيميائية فيبقى على حاله ([chem_equation]).
+bool isLatinCard(String question, List<String> options) =>
+    isPureLatin(question) &&
+    options.isNotEmpty &&
+    options.every(isPureLatin) &&
+    _latinWords.allMatches(question).length >= 3;
+
+/// 📝 **مادّةُ التمرين تُرسم ولا تُعرض برموزها** — نجمتان وشرطتان.
+///
+/// أسئلةُ الإنجليزية تحمل مادّتَها بين نجمتين: «*.Change into the passive:
+/// *They built the school»، وتؤشّر كلمتَها المقصودة بشرطتين مزدوجتين:
+/// «*.The __cut__ on his arm was bleeding badly*». و[MathOrText] يرسم نصّاً
+/// خاماً، فتظهر الرموزُ للطالب علاماتٍ لا معنى لها.
+///
+/// 🔴 **وأمرُ المالك (2026-09-19) شقّان:** «موجود فيه الستار… لا يطبّق موضوع
+///    الستار» — أي تُرسم لا تُعرض؛ و«المفروض الجملة دي تكون **أغمق**» — أي
+///    تُميَّز بصرياً لا تُمال إمالةً باهتة.
+///
+/// ⚖️ والحدّ: `*` مفردةٌ محيطةٌ بنصٍّ غيرِ فارغ — فـ«٣ * ٤» و«a * b» تبقى.
+///    و`__` شرطتان لا ثلاث — فالفراغُ `____` يبقى فراغاً.
+final RegExp _emphasis = RegExp(r'(?<!\*)\*([^*\n]{2,}?)\*(?!\*)');
+final RegExp _underlined = RegExp(r'(?<!_)__([^_\n]{1,40}?)__(?!_)');
+
+bool hasEmphasis(String text) =>
+    _emphasis.hasMatch(text) || _underlined.hasMatch(text);
+
+/// يقسّم نصّاً على الشرطتين المزدوجتين — الكلمةُ المؤشَّرة تحتها خطّ.
+List<InlineSpan> _underlineSpans(String text, TextStyle style) {
+  final spans = <InlineSpan>[];
+  var at = 0;
+  for (final m in _underlined.allMatches(text)) {
+    if (m.start > at) {
+      spans.add(TextSpan(text: text.substring(at, m.start), style: style));
+    }
+    spans.add(TextSpan(
+        text: m.group(1),
+        style: style.copyWith(
+            decoration: TextDecoration.underline,
+            decorationThickness: 2,
+            fontWeight: FontWeight.w800)));
+    at = m.end;
+  }
+  if (at < text.length) {
+    spans.add(TextSpan(text: text.substring(at), style: style));
+  }
+  return spans;
+}
+
+List<InlineSpan> emphasisSpans(String text, TextStyle? base) {
+  final plain = base ?? const TextStyle();
+  // 🎨 **المادّةُ أغمقُ وأمْيَل** — طلبُ المالك: «الجملة دي تكون أغمق».
+  final material = plain.copyWith(
+      fontStyle: FontStyle.italic, fontWeight: FontWeight.w700);
+  final spans = <InlineSpan>[];
+  var at = 0;
+  for (final m in _emphasis.allMatches(text)) {
+    if (m.start > at) {
+      spans.addAll(_underlineSpans(text.substring(at, m.start), plain));
+    }
+    // 📌 والتأشيرُ داخلَ المادّة — «*The __cut__ on his arm*».
+    spans.addAll(_underlineSpans(m.group(1)!, material));
+    at = m.end;
+  }
+  if (at < text.length) {
+    spans.addAll(_underlineSpans(text.substring(at), plain));
+  }
+  return spans;
+}
+
+
 class MathOrText extends StatelessWidget {
   const MathOrText(
     this.text, {
@@ -775,6 +930,7 @@ class MathOrText extends StatelessWidget {
     this.textAlign,
     this.maxLines,
     this.latinSign = false,
+    this.forceLtr = false,
   });
 
   final String text;
@@ -782,13 +938,33 @@ class MathOrText extends StatelessWidget {
   final TextAlign? textAlign;
   final int? maxLines;
 
+  /// 🇬🇧 **يفرضه النداء حين يعرف ما لا يعرفه النصّ وحده**: خيارُ «+ Noun
+  ///    Adjective» كلمتان فلا يبلغ حدَّ [isLatinSentence]، لكنّ **الخيارات
+  ///    الأربعة والسؤالَ كلَّها لاتينية** — فالبطاقةُ إنجليزيةٌ كلُّها
+  ///    وتُرسم من اليسار. و[quiz_play_screen] هو مَن يرى المجموعة.
+  final bool forceLtr;
+
   /// ➖ إشارةُ العدد اللاتينيّ يسارَه — الكيمياء وحدها ([MasarMarkdown]).
   final bool latinSign;
 
   @override
   Widget build(BuildContext context) {
+    // 🔢 ونفسُ التوحيد في المسار السطريّ — عناوينُ الجداول والبطاقات
+    //    تمرّ من هنا لا من [MasarMarkdown].
+    final text = arabizeDigits(this.text);
     final prepared = _prepare(text);
     if (!_needsMath(prepared)) {
+      // 📝 والمادّةُ المقتبَسة تُمال — [emphasisSpans].
+      if (hasEmphasis(text)) {
+        return Text.rich(
+          TextSpan(style: style, children: emphasisSpans(text, style)),
+          textAlign: textAlign,
+          maxLines: maxLines,
+          overflow: maxLines != null ? TextOverflow.ellipsis : null,
+          textDirection:
+              forceLtr || isLatinSentence(text) ? TextDirection.ltr : null,
+        );
+      }
       return Text(
         latinSign ? isolateSignedNumbers(text) : text,
         style: style,
@@ -798,8 +974,11 @@ class MathOrText extends StatelessWidget {
         // 🔴 **«-1» كانت تخرج «1-»** (توضيحُ المالك 2026-09-12): إشارةُ
         //    السالب محايدة، ففي فقرةٍ عربية تأخذ اتجاهها وتقفز يمينَ
         //    الرقم. وهذا صوابٌ مع الأرقام العربية وخطأٌ مع اللاتينية.
-        textDirection:
-            latinSign && isPureLatin(text) ? TextDirection.ltr : null,
+        textDirection: forceLtr ||
+                (latinSign && isPureLatin(text)) ||
+                isLatinSentence(text)
+            ? TextDirection.ltr
+            : null,
       );
     }
     return MathText(prepared,

@@ -69,8 +69,11 @@ def test_renderer_commands_are_untouched():
     #    العربي (ن فوق · ر تحت) — [core/counting.py].
     # 📌 و`\sup` أُضيفت في اليوم نفسه: الأُسّ الموحَّد — [core/powers.py].
     # 📌 و`\nuc` أُضيفت 2026-09-12: رمزُ النواة — [core/nuclide.py].
+    # 📌 و`\sub` أُضيفت 2026-09-17: الدليلُ المنخفض — نظيرُ `\sup` الغائب،
+    #    و[core/subscript.py] نطاقُه {رياضيات · فيزياء · منطق} **دون
+    #    الكيمياء**: «C_nH_{2n+2}» دليلُ ذرّاتٍ لا دليلٌ رياضيّ.
     assert KEPT == {r"\frac", r"\sqrt", r"\chem", r"\ring", r"\fact",
-                    r"\perm", r"\comb", r"\sup", r"\ovl", r"\nuc"}
+                    r"\perm", r"\comb", r"\sup", r"\sub", r"\ovl", r"\nuc"}
 
 
 def test_unknown_command_is_dropped_not_left_in_english():

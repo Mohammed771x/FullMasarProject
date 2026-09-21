@@ -83,8 +83,9 @@
   .bub.ai{background:#131c2f;margin-inline-end:16%}
   /* ── محرّر القوائم: صفٌّ لكل عنصر ── */
   .listedit{display:flex;flex-direction:column;gap:7px}
-  .listrow{display:flex;gap:7px;align-items:center}
-  .listrow input{flex:1;min-width:0}
+  .listrow{display:flex;gap:7px;align-items:flex-start}
+  .listrow textarea{flex:1;min-width:0;font:inherit;line-height:1.7;
+    padding:7px 9px;border-radius:8px}
   .listrow button{padding:7px 10px;line-height:1}
   .addrow{align-self:flex-start;background:transparent;border-color:var(--line);
           color:var(--accent);font-size:12.5px;padding:6px 12px}
@@ -688,6 +689,11 @@
                 <option value="partial">تمويل جزئي</option>
               </select>
             </div>
+            <!-- 📊 المعدّل المطلوب — يظهر على بطاقة المنحة في التطبيق.
+                 والفراغ يعني «غير محدّد»، فيستخرجه التطبيق من الشروط إن قدر. -->
+            <div class="field"><label>المعدّل المطلوب (%)</label>
+              <input id="f_gpa" type="number" dir="ltr" min="0" max="100" placeholder="70">
+              <span class="hint">نسبة مئوية بين 1 و100 — اتركه فارغاً إن لم تشترط المنحة معدّلاً.</span></div>
             <div class="field"><label>فتح التقديم (YYYY-MM-DD)</label>
               <input id="f_open" dir="ltr" maxlength="10" placeholder="2026-01-10"></div>
             <div class="field"><label>إغلاق التقديم (YYYY-MM-DD)</label>
@@ -2656,18 +2662,35 @@ function listRow(container, value){
   const row = document.createElement('div');
   row.className = 'listrow';
 
-  const input = document.createElement('input');
-  input.type = 'text';
+  // ⚖️ **أمرُ المالك (2026-09-20):** «شروط المنحة خلّها نقدر نسوي حقل أبو
+  //    سطرين يعني أو أكثر من سطر — ممكن الشرط يكون: يجب أن يكون معدل
+  //    الطالب في الثانوية أقل من كذا، ومعدل كذا…».
+  //    فالصفُّ كان `<input>` سطراً واحداً لا يقبل مسافةَ سطرٍ أصلاً.
+  const input = document.createElement('textarea');
+  input.rows = 1;
   input.maxLength = LIST_MAX;
   input.value = value || '';
-  input.placeholder = 'اكتب عنصراً…';
-  // Enter يضيف صفاً جديداً ويقفز إليه — أسرع من ملاحقة الزر بالفأرة.
+  input.placeholder = 'اكتب عنصراً… (Enter = سطر جديد داخل العنصر)';
+  input.style.resize = 'vertical';
+  input.style.overflow = 'hidden';
+
+  // 📐 ينمو مع نصّه فلا يخفي سطراً كتبه الأدمن ولا يترك فراغاً فارغاً.
+  const grow = () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 240) + 'px';
+  };
+  input.addEventListener('input', grow);
+  // ⏱️ وأوّلُ قياسٍ بعد الإلحاق بالصفحة: `scrollHeight` صفرٌ قبلها.
+  setTimeout(grow, 0);
+
+  // ⌨️ Enter صار سطراً داخل العنصر (وهو المطلوب)، و**Ctrl/⌘+Enter** يضيف
+  //    عنصراً جديداً ويقفز إليه — نفسُ سرعة القديم بلا أن يمنع السطر.
   input.addEventListener('keydown', e => {
-    if(e.key === 'Enter'){
+    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){
       e.preventDefault();
       const next = listRow(container, '');
       container.insertBefore(next, row.nextSibling);
-      next.querySelector('input').focus();
+      next.querySelector('textarea').focus();
     }
   });
 
@@ -2702,14 +2725,16 @@ function buildList(id, values){
     }
     const row = listRow(container, '');
     container.insertBefore(row, add);
-    row.querySelector('input').focus();
+    row.querySelector('textarea').focus();
   };
   container.appendChild(add);
 }
 
 function readList(id){
-  return [...$(id).querySelectorAll('.listrow input')]
-    .map(i => i.value.trim()).filter(Boolean);
+  // 🔠 يُحفظ النصُّ **بسطوره**: التشذيبُ على الأطراف وحدها، والأسطرُ
+  //    الفارغةُ الداخلية تُطوى كي لا تُنتج فجواتٍ في شاشة الطالب.
+  return [...$(id).querySelectorAll('.listrow textarea')]
+    .map(i => i.value.replace(/\n{3,}/g, '\n\n').trim()).filter(Boolean);
 }
 
 // ══════════════ 🖼️ الصور: قصّ إلزامي ثم ضغط ══════════════
@@ -2908,6 +2933,7 @@ function fillForm(s){
   $('f_country').value = s.country || '';
   $('f_flag').value = s.flag || '';
   $('f_funding').value = s.funding_type || 'full';
+  $('f_gpa').value = s.min_gpa ? s.min_gpa : '';
   $('f_open').value = s.open_date || '';
   $('f_close').value = s.close_date || '';
   $('f_website').value = s.website || '';
@@ -2937,6 +2963,7 @@ function readForm(){
     country: $('f_country').value.trim(),
     flag: $('f_flag').value.trim(),
     funding_type: $('f_funding').value,
+    min_gpa: Number($('f_gpa').value) || 0,
     open_date: $('f_open').value.trim(),
     close_date: $('f_close').value.trim(),
     website: $('f_website').value.trim(),
@@ -2997,6 +3024,10 @@ async function saveScholarship(btn){
   }
   if(body.open_date && body.close_date && body.open_date > body.close_date){
     toast('❌ تاريخ الفتح بعد تاريخ الإغلاق — راجع المواعيد.', 'err'); return;
+  }
+  if(body.min_gpa && (body.min_gpa < 1 || body.min_gpa > 100)){
+    toast('❌ المعدّل المطلوب نسبة مئوية بين 1 و100 — أو اتركه فارغاً.', 'err');
+    $('f_gpa').focus(); return;
   }
   const ok = await act(btn, 'حفظ ونشر', async () => {
     let id = editingId;

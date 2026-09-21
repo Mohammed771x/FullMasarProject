@@ -107,7 +107,7 @@ class ScholarshipChatController extends ChangeNotifier {
   void _newConversation() {
     _current = SchConversation(
       id: _uuid.v4(),
-      title: "محادثة جديدة",
+      title: SchConversation.defaultTitle,
       scholarshipId: scholarship.id,
       scholarshipName: scholarship.name,
       ownerUid: _uid,
@@ -135,6 +135,25 @@ class ScholarshipChatController extends ChangeNotifier {
     await SchChatStorage.delete(id);
     SyncService.I.deleteScholarshipChat(id);
     if (_current?.id == id) _newConversation();
+    notifyListeners();
+  }
+
+  /// ✏️ **إعادة تسمية المحادثة** — رسمَ المصمّمُ زرَّها في الدرج
+  /// (`06-scholarships/07`) ولم تكن موجودةً في القسم أصلاً.
+  ///
+  /// ⚠️ **لا تُنسخ المحادثةُ حقلاً حقلاً.** هذا بالضبط ما أعطب
+  ///    نظيرتَها في قسم التعليم: `ownerUid` سقط من النسخ فصارت المحادثةُ
+  ///    يتيمةً واختفت من كل حساب — ورآها المالكُ «محذوفة»
+  ///    ([ChatController.renameConversation]). و`title` حقلٌ غيرُ نهائيّ،
+  ///    فيُبدَّل في مكانه وتُحفظ المحادثةُ نفسُها.
+  ///
+  /// ☁️ ويمرّ الحفظُ من [_persist] لا من المخزن مباشرةً، كي يُرفع
+  ///    الاسمُ الجديدُ للسحابة أيضاً فلا يعود القديمُ على جهازٍ آخر.
+  Future<void> renameConversation(SchConversation c, String title) async {
+    final clean = title.trim();
+    if (clean.isEmpty) return;
+    c.title = clean.length <= 60 ? clean : "${clean.substring(0, 60)}…";
+    await _persist(c);
     notifyListeners();
   }
 

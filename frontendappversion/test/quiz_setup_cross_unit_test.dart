@@ -27,6 +27,26 @@ const _caps = SubjectCapabilities(
   quizAvailable: true,
 );
 
+const _capsOneUnit = SubjectCapabilities(
+  subject: 'كيمياء',
+  lessonsAvailable: true,
+  pagesAvailable: false,
+  lessonsUnits: [
+    LessonsUnit(unit: 'الكيمياء الحرارية', lessons: ['الطاقة', 'الإنثالبي']),
+  ],
+  pagesUnits: [],
+  examsAvailable: true,
+  quizAvailable: true,
+);
+
+class _FakeRepoOneUnit extends TutorContentRepository {
+  _FakeRepoOneUnit() : super(ApiClient());
+  @override
+  Future<SubjectCapabilities> getCapabilities(
+          String subject, int grade, String track) async =>
+      _capsOneUnit;
+}
+
 class _FakeRepo extends TutorContentRepository {
   _FakeRepo() : super(ApiClient());
   @override
@@ -49,6 +69,18 @@ Widget _screen({List<String>? preset, String? unit}) => MaterialApp(
       ),
     );
 
+Widget _screenOneUnit() => MaterialApp(
+      home: Directionality(
+        textDirection: TextDirection.rtl,
+        child: QuizSetupScreen(
+          initialSubject: 'كيمياء',
+          initialGrade: 3,
+          initialTrack: 'علمي',
+          repository: _FakeRepoOneUnit(),
+        ),
+      ),
+    );
+
 void main() {
   testWidgets('⭐ دروس مقترحة من وحدتين ⇒ كلاهما يبقى مختاراً', (t) async {
     await t.pumpWidget(_screen(
@@ -58,7 +90,10 @@ void main() {
     await t.pump();
     await t.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('المختارة (2/3)'), findsOneWidget,
+    // 🎨 بعد إعادة التصميم صار العدّاد **شارةً** في رأس بطاقة الدروس
+    //    («تم اختيار ٢») بدل شريط «المختارة (٢/٣)». والسلوكُ المحروس هو
+    //    هو: درسٌ من وحدةٍ أخرى لا يسقط.
+    expect(find.text('تم اختيار 2'), findsOneWidget,
         reason: 'سقط درسٌ لأنه من وحدة أخرى');
     // الدرس من وحدة غير المعروضة يُذكر باسم وحدته كي لا يبدو مفقوداً
     expect(find.textContaining('استقرار النواة'), findsWidgets);
@@ -69,7 +104,7 @@ void main() {
     await t.pumpWidget(_screen(preset: const ['الإنثالبي']));
     await t.pump();
     await t.pump(const Duration(milliseconds: 300));
-    expect(find.text('المختارة (1/3)'), findsOneWidget);
+    expect(find.text('تم اختيار 1'), findsOneWidget);
 
     // نغيّر الوحدة من القائمة المنسدلة
     await t.tap(find.byType(DropdownButton<String>).first);
@@ -79,7 +114,7 @@ void main() {
     await t.pump();
     await t.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('المختارة (1/3)'), findsOneWidget,
+    expect(find.text('تم اختيار 1'), findsOneWidget,
         reason: 'تغيير الوحدة مسح الاختيار');
   });
 
@@ -87,7 +122,48 @@ void main() {
     await t.pumpWidget(_screen());
     await t.pump();
     await t.pump(const Duration(milliseconds: 300));
-    expect(find.textContaining('المختارة'), findsNothing);
+    expect(find.textContaining('تم اختيار'), findsNothing);
+  });
+
+  // ══════════════════════════════════════════════════
+  // 🪜 ترتيبُ خطوات بطاقة الدروس
+  // ══════════════════════════════════════════════════
+  //
+  // 🎯 **نصُّ المالك (2026-09-20):** «ضروري تخلّي الطالب يختار الوحدة…
+  //    عنده مكتوب اختر الوحدة وبعدين اختر الدروس، وفوق هالاثنتين موجودة
+  //    الدروس اللي اختارها».
+  //
+  // 🛡️ وترتيبُ عناصرٍ في `Column` **لا يحرسه أي اختبارٍ وظيفي**: بدّلْ
+  //    سطرين فتبقى الشاشة عاملةً تماماً وتخالف الطلب. فيُقاس الموضع.
+  testWidgets('⭐ المختارة فوق، ثم «اختر الوحدة»، ثم «اختر الدروس»', (t) async {
+    await t.pumpWidget(_screen(preset: const ['الإنثالبي']));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 300));
+
+    double yOf(Finder f) => t.getTopLeft(f).dy;
+
+    final chip = find.textContaining('الإنثالبي').first;
+    final unitStep = find.text('اختر الوحدة').first;
+    final lessonsStep = find.text('اختر الدروس');
+    final firstRow = find.text('الطاقة');
+
+    expect(lessonsStep, findsOneWidget, reason: 'عنوانُ خطوة الدروس غائب');
+    expect(yOf(chip), lessThan(yOf(unitStep)),
+        reason: 'المختارة يجب أن تكون فوق منتقي الوحدة');
+    expect(yOf(unitStep), lessThan(yOf(lessonsStep)),
+        reason: 'الوحدة قبل الدروس');
+    expect(yOf(lessonsStep), lessThan(yOf(firstRow)),
+        reason: 'عنوانُ الدروس فوق صفوفها');
+  });
+
+  // 🔴 كانت القائمة تُخفى حين للمادة وحدةٌ واحدة — «إخفاءٌ ذكيّ» يحذف
+  //    الخطوةَ الأولى من أمام الطالب. المالك: «أول مرة ضروري».
+  testWidgets('منتقي الوحدة يظهر ولو كانت الوحدةُ واحدة', (t) async {
+    await t.pumpWidget(_screenOneUnit());
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 300));
+    expect(find.byType(DropdownButton<String>), findsOneWidget);
+    expect(find.text('اختر الوحدة'), findsWidgets);
   });
 
   // ══════════════════════════════════════════════════

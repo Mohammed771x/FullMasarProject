@@ -147,6 +147,11 @@ def scholarship_card(sch: dict) -> str:
     ]
     if sch.get("degree_levels"):
         parts.append("المراحل: " + "، ".join(sch["degree_levels"]))
+    # 📊 **المعدّل المطلوب** — وبطاقةُ المساعد يجب أن تعرفه لأن
+    #    الطالب يراه على الشاشة: مساعدٌ يقول «غير مذكور» وتقول البطاقةُ
+    #    «70%» تناقضٌ يُفقده الثقة. والفراغُ يعني «غير محدّد» فلا يُذكر.
+    if sch.get("min_gpa"):
+        parts.append(f"المعدّل المطلوب: {sch['min_gpa']}% فأعلى")
     if sch.get("open_date"):
         parts.append(f"فتح التقديم: {sch['open_date']}")
     if sch.get("close_date"):
@@ -269,11 +274,16 @@ def welcome_text(sch: dict) -> str:
 
 
 def quick_prompts(sch: dict) -> list:
-    """أسئلة جاهزة تحت حقل الكتابة — تختصر على الطالب أول خطوة."""
-    items = ["ما شروط التقديم؟", "ما الوثائق المطلوبة؟"]
-    items.append("متى آخر موعد للتقديم؟" if sch.get("close_date") else "متى يفتح التقديم؟")
-    items.append("كيف أكتب خطاب الدافع؟")
-    return items
+    """أسئلة جاهزة تحت حقل الكتابة — تختصر على الطالب أول خطوة.
+
+    🔴 **كانت أربعةً مكتوبةً باليد** لا صلةَ لها ببيانات المنحة: فيها «كيف
+       أكتب خطاب الدافع؟» التي لا تجيبها بطاقة، وليس فيها المزايا ولا
+       التخصصات ولا المراحل. فصارت تُشتقّ من البطاقة
+       ([scholarship_facts.suggestions]) — كلُّ بابٍ يفتح جواباً فورياً.
+    """
+    from . import scholarship_facts
+    doors = [s["question"] for s in scholarship_facts.suggestions(sch)]
+    return doors or ["ما شروط التقديم؟", "ما الوثائق المطلوبة؟"]
 
 
 
