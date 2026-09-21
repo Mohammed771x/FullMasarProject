@@ -475,7 +475,9 @@ class _ChatDrawerState extends State<ChatDrawer> {
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
-                    Text("${conv.subject} · ${conv.mode}",
+                    // 🏷️ وضعُ المعلّم يُترجَم: `معلم:homework` مفتاحُ نطاق
+                    //    لا نصُّ شاشة.
+                    Text("${conv.subject} · ${teacherModeLabel(conv.mode)}",
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

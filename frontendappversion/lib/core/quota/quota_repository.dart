@@ -48,6 +48,10 @@ class QuotaStatus {
   bool get isKnown => remaining >= 0 && limit > 0;
   bool get isExhausted => isKnown && remaining <= 0;
 
+  /// 🧪 **حسابُ فحصٍ بلا حصّة** — الخادم يعطيه حدّاً هائلاً
+  /// (`QUOTA_UNLIMITED_UIDS` في بيئته). يُعرض «∞» لا «٩٩٩٩٩٩٩٩٦».
+  bool get isUnlimited => limit >= 1000000;
+
   /// ⚠️ يقترب من النفاد — عتبةٌ **نسبية لا رقمٌ ثابت**: حدُّ الزائر خمسة
   ///    وحدُّ الطالب خمسون، فـ«باقٍ ٥» تحذيرٌ للثاني وحالةٌ طبيعية للأول.
   bool get isLow => isKnown && !isExhausted && remaining <= (limit * 0.2).ceil();

@@ -113,11 +113,45 @@ void main() {
     await tester.tap(find.text('خطة درس'));
     await tester.pump();
     expect(find.byType(TeacherSettingsPanel), findsOneWidget);
-    // 🎨 عنوانُ البطاقة من التصميم حرفاً.
-    expect(find.text('إعداد خطة التحضير الوزاري'), findsOneWidget);
+    // 🎨 وعنوانُها كما سمّاه المالك لا كما كتبه المصمّم.
+    expect(find.text('إعداد خطة الدرس'), findsOneWidget);
 
     await tester.tap(find.text('خطة درس'));
     await tester.pump();
     expect(find.byType(TeacherSettingsPanel), findsNothing);
+  });
+
+  // 🔽 **طلبُ المالك ٢٠٢٦-٠٩-٢١:** «سهم جنب … إنك تقدر بعدين تطوي البطاقة».
+  //    فاللمسُ على الشريحة ثانيةً يُخفيها كلَّها ولا يدلّ عليه شيءٌ على
+  //    الشاشة؛ والسهمُ يطويها **ويُبقي عنوانَها** فيعرف أيَّ أداةٍ يخاطب.
+  testWidgets('سهمُ الرأس يطوي البطاقة ويُبقي عنوانَها', (tester) async {
+    UserSession.I
+      ..role = AppRole.teacher
+      ..name = 'أستاذ خالد'
+      ..grade = 1;
+
+    await tester.pumpWidget(const MaterialApp(
+      home: Directionality(
+        textDirection: TextDirection.rtl,
+        child: TeacherHomeScreen(isHome: true),
+      ),
+    ));
+    await tester.pump();
+
+    await tester.tap(find.text('خطة درس'));
+    await tester.pump();
+    expect(find.text('المادة الدراسية:'), findsOneWidget);
+
+    // اللمسُ على الرأس (العنوان أو سهمُه) يطوي الجسم.
+    await tester.tap(find.text('إعداد خطة الدرس'));
+    await tester.pump();
+    expect(find.text('المادة الدراسية:'), findsNothing);
+    // 🔑 والعنوانُ باقٍ — وإلا لم يعرف المعلّمُ ما طوى ولا كيف يفتحه.
+    expect(find.text('إعداد خطة الدرس'), findsOneWidget);
+    expect(find.byType(TeacherSettingsPanel), findsOneWidget);
+
+    await tester.tap(find.text('إعداد خطة الدرس'));
+    await tester.pump();
+    expect(find.text('المادة الدراسية:'), findsOneWidget);
   });
 }

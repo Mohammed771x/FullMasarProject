@@ -23,7 +23,12 @@ void main() {
       // المحلّلُ نفسه ومصانعُ نصوص المحادثة مستثناة: ما يمرّ بها يُرسم.
       if (file.path.contains('core/widgets/') ||
           file.path.contains('core/error/') ||
-          file.path.contains('data/repositories/')) {
+          file.path.contains('data/repositories/') ||
+          // 📚 دليلُ الاستخدام يُرسم بـ`MasarMarkdown` كاملاً
+          //    (`_GuideBody` في `instructions_dialog`)، فالتوكيدُ فيه
+          //    يُرسم توكيداً. والقاعدةُ «لا `**` في `Text` عاديّ» قائمةٌ
+          //    على ما يُرسم لا على ما يُكتب.
+          file.path.contains('features/instructions/data/')) {
         continue;
       }
       final lines = file.readAsLinesSync();

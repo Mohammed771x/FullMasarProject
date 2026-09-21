@@ -50,9 +50,10 @@ class _ReviewBodyState extends State<_ReviewBody> {
 
   @override
   Widget build(BuildContext context) {
-    final spots = QuizAnalytics.weakSpots(
-        widget.results.where((r) => r.subject == _subject).toList(),
-        limit: 3);
+    // 📅 **الأكثرُ أخطاءً أولاً، وثلاثةٌ كحدٍّ أقصى** — قاعدةُ المالك
+    //    والترتيبُ الذي تعرضه شاراتُ هذه الورقة نفسُها
+    //    ([QuizAnalytics.reviewSpots] وفيها الجدولُ المقيس).
+    final spots = QuizAnalytics.reviewSpots(widget.results, _subject, limit: 3);
     final unit = spots.isEmpty ? "" : spots.first.unit;
 
     return Column(
@@ -123,7 +124,9 @@ class _ReviewBodyState extends State<_ReviewBody> {
                                 color: AppColors.headingInk,
                                 fontSize: 12))),
                     const SizedBox(width: 10),
-                    QuizBadge(arabicMistakes(s.misses),
+                    // 🔁 **أخطاءُ آخر محاولة** لا مجموعُ العمر — وهو ما
+                    //    رُتّبت به القائمة ([WeakSpot.recentMisses]).
+                    QuizBadge(arabicMistakes(s.recentMisses),
                         fill: AppColors.errorTint,
                         ink: AppColors.error500),
                   ]),

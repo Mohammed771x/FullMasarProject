@@ -23,12 +23,13 @@ const g2sci = GradeScope(2, 'علمي');
 const g2lit = GradeScope(2, 'أدبي');
 const g3sci = GradeScope(3, 'علمي');
 
-ChatConversation _conv(String id, GradeScope s, {String subject = 'احياء'}) =>
+ChatConversation _conv(String id, GradeScope s,
+        {String subject = 'احياء', String mode = 'شرح'}) =>
     ChatConversation(
       id: id,
       title: 'محادثة $id',
       subject: subject,
-      mode: 'شرح',
+      mode: mode,
       grade: s.grade,
       track: s.track,
       ownerUid: _uid,
@@ -72,6 +73,69 @@ void main() {
   });
 
   tearDownAll(() async => dir.delete(recursive: true));
+
+  // ══════════════════════════════════════════════════
+  // 👨‍🏫 والقسمُ طبقةٌ ثالثة فوق المالك والصف
+  // ══════════════════════════════════════════════════
+  //
+  // 🔴 **رُصد في المحاكي (٢٠٢٦-٠٩-٢٢):** زرُّ «أكمل من حيث توقفت» في رئيسية
+  //    الطالب فتح قسمَ التعليم على مادةٍ **بلا رسائل**. والسبب أنه التقط
+  //    آخرَ محادثةٍ في نطاق الصف فكانت محادثةَ **«خطة درس» من قسم المعلم**
+  //    (`mode: "معلم:plan"`) — ومحادثةٌ كتلك لا وجود لها في سجلّ الطالب،
+  //    فالشاشةُ تفتح على مادتها ولا تجد لها شيئاً.
+  //
+  // ⚠️ والدورُ يُبدَّل من الإعدادات بلا فقدان شيء (وهي ميزةٌ مقصودة)، فكلُّ
+  //    حسابٍ جرّب القسمين يحمل النوعين تحت الصف نفسِه. وبطاقةُ «٥ محادثة»
+  //    في الرئيسية كانت تعدّهما معاً كذلك.
+  group('👨‍🏫 فصلُ قسم المعلم عن قسم التعليم', () {
+    setUp(() async {
+      await ChatStorage.saveConversation(
+          _conv('طالب-1', g3sci), ownerUid: _uid);
+      await ChatStorage.saveConversation(
+          _conv('طالب-2', g3sci, subject: 'فيزياء'), ownerUid: _uid);
+      await ChatStorage.saveConversation(
+          _conv('معلم-1', g3sci, mode: 'معلم:plan'), ownerUid: _uid);
+      await ChatStorage.saveConversation(
+          _conv('معلم-2', g3sci, mode: 'معلم:homework'), ownerUid: _uid);
+    });
+
+    test('سجلُّ الطالب لا يحوي محادثةَ معلّمٍ واحدة', () {
+      final ids = ChatStorage.getAllConversations(_uid,
+              scope: g3sci, teacher: false)
+          .map((c) => c.id)
+          .toSet();
+      expect(ids, {'طالب-1', 'طالب-2'});
+    });
+
+    test('وسجلُّ المعلّم لا يحوي محادثةَ طالبٍ واحدة', () {
+      final ids = ChatStorage.getAllConversations(_uid,
+              scope: g3sci, teacher: true)
+          .map((c) => c.id)
+          .toSet();
+      expect(ids, {'معلم-1', 'معلم-2'});
+    });
+
+    test('والعدُّ يتبع القسم كما يتبع الصف', () {
+      expect(ChatStorage.countForOwner(_uid, scope: g3sci, teacher: false), 2);
+      expect(ChatStorage.countForOwner(_uid, scope: g3sci, teacher: true), 2);
+    });
+
+    // 🧮 «كم مادةً درستَها» في رئيسية الطالب — كانت تعدّ موادَّ المعلّم معها.
+    test('وعدُّ المواد كذلك', () {
+      final subjects = ChatStorage.getAllConversations(_uid,
+              scope: g3sci, teacher: false)
+          .map((c) => c.subject)
+          .toSet();
+      expect(subjects, {'احياء', 'فيزياء'});
+    });
+
+    // ⚠️ والمزامنةُ والحذفُ الكامل يحتاجان **الكلَّ** — فتركُ الوسيط يعني
+    //    «القسمين معاً» كما كان قبل هذا التعديل حرفاً بحرف.
+    test('☢️ وتركُه فارغاً يبقى «كل شيء» — المزامنة تعتمد عليه', () {
+      expect(ChatStorage.countForOwner(_uid, scope: g3sci), 4);
+      expect(ChatStorage.getAllConversations(_uid).length, 4);
+    });
+  });
 
   // ══════════════ 💬 المحادثات ══════════════
   group('المحادثات', () {

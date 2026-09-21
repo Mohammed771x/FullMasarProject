@@ -276,10 +276,9 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                       if (i > 0) const SizedBox(height: 11),
                       _option(i, ltr),
                     ],
-                    if (c.confirmed) ...[
-                      const SizedBox(height: 27),
-                      _feedback(),
-                    ],
+                    // 📌 **المسافةُ محجوزةٌ دائماً** — لا تُضاف عند التأكيد.
+                    const SizedBox(height: 27),
+                    _feedbackSlot(),
                     const SizedBox(height: 11),
                     _bottomButton(),
                   ],
@@ -440,9 +439,47 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     );
   }
 
+  // ══════════════════════════════════════════════════
+  // 📌 زرُّ «تأكيد» لا يتحرّك من مكانه
+  // ══════════════════════════════════════════════════
+  //
+  // 🔴 **عطلُ المالك (٢٠٢٦-٠٩-٢٢):** «أختار إجابة وأضغط تأكيد — ينزل الزرُّ
+  //    لتحت، فأحرّك أصبعي وراه. هذي ما هي user experience.»
+  //
+  //    والسببُ أن صندوقَ النتيجة كان **يُولد** بين الخيارات والزرّ لحظةَ
+  //    التأكيد، فيدفعه ٩١ بكسلة (٢٧ فراغاً + ٥٣ صندوقاً + ١١). والطالبُ
+  //    السريع يكون أصبعُه ما زال فوق «تأكيد» فيجد تحته «التالي» — أو فراغاً.
+  //    وهذا أخطرُ من الإزعاج: ضغطةٌ ثانيةٌ مرتدّة تُخطّي سؤالاً بلا قراءة.
+  //
+  // ✅ **فالمكانُ يُحجز من البداية**: قالبٌ خفيٌّ بمقاس الصندوق يشغل موضعَه
+  //    قبل التأكيد، ثم يحلّ الصندوقُ الحقيقيُّ محلَّه **بلا إزاحةِ بكسلة**.
+  //
+  // 📏 **والقالبُ نسخةُ الحالة الأطول** (نصُّ الموضوع) لا مقاسٌ مكتوب: نصُّ
+  //    «إجابة صحيحة» سطرٌ واحد أبداً، أما الموضوعُ فقد يلتفّ سطرين — فحجزُ
+  //    ٥٣ ثابتةً كان سيُعيد الإزاحةَ نفسَها في كل سؤالٍ موضوعُه طويل.
+  //    ويُقاس بنصِّ **هذا السؤال** بعينه، فالحجزُ مطابقٌ لا تقريبيّ.
+  //
+  // 🎨 وهذا **خروجٌ مقصودٌ عن التصميم** بأمر المالك: في `05` و`06` يُزيح
+  //    المصمّمُ الزرَّ إلى 541 بعد أن كان في 492. ألوانُ الصندوق ومقاساتُه
+  //    وفجواتُه كما قِستُها حرفاً — الموضعُ وحده هو ما ثبت.
+  Widget _feedbackSlot() => Stack(
+        children: [
+          Visibility(
+            visible: false,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
+            child: _feedbackBox(false),
+          ),
+          if (c.confirmed)
+            Positioned.fill(
+              child: _feedbackBox(c.current.isCorrect(c.selected)),
+            ),
+        ],
+      );
+
   /// 🟩🟥 صندوقُ النتيجة تحت الخيارات — بلون الحالة وحدٍّ منها.
-  Widget _feedback() {
-    final ok = c.current.isCorrect(c.selected);
+  Widget _feedbackBox(bool ok) {
     return Container(
       constraints: const BoxConstraints(minHeight: 53),
       alignment: Alignment.center,

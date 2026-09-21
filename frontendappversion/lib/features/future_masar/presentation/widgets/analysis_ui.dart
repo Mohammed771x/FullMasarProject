@@ -585,3 +585,23 @@ class _SparkPainter extends CustomPainter {
   @override
   bool shouldRepaint(_SparkPainter old) => old.points != points;
 }
+
+/// ⏳ «قبل …» بعربيّةٍ سليمة — مفردٌ ومثنّى وجمعٌ وتمييزُ عدد.
+///
+/// 🔴 **رُصد في فحص قسم التحليل (٢٠٢٦-٠٩-٢٢):** سجلُّ اختبارات الأحياء
+///    كان يقول **«قبل 1 أسابيع»** لاختبارٍ عمرُه أسبوع، و«قبل 2 أيام»
+///    مكانَ «قبل يومين». التمييزُ بابٌ في العربية لا تفصيلاً تجميلياً،
+///    وهذه شاشةٌ يقرؤها طالبٌ في حصّة اللغة العربية نفسِها.
+String arabicAgo(
+  int n, {
+  required String one,
+  required String two,
+  required String few,
+  required String many,
+}) =>
+    switch (n) {
+      <= 1 => "قبل $one",
+      2 => "قبل $two",
+      <= 10 => "قبل $n $few",
+      _ => "قبل $n $many",
+    };

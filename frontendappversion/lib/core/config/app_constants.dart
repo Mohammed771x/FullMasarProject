@@ -22,11 +22,10 @@ class AppConstants {
     "رياضيات",
   ];
 
-  // أوضاع المواد العامة
-  static const List<String> generalModes = ["شرح", "تلخيص", "سؤال", "وزاري"];
-
-  // أوضاع الرياضيات
-  static const List<String> mathModes = ["شرح", "سؤال", "وزاري"];
+  // ⛔ **قائمتا الأوضاع حُذفتا من هنا** (٢٠٢٦-٠٩-٢٢): كانتا
+  //    `generalModes` و`mathModes` وفيهما «وزاري» لكل الصفوف — ميتتَين
+  //    لا يقرؤهما أحد، لكنهما تقولان للقارئ عكسَ القاعدة. والمصدرُ الوحيد
+  //    للأوضاع هو `Curriculum.modesFor(subject, grade:)` وحدَه.
 
   // فروع الرياضيات
   static const List<String> mathBranches = [

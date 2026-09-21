@@ -80,6 +80,7 @@ void main() {
         'MainChatScreen',
         'QuizSetupScreen',
         'presetLessons',                   // 🎯 اختبارٌ على الدروس الضعيفة
+        'QuizAnalytics.reviewSpots',       // 📅 وبنفس دروس ورقة المراجعة
         'متوسط سجلّك',                      // 📊 البطاقاتُ الأربع كما كانت
         'عدد الاختبارات',
         'أفضل نتيجة',
@@ -95,7 +96,11 @@ void main() {
       expect(_read(_spot).contains('onRetakeQuiz'), isTrue);
       expect(_read(_spot).contains('spot.topics'), isTrue,
           reason: 'خريطةُ المفاهيم داخل الدرس سقطت');
-      expect(_read(_review).contains('QuizAnalytics.weakSpots'), isTrue);
+      // 📅 **`reviewSpots` لا `weakSpots`** (قاعدةُ المالك ٢٠٢٦-٠٩-٢٢):
+      //    الورقةُ تعرض **عددَ الأخطاء** فترتّب به، وشاشاتُ التحليل تعرض
+      //    **نسبةً مئوية** فترتّب بها. ملفٌّ كامل يحرس القاعدة:
+      //    `review_quiz_order_test.dart`.
+      expect(_read(_review).contains('QuizAnalytics.reviewSpots'), isTrue);
       expect(_read(_review).contains('onStart'), isTrue);
     });
 

@@ -20,6 +20,7 @@ import '../../../../core/sync/sync_service.dart';
 import '../../data/models/ask_response.dart';
 import '../../data/models/chat_suggestion.dart';
 import '../../data/models/chat_model.dart';
+import '../../data/edu_session.dart';
 import '../../data/models/subject_capabilities.dart';
 import '../../data/repositories/ask_stream.dart';
 import '../../data/repositories/chat_repository.dart';
@@ -515,10 +516,28 @@ class ChatController extends ChangeNotifier {
     _resetModeForSubject();
     if (openMode != null && openMode.isNotEmpty) selectedMode = openMode;
 
+    // 🪑 **آخرُ مكانٍ تركه الطالب** — قبل بناء المحادثة لا بعدها: المادةُ
+    //    والوضعُ هما مفتاحُ النطاق الذي تُقرأ به المحادثات وتُحفظ به.
+    //    ولا تُستعاد لفتحةٍ موجَّهة (نتيجةُ اختبارٍ أو تحليل): تلك تقول
+    //    أين تذهب صراحةً، فالجلسةُ لا تنقضها ([EduSession]).
+    final resumed = (openSubject == null && openLesson == null && openMode == null)
+        ? _restorePlace()
+        : null;
+
     loadConversations();
     // 🔄 محادثات وصلت من السحابة (جهاز جديد أو زر الاستعادة) ⇒ حدّث القائمة.
     SyncService.I.revision.addListener(_onRemoteConversations);
     createNewConversation();
+    // 💬 ورسائلُ المحادثة نفسِها بعد أن صار سجلُّ النطاق بين يدينا.
+    if (resumed != null) {
+      for (final conv in conversations) {
+        if (conv.id != resumed) continue;
+        loadConversation(conv);
+        break;
+      }
+    }
+    // 🎓 ويتبع الطالبَ أينما بدّل صفَّه — من الدرج أو من الإعدادات.
+    UserSession.I.addListener(_onSessionScopeChanged);
     await loadCapabilities();
     if (!isTeacher) await loadAvailableUnits();   // 👨‍🏫 الدروس وحدها
 
@@ -541,6 +560,97 @@ class ChatController extends ChangeNotifier {
       }
       _safeNotify();
     }
+
+    // 🪑 وحدةُ الجلسة ودرسُها — **بعد وصول القدرات** كما للفتح الموجَّه
+    //    تماماً: قبلها لا قائمةَ دروسٍ يُتحقَّق منها، فيُثبَّت درسٌ قد لا
+    //    يكون في المادة أصلاً.
+    _restoreLessonOfPlace();
+  }
+
+  /// 🪑 يُنزل الشاشةَ على آخر مكانٍ في قسم التعليم، ويعيد معرّف محادثته.
+  ///
+  /// يعود `null` إن لم يكن ثمّة مكانٌ محفوظ، أو كان لحسابٍ آخر أو لصفٍّ
+  /// آخر، أو كانت مادتُه ليست من مواد الصف الحالي.
+  String? _restorePlace() {
+    final p = EduSession.I.place;
+    if (p == null || isTeacher) return null;
+    // 👨‍🏫 حارسٌ أخير: مكانٌ يحمل وضعَ معلّمٍ لا يُفتح في قسم التعليم.
+    //    (المصدرُ مُنقّى عند الكتابة، وهذا كي لا يعتمد الصحُّ على مصدرٍ بعينه.)
+    if (isTeacherMode(p.mode)) return null;
+    if (!p.matches(UserSession.I.uid, grade, track.key)) return null;
+    if (!Curriculum.subjectsFor(grade, track).contains(p.subject)) return null;
+
+    selectedSubject = p.subject;
+    _resetModeForSubject();
+    if (selectedSubject == "رياضيات") {
+      selectedMathBranch = p.mathBranch;
+      if (p.mathMode.isNotEmpty) {
+        mathMode = p.mathMode;
+        selectedMode = p.mathMode;
+      }
+      selectedLesson = p.mathLesson;
+      if (selectedMathBranch.isNotEmpty) unawaited(loadMathLessons(selectedMathBranch));
+    } else {
+      // ⚠️ وضعٌ لم يعد لهذا الصف (وزاريُّ من تشغيلةٍ قبل تبديل الصف) يُهمَل
+      //    ويبقى «شرح» — الشريحةُ غيرُ مرسومةٍ أصلاً فلا يُفتح عليها.
+      if (Curriculum.modesFor(selectedSubject, grade: grade).contains(p.mode)) {
+        selectedMode = p.mode;
+      }
+      contentMode = p.contentMode;
+    }
+    return p.conversationId;
+  }
+
+  /// 🪑 الشقُّ المؤجَّل من [_restorePlace] — يحتاج `caps`.
+  void _restoreLessonOfPlace() {
+    final p = EduSession.I.place;
+    if (p == null || isTeacher || p.lesson.isEmpty) return;
+    if (p.subject != selectedSubject) return;
+    if (caps?.lessonsAvailable != true) return;
+    if (!caps!.lessonsIn(p.unit).contains(p.lesson)) return;
+    selectedV3Unit = p.unit;
+    selectedV3Lesson = p.lesson;
+    _safeNotify();
+  }
+
+  /// 🪑 يحفظ المكان الحالي قبل أن تموت الشاشة — يقرؤه الفتحُ التالي.
+  @visibleForTesting
+  void rememberPlace() => _rememberPlace();
+
+  void _rememberPlace() {
+    if (isTeacher) return;
+    EduSession.I.place = EduPlace(
+      uid: UserSession.I.uid,
+      grade: grade,
+      track: track.key,
+      subject: selectedSubject,
+      mode: selectedMode,
+      mathBranch: selectedMathBranch,
+      mathMode: mathMode,
+      mathLesson: selectedLesson,
+      contentMode: contentMode,
+      unit: selectedV3Unit,
+      lesson: selectedV3Lesson,
+      // 💬 محادثةٌ بلا رسالةٍ واحدة لا تُحفظ في المخزن أصلاً، فلا تُطلب.
+      conversationId: messages.isEmpty ? null : currentConversationId,
+    );
+  }
+
+  /// 🎓 **الصفُّ تبدّل من خارج هذه الشاشة** (شاشةُ الإعدادات مثلاً).
+  ///
+  /// 🔴 كان [ChatController] يقرأ الصفَّ **مرّةً في `init`** ثم يعيش —
+  ///    فمن بدّل صفَّه ثم عاد إلى محادثةٍ ما زالت في المكدّس بقي أمامه
+  ///    موادُّ صفٍّ تركه، **وأوّلُ رسالةٍ يرسلها تذهب بصفٍّ خاطئ**
+  ///    وتُحفظ في نطاقٍ خاطئ. (نفسُ العلّة التي عولجت في `MasarShell`
+  ///    للتبويبات، وهذه الشاشةُ خارجَه لأنها تُدفع فوقه.)
+  void _onSessionScopeChanged() {
+    if (_disposed || isTeacher) return;
+    final g = UserSession.I.grade;
+    final t = Curriculum.normalizeTrack(g, TrackLabel.fromKey(UserSession.I.track));
+    if (g == grade && t == track) return;
+    grade = g;
+    track = t;
+    unawaited(_onScopeChanged());
   }
 
   /// يُثبّت فرع الرياضيات ودرسه للفتح الموجَّه من التحليل/نتيجة الاختبار.
@@ -601,11 +711,17 @@ class ChatController extends ChangeNotifier {
   // ========== تبديل الصف / المسار / المادة ==========
 
   /// يغيّر الصف: يصحّح المسار، يعيد بناء قائمة المواد، ويبدّل سجلّ المحادثات كاملاً.
+  /// ⚠️ **عبر [UserSession.setGrade] لا `updateProfile`** (٢٠٢٦-٠٩-٢٢):
+  ///    تلك تكتب الحقلين وتُخطر الواجهة فحسب، وهذه تفعل ما يلزم فعلاً —
+  ///    تُسقط كاشَ حارس الأقسام في الخادم، وتُعيد جلب بانرات الصف الجديد،
+  ///    وتُصحّح المسار للأول الثانوي. فمن بدّل صفَّه من **الدرج** كان يبقى
+  ///    يرى أقسام صفٍّ تركه وبانراته حتى الإقلاع التالي، بينما من بدّله من
+  ///    **الإعدادات** لا يرى ذلك — بابان لفعلٍ واحد وسلوكان مختلفان.
   Future<void> setGrade(int g) async {
     if (g == grade) return;
     grade = g;
     track = Curriculum.normalizeTrack(grade, track);
-    await UserSession.I.updateProfile(grade_: g, track_: track.key);
+    await UserSession.I.setGrade(g);
     await _onScopeChanged();
   }
 
@@ -613,7 +729,7 @@ class ChatController extends ChangeNotifier {
   Future<void> setTrack(Track t) async {
     if (!Curriculum.hasTracks(grade) || t == track) return;
     track = t;
-    await UserSession.I.updateProfile(track_: t.key);
+    await UserSession.I.setTrack(t.key);   // ← نفسُ سبب [setGrade] حرفياً
     await _onScopeChanged();
   }
 
@@ -2253,8 +2369,11 @@ class ChatController extends ChangeNotifier {
 
   @override
   void dispose() {
+    // 🪑 **قبل كل شيء**: المكانُ يُلتقط من حالةٍ حيّة، وما بعده يُفكّكها.
+    _rememberPlace();
     SyncService.I.flushNow();   // لا تترك آخر رسالة معلّقة
     SyncService.I.revision.removeListener(_onRemoteConversations);
+    UserSession.I.removeListener(_onSessionScopeChanged);
     _disposed = true;
     try {
       // 1. احفظ آخر محادثة

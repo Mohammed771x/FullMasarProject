@@ -24,14 +24,10 @@ class SessionSettingsPanel extends StatelessWidget {
   ///    فتُقرأ من فوق الـ`Scaffold` وتُمرَّر.
   final bool keyboardOpen;
 
-  /// 👨‍🏫 يُنادى بعد ضغط زرّ توليد أداةِ المعلم — تطوي الشاشةُ البطاقة.
-  final VoidCallback? onTeacherGenerated;
-
   const SessionSettingsPanel({
     super.key,
     required this.controller,
     this.keyboardOpen = false,
-    this.onTeacherGenerated,
   });
 
   ChatController get c => controller;
@@ -40,10 +36,9 @@ class SessionSettingsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     // 👨‍🏫 **الفرق الأول والوحيد في الشاشة** بين قسم المعلم وقسم التعليم:
     //    لوحة إعدادات أخرى. وما عداها — الشات كله — هو نفسه بالبناء لا بالنقل.
-    if (c.isTeacher) {
-      return TeacherSettingsPanel(
-          controller: c, onGenerated: onTeacherGenerated);
-    }
+    // 🔽 وطيُّها بعد الإرسال يفعله المتحكّم نفسُه (`showSettingsPanel`)
+    //    كما لبطاقة الطالب — فلا نداءَ إضافيّ هنا.
+    if (c.isTeacher) return TeacherSettingsPanel(controller: c);
 
     // ══════════════════════════════════════════════════
     // 🃏 بطاقةٌ في **أعلى** الشاشة لا لوحةٌ منزلقة من أسفلها
@@ -165,7 +160,7 @@ class SessionSettingsPanel extends StatelessWidget {
                   leading: PD.notebook,
                 ),
               ],
-              if (c.selectedMathBranch.isNotEmpty) const SizedBox(height: 12), _mathModeSelector(),
+              if (c.selectedMathBranch.isNotEmpty) const SizedBox(height: 12), _mathModeSelector(context),
             ],
             // 🆕 مصدر المحتوى (وضع الدروس / وضع الوحدات) — لكل المواد عدا الرياضيات والوزاري
             if (c.usesContentModes) ...[
@@ -224,10 +219,11 @@ class SessionSettingsPanel extends StatelessWidget {
       "اختبارات": (col) => PFileCheck(size: 16, color: col, bold: true),
     };
 
+    // 🎓 **الصفُّ وحده يقرّر أيَّ شرائحَ تُرسم** — والوزاريُّ للثالث وحده
+    //    (قرار المالك ٢٠٢٦-٠٩-٢٢، انظر [Curriculum.modesFor]).
     final modes = _inDesignOrder(Curriculum.modesFor(
       c.selectedSubject,
-      grade: c.grade, // ★ الثالث يحتفظ بالوزاري دائماً
-      examsAvailable: c.caps?.examsAvailable ?? true,
+      grade: c.grade,
     ));
 
     return Container(
@@ -281,16 +277,7 @@ class SessionSettingsPanel extends StatelessWidget {
     // 🧠 «اختبارات» ليست وضع محادثة — تفتح شاشة الاختبار مباشرةً
     //    بالمادة والصف المحدَّدين مسبقاً ([31§4]).
     if (m == Curriculum.quizMode) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => QuizSetupScreen(
-            initialSubject: c.selectedSubject,
-            initialGrade: c.grade,
-            initialTrack: c.track.key,
-          ),
-        ),
-      );
+      _openQuiz(context);
       return;
     }
     c.switchContext(() {
@@ -304,6 +291,19 @@ class SessionSettingsPanel extends StatelessWidget {
       }
     });
   }
+
+  /// 🧪 بابُ «اختبر نفسك» — مشتركٌ بين شريحة الأوضاع وشريحة الرياضيات،
+  /// فلا يفترقان يوماً في المادة أو الصف الذي يُفتح عليه الاختبار.
+  void _openQuiz(BuildContext context) => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => QuizSetupScreen(
+            initialSubject: c.selectedSubject,
+            initialGrade: c.grade,
+            initialTrack: c.track.key,
+          ),
+        ),
+      );
 
   // ===== محدّد نوع الإدخال (صفحة/برومت) =====
   Widget _inputTypeSelector() {
@@ -354,26 +354,45 @@ class SessionSettingsPanel extends StatelessWidget {
       );
 
   // ===== أوضاع الرياضيات =====
-  Widget _mathModeSelector() => Wrap(
+  //
+  // 🔴 **كانت قائمةً مكتوبةً باليد** (`["شرح","سؤال","وزاري"]`) — وهي بعينُها
+  //    «بعضُ الأماكن» التي رآها المالك: الوزاريُّ يُحذف من شرائح بقية المواد
+  //    بالمنهج، ويبقى في الرياضيات لأن أحداً لم يسأل [Curriculum]. ومعه
+  //    كانت **«اختبارات» غائبةً عن الرياضيات وحدها** من بين المواد كلها.
+  //
+  // ✅ فصارت من المصدر نفسِه: الثالثُ يرى «شرح · سؤال · وزاري · اختبارات»،
+  //    والأولُ والثاني «شرح · سؤال · اختبارات» — الاختباراتُ مكانَ الوزاري
+  //    حرفاً بحرف كما قال («بدل الوزاري يروح لقسم الاختبارات»).
+  Widget _mathModeSelector(BuildContext context) => Wrap(
         spacing: 10,
-        children: ["شرح", "سؤال", "وزاري"].map((mode) => ChoiceChip(
+        // 📚 بلا «تلخيص» — [Curriculum.modesFor] تُسقطه للرياضيات أصلاً.
+        children: Curriculum.modesFor("رياضيات", grade: c.grade).map((mode) => ChoiceChip(
           label: Text(mode),
-          selected: c.mathMode == mode,
+          // 🧠 «اختبارات» بابٌ لا وضعُ محادثة، فلا تُضيء أبداً كمختارة.
+          selected: mode != Curriculum.quizMode && c.mathMode == mode,
           selectedColor: AppColors.secondary,
           showCheckmark: false,
-          labelStyle: TextStyle(color: c.mathMode == mode ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.bold),
+          labelStyle: TextStyle(color: (mode != Curriculum.quizMode && c.mathMode == mode) ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.bold),
           backgroundColor: AppColors.softSurface,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
           // ★ switchContext (وليس update): وضع الرياضيات جزء من نطاق المحادثات،
           //   فتبديله يجب أن يبدّل سجلّ المحادثات أيضاً.
-          onSelected: (_) => c.switchContext(() {
-            c.mathMode = mode;
-            c.selectedMode = mode;
-            c.inputType = "برومت";
-            c.mathWazariQuestionsLoaded = false;
-            if (mode == "وزاري" && c.selectedMathBranch.isNotEmpty) c.loadMathExamYears(c.selectedMathBranch);
-          }),
+          onSelected: (_) {
+            // 🧪 نفسُ وجهة شريحة «اختبارات» في بقية المواد حرفاً بحرف —
+            //    شاشةُ الإعداد بالمادة والصف المختارَين ([_pickMode]).
+            if (mode == Curriculum.quizMode) {
+              _openQuiz(context);
+              return;
+            }
+            c.switchContext(() {
+              c.mathMode = mode;
+              c.selectedMode = mode;
+              c.inputType = "برومت";
+              c.mathWazariQuestionsLoaded = false;
+              if (mode == "وزاري" && c.selectedMathBranch.isNotEmpty) c.loadMathExamYears(c.selectedMathBranch);
+            });
+          },
         )).toList(),
       );
 

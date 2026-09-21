@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/banners/data/banner_repository.dart';
+import '../../features/chat/data/edu_session.dart';
 import '../access/access_repository.dart';
 import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
@@ -543,6 +544,9 @@ class UserSession extends ChangeNotifier {
     //    نفس منطق إفراغ صندوق الإشعارات أعلاه.
     QuotaRepository.I.clear();
     ScholarshipFavorites.I.clear();
+    // 🪑 وآخرُ مكانٍ في قسم التعليم: جوّالٌ يتشاركه أخوان كان من يدخل بعد
+    //    الآخر يجد قسمَ التعليم مفتوحاً على محادثة من سبقه ([EduSession]).
+    EduSession.I.clear();
     await _auth.signOut();
     isGuest = false;
     name = 'طالب مسار';

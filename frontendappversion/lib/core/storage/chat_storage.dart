@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../features/chat/data/models/chat_model.dart';
 import '../session/grade_scope.dart';
+import '../../features/teacher/data/teacher_tool.dart';
 
 // ==========================================
 // 💾 تخزين المحادثات محلياً عبر Hive
@@ -96,16 +97,27 @@ class ChatStorage {
   /// [scope] يقصرها على صفٍّ ومسارٍ بعينهما — ومرّره **كلما عُرضت الأرقام
   /// للطالب**. تركُه فارغاً يعني «كل صفوف الحساب»، وهو ما تحتاجه المزامنة
   /// والحذف الكامل وحدهما.
-  static List<ChatConversation> getAllConversations(String ownerUid, {GradeScope? scope}) {
-    final list = _inScope(ownerUid, scope).toList();
+  ///
+  /// 👨‍🏫 و[teacher] يقصرها على **قسمٍ** بعينه: `false` قسم التعليم،
+  /// `true` قسم المعلم، و`null` الاثنان معاً. مرّره كلما عُرضت الأرقام —
+  /// للسبب نفسه في [isTeacherMode].
+  static List<ChatConversation> getAllConversations(String ownerUid,
+      {GradeScope? scope, bool? teacher}) {
+    final list = _inScope(ownerUid, scope, teacher).toList();
     list.sort((a, b) => b.lastUpdated.compareTo(a.lastUpdated));
     return list;
   }
 
-  static Iterable<ChatConversation> _inScope(String ownerUid, GradeScope? scope) {
-    final owned = _ownedBy(ownerUid);
-    if (scope == null) return owned;
-    return owned.where((c) => scope.includes(c.grade, c.track));
+  static Iterable<ChatConversation> _inScope(
+      String ownerUid, GradeScope? scope, [bool? teacher]) {
+    var owned = _ownedBy(ownerUid);
+    if (scope != null) {
+      owned = owned.where((c) => scope.includes(c.grade, c.track));
+    }
+    if (teacher != null) {
+      owned = owned.where((c) => isTeacherMode(c.mode) == teacher);
+    }
+    return owned;
   }
 
   /// محادثات نطاق معيّن (صف + مسار + مادة + فرع + وضع) **لهذا الحساب**.
@@ -119,8 +131,8 @@ class ChatStorage {
   static int countInScope(String scopeKey, String ownerUid) =>
       _ownedBy(ownerUid).where((c) => c.scopeKey == scopeKey).length;
 
-  static int countForOwner(String ownerUid, {GradeScope? scope}) =>
-      _inScope(ownerUid, scope).length;
+  static int countForOwner(String ownerUid, {GradeScope? scope, bool? teacher}) =>
+      _inScope(ownerUid, scope, teacher).length;
 
   /// حذف محادثات صفٍّ واحد لهذا الحساب — «مسح محادثات صفّي الحالي».
   static Future<int> clearForScope(String ownerUid, GradeScope scope) async {

@@ -1,4 +1,10 @@
-// الأوضاع تأتي من المنهج + قدرات الخادم، لا من قائمة مكتوبة في الشاشة.
+// الأوضاع تأتي من المنهج وحده، لا من قائمة مكتوبة في شاشة.
+//
+// 🔴 **ولماذا هذا الملف موجود:** «الوزاري» قسمٌ مربوطٌ بامتحانٍ وطنيّ للصف
+//    الثالث، وظهورُه لطالب الأول الثانوي ليس خطأً تجميلياً: يفتح له باباً
+//    يعدُه بأسئلةِ امتحانٍ لا يُمتحنه، ثم لا يجد خلفه شيئاً. وقد وقع فعلاً
+//    (ملاحظة المالك ٢٠٢٦-٠٩-٢٢: «في بعض أماكن محذوف، في بعض الأماكن موجود»)،
+//    فيُثبَّت هنا بدل الفحص اليدوي.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ye_student_tutor/core/config/curriculum.dart';
 
@@ -17,49 +23,72 @@ void main() {
     });
   });
 
-  group('قرار المالك: الوزاري للثالث كما هو + اختبارات بجواره ([31§9])', () {
-    test('الثالث العلمي: خمس شرائح', () {
-      expect(Curriculum.modesFor("فيزياء", grade: 3, examsAvailable: true),
+  group('قرار المالك ٢٠٢٦-٠٩-٢٢: الوزاري للثالث وحده', () {
+    test('الثالث: خمس شرائح — الوزاري والاختبارات معاً', () {
+      expect(Curriculum.modesFor("فيزياء", grade: 3),
           ["شرح", "تلخيص", "سؤال", "وزاري", "اختبارات"]);
     });
 
-    test('★ الثالث الأدبي: الوزاري يبقى ولو لم يُكتشف بنك أسئلة', () {
-      // العلّة التي وقعت: ربط الوزاري ببنك الأسئلة أخفاه عن الثالث الأدبي.
-      // قرار المالك: الثالث لا يُمَس — علمياً كان أو أدبياً.
-      final m = Curriculum.modesFor("عربي", grade: 3, examsAvailable: false);
-      expect(m, contains("وزاري"));
-      expect(m, ["شرح", "تلخيص", "سؤال", "وزاري", "اختبارات"]);
+    test('★ الثالث الأدبي كالعلمي — الوزاري لا يُمَسّ', () {
+      // العلّة التي وقعت قبلها: ربطُ الوزاري ببنك الأسئلة أخفاه عن الأدبي.
+      expect(Curriculum.modesFor("عربي", grade: 3),
+          ["شرح", "تلخيص", "سؤال", "وزاري", "اختبارات"]);
     });
 
-    test('كل الصفوف ترى شريحة الاختبارات', () {
-      for (final g in [1, 2, 3]) {
-        expect(Curriculum.modesFor("عربي", grade: g), contains("اختبارات"), reason: "صف $g");
-      }
-    });
-
-    test('الأول والثاني: الوزاري يُحذف والاختبارات مكانه', () {
+    test('الأول والثاني: لا وزاري — والاختبارات مكانه', () {
       for (final g in [1, 2]) {
-        final m = Curriculum.modesFor("فيزياء", grade: g, examsAvailable: false);
+        final m = Curriculum.modesFor("فيزياء", grade: g);
         expect(m, ["شرح", "تلخيص", "سؤال", "اختبارات"], reason: "صف $g");
         expect(m, isNot(contains("وزاري")), reason: "صف $g");
       }
     });
 
-    test('الأول/الثاني: لو أُضيف بنك أسئلة يوماً ظهر الوزاري تلقائياً', () {
-      expect(Curriculum.modesFor("فيزياء", grade: 2, examsAvailable: true),
-          contains("وزاري"));
+    // ☢️ **الحارسُ الأهمّ في الملف.** كان الشرطُ `grade == 3 || examsAvailable`،
+    //    فمجلّدُ أسئلةٍ يُضاف للأول أو الثاني — لتجربةٍ أو بالخطأ — يُعيد
+    //    القسمَ الذي حذفه المالك، بلا أن يلمس أحدٌ سطراً في التطبيق.
+    test('☢️ لا مَدخلَ للخادم على هذه القاعدة إطلاقاً', () {
+      // التوقيعُ نفسُه لم يعد يقبل استثناءً: الصفُّ هو المعطى الوحيد.
+      for (final g in [1, 2]) {
+        for (final s in ["رياضيات", "عربي", "تاريخ", "احياء"]) {
+          expect(Curriculum.modesFor(s, grade: g), isNot(contains("وزاري")),
+              reason: "$s — صف $g");
+        }
+      }
+    });
+
+    test('كل الصفوف ترى شريحة الاختبارات', () {
+      for (final g in [1, 2, 3]) {
+        expect(Curriculum.modesFor("عربي", grade: g), contains("اختبارات"),
+            reason: "صف $g");
+      }
     });
 
     test('★ الاختبارات تظهر دائماً — حتى لمادة لم تُضف دروسها بعد', () {
-      // الطالب يرى الباب مفتوحاً، وشاشة الإعداد تشرح إن كان المحتوى قادماً.
       final m = Curriculum.modesFor("احياء", grade: 3);
       expect(m, contains("اختبارات"));
       expect(m, contains("وزاري"));
     });
+  });
 
-    test('الرياضيات في الثالث: أربع شرائح (بلا تلخيص)', () {
-      expect(Curriculum.modesFor("رياضيات", grade: 3, examsAvailable: true),
+  // ══════════════════════════════════════════════════
+  // 🧮 الرياضيات ليست استثناءً
+  // ══════════════════════════════════════════════════
+  //
+  // 🔴 كانت شرائحُها **مكتوبةً باليد** في لوحة الإعدادات، فبقي فيها الوزاريُّ
+  //    لكل الصفوف وغابت عنها «اختبارات» وحدَها من بين المواد كلّها. وهذا
+  //    نصُّ ما طلبه المالك: «قسم الوزاري يُحذف في الرياضيات، بدل الوزاري
+  //    يروح لقسم الاختبارات — في الأول والثاني. أما الثالث فوزاري واختبارات».
+  group('🧮 الرياضيات', () {
+    test('الثالث: شرح · سؤال · وزاري · اختبارات', () {
+      expect(Curriculum.modesFor("رياضيات", grade: 3),
           ["شرح", "سؤال", "وزاري", "اختبارات"]);
+    });
+
+    test('الأول والثاني: الاختبارات تحلّ محلّ الوزاري', () {
+      for (final g in [1, 2]) {
+        expect(Curriculum.modesFor("رياضيات", grade: g),
+            ["شرح", "سؤال", "اختبارات"], reason: "صف $g");
+      }
     });
   });
 
@@ -68,13 +97,17 @@ void main() {
     for (var g = 1; g <= 3; g++) {
       for (final t in Curriculum.tracksFor(g)) {
         for (final s in Curriculum.subjectsFor(g, t)) {
-          final modes = Curriculum.modesFor(s, grade: g, examsAvailable: false);
+          final modes = Curriculum.modesFor(s, grade: g);
           expect(modes, isNotEmpty, reason: "$s ($g ${t.label})");
           expect(valid.containsAll(modes), isTrue, reason: "$s: $modes");
+          expect(modes, contains(Curriculum.quizMode),
+              reason: "الاختبارات لكل مادةٍ وكل صف");
           if (g == 3) {
-            expect(modes, contains("وزاري"), reason: "الثالث يحتفظ بالوزاري دائماً");
+            expect(modes, contains("وزاري"),
+                reason: "الثالث يحتفظ بالوزاري دائماً");
           } else {
-            expect(modes, isNot(contains("وزاري")), reason: "الوزاري للثالث فقط");
+            expect(modes, isNot(contains("وزاري")),
+                reason: "الوزاري للثالث فقط — $s ($g ${t.label})");
           }
         }
       }

@@ -31,6 +31,9 @@ class QuotaBadge extends StatelessWidget {
         final q = QuotaRepository.I.status;
         if (!q.isKnown) return const SizedBox.shrink();
 
+        // 🧪 حسابُ الفحص: رمزٌ لا رقم — والشارةُ تبقى فلا يظنّ أحدٌ أن
+        //    الحصة معطّلةٌ للجميع.
+        final String label = q.isUnlimited ? "∞" : "${q.remaining}";
         final Color tint = q.isExhausted
             ? Colors.redAccent
             : q.isLow
@@ -47,7 +50,9 @@ class QuotaBadge extends StatelessWidget {
           excludeSemantics: true,
           label: q.isExhausted
               ? "انتهت أسئلتك"
-              : "متبقٍّ ${q.remaining} من ${q.limit} أسئلة",
+              : q.isUnlimited
+                  ? "حساب فحص — أسئلة بلا حدّ"
+                  : "متبقٍّ ${q.remaining} من ${q.limit} أسئلة",
           child: Container(
             padding: EdgeInsets.symmetric(
                 horizontal: compact ? 8 : 10, vertical: compact ? 3 : 5),
@@ -67,7 +72,7 @@ class QuotaBadge extends StatelessWidget {
                 ),
                 const SizedBox(width: 3),
                 Text(
-                  compact ? "${q.remaining}" : "${q.remaining} سؤالاً",
+                  compact || q.isUnlimited ? label : "$label سؤالاً",
                   style: TextStyle(
                     fontSize: compact ? 10.5 : 11.5,
                     fontWeight: FontWeight.w800,

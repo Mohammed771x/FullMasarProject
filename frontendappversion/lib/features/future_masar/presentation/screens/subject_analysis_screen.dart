@@ -127,16 +127,31 @@ class _SubjectAnalysisScreenState extends State<SubjectAnalysisScreen> {
                     const SizedBox(height: 10),
                     FadeInSlide(
                       delay: 0.3,
-                      child: AnalysisReviewCard(
-                        title: "اختبار مراجعة لهذه الدروس",
-                        subtitle: "أسئلة من دروسك الضعيفة في ${widget.subject}.",
-                        onTap: () => _push(QuizSetupScreen(
-                          initialSubject: widget.subject,
-                          presetUnit: weak.first.unit,
-                          presetLessons:
-                              weak.take(3).map((w) => w.lesson).toList(),
-                        )),
-                      ),
+                      // 📅 **نفسُ دروسِ ورقةِ المراجعة بالضبط** — بابان
+                      //    لفعلٍ واحد لا يجوز أن يفتحا اختبارين مختلفين.
+                      //    والقائمةُ فوقها مرتّبةٌ بنسبة الخطأ (شارتُها
+                      //    مئوية)، والمراجعةُ بأخطاء آخر محاولة
+                      //    ([QuizAnalytics.reviewSpots]) — فالعنوانُ لا
+                      //    يقول «لهذه الدروس» بعد اليوم.
+                      child: Builder(builder: (_) {
+                        final review = QuizAnalytics.reviewSpots(
+                            _results, widget.subject,
+                            limit: 3);
+                        return AnalysisReviewCard(
+                          title: "اختبار مراجعة",
+                          subtitle:
+                              "أسئلة من أكثر دروسك خطأً في ${widget.subject}.",
+                          onTap: review.isEmpty
+                              ? null
+                              : () => _push(QuizSetupScreen(
+                                    initialSubject: widget.subject,
+                                    presetUnit: review.first.unit,
+                                    presetLessons: review
+                                        .map((w) => w.lesson)
+                                        .toList(),
+                                  )),
+                        );
+                      }),
                     ),
                   ],
 
@@ -429,9 +444,18 @@ class _SubjectAnalysisScreenState extends State<SubjectAnalysisScreen> {
     if (d.inMinutes < 60) return "قبل قليل";
     if (d.inHours < 24) return "اليوم";
     if (d.inDays == 1) return "أمس";
-    if (d.inDays < 7) return "قبل ${d.inDays} أيام";
-    if (d.inDays < 30) return "قبل ${(d.inDays / 7).floor()} أسابيع";
-    return "قبل ${(d.inDays / 30).floor()} أشهر";
+    // 🔤 والتمييزُ سليمٌ في كل درجة ([arabicAgo]): «قبل يومين» لا
+    //    «قبل 2 أيام»، و«قبل أسبوع» لا «قبل 1 أسابيع».
+    if (d.inDays < 7) {
+      return arabicAgo(d.inDays,
+          one: "يوم", two: "يومين", few: "أيام", many: "يوماً");
+    }
+    if (d.inDays < 30) {
+      return arabicAgo(d.inDays ~/ 7,
+          one: "أسبوع", two: "أسبوعين", few: "أسابيع", many: "أسبوعاً");
+    }
+    return arabicAgo(d.inDays ~/ 30,
+        one: "شهر", two: "شهرين", few: "أشهر", many: "شهراً");
   }
 
   /// صيغة الجمع العربية — «آخر ٥ اختبارات» لا «آخر ٥ اختبار».

@@ -13,6 +13,7 @@ import '../../../../core/widgets/screen_tip.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../../../banners/data/banner_model.dart';
 import '../../../banners/presentation/banner_carousel.dart';
+import '../../../chat/data/edu_session.dart';
 import '../../../chat/presentation/screens/main_chat_screen.dart';
 import '../../../quiz/data/quiz_analytics.dart';
 import '../../../quiz/data/quiz_storage.dart';
@@ -295,9 +296,14 @@ class _HomeTabState extends State<HomeTab> {
     // ✅ أرقام حقيقية من Hive والجلسة. و🎓 **أرقام الصف الحالي وحده** —
     //    تبديلُ الصف من الإعدادات يبدّلها كلها.
     final scope = UserSession.I.scope;
+    // 👨‍🏫 **ومحادثاتُ قسم التعليم وحدها.** رئيسيةُ الطالب لا يدخلها معلّم،
+    //    لكنّ الدورَ يُبدَّل من الإعدادات — فحسابٌ جرّب القسمين كان يقرأ
+    //    «٥ محادثة» وفيها خططُ دروسٍ وواجباتٌ لا تخصّ الطالبَ في شيء،
+    //    وتُحسب معها «مادة درستها» ([isTeacherMode]).
     final conversations = ChatStorage.getAllConversations(
       UserSession.I.uid,
       scope: scope,
+      teacher: false,
     );
     final subjects = conversations.map((c) => c.subject).toSet().length;
     final saved = SavedStorage.count(UserSession.I.uid, scope: scope);
@@ -483,18 +489,39 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   /// 🔁 «أكمل من حيث توقفت» — غير موجودة في التصميم، وأُبقيت لأنها ميزةٌ قائمة.
+  ///
+  /// 🔴 **عطلُ المالك (٢٠٢٦-٠٩-٢٢): «الزرّ مو شغّال».** وكان صادقاً: البطاقةُ
+  ///    تقرأ آخر محادثةٍ لتعرض اسم مادتها، ثم تفتح القسمَ بـ`onOpenTab`
+  ///    **بلا أن تخبره بشيء** — فيبدأ القسمُ كأيّ فتحةٍ جديدة: أوّلُ مادةٍ
+  ///    في قائمة الصف ومحادثةٌ فارغة. أي أن البطاقة تَعِد بالمتابعة وتفتح
+  ///    بداية — والاسمُ المعروض عليها يجعل العطلَ أوضح.
+  ///
+  /// ✅ والوجهةُ الآن تُكتب في [EduSession] قبل فتح التبويب، وهي الآليّةُ
+  ///    نفسُها التي يستعيد بها القسمُ مكانَه (لا مسارٌ ثانٍ ينحرف عنها).
+  ///
+  /// 🎓 **والمحادثةُ من نطاق الصف الحالي** (`scope`) — فبطاقةٌ تظهر لطالبٍ
+  ///    بدّل صفَّه تحمل آخر محادثةٍ في صفِّه **الجديد**، أو تختفي إن لم
+  ///    يبدأ فيه شيئاً بعد.
   Widget _continueCard() {
     final scope = UserSession.I.scope;
+    // 👨‍🏫 **محادثاتُ قسم التعليم وحدها** — وهذا نصفُ العطل الثاني: رُصد في
+    //    المحاكي (٢٠٢٦-٠٩-٢٢) أن البطاقة تلتقط آخر محادثةِ **معلّم**
+    //    («خطة درس · تاريخ»)، فتفتح قسم التعليم على مادتها بلا رسائلها —
+    //    لأن تلك المحادثة ليست في سجلّ الطالب أصلاً ([isTeacherMode]).
     final all = ChatStorage.getAllConversations(
       UserSession.I.uid,
       scope: scope,
+      teacher: false,
     );
     if (all.isEmpty) return const SizedBox.shrink();
     final last = all.first;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: InkWell(
-        onTap: () => widget.onOpenTab(MasarTab.tutor),
+        onTap: () {
+          EduSession.I.rememberConversation(last, UserSession.I.uid);
+          widget.onOpenTab(MasarTab.tutor);
+        },
         borderRadius: BorderRadius.circular(22),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),

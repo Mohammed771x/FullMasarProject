@@ -220,3 +220,40 @@ def test_no_env_switch_can_reopen_the_code_gate(client, anonymous):
     """🔒 لا متغيّر بيئةٍ يعيد فتح المسار القديم — الرمز نفسه غير موجود."""
     assert not hasattr(api, "AUTH_ALLOW_LEGACY_CODE")
     assert client.post("/ask", json=_body()).status_code == 401
+
+# ══════════════════════════════════════════════════
+# 🧪 حساب الفحص — بلا حصّة
+# ══════════════════════════════════════════════════
+# 🔴 العلّة: المحاكي زائرٌ وحصّتُه تراكميةٌ في Firestore الحقيقي، فتنفد بعد
+#    خمسة أسئلة ويتوقّف فحصُ قسمٍ كامل. والبديلُ السيّئ الذي **لم يُتّخذ**:
+#    رفعُ `quota_guest` من اللوحة — وهي تمسّ كل زائرٍ حقيقيّ على الإنترنت.
+#    فالاستثناءُ **بالهوية** لا بالحدّ، ومن البيئة لا من اللوحة.
+
+def test_an_unlisted_uid_keeps_its_normal_limit(monkeypatch):
+    monkeypatch.delenv("QUOTA_UNLIMITED_UIDS", raising=False)
+    assert q.limit_for(True, "someone") == q.limit_for(True)
+    assert q.limit_for(True, "someone") < q.UNLIMITED_ASKS
+
+
+def test_a_listed_uid_has_no_limit_even_as_guest(monkeypatch):
+    monkeypatch.setenv("QUOTA_UNLIMITED_UIDS", "sim-uid-1, sim-uid-2")
+    assert q.limit_for(True, "sim-uid-1") == q.UNLIMITED_ASKS
+    assert q.limit_for(False, "sim-uid-2") == q.UNLIMITED_ASKS
+    # وغيرُهما لا يتأثّر — القائمةُ استثناءٌ لا مفتاحٌ عام.
+    assert q.limit_for(True, "real-guest") < q.UNLIMITED_ASKS
+
+
+def test_an_empty_list_changes_nothing(monkeypatch):
+    """⚠️ الحارسُ الأهمّ: الإنتاجُ لا يضبط هذا المتغيّر، فيجب ألا يُغيّر شيئاً."""
+    monkeypatch.setenv("QUOTA_UNLIMITED_UIDS", "")
+    assert q.limit_for(True, "sim-uid-1") == q.limit_for(True)
+    assert q.limit_for(False, "") == q.limit_for(False)
+
+
+def test_a_listed_guest_really_gets_more_than_five_asks(monkeypatch):
+    """لا يكفي أن يرتفع الرقم — لا بدّ أن **يمرّ** السؤالُ السادس فعلاً."""
+    monkeypatch.setenv("QUOTA_UNLIMITED_UIDS", "sim-uid-1")
+    q.reset_memory()
+    for _ in range(12):
+        allowed, _ = q.check_and_consume("sim-uid-1", True)
+        assert allowed is True

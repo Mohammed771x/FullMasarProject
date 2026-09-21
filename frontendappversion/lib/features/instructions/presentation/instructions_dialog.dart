@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/masar_dialog.dart';
 import '../../../core/widgets/masar_markdown.dart';
 import '../../../core/widgets/phosphor.dart';
+import '../../../core/config/curriculum.dart';
 import '../data/app_instructions.dart';
 
 // ==========================================
@@ -38,8 +39,8 @@ class InstructionsDialog {
     );
   }
 
-  /// هل لهذه المادة تعليمات مكتوبة؟
-  static bool hasInstructions(String subject) => AppInstructions.data.containsKey(subject);
+  /// هل لهذه المادة دليلٌ مكتوب؟ (كلُّ موادّ المنهج نعم — ٢٠٢٦-٠٩-٢٢)
+  static bool hasInstructions(String subject) => AppInstructions.has(subject);
 
   static Future<void> showIfNeeded(
     BuildContext context,
@@ -48,14 +49,18 @@ class InstructionsDialog {
     required String track,
     bool forceShow = false,
   }) async {
-    final instructionData = AppInstructions.data[subject];
-
-    // ⚠️ سابقاً: أي مادة غير موجودة كانت تعرض **تعليمات الأحياء** بالخطأ.
-    //    الآن: لا نعرض شيئاً تلقائياً، وعند الطلب اليدوي نوضّح أنها قيد الإعداد.
-    if (instructionData == null) {
+    // 🎓 **الدليلُ يُركَّب لهذه المادة وهذا الصف** — فلا يَعِد طالبَ الأول
+    //    بوضعٍ لا يجده، ولا تبقى مادةٌ بلا دليل ([AppInstructions]).
+    if (!AppInstructions.has(subject)) {
+      // 🛟 لا تقع لمادةٍ في المنهج؛ حارسٌ لمادةٍ تُضاف وينسى نصُّها.
       if (forceShow && context.mounted) _showMissing(context, subject);
       return;
     }
+    final instructionData = AppInstructions.forSubject(
+      subject,
+      grade: grade,
+      track: TrackLabel.fromKey(track),
+    );
 
     final prefs = await SharedPreferences.getInstance();
     final String storageKey = PrefsKeys.instructionShown(grade, track, subject);
@@ -69,6 +74,8 @@ class InstructionsDialog {
       context,
       text: instructionData["text"]!,
       videoUrl: instructionData["video_url"]!,
+      // 🎓 والصفُّ يُمرَّر: بطاقةُ «وضع الوزاري» للثالث وحده ([_GuideBody]).
+      grade: grade,
       onUnderstood: () => prefs.setBool(storageKey, true),
     );
   }
@@ -107,6 +114,7 @@ class InstructionsDialog {
     required String videoUrl,
     required Future<void> Function() onUnderstood,
     bool teacher = false,
+    int grade = 3,
   }) async {
     final String instructionText = text;
 
@@ -123,7 +131,10 @@ class InstructionsDialog {
           divider: true,
           onPrimary: onUnderstood,
           child: _GuideBody(
-              text: instructionText, videoUrl: videoUrl, teacher: teacher),
+              text: instructionText,
+              videoUrl: videoUrl,
+              teacher: teacher,
+              grade: grade),
         ),
       ),
     );
@@ -156,10 +167,17 @@ class _GuideBody extends StatefulWidget {
     required this.text,
     required this.videoUrl,
     this.teacher = false,
+    this.grade = 3,
   });
 
   final String text;
   final String videoUrl;
+
+  /// 🎓 صفُّ الطالب — تُبنى عليه قائمةُ البطاقات كما تُبنى عليه شرائحُ
+  ///    اللوحة: **الوزاريُّ للثالث وحده** (قرار المالك ٢٠٢٦-٠٩-٢٢).
+  ///    وبلا هذا كان دليلُ طالب الأول الثانوي يَعِده بوضعٍ لا يجده في
+  ///    شاشته — وهو أسوأُ من نقصٍ في الدليل: وعدٌ مكسور.
+  final int grade;
 
   /// 👨‍🏫 **دليلُ المعلّم أدواتُه لا أوضاعُ الطالب.**
   ///
@@ -200,7 +218,12 @@ class _GuideBodyState extends State<_GuideBody> {
 
   @override
   Widget build(BuildContext context) {
-    final modes = widget.teacher ? _teacherModes : _modes;
+    final modes = widget.teacher
+        ? _teacherModes
+        : [
+            for (final m in _modes)
+              if (m[1] != "وضع الوزاري" || widget.grade == 3) m,
+          ];
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,

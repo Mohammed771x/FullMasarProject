@@ -100,10 +100,16 @@ void main() {
 
   // ══════════════════════════════════════════════════
   group('③ نصوصُ التصميم حرفاً', () {
-    test('عناوينُ البطاقات كما في الإطارات ١·٣·٤', () {
-      expect(TeacherTool.lessonPlan.cardTitle, 'إعداد خطة التحضير الوزاري');
-      expect(TeacherTool.homework.cardTitle, 'توليد واجب / اختبار مدرسي متدرج');
-      expect(TeacherTool.simplify.cardTitle, 'تبسيط مفهوم صعب للطلاب');
+    // 🔴 **وعناوينُ البطاقات من المالك لا من المصمّم** (٢٠٢٦-٠٩-٢١):
+    //    «إعداد خطة التحضير الوزاري» تَعِد بوثيقةٍ رسميةٍ لا تُنتجها
+    //    الأداة — فقُصّرت هي وأخواتُها. و«الوزاري» ممنوعةٌ هنا صراحةً.
+    test('عناوينُ البطاقات قصيرةٌ وصادقة', () {
+      expect(TeacherTool.lessonPlan.cardTitle, 'إعداد خطة الدرس');
+      expect(TeacherTool.homework.cardTitle, 'إعداد واجب واختبار');
+      expect(TeacherTool.simplify.cardTitle, 'تبسيط مفهوم للطلاب');
+      for (final t in TeacherToolX.bar) {
+        expect(t.cardTitle.contains('الوزاري'), isFalse);
+      }
     });
 
     test('أسماءُ الشرائح قصيرةٌ كما في الشريط', () {
@@ -198,6 +204,17 @@ void main() {
       //    كان سيعطي المعلّمَ ورقةً بخطوطٍ لا ورقةً بعلامةِ صحّ.
       expect(_read('lib/features/teacher/data/teacher_tool.dart'),
           contains('PFileCheck'));
+    });
+
+    // 🏷️ رأيتُه في المحاكي: «احياء · معلم:homework» تحت عنوان المحادثة.
+    test('مفتاحُ نطاقِ المعلّم لا يُعرض خاماً للمعلّم', () {
+      expect(teacherModeLabel('معلم:homework'), 'إنشاء واجب');
+      expect(teacherModeLabel('معلم:plan'), 'إنشاء خطة درس');
+      // وضعُ الطالب يعود كما هو — الدالةُ لا تمسّ ما ليس لها.
+      expect(teacherModeLabel('شرح'), 'شرح');
+      // ومفتاحٌ لأداةٍ مجهولة يعود كما هو لا فارغاً.
+      expect(teacherModeLabel('معلم:nope'), 'معلم:nope');
+      expect(_read(_drawer), contains('teacherModeLabel(conv.mode)'));
     });
 
     test('معرّفاتُ الخادم لم تتغيّر — وإلا انفصل المعلّم عن سجلّه', () {

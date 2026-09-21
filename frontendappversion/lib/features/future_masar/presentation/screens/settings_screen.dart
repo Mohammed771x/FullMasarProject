@@ -416,7 +416,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // 🎓 أرقام **الصف الحالي** — لا مجموع السنوات الثلاث. الطالب يقرؤها
     //    ليقرّر المسح، فرقمٌ يشمل صفوفاً لا يراها يجعل قراره في العمى.
     final scope = UserSession.I.scope;
-    final chats = ChatStorage.getAllConversations(uid, scope: scope).length;
+    // 👨‍🏫 محادثاتُ **القسم الذي يستعمله صاحب الحساب الآن** — والبطاقة
+    //    تُفرِّق بين الدورين في بقية خاناتها أصلاً (أدناه).
+    final chats = ChatStorage.getAllConversations(uid,
+            scope: scope, teacher: UserSession.I.isTeacher)
+        .length;
     final quizzes = QuizStorage.all(uid, scope: scope).length;
     final saved = SavedStorage.count(uid, scope: scope);
     final schChats = SchChatStorage.all(uid).length;

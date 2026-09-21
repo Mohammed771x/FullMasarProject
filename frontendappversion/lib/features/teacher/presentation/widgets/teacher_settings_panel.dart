@@ -33,13 +33,9 @@ import '../../data/teacher_tool.dart';
 // ⚠️ **لا وضع صفحات ولا محتوى وحدات هنا إطلاقاً**: أدوات المعلم تُبنى من نصّ
 //    الدرس وحده، فمادةٌ بلا دروس تُقال صراحةً بدل أن تُنتج خطةً لدرسٍ لا يوجد.
 class TeacherSettingsPanel extends StatelessWidget {
-  const TeacherSettingsPanel(
-      {super.key, required this.controller, this.onGenerated});
+  const TeacherSettingsPanel({super.key, required this.controller});
 
   final ChatController controller;
-
-  /// تُنادى بعد ضغط زرّ التوليد — الشاشةُ تطوي البطاقة لتفسح للنتيجة.
-  final VoidCallback? onGenerated;
 
   /// 📏 مقاساتُ التصميم — يقرؤها الاختبار بدل أن يُعيد كتابتها.
   static const double radius = 20;
@@ -70,21 +66,57 @@ class TeacherSettingsPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(tool.cardTitle,
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.slateTitle)),
-          const SizedBox(height: 17),
-          ..._fields(),
-          if (tool.hasGenerate) ...[
-            const SizedBox(height: 9),
-            _generateButton(p),
+          _header(),
+          // 🔽 **مطويّةً يبقى العنوانُ وحده** — فيعرف المعلّمُ أيَّ أداةٍ
+          //    يخاطب، ويفتحها بسهمٍ واحد. (بديلُ «اضغط الشريحةَ ثانيةً»
+          //    الذي لا يدلّ عليه شيءٌ على الشاشة.)
+          if (c.showSettingsPanel) ...[
+            const SizedBox(height: 17),
+            ..._fields(),
+            if (tool.hasGenerate) ...[
+              const SizedBox(height: 9),
+              _generateButton(p),
+            ],
           ],
         ],
       ),
     );
   }
+
+  // ───────────────── الرأس ─────────────────
+
+  /// 📐 العنوان في **يمين** السطر (أوّلُ أبناء `Row` في RTL) وسهمُ الطيّ
+  ///    في يساره — وهي مفردةُ رأس بطاقة الجلسة عند الطالب نفسُها.
+  ///
+  /// 🖐️ **والسطرُ كلُّه يُنقر** لا السهمُ وحده: سهمٌ 15pt وحدَه أصغرُ من
+  ///    حدّ اللمس (44)، والعينُ تقصد العنوان.
+  Widget _header() => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => c.setShowSettingsPanel(!c.showSettingsPanel),
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            height: 24,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(tool.cardTitle,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.slateTitle)),
+                ),
+                AnimatedRotation(
+                  turns: c.showSettingsPanel ? 0 : 0.5,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(PI.caretUp.regular,
+                      size: 16, color: AppColors.dropdownCaret),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 
   // ───────────────── الحقول ─────────────────
 
@@ -278,12 +310,7 @@ class TeacherSettingsPanel extends StatelessWidget {
           color: ready ? p.cta : AppColors.quizButtonIdle,
           borderRadius: BorderRadius.circular(buttonRadius),
           child: InkWell(
-            onTap: ready
-                ? () {
-                    c.generateTeacher();
-                    onGenerated?.call();
-                  }
-                : null,
+            onTap: ready ? () => c.generateTeacher() : null,
             borderRadius: BorderRadius.circular(buttonRadius),
             child: SizedBox(
               height: buttonHeight,

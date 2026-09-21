@@ -451,12 +451,6 @@ class _MainChatScreenState extends State<MainChatScreen>
                                         SessionSettingsPanel(
                                           controller: _c,
                                           keyboardOpen: keyboardOpen,
-                                          // 📖 بعد التوليد تُطوى البطاقة:
-                                          //    خطةُ درسٍ في ثلاثِ شاشاتٍ
-                                          //    خلفَ بطاقةٍ بارتفاع 300
-                                          //    ليست نتيجةً تُقرأ.
-                                          onTeacherGenerated: () =>
-                                              setState(() => _openTool = null),
                                         ),
                                         // 📖 **زرُّ الطلب المخزون** — «اشرح
                                         //    لي» أو «لخّص لي». وهو في المتحكّم
