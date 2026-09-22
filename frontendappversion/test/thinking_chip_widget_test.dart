@@ -11,7 +11,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ye_student_tutor/core/settings/app_settings.dart';
 import 'package:ye_student_tutor/features/chat/presentation/controllers/chat_controller.dart';
-import 'package:ye_student_tutor/features/chat/data/models/subject_capabilities.dart';
 import 'package:ye_student_tutor/features/chat/presentation/widgets/chat_input_area.dart';
 
 void main() {
@@ -27,14 +26,7 @@ void main() {
     addTearDown(c.dispose);
     // 🧠 القدرةُ تأتي من الخادم ([GET /content/capabilities]) — والزرُّ
     //    يختفي حيث لا تصل، فلا بدّ من نصبها في الاختبار.
-    c.caps = SubjectCapabilities(
-      subject: 'فيزياء',
-      lessonsAvailable: true,
-      pagesAvailable: false,
-      lessonsUnits: const [],
-      pagesUnits: const [],
-      thinkingAvailable: thinkingAvailable,
-    );
+    c.thinkingAvailable = thinkingAvailable;
     await tester.pumpWidget(MaterialApp(
       home: Directionality(
         textDirection: TextDirection.rtl,
@@ -108,5 +100,37 @@ void main() {
     final before = icons.evaluate().length;
     await pumpBar(tester, thinkingAvailable: true);
     expect(icons.evaluate().length, before + 1);
+  });
+
+  testWidgets('🧮 والرياضياتُ يظهر زرُّها رغم أن شجرةَ دروسها ليست في القدرات',
+      (tester) async {
+    // 🔴 **العطبُ (2026-09-22):** كان `thinkingAvailable` مشتقّاً من
+    //    `caps`، والرياضياتُ تضعها `null` عمداً في قسم الطالب — فاختفى
+    //    الزرُّ عن **أكثر المواد حاجةً إليه**. ورآه المالك على الشاشة.
+    final c = ChatController();
+    addTearDown(c.dispose);
+    c.thinkingAvailable = true;
+    expect(c.caps, isNull, reason: 'حالُ الرياضيات في قسم الطالب');
+
+    await tester.pumpWidget(MaterialApp(
+      home: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          body: AnimatedBuilder(
+            animation: c,
+            builder: (_, __) =>
+                ChatInputArea(controller: c, onEmptyWarning: () {}),
+          ),
+        ),
+      ),
+    ));
+    await tester.pump();
+
+    await tester.tap(find.byWidgetPredicate((w) =>
+        w is Icon &&
+        (w.icon?.fontFamily ?? '').startsWith('Phosphor')).at(1));
+    await tester.pumpAndSettle();
+    expect(find.text('تفكير'), findsOneWidget,
+        reason: 'الزرُّ حاضرٌ وشجرةُ الدروس غائبة — لا علاقةَ بينهما');
   });
 }

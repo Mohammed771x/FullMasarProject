@@ -108,7 +108,17 @@ class ChatController extends ChangeNotifier {
   /// 🧠 هل لهذه المادّة زرُّ تفكيرٍ أصلاً؟ — **من الخادم لا من قائمةٍ هنا**
   /// ([GET /content/capabilities])، فأيُّ مادّةٍ تُحوَّل غداً إلى موديلٍ
   /// مفكّر يظهر زرُّها بلا نشرةِ تطبيق.
-  bool get thinkingAvailable => caps?.thinkingAvailable ?? false;
+  ///
+  /// ⚠️ **ولا يُشتقّ من [caps]**: الرياضياتُ تضعها `null` عمداً في قسم
+  /// الطالب (دروسُها من `/math/lessons` لا من القدرات)، فربطُ الزرِّ بها
+  /// أخفاه عن **أكثر المواد حاجةً إليه** — وهو ما رآه المالك على الشاشة.
+  /// فالقدرةُ حقلٌ مستقلّ: لا علاقةَ لزرِّ التفكير بشجرة الدروس.
+  bool _thinkingAvailable = false;
+  bool get thinkingAvailable => _thinkingAvailable;
+
+  /// تُنصب في الاختبار وحده — القدرةُ في التشغيل تأتي من الخادم.
+  @visibleForTesting
+  set thinkingAvailable(bool value) => _thinkingAvailable = value;
 
   Future<void> toggleThinking() async {
     await AppSettings.I.setThinking(!thinking);
@@ -804,6 +814,7 @@ class ChatController extends ChangeNotifier {
     _resetModeForSubject();
 
     caps = null;
+    _thinkingAvailable = false;   // 🧠 حتى تصل قدرةُ المادة الجديدة
     selectedV3Unit = "";
     selectedV3Lesson = "";
     // 👨‍🏫 الدروس وحدها في قسم المعلم — تبديل المادة لا يعيده لوضع الصفحات.
@@ -1000,12 +1011,23 @@ class ChatController extends ChangeNotifier {
     //    كأي مادة. بدون هذا الاستثناء من الاستثناء تصل قائمةُ دروسٍ فارغة.
     if (selectedSubject == "رياضيات" && !isTeacher) {
       caps = null;
+      // 🧠 ويبقى زرُّ التفكير: قدرةٌ لا شأنَ لها بشجرة الدروس، ومصدرُها
+      //    الخادمُ لا قائمةٌ هنا. فتُقرأ وحدَها ويُطرح ما عداها.
+      try {
+        final c =
+            await _content.getCapabilities(selectedSubject, grade, track.key);
+        _thinkingAvailable = c.thinkingAvailable;
+      } catch (_) {
+        _thinkingAvailable = false;   // 🛟 فشلُ الشبكة يُخفي ولا يُعطّل
+      }
+      _safeNotify();
       return;
     }
     capsLoading = true;
     _safeNotify();
     try {
       caps = await _content.getCapabilities(selectedSubject, grade, track.key);
+      _thinkingAvailable = caps!.thinkingAvailable;
       if (isTeacher) {
         // 👨‍🏫 لا مساومة: الدروس أو رسالة «قيد الإضافة». ولا سقوط على الصفحات.
         contentMode = "lessons";
@@ -1025,6 +1047,7 @@ class ChatController extends ChangeNotifier {
       _applyPagesUnits();
     } catch (_) {
       caps = null; // فشل الشبكة → الواجهة تُبقي الوضع الحالي بلا انهيار
+      _thinkingAvailable = false;
     }
     capsLoading = false;
     _safeNotify();
