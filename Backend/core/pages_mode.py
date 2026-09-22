@@ -25,7 +25,7 @@ from subjects.common import (
 )
 from .lesson_mode import _draw_reminder   # 🖌️ نفس التذكير في الوضعين
 from .content_store import get_pages_book
-from .curriculum import model_route, call_budget
+from .curriculum import model_route, call_budget, reasoning_kwargs
 
 _AI_TIMEOUT = 50
 _MAX_TOKENS = 4000
@@ -57,12 +57,14 @@ async def _call_model(subject, messages, clients, sink=None):
     client = clients.get(client_key) or clients["gemini"]
     # ☢️ ونموذجُ التفكير يحتاج سقفاً يتّسع لتفكيره وإلا عاد **فارغاً**
     #    بلا خطأٍ ولا سجلّ — قياسٌ في [core/curriculum.call_budget].
-    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT)
+    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "chat")
+    _think = reasoning_kwargs(model_name, "chat")   # 🎚️ نقاشٌ بلا تفكير
     try:
         # 🌊 البثّ إن طُلب، وإلا نداءٌ عادي حرفياً ([core/streaming.py]).
         return await streaming.complete(
             client, model=model_name, messages=messages, sink=sink,
             timeout=_budget[1], max_tokens=_budget[0], temperature=0.1,
+            **_think,
         )
     except asyncio.TimeoutError:
         return "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."

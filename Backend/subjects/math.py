@@ -6,8 +6,8 @@
 from core import lesson_cache
 # 🎯 اسمُ نموذج الرياضيات من مصدرٍ واحد — كان مكتوباً بيده في أربعة مواضع،
 #    فتغييرُه عند سحب المزوّد للنموذج كان يحتاج تعديلَ أربعة أسطر وتذكُّرَها.
-from core.curriculum import model_route as _route
-MATH_MODEL = _route("رياضيات")[1]
+from core.curriculum import model_route as _route, subject_thinking
+MATH_MODEL, MATH_THINK = _route("رياضيات")[1], subject_thinking("رياضيات", "quiz")
 
 # ☢️ **`deepseek-v4-pro` نموذجُ تفكير — وسقفُ ٤٠٠٠ كان يقتله صامتاً.**
 #
@@ -271,7 +271,7 @@ async def explain_math_lesson(lesson: dict, groq_client, deepseek_client, sink=N
             deepseek_client,
             sink=sink,
             timeout=MATH_TIMEOUT,
-            model=MATH_MODEL,
+            model=MATH_MODEL, **MATH_THINK,
             temperature=0.2,
             max_tokens=MATH_MAX_TOKENS,
             messages=[
@@ -504,7 +504,7 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
                 deepseek_client,
                 sink=streaming.sink_of(req),
                 timeout=MATH_TIMEOUT,
-                model=MATH_MODEL,
+                model=MATH_MODEL, **MATH_THINK,
                 temperature=0.2,
                 messages=messages_for_ai,
                 max_tokens=MATH_MAX_TOKENS,
@@ -622,7 +622,7 @@ async def handle_math_question(req: AskRequest, sessions: Dict, deepseek_client)
             deepseek_client,
             sink=streaming.sink_of(req),
             timeout=MATH_TIMEOUT,
-            model=MATH_MODEL,
+            model=MATH_MODEL, **MATH_THINK,
             messages=messages_for_ai, max_tokens=MATH_MAX_TOKENS,
             temperature=0.2,
         )
@@ -862,7 +862,7 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
                 deepseek_client,
                 sink=streaming.sink_of(req),
                 timeout=MATH_TIMEOUT,
-                model=MATH_MODEL,
+                model=MATH_MODEL, **MATH_THINK,
                 messages=messages_for_ai, max_tokens=MATH_MAX_TOKENS,
                 temperature=0.2,
             )

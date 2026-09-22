@@ -39,7 +39,7 @@ from . import quota
 from . import teacher_prompts as tp
 from .content_store import get_lessons_book, find_lesson, lessons_units, lessons_in_unit
 from .curriculum import (model_route, normalize_grade_track,
-                         is_valid_subject, call_budget)
+                         is_valid_subject, call_budget, reasoning_kwargs)
 from .serializer import serialize_lesson
 from subjects.common import render_finish, render_rules, draw_reminder
 
@@ -509,7 +509,8 @@ async def ask(req, clients: dict) -> dict:
     client = clients.get(client_key) or clients["gemini"]
     # ☢️ ونموذجُ التفكير يحتاج سقفاً يتّسع لتفكيره وإلا عاد **فارغاً**
     #    بلا خطأٍ ولا سجلّ — قياسٌ في [core/curriculum.call_budget].
-    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT)
+    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "chat")
+    _think = reasoning_kwargs(model_name, "chat")   # 🎚️ نقاشٌ بلا تفكير
 
     messages = [{"role": "system", "content": system}]
     messages.extend(build_history(req.chat_history))
@@ -520,7 +521,7 @@ async def ask(req, clients: dict) -> dict:
         answer = await streaming.complete(
             client, model=model_name, messages=messages,
             sink=streaming.sink_of(req), timeout=_budget[1],
-            max_tokens=_budget[0], temperature=0.3,
+            max_tokens=_budget[0], temperature=0.3, **_think,
         )
     except asyncio.TimeoutError:
         answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً. حاول مرة ثانية."
@@ -564,7 +565,8 @@ async def try_prompt(tool: str, kind: str, prompt_text: str, question: str,
     client = clients.get(client_key) or clients["gemini"]
     # ☢️ ونموذجُ التفكير يحتاج سقفاً يتّسع لتفكيره وإلا عاد **فارغاً**
     #    بلا خطأٍ ولا سجلّ — قياسٌ في [core/curriculum.call_budget].
-    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT)
+    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "chat")
+    _think = reasoning_kwargs(model_name, "chat")   # 🎚️ نقاشٌ بلا تفكير
 
     try:
         response = await asyncio.wait_for(
@@ -574,10 +576,9 @@ async def try_prompt(tool: str, kind: str, prompt_text: str, question: str,
                           {"role": "user",
                            "content": (question or "").strip()[:MAX_QUESTION_CHARS]
                                       + draw_reminder(text)}],
-                max_tokens=call_budget(model_name, _MAX_TOKENS,
-                                       _AI_TIMEOUT)[0], temperature=0.3,
+                max_tokens=_budget[0], temperature=0.3, **_think,
             ),
-            timeout=call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT)[1],
+            timeout=_budget[1],
         )
         # نفس التنظيف: اللوحة يجب أن ترى **ما سيراه المعلّم حرفياً**.
         return {"answer": clean_math(response.choices[0].message.content, subject),

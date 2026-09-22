@@ -137,8 +137,55 @@ def is_thinking_model(model_name: str) -> bool:
     return any(m in (model_name or "") for m in THINKING_MODELS)
 
 
-def call_budget(model_name: str, max_tokens: int, timeout: float):
-    """يعيد `(سقف، مهلة)` — موسَّعَين لنموذج التفكير، وكما هما لغيره."""
-    if is_thinking_model(model_name):
+# 🎚️ **وشدّةُ التفكير تتبع الغرضَ لا النموذج** (قرار المالك 2026-09-22:
+#    «أنا ما بغيته reasoning» — بعد أن رأى شرحاً يقف في منتصف الجملة).
+#
+#    📏 وقِيس الفرقُ على المقياسين معاً:
+#
+#      الغرض          الشدّة     الدقّة  زمنُ سؤالٍ  زمنُ شرحٍ طويل
+#      ─────────────────────────────────────────────────────────
+#      "chat"         none       ٩٠٪     ١٫٠ث      ٨٫٥ث  ✅ بلا قطع
+#      —              minimal   ١٠٠٪     ١٫٦ث      ٢٠ث   ⚠️ ٢٧٠٠ رمزِ تفكير
+#      —              (كامل)    ١٠٠٪     ١٫٦ث      ١٥ث
+#
+# ⚖️ **فالنقاشُ والشرحُ بلا تفكير**: الطالبُ ينتظر على الشاشة، والتفكيرُ لا
+#    يزيد جودةَ شرحٍ نثريّ — بل يضاعف الزمنَ ويُهدّد بقطعِ الجواب. أمّا
+#    **الحساب** فالتفكيرُ فيه يرفع الدقّةَ من ٩٠٪ إلى ١٠٠٪ بكلفةِ ٠٫٦ ثانية.
+#
+# 📌 و`deepseek-chat` بلا تفكيرٍ = `deepseek-flash` بلا تفكير: ٩٠٪ لكليهما
+#    وبالزمن نفسِه. فهما نموذجٌ واحدٌ والفارقُ **التفكيرُ وحده** — وflash
+#    أرخصُ خرجاً ($٠٫٤٢ مقابل $١٫١٠) ومُدرَجٌ عند المزوّد.
+CHAT_EFFORT = os.getenv("DEEPSEEK_CHAT_EFFORT", "none")
+QUIZ_EFFORT = os.getenv("DEEPSEEK_QUIZ_EFFORT", "minimal")
+_EFFORT = {"chat": CHAT_EFFORT, "quiz": QUIZ_EFFORT, "build": "full"}
+
+
+def reasoning_kwargs(model_name: str, purpose: str = "build") -> dict:
+    """وسائطُ النداء التي تضبط شدّةَ التفكير — وفارغةٌ لمن لا يفكّر."""
+    if not is_thinking_model(model_name):
+        return {}
+    effort = _EFFORT.get(purpose, "full")
+    return {} if effort == "full" else {"reasoning_effort": effort}
+
+
+def subject_thinking(subject: str, purpose: str = "chat") -> dict:
+    """وسائطُ التفكير لمادّةٍ بعينها — يُعفي المنادي من تتبّع اسم النموذج.
+
+    📏 ووُضع هنا لا في [subjects/math.py]: ذاك في سجلّ الأطوال
+       ([tests/test_file_scope_2026_09_20.py]) فلا يكبر، والقاعدةُ
+       «أضِف الجديدَ في ملفٍّ مستقلّ لا فيه».
+    """
+    return reasoning_kwargs(model_route(subject)[1], purpose)
+
+
+def call_budget(model_name: str, max_tokens: int, timeout: float,
+                purpose: str = "build"):
+    """يعيد `(سقف، مهلة)` — موسَّعَين لمن **سيفكّر فعلاً**، وكما هما لغيره.
+
+    ⚠️ ولا يُوسَّع لمن أُطفئ تفكيرُه: مهلةُ ٢٤٠ ثانيةً على مسار الشرح تعني
+       أن الطالبَ ينتظر أربعَ دقائقَ قبل أن يرى خطأً — وهو لا يحتاج أكثر
+       من عشرٍ أصلاً.
+    """
+    if is_thinking_model(model_name) and _EFFORT.get(purpose, "full") != "none":
         return max(max_tokens, THINKING_TOKENS), max(timeout, THINKING_TIMEOUT)
     return max_tokens, timeout
