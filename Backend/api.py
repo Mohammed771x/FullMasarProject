@@ -592,7 +592,7 @@ async def _dispatch_subject(req):
 
     # 🔬 الفيزياء
     elif subject == "فيزياء":
-        return await handle_physics_request(req, openai_client)
+        return await handle_physics_request(req, v3_curriculum.client_for("فيزياء", AI_CLIENTS))
 
     # 🇬🇧 الإنجليزي
     elif subject == "انجليزي":
@@ -600,7 +600,7 @@ async def _dispatch_subject(req):
 
     # ⚛️ الكيمياء
     elif subject == "كيمياء":
-        return await handle_chemistry_request(req, openai_client)
+        return await handle_chemistry_request(req, v3_curriculum.client_for("كيمياء", AI_CLIENTS))
     # 📚 العربي
     elif subject == "عربي":
         return await handle_arabic_request(req, gemini_client)

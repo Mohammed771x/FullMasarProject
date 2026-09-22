@@ -88,10 +88,18 @@ def _body(**over):
 
 
 def test_image_routed_to_subject_model_not_gemini(client):
-    """الصورة تُقرأ بجيميناي، ثم الطلب يمضي لموديل المادة (فيزياء = OpenAI)."""
+    """الصورة تُقرأ بجيميناي، ثم الطلب يمضي **لموديل المادة**.
+
+    🎯 والمقصودُ «ليس جيميناي» لا «هو OpenAI»: الفيزياءُ انتقلت إلى
+       `deepseek-flash` (2026-09-22)، فيُقرأ المزوّدُ من الجدول لا
+       يُكتب هنا — وإلا سقط الاختبارُ مع كل تحويلٍ صحيح.
+    """
+    from core.curriculum import model_route
     r = client.post("/ask", json=_body(image_base64=JPEG, content="اشرح"))
     assert r.status_code == 200
-    assert r.json()["answer"].startswith("OPENAI::")
+    answer = r.json()["answer"]
+    assert answer.startswith(model_route("فيزياء")[0].upper() + "::")
+    assert not answer.startswith("GEMINI::")
 
 
 def test_extracted_text_reaches_model_in_qa_mode(client):

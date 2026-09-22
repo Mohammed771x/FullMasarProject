@@ -73,9 +73,16 @@ def test_summary_levels_differ():
 
 def test_model_routing_for_new_subjects():
     from core.curriculum import model_route
+    # 🧮 **والمنطقُ استُثني (2026-09-22)**: مادّةٌ رياضيةٌ بتباديلَ
+    #    وتوافيقَ ومضروب، فأُلحق بديب سيك بأمر المالك «وأيضًا المنطق».
+    #    وبنكُه مبنيٌّ بديب سيك منذ ١٧/٩، فكان التوجيهُ الحيُّ يخالفه.
+    CALC = {"منطق"}
     for subject in MODULES.values():
         client, model = model_route(subject)
-        assert client == "gemini" and "gemini" in model
+        if subject in CALC:
+            assert client == "deepseek", subject
+        else:
+            assert client == "gemini" and "gemini" in model, subject
 
 
 def test_all_registered_in_api():

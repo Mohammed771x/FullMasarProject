@@ -37,6 +37,15 @@ class SubjectCapabilities {
   /// 🧠 «اختبر نفسك» — يُبنى من الدروس حصراً، لكل المواد بنفس القاعدة.
   final bool quizAvailable;
 
+  /// 🧠 **زرُّ «تفكير»** — في موادّ ديب سيك وحدَها (قرار المالك 2026-09-22:
+  /// «التفكير يظهر بس في الشاتس اللي فيها DPC»). وجيميناي لا يفكّر، فزرُّه
+  /// هناك يَعِد بما لا يقع.
+  ///
+  /// ⚠️ **وغيابُ المفتاح = إخفاء**، خلافاً لبقيّة القدرات هنا: خادمٌ أقدمُ
+  /// لا يفهم الحقلَ أصلاً، فإظهارُ الزرِّ يعني ضغطةً لا تفعل شيئاً — وزرٌّ
+  /// كاذبٌ أسوأُ من زرٍّ غائب.
+  final bool thinkingAvailable;
+
   const SubjectCapabilities({
     required this.subject,
     required this.lessonsAvailable,
@@ -47,6 +56,7 @@ class SubjectCapabilities {
     this.maxSelectablePages = 3,
     this.examsAvailable = false,
     this.quizAvailable = false,
+    this.thinkingAvailable = false,
   });
 
   factory SubjectCapabilities.fromJson(Map<String, dynamic> j) {
@@ -76,6 +86,8 @@ class SubjectCapabilities {
       quizAvailable: j.containsKey('quiz')
           ? ((j['quiz'] ?? const {}) as Map)['available'] == true
           : lessonsOk,
+      thinkingAvailable:
+          ((j['thinking'] ?? const {}) as Map)['available'] == true,
     );
   }
 

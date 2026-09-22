@@ -191,8 +191,9 @@ class ChatInputArea extends StatelessWidget {
                     //    جُرّبت شريحةً باسمها فأكلت ٨٠ نقطةً من عرض الكتابة،
                     //    وحكمُ المالك: «ما عجبنا مكانه… طول طول». فصارت
                     //    بحجم الكاميرا نفسِه (٣٦)، والشرحُ يظهر عند الضغط
-                    //    لا يزاحم الحقلَ دائماً.
-                    if (!isGenerating)
+                    //    لا يزاحم الحقلَ دائماً. ويختفي في موادّ جيميناي:
+                    //    «التفكير يظهر بس في الشاتس اللي فيها DPC».
+                    if (!isGenerating && controller.thinkingAvailable)
                       _RoundIcon(
                         icon: PI.brain(active: controller.thinking),
                         size: 36,

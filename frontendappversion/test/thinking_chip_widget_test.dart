@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ye_student_tutor/core/settings/app_settings.dart';
 import 'package:ye_student_tutor/features/chat/presentation/controllers/chat_controller.dart';
+import 'package:ye_student_tutor/features/chat/data/models/subject_capabilities.dart';
 import 'package:ye_student_tutor/features/chat/presentation/widgets/chat_input_area.dart';
 
 void main() {
@@ -20,9 +21,20 @@ void main() {
     await AppSettings.I.load();
   });
 
-  Future<ChatController> pumpBar(WidgetTester tester) async {
+  Future<ChatController> pumpBar(WidgetTester tester,
+      {bool thinkingAvailable = true}) async {
     final c = ChatController();
     addTearDown(c.dispose);
+    // 🧠 القدرةُ تأتي من الخادم ([GET /content/capabilities]) — والزرُّ
+    //    يختفي حيث لا تصل، فلا بدّ من نصبها في الاختبار.
+    c.caps = SubjectCapabilities(
+      subject: 'فيزياء',
+      lessonsAvailable: true,
+      pagesAvailable: false,
+      lessonsUnits: const [],
+      pagesUnits: const [],
+      thinkingAvailable: thinkingAvailable,
+    );
     await tester.pumpWidget(MaterialApp(
       home: Directionality(
         textDirection: TextDirection.rtl,
@@ -85,5 +97,16 @@ void main() {
     await tester.tap(find.text('عادي'));     // وهو المختارُ أصلاً
     await tester.pumpAndSettle();
     expect(c.thinking, isFalse, reason: 'لا يُقلب وضعٌ باختيارِ نفسِه');
+  });
+
+  testWidgets('وفي موادّ جيميناي لا زرَّ أصلاً — لا يَعِد بما لا يقع',
+      (tester) async {
+    await pumpBar(tester, thinkingAvailable: false);
+    // الكاميرا تبقى، والدماغُ وحدَه يغيب
+    final icons = find.byWidgetPredicate((w) =>
+        w is Icon && (w.icon?.fontFamily ?? '').startsWith('Phosphor'));
+    final before = icons.evaluate().length;
+    await pumpBar(tester, thinkingAvailable: true);
+    expect(icons.evaluate().length, before + 1);
   });
 }

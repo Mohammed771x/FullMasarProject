@@ -22,6 +22,7 @@ import json
 import asyncio
 
 from core import streaming
+from core.curriculum import subject_call
 from core.arabic_digits import for_subject as _arabic_digits
 import time
 
@@ -180,9 +181,8 @@ async def handle_physics_explain(req: AskRequest, openai_client):
         raw_answer = await streaming.complete(
             openai_client,
             sink=streaming.sink_of(req),
-            timeout=50,
-            model="gpt-4o-mini",
-            messages=messages_for_ai, max_tokens=4000,
+            messages=messages_for_ai,
+            **subject_call("فيزياء", req),
             temperature=0.2,
         )
         clean_answer = format_arabic_math(raw_answer, "فيزياء")
@@ -284,9 +284,8 @@ async def handle_physics_summary(req: AskRequest, openai_client):
         raw_answer = await streaming.complete(
             openai_client,
             sink=streaming.sink_of(req),
-            timeout=50,
-            model="gpt-4o-mini",
-            messages=messages_for_ai, max_tokens=4000,
+            messages=messages_for_ai,
+            **subject_call("فيزياء", req),
             temperature=0.15,
         )
         clean_answer = format_arabic_math(raw_answer, "فيزياء")
@@ -401,9 +400,8 @@ async def handle_physics_question(req: AskRequest, openai_client):
         raw_answer = await streaming.complete(
             openai_client,
             sink=streaming.sink_of(req),
-            timeout=50,
-            model="gpt-4o-mini",
-            messages=messages_for_ai, max_tokens=4000,
+            messages=messages_for_ai,
+            **subject_call("فيزياء", req),
             temperature=0.1,
         )
         clean_answer = format_arabic_math(raw_answer, "فيزياء")

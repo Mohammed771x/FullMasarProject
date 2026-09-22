@@ -105,6 +105,11 @@ class ChatController extends ChangeNotifier {
   //    للمسائل — وهو محفوظٌ في [AppSettings] فلا يُعاد كل مرة.
   bool get thinking => AppSettings.I.thinking;
 
+  /// 🧠 هل لهذه المادّة زرُّ تفكيرٍ أصلاً؟ — **من الخادم لا من قائمةٍ هنا**
+  /// ([GET /content/capabilities])، فأيُّ مادّةٍ تُحوَّل غداً إلى موديلٍ
+  /// مفكّر يظهر زرُّها بلا نشرةِ تطبيق.
+  bool get thinkingAvailable => caps?.thinkingAvailable ?? false;
+
   Future<void> toggleThinking() async {
     await AppSettings.I.setThinking(!thinking);
     refresh();

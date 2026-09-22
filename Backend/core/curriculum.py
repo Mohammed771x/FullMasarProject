@@ -105,7 +105,12 @@ MODEL_ROUTING = {
     "علم الاقتصاد":        ("gemini", "gemini-3.1-flash-lite"),
     "علم الاجتماع":        ("gemini", "gemini-3.1-flash-lite"),
     "فلسفة":               ("gemini", "gemini-3.1-flash-lite"),
-    "منطق":                ("gemini", "gemini-3.1-flash-lite"),
+    # 🧮 **والمنطقُ مادّةٌ رياضية فيأخذ موديلَها** (أمر المالك 2026-09-22:
+    #    «وأيضًا المنطق»). وكتابُه تباديلُ وتوافيقُ ومضروبٌ وانحدارٌ
+    #    وارتباط — أي أن كلَّ سؤالٍ فيه عمليةٌ تُصحَّح أو تُخطَّأ، لا
+    #    صياغةٌ تُستحسن. وبنكُه مبنيٌّ بديب سيك أصلاً منذ ١٧/٩،
+    #    فكان التوجيهُ الحيُّ يخالف ما بُني به البنك.
+    "منطق":                ("deepseek", os.getenv("SCI_MODEL", "deepseek-flash")),
     "مبادئ علم الخرائط":   ("gemini", "gemini-3.1-flash-lite"),
 }
 DEFAULT_ROUTE = ("gemini", "gemini-3.1-flash-lite")
@@ -157,6 +162,12 @@ def is_thinking_model(model_name: str) -> bool:
 #    أرخصُ خرجاً ($٠٫٤٢ مقابل $١٫١٠) ومُدرَجٌ عند المزوّد.
 CHAT_EFFORT = os.getenv("DEEPSEEK_CHAT_EFFORT", "none")
 QUIZ_EFFORT = os.getenv("DEEPSEEK_QUIZ_EFFORT", "minimal")
+# ⚖️ **والوضعُ موحَّدٌ في كلِّ ما يواجه الطالب** (أمر المالك 2026-09-22:
+#    «خلي كله موحّد — الرياضيات كامل، ونفسُه حقُّ الفيزياء والكيمياء»).
+#    فـ`quiz` هنا **توليدُ بنكٍ** لا اختيارُ طالب: نداءٌ واحدٌ في الخلفية
+#    لدرسٍ بلا بنك، والدقّةُ فيه أولى من ثانيةٍ لا يراها أحد.
+#    أمّا ما يراه الطالبُ — شرحاً وسؤالاً ورياضياتٍ — فـ`chat`، وزرُّه
+#    بيده.
 _EFFORT = {"chat": CHAT_EFFORT, "quiz": QUIZ_EFFORT, "build": "full"}
 
 
@@ -181,6 +192,19 @@ def reasoning_kwargs(model_name: str, purpose: str = "build",
     return {} if effort == "full" else {"reasoning_effort": effort}
 
 
+def subject_supports_thinking(subject: str) -> bool:
+    """🧠 هل لهذه المادّة زرُّ «تفكير»؟
+
+    ⚖️ **قرارُ المالك (2026-09-22):** «التفكير يظهر بس في الشاتس اللي فيها
+       DPC — فيزياء كيمياء ورياضيات كل الصفوف، وأيضاً المنطق».
+
+    📌 وهي ليست قائمةً مكتوبةً باليد بل **سؤالٌ للتوجيه نفسِه**: أيُّ مادّةٍ
+       تُحوَّل غداً إلى موديلٍ مفكّر يظهر زرُّها تلقائياً، وأيُّ مادّةٍ تُنقل
+       إلى جيميناي يختفي زرُّها — فلا زرٌّ يُعرض ولا يفعل شيئاً.
+    """
+    return is_thinking_model(model_route(subject)[1])
+
+
 def subject_thinking(subject: str, purpose: str = "chat",
                      thinking: bool | None = None) -> dict:
     """وسائطُ التفكير لمادّةٍ بعينها — يُعفي المنادي من تتبّع اسم النموذج.
@@ -190,6 +214,36 @@ def subject_thinking(subject: str, purpose: str = "chat",
        «أضِف الجديدَ في ملفٍّ مستقلّ لا فيه».
     """
     return reasoning_kwargs(model_route(subject)[1], purpose, thinking)
+
+
+def client_for(subject: str, clients: dict):
+    """عميلُ المزوّد الذي **يوجَّه إليه** هذا الدرس — لا الذي سُمّي في المنادي.
+
+    ☢️ **ما أوجبه (2026-09-22):** معالجا الفيزياء والكيمياء كانا يستقبلان
+       `openai_client` بالاسم ويكتبان `model="gpt-4o-mini"` بخطّ اليد. فلمّا
+       حُوّل جدولُ التوجيه إلى `deepseek-flash` لم يتغيّر شيءٌ عند الطالب —
+       تحويلٌ بدا ناجحاً في الجدول وفي الاختبارات، ولم يصل الشاشة.
+       ولو غُيّر الموديلُ وحدَه لنُودي ديب سيك بمفتاح OpenAI.
+    """
+    return clients[model_route(subject)[0]]
+
+
+def subject_call(subject: str, req=None, *, max_tokens: int = 4000,
+                 timeout: float = 50.0, purpose: str = "chat") -> dict:
+    """وسائطُ نداءِ الموديل لمادّةٍ كاملةً — تُفرَد بـ`**` في موضع النداء.
+
+    🎯 **ولماذا مدخلٌ واحد؟** كان `model=` يُكتب **بخطّ اليد** في معالجات
+       الفيزياء والكيمياء (`"gpt-4o-mini"` في ستّة مواضع)، فبقيت المادّتان
+       على موديلٍ قديمٍ بعد تحويلِ جدول التوجيه — تحويلٌ **بدا** ناجحاً
+       ولم يصل الطالبَ. ومن يقرأ الجدولَ وحدَه لا يرى ذلك.
+
+    📌 فمن اليوم: لا اسمَ موديلٍ في معالجِ مادّة. الجدولُ هو المصدر.
+    """
+    _key, model = model_route(subject)
+    cap, wait = call_budget(model, max_tokens, timeout, purpose,
+                            getattr(req, "thinking", None) if req else None)
+    return {"model": model, "max_tokens": cap, "timeout": wait,
+            **request_thinking(subject, req, purpose)}
 
 
 def request_thinking(subject: str, req=None, purpose: str = "chat") -> dict:
@@ -204,8 +258,16 @@ def request_thinking(subject: str, req=None, purpose: str = "chat") -> dict:
 
 def math_thinking(req=None) -> dict:
     """🧮 وللرياضيات مدخلٌ باسمها — لأن [subjects/math.py] في سجلّ الأطوال
-    ([tests/test_file_scope_2026_09_20.py]) فلا يحتمل سطراً زائداً."""
-    return request_thinking("رياضيات", req, "quiz")
+    ([tests/test_file_scope_2026_09_20.py]) فلا يحتمل سطراً زائداً.
+
+    ⚖️ **وغرضُها `chat` كالفيزياء والكيمياء** (أمر المالك 2026-09-22:
+       «خلي كله موحّد»). وكانت `quiz`، وهو فرقٌ **لا يراه طلبٌ حقيقيّ**:
+       `AskRequest.thinking` تصل `False` دائماً فتَغلِب الغرضَ. فلم يكن
+       يظهر إلا في مسارٍ واحدٍ بلا طلب — شرحِ الدرس — فيتفكّر وحدَه بين
+       كلِّ المسارات. فالاسمُ الآن يطابق الفعل، والوضعُ واحدٌ في المادّتين
+       والثلاث.
+    """
+    return request_thinking("رياضيات", req, "chat")
 
 
 def call_budget(model_name: str, max_tokens: int, timeout: float,

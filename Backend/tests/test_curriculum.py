@@ -66,10 +66,58 @@ def test_math_carries_its_thinking_kwargs_to_every_call():
     from subjects.math import MATH_THINK, MATH_MODEL
     from core.curriculum import is_thinking_model
     if is_thinking_model(MATH_MODEL):
-        assert MATH_THINK() == {"reasoning_effort": "minimal"}
+        # 🧮 عاديٌّ كالفيزياء والكيمياء — والزرُّ وحدَه يشعل التفكير
+        assert MATH_THINK() == {"reasoning_effort": "none"}
+        class _Req:
+            thinking = True
+        assert MATH_THINK(_Req()) == {"reasoning_effort": "minimal"}
     src = (pathlib.Path(__file__).resolve().parent.parent
            / "subjects" / "math.py").read_text(encoding="utf-8")
     calls = src.count("model=MATH_MODEL")
     wired = (src.count("model=MATH_MODEL, **MATH_THINK(req),")
              + src.count("model=MATH_MODEL, **MATH_THINK(),"))
     assert calls and wired == calls, "موضعُ نداءٍ بلا ضبطِ تفكير"
+
+
+# ══════ لا اسمَ موديلٍ بخطّ اليد في معالجِ مادة ══════
+#
+# ☢️ **العطبُ الذي أوجبه (2026-09-22):** حُوّلت الفيزياءُ والكيمياءُ في
+#    `MODEL_ROUTING` إلى `deepseek-flash`، ومرّت ٢٤٥٠ اختباراً، وبدا
+#    التحويلُ ناجحاً — **ولم يصل الطالبَ**. لأن [subjects/physics.py]
+#    و[subjects/chemistry.py] كانا يكتبان `model="gpt-4o-mini"` في ستّة
+#    مواضعَ بخطّ اليد، فلا يقرآن الجدولَ أصلاً.
+#
+# 🎯 وهذا اختبارُ **الطبقة** لا الحالة: أيُّ معالجٍ يكتب اسمَ موديلٍ يسقط،
+#    فلا يعود تحويلُ الجدول يكذب على من يقرؤه.
+
+def test_no_subject_handler_hardcodes_a_model_name():
+    import pathlib, re
+    root = pathlib.Path(__file__).resolve().parent.parent
+    # 🎛️ موادُّ ديب سيك — هي التي وقع فيها العطبُ وهي التي تُحرس أولاً.
+    #    (جيميناي في [arabic.py] و[biology.py] دَينٌ قديمٌ معلومٌ، يُدرج
+    #     هنا يوم يُسدَّد كي لا يتحوّل الحارسُ إلى ضجيجٍ يُتجاهل.)
+    guarded = ["subjects/physics.py", "subjects/chemistry.py",
+               "subjects/math.py", "subjects/logic.py"]
+    pat = re.compile(r'model\s*=\s*["\'](gpt-|gemini-|deepseek-|o[1-9])')
+    offenders = []
+    for rel in guarded:
+        src = (root / rel).read_text(encoding="utf-8")
+        for i, line in enumerate(src.splitlines(), 1):
+            if pat.search(line):
+                offenders.append(f"{rel}:{i}  {line.strip()[:70]}")
+    assert not offenders, (
+        "اسمُ موديلٍ مكتوبٌ بيدٍ — استعمل [curriculum.subject_call]:\n  "
+        + "\n  ".join(offenders))
+
+
+def test_deepseek_subjects_are_exactly_the_ones_with_a_thinking_button():
+    """🧠 «التفكير يظهر بس في الشاتس اللي فيها DPC» — أمرُ المالك حرفياً."""
+    from core.curriculum import (MODEL_ROUTING, subject_supports_thinking,
+                                 model_route)
+    for subject, (key, _m) in MODEL_ROUTING.items():
+        assert subject_supports_thinking(subject) == (key == "deepseek"), subject
+    for s in ("فيزياء", "كيمياء", "رياضيات", "منطق"):
+        assert model_route(s)[0] == "deepseek", s
+        assert subject_supports_thinking(s), s
+    for s in ("احياء", "عربي", "تاريخ", "جغرافيا"):
+        assert not subject_supports_thinking(s), s

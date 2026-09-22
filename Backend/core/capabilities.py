@@ -5,6 +5,7 @@
 # أضف lessons.json → يظهر وضع الدروس تلقائياً. أضف pages.json → وضع الوحدات.
 
 from config import MAX_PAGES_EXPLAIN_SUMMARY
+from .curriculum import subject_supports_thinking
 from .content_store import (
     get_lessons_book, get_pages_book,
     lessons_units, lessons_in_unit, pages_units,
@@ -83,4 +84,9 @@ def describe(grade, track, subject) -> dict:
         "exams": {"available": _has_exam_bank(grade, track, subject)},
         # 🧠 اختبر نفسك: يُبنى من الدروس حصراً (لكل المواد بلا استثناء)
         "quiz": {"available": lessons_book is not None},
+        # 🧠 **زرُّ «تفكير»** — في موادّ ديب سيك وحدَها (أمر المالك
+        #    2026-09-22: «التفكير يظهر بس في الشاتس اللي فيها DPC»).
+        #    وجيميناي لا يفكّر، فزرُّه هناك كذبٌ مرئيّ. والمصدرُ جدولُ
+        #    التوجيه نفسُه، فلا قائمةَ في التطبيق تتخلّف عن الخادم.
+        "thinking": {"available": subject_supports_thinking(subject)},
     }
