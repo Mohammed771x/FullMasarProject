@@ -185,3 +185,46 @@ def test_question_id_ignores_option_order():
 
 def test_missing_bank_is_none_not_an_error():
     assert QB.stored_for(9, "لا شيء", "مادة", "و", "د", "نص") is None
+
+
+# ══════════════ ⑧ لا يتكرّر سؤالٌ في اختبارٍ واحد ══════════════
+# ☢️ **علّةٌ رآها المالكُ بعينه (2026-09-22):** «السؤال متكرر، والطامّةُ أنه
+#    متكرّرٌ بإجاباتٍ مختلفة». وسببُها أن `select` كان يمرّ على البنوك
+#    ويجمع ما يُسحب منها بلا أن يعرف أحدُها ما أخذه الآخر.
+
+def _twin(qid, text, seed=0, answer=0):
+    return {"id": qid, "weight": 3, "level": "متوسط", "topic": f"tw{seed}",
+            "q": text, "options": ["أ", "ب", "ج", "د"], "correct_index": answer}
+
+
+def test_same_question_never_appears_twice_in_one_quiz():
+    """السؤالُ المشتركُ بين درسين يُعرض مرّةً واحدة."""
+    shared = _twin("x1", "ما تعريف الثقافة؟")
+    a = [shared] + _bank(9, 1)
+    b = [shared] + _bank(9, 2)
+    for t in range(40):
+        got = QB.select([("أ", a), ("ب", b)], 12, seed=t)
+        ids = [q["id"] for q in got]
+        assert len(ids) == len(set(ids)), f"معرّفٌ مكرَّر في البذرة {t}"
+
+
+def test_reworded_twin_with_a_contradicting_answer_is_dropped():
+    """☢️ لبُّ الشكوى: نصٌّ واحدٌ بمعرّفَين وجوابَين — يُعرض أحدُهما فقط."""
+    a = [_twin("a1", "ما تعريف الثقافة؟", 1, answer=0)] + _bank(9, 3)
+    b = [_twin("b1", "ما تعريف الثقافة؟", 2, answer=2)] + _bank(9, 4)
+    seen_both = 0
+    for t in range(60):
+        got = QB.select([("أ", a), ("ب", b)], 12, seed=t)
+        texts = [q["q"] for q in got]
+        assert len(texts) == len(set(texts)), f"نصٌّ مكرَّر في البذرة {t}"
+        seen_both += {"a1", "b1"} <= {q["id"] for q in got}
+    assert seen_both == 0
+
+
+def test_dedup_does_not_shrink_the_quiz():
+    """🛟 والمنعُ يُعوَّض — لا يخرج اختبارٌ ناقصٌ بسببه."""
+    shared = [_twin(f"s{i}", f"سؤالٌ مشترك {i}", 5) for i in range(6)]
+    a = shared + _bank(12, 6)
+    b = shared + _bank(12, 7)
+    for t in range(30):
+        assert len(QB.select([("أ", a), ("ب", b)], 15, seed=t)) == 15

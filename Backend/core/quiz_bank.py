@@ -372,6 +372,18 @@ def pick_from_lesson(bank: list, count: int, seen: set, rng) -> list:
     return chosen[:count]
 
 
+# 🔑 **مفتاحُ النصّ** — لتمييز المكرَّر الذي اختلف معرّفُه لاختلافِ
+#    خيارٍ أو تشكيلٍ أو رسمِ همزة. يُطبَّع ثم يُبصم، فلا تُخزَّن نصوصٌ طويلة.
+_TEXT_TRIM = re.compile(r"[^\w\u0600-\u06FF]+")
+_TEXT_FOLD = str.maketrans("أإآىة", "اااية")
+
+
+def _text_key(q: dict) -> str:
+    body = _TEXT_TRIM.sub(" ", str(q.get("q") or "").translate(_TEXT_FOLD))
+    return "t:" + hashlib.blake2s(" ".join(body.split()).encode("utf-8"),
+                                  digest_size=8).hexdigest()
+
+
 _LEVEL_ORDER = {"مبتدئ": 0, "متوسط": 1, "صعب": 2}
 
 
@@ -391,12 +403,39 @@ def select(banks: list, count: int, seen=None, seed=None) -> list:
     sizes = [len(qs) for _, qs in banks]
     share = quotas(sizes, count)
 
-    out = []
+    # 🔁 **ولا يُسأل الطالبُ عن شيءٍ مرّتين في اختبارٍ واحد.** السؤالُ
+    #    الموجودُ في درسين كان يُسحب من كليهما ويُعرض مرّتين. وأخبثُ منه
+    #    المكرَّرُ **بصياغةٍ مغايرةٍ قليلاً**: معرّفُه مختلفٌ فيمرّ كسؤالين،
+    #    وقد يحمل **جوابين متناقضين** — وهو ما رآه المالكُ بعينه (2026-09-22).
+    #
+    # ⚖️ و`seen` تبقى **عقوبةً ناعمة** كما صُمّمت — منعُها المطلق يُفرغ
+    #    البنكَ الصغير. فالمنعُ القاطعُ لتكرارِ **هذا الاختبار** وحدَه،
+    #    ومعه تعويضٌ فلا ينقص العدد.
+    out, taken = [], set()
+
+    def admit(q, name):
+        k = (q.get("id"), _text_key(q))
+        if k[0] in taken or k[1] in taken:
+            return False
+        taken.update(k)
+        item = dict(q)
+        item.setdefault("lesson", name)
+        out.append(item)
+        return True
+
     for (name, qs), k in zip(banks, share):
         for q in pick_from_lesson(qs, k, seen, rng):
-            item = dict(q)
-            item.setdefault("lesson", name)
-            out.append(item)
+            admit(q, name)
+
+    # 🛟 وتعويضُ ما أسقطه المنع — دورةٌ على البنوك بالترتيب نفسِه
+    if len(out) < count:
+        for name, qs in banks:
+            for q in sorted(qs, key=lambda x: rng.random()):
+                if len(out) >= count:
+                    break
+                admit(q, name)
+            if len(out) >= count:
+                break
 
     # 🎚️ **ويُقدَّم الأسهلُ** — القاعدةُ التربوية القائمة منذ اليوم الأول:
     #    اختبارٌ يبدأ بأصعب سؤالٍ يُحبط الطالبَ قبل أن يقيس مستواه.
