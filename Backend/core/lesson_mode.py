@@ -135,8 +135,12 @@ async def handle(req, clients: dict, prompts=None) -> dict:
     client = clients.get(client_key) or clients["gemini"]
     # ☢️ ونموذجُ التفكير يحتاج سقفاً يتّسع لتفكيره وإلا عاد **فارغاً**
     #    بلا خطأٍ ولا سجلّ — قياسٌ في [core/curriculum.call_budget].
-    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "chat")
-    _think = reasoning_kwargs(model_name, "chat")   # 🎚️ نقاشٌ بلا تفكير
+    # 🧠 زرُّ «تفكير» بيد الطالب ([models.AskRequest.thinking]) — ويعلو
+    #    على حكم الغرض. وإطفاؤه يوسّع المهلةَ لا يضيّقها، فلا انتظارَ
+    #    أربعِ دقائقَ على شرحٍ يستغرق أربعَ ثوانٍ.
+    _want = getattr(req, "thinking", None)
+    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "chat", _want)
+    _think = reasoning_kwargs(model_name, "chat", _want)
 
     messages = [{"role": "system", "content": _system_prompt(req.mode, subject, req.summary_level, prompts)}]
     if req.chat_history:

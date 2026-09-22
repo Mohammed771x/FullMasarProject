@@ -110,5 +110,10 @@ class AppConfig {
   //    الخادمُ عملَه يعني حصةً خُصمت وجواباً ضاع. و`request_id` يمنع الخصم
   //    المزدوج عند الإعادة، لكن انتظارَ الجواب أصلاً أفضل من إعادته.
   static const Duration askTimeout = Duration(seconds: 90);
+
+  /// 🧠 **ومهلةٌ للتفكير** — الخادمُ يسمح لنموذج التفكير بـ٢٤٠ ثانية
+  /// (`curriculum.THINKING_TIMEOUT`)، فقطعُ العميل عند ٩٠ يعني حصةً
+  /// خُصمت وجواباً ضاع. والقاعدةُ أعلاه نفسُها: أطولُ من الخادم عمداً.
+  static const Duration askTimeoutThinking = Duration(seconds: 300);
   static const Duration contentTimeout = Duration(seconds: 20);
 }

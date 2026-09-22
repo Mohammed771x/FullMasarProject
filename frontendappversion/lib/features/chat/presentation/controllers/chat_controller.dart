@@ -13,6 +13,7 @@ import '../../../../core/services/stt_service.dart';
 import '../../../../core/services/voice_text_merge.dart';
 import '../../../../core/quota/quota_repository.dart';
 import '../../../../core/session/user_session.dart';
+import '../../../../core/settings/app_settings.dart';
 import '../../../../core/error/error_messages.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/storage/chat_storage.dart';
@@ -91,6 +92,23 @@ class ChatController extends ChangeNotifier {
 
   /// عميل البثّ — يُغلق عند المغادرة كما يُغلق عميل الطلب العادي.
   final AskStream _stream;
+
+  // ══════════════════════════════════════════════════
+  // 🧠 «تفكير» — زرٌّ عند الإرسال، لا إعدادٌ مدفون
+  // ══════════════════════════════════════════════════
+  // ⚖️ **قرار المالك (2026-09-22):** «هو الطالب يقدر يختار thinking ولا مش
+  //    thinking؟ … حط خيار thinking وحط مش thinking، كما ChatGPT».
+  //
+  // 📏 وقِيس الفرقُ على ٣٣ مسألةَ فيزياءٍ وكيمياءَ محسوبةٍ باليد ×٣ إعادات:
+  //      مُطفأً  ⇐ ٩٦٪ · ٠٫٨ث      مُشغّلاً ⇐ ١٠٠٪ · ١٫٥ث
+  //    وفي الشرح الطويل: ٨٫٥ث مقابل ٢٠ث. فالإطفاءُ افتراضاً، والإشعالُ
+  //    للمسائل — وهو محفوظٌ في [AppSettings] فلا يُعاد كل مرة.
+  bool get thinking => AppSettings.I.thinking;
+
+  Future<void> toggleThinking() async {
+    await AppSettings.I.setThinking(!thinking);
+    refresh();
+  }
 
   /// 📌 قرار «هل نتبع الأسفل؟» — منطقٌ خالص يُختبر وحده
   /// ([stick_to_bottom.dart]).
@@ -2190,7 +2208,8 @@ class ChatController extends ChangeNotifier {
     await for (final ev in _stream.open(
       url: Uri.parse(url),
       headers: ApiClient.authHeaders(token),
-      timeout: AppConfig.askTimeout,
+      // ⏱️ ومهلةُ التفكير أطول — راجع [AppConfig.askTimeoutThinking]
+      timeout: thinking ? AppConfig.askTimeoutThinking : AppConfig.askTimeout,
       body: {
         // 🔐 الهوية والنطاق يُضافان هنا لا في المُنادي — حقولٌ يجب أن
         //    ترافق **كل** طلب، ونسيانها في مسارٍ عطلٌ صامت.
@@ -2199,6 +2218,9 @@ class ChatController extends ChangeNotifier {
         "request_id": requestId,
         "grade": grade,
         "track": track.key,
+        // 🧠 زرُّ «تفكير» — يُرسل من **هنا** لا من المُنادي، فيرافق مسارَ
+        //    الطالب ومسارَ المعلّم معاً ولا يُنسى في أحدهما.
+        "thinking": thinking,
         ...body,
         if (imagesBase64.isNotEmpty) "images_base64": imagesBase64,
       },

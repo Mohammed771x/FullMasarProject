@@ -509,8 +509,12 @@ async def ask(req, clients: dict) -> dict:
     client = clients.get(client_key) or clients["gemini"]
     # ☢️ ونموذجُ التفكير يحتاج سقفاً يتّسع لتفكيره وإلا عاد **فارغاً**
     #    بلا خطأٍ ولا سجلّ — قياسٌ في [core/curriculum.call_budget].
-    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "chat")
-    _think = reasoning_kwargs(model_name, "chat")   # 🎚️ نقاشٌ بلا تفكير
+    # 🧠 زرُّ «تفكير» بيد الطالب ([models.AskRequest.thinking]) — ويعلو
+    #    على حكم الغرض. وإطفاؤه يوسّع المهلةَ لا يضيّقها، فلا انتظارَ
+    #    أربعِ دقائقَ على شرحٍ يستغرق أربعَ ثوانٍ.
+    _want = getattr(req, "thinking", None)
+    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "chat", _want)
+    _think = reasoning_kwargs(model_name, "chat", _want)
 
     messages = [{"role": "system", "content": system}]
     messages.extend(build_history(req.chat_history))
@@ -565,8 +569,13 @@ async def try_prompt(tool: str, kind: str, prompt_text: str, question: str,
     client = clients.get(client_key) or clients["gemini"]
     # ☢️ ونموذجُ التفكير يحتاج سقفاً يتّسع لتفكيره وإلا عاد **فارغاً**
     #    بلا خطأٍ ولا سجلّ — قياسٌ في [core/curriculum.call_budget].
-    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "chat")
-    _think = reasoning_kwargs(model_name, "chat")   # 🎚️ نقاشٌ بلا تفكير
+    # 🧠 زرُّ «تفكير» بيد الطالب ([models.AskRequest.thinking]) — ويعلو
+    #    على حكم الغرض. وإطفاؤه يوسّع المهلةَ لا يضيّقها، فلا انتظارَ
+    #    أربعِ دقائقَ على شرحٍ يستغرق أربعَ ثوانٍ.
+    # 🧪 لوحةُ الأدمن لا طالبَ فيها ولا زرَّ تفكير — فحكمُ الغرض وحدَه.
+    _want = None
+    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "chat", _want)
+    _think = reasoning_kwargs(model_name, "chat", _want)
 
     try:
         response = await asyncio.wait_for(

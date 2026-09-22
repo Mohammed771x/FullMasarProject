@@ -52,13 +52,18 @@ def _system_prompt(mode, subject, summary_level, prompts=None):
     return system_prompt_strict_explain(subject)
 
 
-async def _call_model(subject, messages, clients, sink=None):
+async def _call_model(subject, messages, clients, sink=None,
+                      thinking=None):
     client_key, model_name = model_route(subject)
     client = clients.get(client_key) or clients["gemini"]
     # ☢️ ونموذجُ التفكير يحتاج سقفاً يتّسع لتفكيره وإلا عاد **فارغاً**
     #    بلا خطأٍ ولا سجلّ — قياسٌ في [core/curriculum.call_budget].
-    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "chat")
-    _think = reasoning_kwargs(model_name, "chat")   # 🎚️ نقاشٌ بلا تفكير
+    # 🧠 زرُّ «تفكير» بيد الطالب ([models.AskRequest.thinking]) — ويعلو
+    #    على حكم الغرض. وإطفاؤه يوسّع المهلةَ لا يضيّقها، فلا انتظارَ
+    #    أربعِ دقائقَ على شرحٍ يستغرق أربعَ ثوانٍ.
+    _want = thinking
+    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "chat", _want)
+    _think = reasoning_kwargs(model_name, "chat", _want)
     try:
         # 🌊 البثّ إن طُلب، وإلا نداءٌ عادي حرفياً ([core/streaming.py]).
         return await streaming.complete(
@@ -129,7 +134,9 @@ async def handle(req, clients: dict, prompts=None) -> dict:
                          "content": f"نص الكتاب:\n{context_text}\n\nطلب الطالب: {verb} المحتوى أعلاه."
                          + turn_note(req)
                          + _draw_reminder(context_text)})
-        answer = await _call_model(subject, messages, clients, streaming.sink_of(req))
+        answer = await _call_model(subject, messages, clients,
+                                   streaming.sink_of(req),
+                                   getattr(req, "thinking", None))
         if missing:
             answer += f"\n\n(ملاحظة: الصفحات {missing} لم يتم العثور عليها)"
         refs = [f"ص {p.get('رقم_الصفحة')}" for p in found_pages]
@@ -161,7 +168,9 @@ async def handle(req, clients: dict, prompts=None) -> dict:
     messages.append({"role": "user",
                      "content": f"نص الكتاب:\n{context_text}\n\nسؤال الطالب: {query}"
                      + turn_note(req)})
-    answer = await _call_model(subject, messages, clients, streaming.sink_of(req))
+    answer = await _call_model(subject, messages, clients,
+                               streaming.sink_of(req),
+                               getattr(req, "thinking", None))
 
     # المراجع: أسماء الوحدات وأرقام الصفحات المطابقة
     refs = []

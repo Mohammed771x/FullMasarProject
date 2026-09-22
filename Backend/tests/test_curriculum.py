@@ -66,9 +66,10 @@ def test_math_carries_its_thinking_kwargs_to_every_call():
     from subjects.math import MATH_THINK, MATH_MODEL
     from core.curriculum import is_thinking_model
     if is_thinking_model(MATH_MODEL):
-        assert MATH_THINK == {"reasoning_effort": "minimal"}
+        assert MATH_THINK() == {"reasoning_effort": "minimal"}
     src = (pathlib.Path(__file__).resolve().parent.parent
            / "subjects" / "math.py").read_text(encoding="utf-8")
     calls = src.count("model=MATH_MODEL")
-    assert calls and src.count("model=MATH_MODEL, **MATH_THINK,") == calls, (
-        "موضعُ نداءٍ بلا ضبطِ تفكير")
+    wired = (src.count("model=MATH_MODEL, **MATH_THINK(req),")
+             + src.count("model=MATH_MODEL, **MATH_THINK(),"))
+    assert calls and wired == calls, "موضعُ نداءٍ بلا ضبطِ تفكير"

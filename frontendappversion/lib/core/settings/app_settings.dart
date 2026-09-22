@@ -19,6 +19,7 @@ class AppSettings extends ChangeNotifier {
   static const _kFontSize = 'settings_answer_font';
   static const _kNotifScholarships = 'settings_notif_scholarships';
   static const _kNotifGeneral = 'settings_notif_general';
+  static const _kThinking = 'settings_thinking';
 
   /// حدود حجم خط الإجابة. الأدنى ١٤ لأن ما دونه لا يُقرأ على شاشة صغيرة،
   /// والأعلى ٢٤ ليخدم ضعيف البصر فعلاً لا شكلاً.
@@ -30,9 +31,20 @@ class AppSettings extends ChangeNotifier {
   bool _notifScholarships = true;
   bool _notifGeneral = true;
 
+  /// 🧠 **«تفكير» — يختاره الطالبُ عند الإرسال** (قرار المالك 2026-09-22:
+  /// «هو الطالب يقدر يختار thinking ولا مش thinking؟ … كما ChatGPT»).
+  ///
+  /// 📏 والفرقُ مقيسٌ على ٣٣ مسألةَ فيزياءٍ وكيمياءَ محسوبةٍ باليد ×٣:
+  ///   · مُطفأً  ⇐ **٩٦٪** · ٠٫٨ ثانية
+  ///   · مُشغّلاً ⇐ **١٠٠٪** · ١٫٥ ثانية
+  /// وفي الشرح الطويل يقفز إلى ٢٠ ثانية — **فالافتراضُ إطفاء**، لأن
+  /// أكثرَ ما يُسأل شرحٌ لا حساب، والطالبُ يشعله للمسائل بضغطةٍ واحدة.
+  bool _thinking = false;
+
   double get answerFontSize => _answerFontSize;
   bool get notifScholarships => _notifScholarships;
   bool get notifGeneral => _notifGeneral;
+  bool get thinking => _thinking;
 
   SharedPreferences? _prefs;
 
@@ -42,6 +54,7 @@ class AppSettings extends ChangeNotifier {
         (_prefs!.getDouble(_kFontSize) ?? defaultFont).clamp(minFont, maxFont);
     _notifScholarships = _prefs!.getBool(_kNotifScholarships) ?? true;
     _notifGeneral = _prefs!.getBool(_kNotifGeneral) ?? true;
+    _thinking = _prefs!.getBool(_kThinking) ?? false;
     notifyListeners();
   }
 
@@ -50,6 +63,16 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
     await (_prefs ??= await SharedPreferences.getInstance())
         .setDouble(_kFontSize, _answerFontSize);
+  }
+
+  /// 🧠 يُبدَّل من شريط الكتابة — ويبقى بعد إغلاق التطبيق، فمن يذاكر
+  /// الرياضيات لا يعيد إشعالَه كل مرة. ولا يُرفع للخادم: تفضيلُ **جهاز**
+  /// لا تفضيلُ حساب، شأنُه شأنُ حجم الخط.
+  Future<void> setThinking(bool value) async {
+    _thinking = value;
+    notifyListeners();
+    await (_prefs ??= await SharedPreferences.getInstance())
+        .setBool(_kThinking, value);
   }
 
   Future<void> setNotifScholarships(bool value) async {
@@ -103,10 +126,12 @@ class AppSettings extends ChangeNotifier {
     _answerFontSize = defaultFont;
     _notifScholarships = true;
     _notifGeneral = true;
+    _thinking = false;
     notifyListeners();
     final p = _prefs ??= await SharedPreferences.getInstance();
     await p.remove(_kFontSize);
     await p.remove(_kNotifScholarships);
     await p.remove(_kNotifGeneral);
+    await p.remove(_kThinking);
   }
 }

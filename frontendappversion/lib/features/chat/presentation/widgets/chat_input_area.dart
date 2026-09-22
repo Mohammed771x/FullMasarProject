@@ -187,6 +187,20 @@ class ChatInputArea extends StatelessWidget {
                       )
                     else
                       const SizedBox(width: 36),
+                    // 🧠 **وضعُ التفكير — أيقونةٌ لا شريحةٌ مكتوبة.**
+                    //    جُرّبت شريحةً باسمها فأكلت ٨٠ نقطةً من عرض الكتابة،
+                    //    وحكمُ المالك: «ما عجبنا مكانه… طول طول». فصارت
+                    //    بحجم الكاميرا نفسِه (٣٦)، والشرحُ يظهر عند الضغط
+                    //    لا يزاحم الحقلَ دائماً.
+                    if (!isGenerating)
+                      _RoundIcon(
+                        icon: PI.brain(active: controller.thinking),
+                        size: 36,
+                        color: controller.thinking
+                            ? AppColors.primary
+                            : AppColors.inputBarIcon,
+                        onTap: () => _pickThinking(context),
+                      ),
                     Expanded(
                       child: TextField(
                         controller: controller.inputController,
@@ -321,6 +335,82 @@ class ChatInputArea extends StatelessWidget {
   }
 
   /// اختيار مصدر الصورة: كاميرا أو معرض.
+  // ══════════════════════════════════════════════════
+  // 🧠 وضعُ الإجابة — يُشرح حين يُسأل عنه
+  // ══════════════════════════════════════════════════
+  // ⚖️ **قرارُ المالك (2026-09-22):** «يطلع له إنه التفكير يحلّ مسائل
+  //    معقّدة وقد يتأخّر… والعادي يعطيك نتائج بسرعة».
+  //
+  // 📏 والوصفُ ليس تزييناً — هو الفرقُ المقيس على ٣٣ مسألةَ فيزياءٍ
+  //    وكيمياءَ محسوبةٍ باليد ×٣ إعادات: ٩٦٪ في ٠٫٨ث مقابل ١٠٠٪ في ١٫٥ث،
+  //    وفي الشرح الطويل ٨٫٥ث مقابل ٢٠ث.
+  void _pickThinking(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceWhite,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: AppColors.softSurface,
+                    borderRadius: BorderRadius.circular(4))),
+            const SizedBox(height: 14),
+            _modeTile(
+              ctx,
+              icon: PI.lightning.regular,
+              title: "عادي",
+              subtitle: "إجاباتٌ سريعة — الأنسبُ للشرح والفهم",
+              selected: !controller.thinking,
+              onTap: () => controller.thinking ? controller.toggleThinking() : null,
+            ),
+            _modeTile(
+              ctx,
+              icon: PI.brain.regular,
+              title: "تفكير",
+              subtitle: "يتمهّل ليحلّ المسائل المعقّدة — أدقُّ وأبطأُ قليلاً",
+              selected: controller.thinking,
+              onTap: () => controller.thinking ? null : controller.toggleThinking(),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _modeTile(BuildContext ctx,
+      {required IconData icon,
+      required String title,
+      required String subtitle,
+      required bool selected,
+      required VoidCallback onTap}) {
+    return ListTile(
+      leading: Icon(icon,
+          color: selected ? AppColors.primary : AppColors.inputBarIcon),
+      title: Text(title,
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: selected ? AppColors.primary : AppColors.textPrimary)),
+      subtitle: Text(subtitle,
+          style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
+      // ✅ علامةُ المختار — فالورقةُ تُقرأ بلمحة، ولا يُبدَّل وضعٌ بالخطأ
+      trailing: selected
+          ? Icon(PI.check.bold, size: 18, color: AppColors.primary)
+          : null,
+      onTap: () {
+        Navigator.pop(ctx);
+        onTap();
+      },
+    );
+  }
+
   void _pickImage(BuildContext context) {
     showModalBottomSheet(
       context: context,

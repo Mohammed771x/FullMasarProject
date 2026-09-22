@@ -160,32 +160,66 @@ QUIZ_EFFORT = os.getenv("DEEPSEEK_QUIZ_EFFORT", "minimal")
 _EFFORT = {"chat": CHAT_EFFORT, "quiz": QUIZ_EFFORT, "build": "full"}
 
 
-def reasoning_kwargs(model_name: str, purpose: str = "build") -> dict:
-    """وسائطُ النداء التي تضبط شدّةَ التفكير — وفارغةٌ لمن لا يفكّر."""
+# 🎚️ وشدّةُ التفكير حين يطلبه الطالبُ صراحةً — «أدنى» لا «كامل»: قِيس أنها
+#    تبلغ ١٠٠٪ في الحساب بكلفةِ ٠٫٧ ثانيةٍ فقط، والكاملُ لا يزيد دقّةً.
+STUDENT_EFFORT = os.getenv("DEEPSEEK_STUDENT_EFFORT", "minimal")
+
+
+def reasoning_kwargs(model_name: str, purpose: str = "build",
+                     thinking: bool | None = None) -> dict:
+    """وسائطُ النداء التي تضبط شدّةَ التفكير — وفارغةٌ لمن لا يفكّر.
+
+    ⚖️ و`thinking` **اختيارُ الطالب ويعلو على الغرض**: زرٌّ عند الإرسال،
+       لا إعدادٌ خفيّ. و`None` تعني «لم يختر» فيُعمل بحكم الغرض.
+    """
     if not is_thinking_model(model_name):
         return {}
-    effort = _EFFORT.get(purpose, "full")
+    if thinking is not None:
+        effort = STUDENT_EFFORT if thinking else "none"
+    else:
+        effort = _EFFORT.get(purpose, "full")
     return {} if effort == "full" else {"reasoning_effort": effort}
 
 
-def subject_thinking(subject: str, purpose: str = "chat") -> dict:
+def subject_thinking(subject: str, purpose: str = "chat",
+                     thinking: bool | None = None) -> dict:
     """وسائطُ التفكير لمادّةٍ بعينها — يُعفي المنادي من تتبّع اسم النموذج.
 
     📏 ووُضع هنا لا في [subjects/math.py]: ذاك في سجلّ الأطوال
        ([tests/test_file_scope_2026_09_20.py]) فلا يكبر، والقاعدةُ
        «أضِف الجديدَ في ملفٍّ مستقلّ لا فيه».
     """
-    return reasoning_kwargs(model_route(subject)[1], purpose)
+    return reasoning_kwargs(model_route(subject)[1], purpose, thinking)
+
+
+def request_thinking(subject: str, req=None, purpose: str = "chat") -> dict:
+    """وسائطُ التفكير لمادّةٍ **بحسب اختيار الطالب في هذا الطلب**.
+
+    و`req` غائبٌ ⇒ `None` ⇒ حكمُ الغرض. والعميلُ القديم لا يرسل الحقل
+    فيصل `False` من [models.AskRequest] — أي سلوكُه اليوم بلا تغيير.
+    """
+    return subject_thinking(subject, purpose,
+                            getattr(req, "thinking", None) if req else None)
+
+
+def math_thinking(req=None) -> dict:
+    """🧮 وللرياضيات مدخلٌ باسمها — لأن [subjects/math.py] في سجلّ الأطوال
+    ([tests/test_file_scope_2026_09_20.py]) فلا يحتمل سطراً زائداً."""
+    return request_thinking("رياضيات", req, "quiz")
 
 
 def call_budget(model_name: str, max_tokens: int, timeout: float,
-                purpose: str = "build"):
+                purpose: str = "build", thinking: bool | None = None):
     """يعيد `(سقف، مهلة)` — موسَّعَين لمن **سيفكّر فعلاً**، وكما هما لغيره.
 
     ⚠️ ولا يُوسَّع لمن أُطفئ تفكيرُه: مهلةُ ٢٤٠ ثانيةً على مسار الشرح تعني
        أن الطالبَ ينتظر أربعَ دقائقَ قبل أن يرى خطأً — وهو لا يحتاج أكثر
        من عشرٍ أصلاً.
     """
-    if is_thinking_model(model_name) and _EFFORT.get(purpose, "full") != "none":
-        return max(max_tokens, THINKING_TOKENS), max(timeout, THINKING_TIMEOUT)
-    return max_tokens, timeout
+    if not is_thinking_model(model_name):
+        return max_tokens, timeout
+    effort = (STUDENT_EFFORT if thinking else "none") if thinking is not None \
+        else _EFFORT.get(purpose, "full")
+    if effort == "none":
+        return max_tokens, timeout
+    return max(max_tokens, THINKING_TOKENS), max(timeout, THINKING_TIMEOUT)
