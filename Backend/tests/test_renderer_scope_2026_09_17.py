@@ -298,7 +298,9 @@ def test_english_is_routed_to_deepseek():
     """📏 `gpt-4o-mini` استقرّ عند ٥٠–٥٥٪ تطبيقاً مع أربعِ إعادات."""
     from tools.build_quizzes import route
     assert route("انجليزي")[0] == "deepseek"
-    assert route("كيمياء")[0] == "openai"
+    # 🎛️ والضابطُ مادّةٌ سرديةٌ لا حسابَ فيها — فالكيمياءُ انتقلت هي الأخرى
+    #    إلى ديب سيك (2026-09-22)، فلم تعد تصلح ضابطاً.
+    assert route("احياء")[0] == "openai"
 
 
 # ───────────────── ٨) الحسابُ يُصحَّح أو يُخطَّأ ─────────────────
@@ -354,7 +356,13 @@ def test_calc_subjects_route_to_deepseek():
     assert "منطق" in CALC_SUBJECTS and "رياضيات" in CALC_SUBJECTS
     assert route("منطق")[0] == "deepseek"
     assert route("رياضيات")[0] == "deepseek"
-    assert route("فيزياء")[0] == "openai"
+    # 🧪 والفيزياءُ والكيمياءُ لحقتا بها (2026-09-22) — لكن عبر [SCI_SUBJECTS]
+    #    لا عبر `CALC_SUBJECTS`: هذه الأخيرةُ يعلّق عليها [english.py] فاحصَ
+    #    الحساب الحتميّ، وهو لا يفهم الوحداتِ الفيزيائية.
+    from tools.build_quizzes import SCI_SUBJECTS
+    assert route("فيزياء")[0] == "deepseek"
+    assert route("كيمياء")[0] == "deepseek"
+    assert "فيزياء" not in CALC_SUBJECTS and "فيزياء" in SCI_SUBJECTS
 
 
 def test_stored_banks_have_no_arithmetic_contradiction():

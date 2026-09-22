@@ -27,7 +27,7 @@ from subjects.common import (
 from . import lesson_cache
 from .content_store import get_lessons_book, find_lesson
 from .serializer import serialize_lesson
-from .curriculum import model_route
+from .curriculum import model_route, call_budget
 
 _AI_TIMEOUT = 50      # نفس مهلة المعالجات الحالية
 _MAX_TOKENS = 4000
@@ -133,6 +133,9 @@ async def handle(req, clients: dict, prompts=None) -> dict:
 
     client_key, model_name = model_route(subject)
     client = clients.get(client_key) or clients["gemini"]
+    # ☢️ ونموذجُ التفكير يحتاج سقفاً يتّسع لتفكيره وإلا عاد **فارغاً**
+    #    بلا خطأٍ ولا سجلّ — قياسٌ في [core/curriculum.call_budget].
+    _budget = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT)
 
     messages = [{"role": "system", "content": _system_prompt(req.mode, subject, req.summary_level, prompts)}]
     if req.chat_history:
@@ -145,8 +148,8 @@ async def handle(req, clients: dict, prompts=None) -> dict:
         #    حرفياً كما كان ([core/streaming.py]).
         answer = await streaming.complete(
             client, model=model_name, messages=messages,
-            sink=streaming.sink_of(req), timeout=_AI_TIMEOUT,
-            max_tokens=_MAX_TOKENS, temperature=0.1,
+            sink=streaming.sink_of(req), timeout=_budget[1],
+            max_tokens=_budget[0], temperature=0.1,
         )
     except asyncio.TimeoutError:
         answer = "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية."

@@ -55,8 +55,24 @@ MODEL_ROUTING = {
     "احياء":   ("gemini",   "gemini-3.1-flash-lite"),
     "عربي":    ("gemini",   "gemini-3.1-flash-lite"),
     "انجليزي": ("gemini",   "gemini-3.1-flash-lite"),
-    "فيزياء":  ("openai",   "gpt-4o-mini"),
-    "كيمياء":  ("openai",   "gpt-4o-mini"),
+    # 🧪 **والفيزياءُ والكيمياءُ حُوّلتا إلى `deepseek-flash`** (قياسٌ مباشرٌ
+    #    2026-09-22، بأمر المالك: «خلي ديب سيك فلاش يتعامل مع الفيزياء
+    #    والكيمياء»). والسببُ رقمٌ لا رأي — عشرون مسألةً محسوبةً باليد،
+    #    ثلاثُ إعاداتٍ بحرارةِ صفر، والإخفاقاتُ تكرّرت بعينها في الثلاث:
+    #
+    #      الموديل                  الكلّ  فيزياء  كيمياء  رياضيات
+    #      gpt-4o-mini               ٦٠٪    ٦٢٪     ٨٦٪     ٢٠٪
+    #      gemini-3.1-flash-lite     ٩٥٪   ١٠٠٪    ١٠٠٪     ٨٠٪
+    #      deepseek-chat             ٨٥٪    ٨٨٪     ٨٦٪     ٨٠٪
+    #      deepseek-flash           ١٠٠٪   ١٠٠٪    ١٠٠٪    ١٠٠٪
+    #
+    # 💡 **والفرقُ أنه يفكّر**: `reasoning_tokens` صفرٌ في `deepseek-chat`
+    #    و٥٧ في `deepseek-flash` — وهو ما يفعله تطبيقُ ديب سيك في الجوال
+    #    حين يُشغَّل DeepThink. فالعائلةُ نفسُها، والتفكيرُ هو الفارق.
+    #
+    # 💵 **وهو أرخصُ لا أغلى**: خرجُه $٠٫٤٢ للمليون مقابل $٠٫٦٠ لـ gpt-4o-mini.
+    "فيزياء":  ("deepseek", os.getenv("SCI_MODEL", "deepseek-flash")),
+    "كيمياء":  ("deepseek", os.getenv("SCI_MODEL", "deepseek-flash")),
     # ☢️ **`deepseek-chat` سُحب من المزوّد** (رُصد 2026-09-15): نداؤه لا يعود
     #    بخطأٍ بل **يتعلّق حتى المهلة**، فكلُّ طلبِ رياضياتٍ في التطبيق —
     #    شرحاً وسؤالاً ووزارياً — كان يردّ «⚠️ خوادم الذكاء الاصطناعي مشغولة».
@@ -77,7 +93,11 @@ MODEL_ROUTING = {
     #    ومتى أردتَ التحويل فسطرٌ واحد في `.env` لا نشرةُ كود.
     #
     # ⚠️ **ولا يُخمَّن اسمُ النموذج**: اسأل `/v1/models` قبل تغييره.
-    "رياضيات": ("deepseek", os.getenv("DEEPSEEK_MODEL", "deepseek-chat")),
+    # ☢️ **وافتراضُه صار `deepseek-flash`** (2026-09-22): `deepseek-chat`
+    #    لم يعد مُدرَجاً في `/v1/models` عند المزوّد — يردُّ اليوم وقد
+    #    يُسحب غداً بلا إنذار، كما حدث في ١٥/٩. والبديلُ أدقُّ منه
+    #    قياساً (١٠٠٪ مقابل ٨٠٪ في الرياضيات) — فلا حجّةَ للبقاء.
+    "رياضيات": ("deepseek", os.getenv("DEEPSEEK_MODEL", "deepseek-flash")),
     # ── المواد النظرية الجديدة (لكلٍّ ملف معالج مستقل في subjects/) ──
     "تاريخ":               ("gemini", "gemini-3.1-flash-lite"),
     "جغرافيا":             ("gemini", "gemini-3.1-flash-lite"),
@@ -93,3 +113,32 @@ DEFAULT_ROUTE = ("gemini", "gemini-3.1-flash-lite")
 
 def model_route(subject: str):
     return MODEL_ROUTING.get(subject, DEFAULT_ROUTE)
+
+
+# ══════════════════════════════════════════════════
+# ☢️ سقفُ النداء — ونموذجُ التفكير يحتاج ضِعفَه ثلاثاً
+# ══════════════════════════════════════════════════
+#
+# 🔴 **قِيس مباشرةً (2026-09-22)** على `deepseek-flash` ببرومبت «اختبر نفسك»:
+#      سقف ٤٠٠٠  ⇐ **صفرُ حروفٍ مُعادة** · تفكير ٤٠٠٠ · finish="length"
+#      سقف ١٢٠٠٠ ⇐ ٣٢٠٧ حرفاً · تفكير ٧٥٩١ · finish="stop" · ٣٦ ثانية
+#
+# ⚠️ **والعطلُ صامتٌ تماماً**: لا خطأَ ولا استثناءَ ولا سجلّ — جوابٌ فارغٌ
+#    فحسب. ولولا أن قِيس قبل التسليم لسقطت كلُّ مادةٍ حوّلناها إلى التفكير
+#    في كلّ درسٍ لا بنكَ له، ولظهر للطالب «⚠️ خوادم الذكاء مشغولة».
+#
+# 🎯 فالسقفُ يُشتقّ من **اسم النموذج** لا يُكتب في كل نداء، حتى لا يُنسى
+#    موضعٌ عند التحويل القادم. ومن لا يفكّر يبقى على سقفه كما كان تماماً.
+THINKING_MODELS = ("deepseek-flash", "deepseek-v4-pro", "deepseek-reasoner")
+THINKING_TOKENS, THINKING_TIMEOUT = 12000, 240
+
+
+def is_thinking_model(model_name: str) -> bool:
+    return any(m in (model_name or "") for m in THINKING_MODELS)
+
+
+def call_budget(model_name: str, max_tokens: int, timeout: float):
+    """يعيد `(سقف، مهلة)` — موسَّعَين لنموذج التفكير، وكما هما لغيره."""
+    if is_thinking_model(model_name):
+        return max(max_tokens, THINKING_TOKENS), max(timeout, THINKING_TIMEOUT)
+    return max_tokens, timeout

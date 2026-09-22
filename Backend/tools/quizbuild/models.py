@@ -6,7 +6,8 @@
 """
 from __future__ import annotations
 from .boot import Counter, asyncio, quiz_spec
-from .consts import CALC_SUBJECTS, OPENAI_MODEL, _MAX_TOKENS, _TIMEOUT
+from .consts import (CALC_SUBJECTS, OPENAI_MODEL, SCI_SUBJECTS,
+                     _MAX_TOKENS, _TIMEOUT)
 
 
 # ══════════════════════════════════════════════════
@@ -25,7 +26,8 @@ def clients():
 
 
 def route(subject: str):
-    """OpenAI لكل المواد · **ديب سيك للرياضيات والمنطق والإنجليزية** ·
+    """**ديب سيك للرياضيات والمنطق والإنجليزية وللفيزياء والكيمياء** ·
+    وOpenAI لما بقي ·
     **ولا جيميناي** (قرار المالك: «جيميناي لا تستخدمه لأنه ماشي معي فلوس
     فيه»).
 
@@ -35,7 +37,8 @@ def route(subject: str):
        ٢١. وهو سقفُ امتثالٍ لا سقفُ محاولة. والمالكُ أذن: «بإمكانك تستخدم
        DPC في الحالات اللي شيء كبير»، وهذا أكبرُها: بنكُ مادّةٍ كامل.
     """
-    if subject in CALC_SUBJECTS or quiz_spec.is_english(subject):
+    if (subject in CALC_SUBJECTS or subject in SCI_SUBJECTS
+            or quiz_spec.is_english(subject)):
         from subjects.math import MATH_MODEL
         return "deepseek", MATH_MODEL
     return "openai", OPENAI_MODEL

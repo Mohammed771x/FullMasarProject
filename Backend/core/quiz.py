@@ -20,7 +20,8 @@ import asyncio
 from .content_store import (get_lessons_book, lessons_units,
                             lessons_in_unit, find_lesson, _clean)
 from . import quiz_bank
-from .curriculum import model_route, normalize_grade_track, is_valid_subject
+from .curriculum import (model_route, normalize_grade_track,
+                         is_valid_subject, call_budget)
 from .serializer import serialize_lesson
 from . import quiz_prompt
 
@@ -336,12 +337,14 @@ async def _call_model(client_key, model_name, messages, clients):
         raise QuizError(
             f"⚠️ مزوّد «{client_key}» ({model_name}) غير مهيّأ على الخادم — "
             "راجع مفاتيح الـAPI في ملف .env.")
+    # ☢️ والسقفُ يتّسع لنموذج التفكير وإلا عاد فارغاً بلا خطأ ([call_budget])
+    cap, wait = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT)
     response = await asyncio.wait_for(
         client.chat.completions.create(
             model=model_name, messages=messages,
-            max_tokens=_MAX_TOKENS, temperature=0.4,   # تنويع محدود بلا هذيان
+            max_tokens=cap, temperature=0.4,           # تنويع محدود بلا هذيان
         ),
-        timeout=_AI_TIMEOUT,
+        timeout=wait,
     )
     return response.choices[0].message.content
 

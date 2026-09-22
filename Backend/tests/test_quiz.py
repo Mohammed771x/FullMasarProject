@@ -148,14 +148,16 @@ def test_spread_handles_empty_list():
 def test_each_subject_routes_to_its_own_model():
     """قرار المالك: لكل مادة موديلها — والاختبار يستعمل موديل الشرح نفسه."""
     from core.curriculum import model_route
-    assert model_route("رياضيات") == ("deepseek", "deepseek-chat")
-    assert model_route("فيزياء")[0] == "openai"
-    assert model_route("كيمياء")[0] == "openai"
+    assert model_route("رياضيات") == ("deepseek", "deepseek-flash")
+    # 🧪 والعلومُ الحسابيةُ انتقلت معها (2026-09-22) — راجع [core/curriculum.py]
+    assert model_route("فيزياء")[0] == "deepseek"
+    assert model_route("كيمياء")[0] == "deepseek"
     assert model_route("احياء")[0] == "gemini"
 
 
 def test_generate_calls_the_subject_model_not_a_fallback():
     """لا بديل صامت: لو نودي عميل غير عميل المادة لم نعد نعرف من يسأل الطالب."""
+    from core.curriculum import model_route
     seen = {}
 
     class _Reply:
@@ -179,7 +181,10 @@ def test_generate_calls_the_subject_model_not_a_fallback():
     out = asyncio.run(quiz.generate(
         3, "علمي", "رياضيات", "تفاضل", ["اتصال الدوال المثلثية"], 5, clients))
     assert seen["client"] == "deepseek"
-    assert out["provider"] == "deepseek" and out["model"] == "deepseek-chat"
+    # 📌 ولا يُثبَّت **اسمُ** النموذج هنا: المقصودُ أن يُنادى موديلُ المادة
+    #    بعينه لا بديلٌ صامت — فيُقرأ الاسمُ من مصدره لا يُكتب بالنصّ.
+    assert out["provider"] == "deepseek"
+    assert out["model"] == model_route("رياضيات")[1]
 
 
 def test_missing_subject_client_errors_instead_of_switching_silently():
@@ -283,3 +288,50 @@ def test_repairs_frac_swallowed_by_json_escape():
 
 def test_repair_leaves_clean_text_untouched():
     assert quiz.repair_escapes("\\frac{أ}{ب} سليم") == "\\frac{أ}{ب} سليم"
+
+
+# ══════════ سقفُ نموذج التفكير — عطلٌ صامتٌ لولا القياس ══════════
+#
+# 🔴 **ما أوجب هذه الاختبارات (2026-09-22):** حُوّلت الفيزياءُ والكيمياءُ
+#    والرياضياتُ إلى `deepseek-flash`، وهو **نموذجُ تفكير**. وقِيس مباشرةً
+#    ببرومبت «اختبر نفسك» أن سقفَ ٤٠٠٠ ينفقه **كلَّه على التفكير** ويعيد
+#    **صفرَ حروف** و`finish_reason="length"` — بلا خطأٍ ولا استثناءٍ ولا
+#    سجلّ. أي أن كلَّ درسٍ بلا بنكٍ كان سيردّ «⚠️ خوادم الذكاء مشغولة»
+#    في ثلاث موادّ دفعةً واحدة، ولا شيءَ في السجلّ يدلّ على السبب.
+
+def test_thinking_model_gets_a_ceiling_that_fits_its_thinking():
+    from core.curriculum import call_budget, is_thinking_model
+    assert is_thinking_model("deepseek-flash")
+    assert not is_thinking_model("gemini-3.1-flash-lite")
+    cap, wait = call_budget("deepseek-flash", 4000, 60)
+    assert cap >= 12000 and wait >= 240
+    # ومن لا يفكّر يبقى على سقفه حرفياً — لا توسيعَ بلا سبب
+    assert call_budget("gemini-3.1-flash-lite", 4000, 60) == (4000, 60)
+
+
+def test_every_routed_subject_can_actually_answer():
+    """🛡️ الحارسُ الحقيقيّ: أيُّ مادةٍ تُحوَّل غداً إلى التفكير تأخذ سقفَها
+    تلقائياً — فلا يُنسى موضعٌ كما كاد يُنسى أربعةٌ."""
+    from core.curriculum import (MODEL_ROUTING, call_budget,
+                                 is_thinking_model)
+    for subject, (_key, model) in MODEL_ROUTING.items():
+        cap, wait = call_budget(model, 4000, 60)
+        if is_thinking_model(model):
+            assert cap >= 12000, f"{subject} يفكّر بسقفٍ لا يكفي: {cap}"
+            assert wait >= 240, f"{subject} مهلتُه أقصرُ من تفكيره: {wait}"
+
+
+def test_quiz_call_passes_the_widened_ceiling_not_the_raw_one():
+    """📏 لا يكفي أن تُحسب السعة — يجب أن **تصل** إلى النداء."""
+    from core import quiz as _q
+    seen = {}
+
+    class _Comp:
+        async def create(self, model, **kw):
+            seen.update(kw); seen["model"] = model
+            return type("R", (), {"choices": [type("C", (), {"message": type(
+                "M", (), {"content": "{}"})()})()]})()
+
+    client = type("X", (), {"chat": type("Y", (), {"completions": _Comp()})()})()
+    asyncio.run(_q._call_model("deepseek", "deepseek-flash", [], {"deepseek": client}))
+    assert seen["max_tokens"] >= 12000, seen["max_tokens"]
