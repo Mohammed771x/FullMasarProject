@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/config/curriculum.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/masar_dialog.dart';
 import '../../../../core/widgets/phosphor.dart';
 import '../../../../core/widgets/screen_tip.dart';
+import '../../../../core/widgets/tap_to_dismiss_keyboard.dart';
 import '../../../future_masar/presentation/screens/auth_screen.dart';
 import '../../../instructions/presentation/instructions_dialog.dart';
 import '../controllers/chat_controller.dart';
@@ -17,8 +19,6 @@ import '../widgets/session_settings_panel.dart';
 import '../widgets/mode_suggestions.dart';
 import '../../../teacher/data/teacher_tool.dart';
 import '../../data/models/chat_suggestion.dart';
-import '../../../teacher/presentation/widgets/teacher_suggestion_chips.dart';
-import '../../../teacher/presentation/widgets/teacher_tool_bar.dart';
 
 // ==========================================
 // 🌌 الشاشة الرئيسية (شات بوت مسار)
@@ -73,18 +73,9 @@ class _MainChatScreenState extends State<MainChatScreen>
   ///    قيمتُه الأولى تقديرُ الرأس المطويّ حتى يصل القياسُ الحقيقيّ.
   double _panelHeight = 52;
 
-  /// 👨‍🏫 **الأداةُ التي بطاقتُها مفتوحة** — `null` يعني «لا بطاقة».
-  ///
-  /// 🎨 الإطار ٢ من `design/09-teacher` يعرض الشاشة **بلا شريحةٍ مختارة
-  ///    وبلا بطاقة**: تلك حالةُ «اسأل المساعد» — محادثةٌ مفتوحةٌ لا تحتاج
-  ///    إعداداً. فالشريطُ يختار **أيَّ بطاقةٍ تُفتح**، والأداةُ العاملةُ
-  ///    في المتحكّم هي المفتوحةُ أو «اسأل» حين لا شيءَ مفتوح.
-  TeacherTool? _openTool;
-
   @override
   void initState() {
     super.initState();
-    _openTool = widget.teacherTool == TeacherTool.ask ? null : widget.teacherTool;
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -97,6 +88,8 @@ class _MainChatScreenState extends State<MainChatScreen>
     _c.onShowStopConfirmation = _showStopConfirmation;
     _c.onShowBusyWarning = _showBusyWarning;
     _c.onShowPagesRequired = _showPagesRequired;
+    _c.onSendBlocked = _showSendBlocked;
+    _c.onConfirmNewConversation = _confirmNewConversation;
     _c.onVoiceNotice = (msg) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -176,28 +169,17 @@ class _MainChatScreenState extends State<MainChatScreen>
     }
   }
 
-  /// 🧰 **لمسةُ شريحةٍ في شريط الأدوات.**
+  /// 🧰 **لمسةُ شريحة أداةٍ في «إعدادات الجلسة».**
   ///
-  /// اللمسُ على المفتوحة يطويها (فتعود الشاشةُ إلى حالة الإطار ٢)،
-  /// وعلى غيرها يفتحها ويبدّل الأداةَ العاملة. و[ChatController.setTeacherTool]
-  /// هو من يبدّل سجلَّ المحادثات — لا شيءَ من ذلك مكتوبٌ هنا.
+  /// [ChatController.setTeacherTool] يبدّل سجلَّ المحادثات ويفتح محادثةً
+  /// جديدة للأداة — لا شيءَ من ذلك مكتوبٌ هنا. ولمسةُ العاملةِ لا تفعل
+  /// شيئاً (لا تمحو خطةً وُلّدت للتوّ).
   void _onToolTap(TeacherTool tool) {
-    // ⌨️ الكيبورد ينزل: البطاقةُ تفتح تحته فلا يُرى منها شيء.
+    if (tool == _c.teacherTool) return;
     FocusScope.of(context).unfocus();
-    // 🔽 **لمسةٌ على المفتوحة = طيُّ بطاقتها وحدها.**
-    //
-    // 🔴 ولا تُبدَّل الأداةُ هنا إطلاقاً: `setTeacherTool` تفتح محادثةً
-    //    جديدة، فطيُّ البطاقةِ بعد توليد خطةٍ كان سيمحو الخطةَ من الشاشة.
-    //    الشريحةُ المضيئة تعني «بطاقتي مفتوحة» لا «أنا العاملة».
-    if (_openTool == tool) {
-      setState(() => _openTool = null);
-      return;
-    }
-    setState(() => _openTool = tool);
     _c.setTeacherTool(tool);
-    // 💡 دليلُ الأداة عند أول فتحٍ لها — نفسُ سلوك بطاقات البوابة قبلها
-    //    (`showDrawerHelp: true`)، و`showTeacher` تحرسه بمفتاحٍ لكل أداة
-    //    فلا يتكرّر.
+    // 💡 دليلُ الأداة عند أول فتحٍ لها — `showTeacher` تحرسه بمفتاحٍ لكل
+    //    أداة فلا يتكرّر.
     _showInstructions();
   }
 
@@ -318,8 +300,90 @@ class _MainChatScreenState extends State<MainChatScreen>
       );
   }
 
+  /// 🚦 **ما ينقص قبل الإرسال** ([ChatController.sendBlocker]) — يُقال بعينه،
+  ///    وتُفتح البطاقةُ حيث يُختار، ويُنزل الكيبورد كي تُرى كاملةً.
+  void _showSendBlocked(String reason) {
+    if (!mounted) return;
+    FocusScope.of(context).unfocus();
+    _c.setShowSettingsPanel(true);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            "$reason ☝️",
+            style: const TextStyle(fontFamily: 'Cairo'),
+          ),
+          backgroundColor: Colors.orange.shade600,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  /// 🔒 **«اخترتَ درساً جديداً — نفتح محادثةً جديدة؟»**
+  ///    ([ChatController.onConfirmNewConversation]) — للقسمين.
+  ///
+  /// 🎨 بقالب حوارات التطبيق ([MasarDialog]) لا `AlertDialog`: مربّعُ
+  ///    أيقونةٍ ملوّن وعنوانٌ ثم زرٌّ ممتلئ و«إلغاء» نصّاً — كحوار الحذف
+  ///    والتسمية في التصميم. والرفضُ لا يمسّ شيئاً: القائمةُ تعود لقيمتها.
+  Future<bool> _confirmNewConversation(ContextChange change) async {
+    if (!mounted) return false;
+    FocusScope.of(context).unfocus();
+    final lesson = _c.selectedSubject == "رياضيات" && !_c.isTeacher
+        ? _c.selectedLesson
+        : _c.selectedV3Lesson;
+    final pages = _c.conversationPages.join("، ");
+    final (String title, String body) = switch (change) {
+      ContextChange.lesson => (
+          "اخترتَ درساً جديداً",
+          lesson.isEmpty
+              ? "هذه المحادثة عن درسٍ آخر."
+              : "هذه المحادثة عن درس «$lesson».",
+        ),
+      ContextChange.unit => (
+          "اخترتَ وحدةً جديدة",
+          "هذه المحادثة عن وحدة «${_c.selectedUnit}».",
+        ),
+      ContextChange.pages => (
+          "صفحةٌ من خارج هذه المحادثة",
+          "هذه المحادثة عن الصفحات $pages — تستطيع إزالةَ صفحةٍ منها "
+              "أو إعادتها، أمّا الصفحةُ الجديدة فمكانُها محادثةٌ جديدة.",
+        ),
+      ContextChange.contentMode => (
+          "غيّرتَ مصدر المحتوى",
+          "هذه المحادثة بدأت على مصدرٍ آخر (دروس/صفحات).",
+        ),
+    };
+    var accepted = false;
+    await showDialog<void>(
+      context: context,
+      builder: (_) => MasarDialog(
+        icon: PD.chat,
+        title: title,
+        primaryLabel: "محادثة جديدة",
+        cancelLabel: "ابقَ هنا",
+        onPrimary: () async => accepted = true,
+        child: Text(
+          "$body\n\nكي يبقى الشرحُ مركّزاً ولا تختلطَ الدروس، الأفضلُ أن "
+          "تفتح محادثةً جديدة — وتبقى هذه محفوظةً في القائمة.",
+          style: TextStyle(
+            fontSize: 13.5,
+            height: 1.7,
+            fontWeight: FontWeight.w600,
+            color: AppColors.chipInk,
+          ),
+        ),
+      ),
+    );
+    return accepted;
+  }
+
   void _showEmptyWarning() {
     if (!mounted) return;
+    // 🚦 البوّابةُ أولاً: ما ينقصُ اختيارٌ لا كتابة.
+    final blocker = _c.sendBlocker;
+    if (blocker != null) return _showSendBlocked(blocker);
     // 📄 في وضع الصفحات العائقُ ليس النصّ بل الاختيار — و«اكتب سؤالك أولاً»
     //    تُرسل الطالب يكتب ثم يُرفض ثانيةً. فنقول له ما يمنعه فعلاً.
     if (_c.canPickPages && _c.selectedPages.isEmpty) {
@@ -351,7 +415,6 @@ class _MainChatScreenState extends State<MainChatScreen>
         double bottomExtra = 0;
         if (showControls) bottomExtra += 74; // زرّا «أكمل» و«إيقاف»
 
-
         return ThemeScope(
           // ⌨️ **تُقرأ فوق الـ`Scaffold`**: هو يبتلع `viewInsets` السفليّ
           //    عن جسمه، فمن قرأها من داخله وجدها صفراً أبداً.
@@ -359,19 +422,13 @@ class _MainChatScreenState extends State<MainChatScreen>
             builder: (context) {
               final bool keyboardOpen =
                   MediaQuery.viewInsetsOf(context).bottom > 0;
-              // 🧰 بطاقةُ المعلّم تتبع شريطَ الأدوات لا `showSettingsPanel`:
-              //    لا شريحةَ مفتوحة ⇒ لا بطاقة (الإطار ٢ من التصميم).
-              //
-              // 🔴 **ولا تُطوى مع الكيبورد** بخلاف بطاقة الطالب: فيها
-              //    حقلُ «اكتب المفهوم أو المصطلح» — فطيُّها عند فتح
-              //    الكيبورد يسحب الحقلَ من تحت الإصبع فيُكتب في الهواء.
-              //    رأيتُها في المحاكي: لمستُ الحقلَ فاختفت البطاقةُ كلُّها.
-              final bool showPanel = !_c.isTeacher || _openTool != null;
               return Scaffold(
                 key: _scaffoldKey,
                 backgroundColor: AppColors.bgLight,
                 drawer: ChatDrawer(
-                    controller: _c, isHome: widget.isTeacherHome),
+                  controller: _c,
+                  isHome: widget.isTeacherHome,
+                ),
                 body: Stack(
                   children: [
                     // 🌈 **خلفيّةُ المحادثة ليست بيضاء** (ملاحظة المالك).
@@ -381,8 +438,10 @@ class _MainChatScreenState extends State<MainChatScreen>
                     // 🤍 **وقسمُ المعلم أبيضُ لا متدرّج**: قِستُ عمودَ
                     //    تصديره فما تغيّر لونٌ واحد من أعلى الشاشة إلى
                     //    أسفلها — بخلاف قسم التعليم. تصميمان لا واحد.
-                    if (!_c.isTeacher)
-                      Positioned.fill(
+                    // 🌈 **وقسمُ المعلم مثلُه الآن** (قرار المالك ٢٠٢٦-٠٩-٢٤:
+                    //    «ما في داعي تكون بيضاء — نفس التعليم ونفس المنح
+                    //    بالأزرق المتموّج بالضبط»). كان أبيضَ كتصديره.
+                    Positioned.fill(
                         child: IgnorePointer(
                           child: DecoratedBox(
                             decoration: BoxDecoration(
@@ -403,14 +462,6 @@ class _MainChatScreenState extends State<MainChatScreen>
                           },
                           onHelp: () => _showInstructions(force: true),
                         ),
-                        // 🧰 **شريطُ أدوات المعلم** — y=138 في التصميم،
-                        //    أي على بُعد 6 من أسفل الشريط العلويّ، ثم 23
-                        //    قبل البطاقة. والقياسان من التصدير.
-                        if (_c.isTeacher) ...[
-                          const SizedBox(height: 6),
-                          TeacherToolBar(open: _openTool, onTap: _onToolTap),
-                          const SizedBox(height: 23),
-                        ],
                         Expanded(
                           child: Stack(
                             children: [
@@ -419,14 +470,20 @@ class _MainChatScreenState extends State<MainChatScreen>
                               //    بمقدار ارتفاع البطاقة الحاليّ، فلا يختفي
                               //    شيءٌ خلفها ولا ينشأ فاصلٌ بينهما، والنصُّ
                               //    يمرّ تحتها عند التمرير.
+                              //
+                              // ⌨️ **ونقرةٌ عليها تُنزل الكيبورد** كما في
+                              //    ChatGPT — والسحبُ للتمرير لا يمسّه
+                              //    ([TapToDismissKeyboard]). مشتركٌ للقسمين.
                               Positioned.fill(
-                                child: ChatListView(
-                                  controller: _c,
-                                  bottomExtra: bottomExtra,
-                                  topExtra: showPanel ? _panelHeight + 10 : 0,
-                                  followUpsBuilder: (items) => _FollowUps(
-                                    items: items,
-                                    onTap: _c.applySuggestion,
+                                child: TapToDismissKeyboard(
+                                  child: ChatListView(
+                                    controller: _c,
+                                    bottomExtra: bottomExtra,
+                                    topExtra: _panelHeight + 10,
+                                    followUpsBuilder: (items) => _FollowUps(
+                                      items: items,
+                                      onTap: _c.applySuggestion,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -434,43 +491,48 @@ class _MainChatScreenState extends State<MainChatScreen>
                               //    (قرار المالك: «تكون قدّامي أقدر أعدّلها
                               //    في أي وقت»). لا تُمرَّر مع الرسائل ولا
                               //    تطير مع أوّل ردّ.
-                              if (showPanel)
-                                Positioned(
-                                  top: 0,
-                                  left: 24,
-                                  right: 24,
-                                  child: _MeasureHeight(
-                                    onChange: (h) {
-                                      if ((h - _panelHeight).abs() > 0.5) {
-                                        setState(() => _panelHeight = h);
-                                      }
-                                    },
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        SessionSettingsPanel(
-                                          controller: _c,
-                                          keyboardOpen: keyboardOpen,
-                                        ),
-                                        // 📖 **زرُّ الطلب المخزون** — «اشرح
-                                        //    لي» أو «لخّص لي». وهو في المتحكّم
-                                        //    اقتراحٌ عليه `primary`: لا نداءَ
-                                        //    جديد ولا نصَّ مكتوبٌ هنا.
-                                        if (_primary != null)
-                                          Padding(
-                                            padding:
-                                                const EdgeInsets.only(top: 10),
-                                            child: _PrimaryAction(
-                                              label: _primary!.label,
-                                              busy: _c.isBusy,
-                                              onTap: () =>
-                                                  _c.applySuggestion(_primary!),
-                                            ),
+                              Positioned(
+                                top: 0,
+                                left: 24,
+                                right: 24,
+                                child: _MeasureHeight(
+                                  onChange: (h) {
+                                    if ((h - _panelHeight).abs() > 0.5) {
+                                      setState(() => _panelHeight = h);
+                                    }
+                                  },
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // ⌨️ تُطوى لكيبورد **المحادثة** وحده
+                                      //    ([ChatController.inputFocus]) —
+                                      //    لا لكيبوردِ حقلٍ في البطاقة نفسِها.
+                                      SessionSettingsPanel(
+                                        controller: _c,
+                                        keyboardOpen:
+                                            keyboardOpen && _c.chatInputFocused,
+                                        onTeacherTool: _onToolTap,
+                                      ),
+                                      // 📖 **زرُّ الطلب المخزون** — «اشرح
+                                      //    لي» أو «لخّص لي». وهو في المتحكّم
+                                      //    اقتراحٌ عليه `primary`: لا نداءَ
+                                      //    جديد ولا نصَّ مكتوبٌ هنا.
+                                      if (_primary != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 10,
                                           ),
-                                      ],
-                                    ),
+                                          child: _PrimaryAction(
+                                            label: _primary!.label,
+                                            busy: _c.isBusy,
+                                            onTap: () =>
+                                                _c.applySuggestion(_primary!),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
+                              ),
                               // 🔽 «انزل للأسفل» — يظهر مع التمرير ويختفي
                               //    بعده. 📌 الشاشة **لا تتحرك** حين يصعد
                               //    الطالب ليقرأ (قرار المالك)، فيلزمه طريقٌ
@@ -493,16 +555,18 @@ class _MainChatScreenState extends State<MainChatScreen>
                         ),
                         // أزرار الوزاري (أكمل · إيقاف)
                         if (showControls) _buildControlButtons(),
-                        // 👨‍🏫 شرائح متابعة أداة المعلم · 💡 واقتراحات الطالب
+                        // 💡 **شريطُ الاقتراحات للبداية وحدها — في القسمين**
                         //
-                        // 📌 **شريطُ الشرائح للبداية وحدها** (قرار المالك):
-                        //    ما دامت المحادثة فارغةً فالطالب لا يعرف ماذا
-                        //    يطلب — فتُعرض له. وبعد أول ردٍّ تنتقل الاقتراحاتُ
-                        //    إلى **ذيل الردّ نفسه** أسهماً، فلا يزدحم أسفلُ
-                        //    الشاشة بالشرائح والصفحات والحقل معاً.
-                        if (_c.isTeacher)
-                          TeacherSuggestionChips(controller: _c)
-                        else if (_c.messages.isEmpty)
+                        // 📌 ما دامت المحادثة فارغةً فصاحبُها لا يعرف ماذا
+                        //    يطلب — فتُعرض له فوق الحقل. وبعد أول ردٍّ تنتقل
+                        //    الاقتراحاتُ إلى **ذيل الردّ نفسه** أسهماً، لجولتين
+                        //    ثم تغيب ([ChatController.suggestions]). وقسمُ
+                        //    المعلم مثلُه (قرار المالك ٢٠٢٦-٠٩-٢٤): كان شريطُه
+                        //    فوق الحقل دائماً «يشيل مساحة كبيرة جداً».
+                        //
+                        // 🚦 **ولا اقتراحاتٍ قبل اكتمال الاختيار**: شريحةٌ
+                        //    تُرسل ولا درسَ مختار تُرفض ([ChatController.sendBlocker]).
+                        if (_c.messages.isEmpty && _c.selectionComplete)
                           ModeSuggestions(controller: _c),
                         const SizedBox(height: 8),
                         ChatInputArea(
@@ -516,7 +580,7 @@ class _MainChatScreenState extends State<MainChatScreen>
                     ScreenTip(
                       screenId: _c.isTeacher ? "teacher_chat" : "chat",
                       text: _c.isTeacher
-                          ? "اختر أداةً من الشريط فوق، ثم المادة والوحدة والدرس في بطاقتها، ثم اضغط زرّ التوليد — وناقش النتيجة بعدها."
+                          ? "من «إعدادات الجلسة» في الأعلى اختر الأداة، ثم المادة والوحدة والدرس — ثم ولّد أو اكتب، وناقش النتيجة بعدها."
                           : "اختر المادة من القائمة ☰، وحدّد الوضع والدرس من «إعدادات الجلسة» في الأعلى، ثم اكتب سؤالك.",
                       autoHideAfter: const Duration(seconds: 11),
                       anchorTop: true,
@@ -663,8 +727,11 @@ class _FollowUps extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Icon(PI.arrowUpLeft.bold,
-                          size: 15, color: AppColors.primary),
+                      Icon(
+                        PI.arrowUpLeft.bold,
+                        size: 15,
+                        color: AppColors.primary,
+                      ),
                     ],
                   ),
                 ),
@@ -687,8 +754,10 @@ class _FollowUps extends StatelessWidget {
 // ⏱️ والمؤقّتُ يُصفَّر مع كل حركة، فلا يومض بين تمريرتين متتاليتين.
 //    وأثناء البثّ يبقى ظاهراً: هناك جديدٌ يُكتب في الأسفل يستحقّ أن يُرى.
 class _AutoHideScrollButton extends StatefulWidget {
-  const _AutoHideScrollButton(
-      {required this.controller, required this.streaming});
+  const _AutoHideScrollButton({
+    required this.controller,
+    required this.streaming,
+  });
 
   final ChatController controller;
   final bool streaming;

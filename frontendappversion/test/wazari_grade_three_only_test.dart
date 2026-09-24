@@ -47,7 +47,9 @@ ChatController _panelController({required String subject, required int grade}) {
     ..track = grade == 1 ? Track.none : Track.scientific
     ..selectedSubject = subject
     ..selectedMode = "شرح"
-    ..caps = _caps(subject);
+    ..caps = _caps(subject)
+    // 🃏 مطويّةٌ عند الدخول منذ ٢٠٢٦-٠٩-٢٤ — وهنا تُفحص شرائحُها فتُفتح.
+    ..showSettingsPanel = true;
   if (subject == "رياضيات") {
     c.selectedMathBranch = "تفاضل";
     c.mathMode = "شرح";

@@ -13,7 +13,7 @@ from .common import (
     parse_exams_input, extract_keywords, faiss_search, format_arabic_math,
     unit_missing, unit_required_response, search_text_of, hybrid_rank,
     book_context, Ranked,
-    contextual_search_text,
+    contextual_search_text, safe_segment, clamp_count,
 )
 from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
@@ -437,11 +437,13 @@ async def handle_arabic_exams(req: AskRequest, sessions: Dict, gemini_client):
     q_type = parts[2].strip()
     
     # استخراج العدد (إذا ما حط رقم، نعتبره 1 للقطع، و 5 للأسئلة العامة)
-    count = 1
-    if len(parts) > 3 and parts[3].isdigit():
-        count = int(parts[3])
-    else:
-        count = 1 if q_type == "قطعة" else 5
+    # 📏 بين ١ و٢٠ دائماً ([clamp_count]) — كان يُقبل أيُّ رقمٍ يرسله العميل.
+    count = clamp_count(parts[3] if len(parts) > 3 else None,
+                        1 if q_type == "قطعة" else 5)
+
+    # 🛡️ السنةُ تُركَّب في مسار ملفّ — مقطعٌ واحدٌ لا يخرج من المجلّد.
+    if not safe_segment(year):
+        return {"answer": "❌ سنةٌ غير صالحة. اخترها من القائمة.", "session_active": False}
 
     # 🔴 المسار اللي طلبته
     file_path = os.path.join(BASE_SUBJECTS_DIR, SUBJECT, "exams", f"{year}.json")

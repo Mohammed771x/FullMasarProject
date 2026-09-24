@@ -104,6 +104,13 @@ void main() {
   });
 
   group('🛂 الرفض يصل كردٍّ عادي لا كتدفّق', () {
+    test('202 قيد المعالجة ليس إجابة نهائية', () async {
+      final events = await _collect(_SseClient(const [],
+          status: 202,
+          body: '{"answer":"قيد المعالجة","in_flight":true}'));
+      expect(events.single, isA<AskPending>());
+    });
+
     test('429 برسالة الحصة ⇒ يُعامل كنهايةٍ عادية', () async {
       // الخادم يفرض الحرّاس **قبل** بدء البثّ كي يصل رمز الحالة الصحيح.
       // ورسالةُ الحصة يجب أن تُعرض للطالب كما هي لا كعطل شبكة.
@@ -121,6 +128,19 @@ void main() {
           await _collect(_SseClient(const [], status: 503, body: "boom"));
       expect(events.single, isA<AskFailure>());
     });
+  });
+
+  test('⏱️ خمول البث بعد فتح الاتصال ينتهي بفشل ولا يعلق', () async {
+    final client = _NeverClient();
+    final events = await AskStream(client)
+        .open(
+          url: Uri.parse("http://x/ask/stream"),
+          headers: const {},
+          body: const {},
+          idleTimeout: const Duration(milliseconds: 20),
+        )
+        .toList();
+    expect(events.single, isA<AskFailure>());
   });
 
   // ══════════════════════════════════════════════════
@@ -246,6 +266,16 @@ void main() {
           reason: 'قفزٌ مطلقٌ يسحب الشاشة من تحت القارئ');
     });
   });
+}
+
+class _NeverClient extends http.BaseClient {
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async =>
+      http.StreamedResponse(
+        Stream<List<int>>.fromFuture(Completer<List<int>>().future),
+        200,
+        request: request,
+      );
 }
 
 /// مقاييس تمريرٍ بسيطة — `endUserDrag` تحتاج `ScrollMetrics` وحدها.

@@ -391,31 +391,51 @@ class SchAskStream {
     String userId = "",
     String requestId = "",
   }) async {
+    final timeout = Duration(seconds: imagesBase64.isEmpty ? 90 : 120);
+    // 🧾 لقطةٌ ثابتة للمحاولة: إعادةُ الاستعلام تمضي بنفس `request_id`
+    //    ونفس الحمولة، فلا تُخصم حصةٌ ثانية ولا يُنادى الموديل مرتين.
+    final attemptBody = <String, dynamic>{
+      "user_id": userId,
+      "request_id": requestId,
+      "scholarship_id": scholarshipId,
+      "question": question,
+      "chat_history": history,
+      // 📷 الصورة تُقرأ على الخادم ثم تُنسى — لا تُحفظ ولا تُسجَّل.
+      if (imagesBase64.isNotEmpty) "images_base64": List<String>.of(imagesBase64),
+    };
+    final deadline = DateTime.now().add(timeout);
+
     Map<String, dynamic>? done;
     String? failure;
 
-    await for (final ev in _stream.open(
-      url: Uri.parse(ApiEndpoints.scholarshipAskStream()),
-      headers: ApiClient.authHeaders(idToken),
-      timeout: Duration(seconds: imagesBase64.isEmpty ? 90 : 120),
-      body: {
-        "user_id": userId,
-        "request_id": requestId,
-        "scholarship_id": scholarshipId,
-        "question": question,
-        "chat_history": history,
-        // 📷 الصورة تُقرأ على الخادم ثم تُنسى — لا تُحفظ ولا تُسجَّل.
-        if (imagesBase64.isNotEmpty) "images_base64": imagesBase64,
-      },
-    )) {
-      switch (ev) {
-        case AskDelta(text: final piece):
-          onDelta(piece);
-        case AskDone(payload: final p):
-          done = p;
-        case AskFailure(message: final m):
-          failure = m;
+    while (true) {
+      done = null;
+      failure = null;
+      var pending = false;
+
+      await for (final ev in _stream.open(
+        url: Uri.parse(ApiEndpoints.scholarshipAskStream()),
+        headers: ApiClient.authHeaders(idToken),
+        timeout: timeout,
+        body: attemptBody,
+      )) {
+        switch (ev) {
+          case AskDelta(text: final piece):
+            onDelta(piece);
+          case AskDone(payload: final p):
+            done = p;
+          // 🔁 **202 ليس جواباً** ([AskPending]): نفسُ المحاولة ما زالت
+          //    تعمل في الخادم. كان نصُّ «طلبك قيد المعالجة» يُعرض في
+          //    الفقاعة كأنه ردُّ المساعد — فيظنّ الطالب أن هذا جوابه.
+          case AskPending():
+            pending = true;
+          case AskFailure(message: final m):
+            failure = m;
+        }
       }
+
+      if (done != null || !pending || !DateTime.now().isBefore(deadline)) break;
+      await Future<void>.delayed(const Duration(milliseconds: 350));
     }
 
     if (done == null) {

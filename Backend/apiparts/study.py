@@ -14,9 +14,13 @@ from __future__ import annotations
 from api import (  # noqa: E402
     AI_CLIENTS, JSONResponse, QuizRequest, Request, VoiceCleanRequest,
     _authenticate, _json_response, _section_gate, app, v3_curriculum,
-    v3_idem, v3_lesson_cache, v3_quiz, v3_quota, v3_ratelimit,
+    v3_billing, v3_idem, v3_lesson_cache, v3_quiz, v3_quota, v3_ratelimit,
     v3_voice_clean,
 )
+# 🏷️ يُستورد هنا لا في `api.py`: البابُ عند سقفه في سقّاطة الطول، والمسارُ
+#    كلُّه في هذا الملف ([tests/test_file_scope_2026_09_20]).
+from core import chat_title as v3_chat_title  # noqa: E402
+from models import TitleRequest  # noqa: E402
 
 
 # ══════════════════════════════════════════════════
@@ -83,13 +87,16 @@ async def quiz_generate(req: QuizRequest, request: Request):
 
     # 🎟️ الاختبار نداء واحد للموديل ⇒ يُحتسب من الحصة كسؤال واحد.
     #    الزائر يجرّبه ضمن أسئلته الخمس (قرار المالك) — وهو أقوى دعوة للتسجيل.
-    allowed, _ = await v3_quota.acheck_and_consume(identity["uid"], identity["is_guest"])
-    if not allowed:
+    reservation = await v3_quota.areserve(identity["uid"], identity["is_guest"])
+    if not reservation.allowed:
         v3_idem.abandon(identity["uid"], req.request_id)
         return _json_response(
             {"answer": v3_quota.message_for(identity["is_guest"]),
              "quota_exceeded": True, "is_guest": identity["is_guest"]}, 429)
+    identity["_quota_reservation"] = reservation
+    v3_billing.start()
 
+    result = None
     try:
         result = await v3_quiz.generate(
             req.grade, req.track, req.subject, req.unit, req.lessons,
@@ -97,16 +104,16 @@ async def quiz_generate(req: QuizRequest, request: Request):
         # 💳 **واختبارٌ من البنك لا يكلّف نداءً ⇒ تُردّ حصّتُه** — نفسُ قاعدةِ
         #    الشرح المخزون ([core/billing.py] · قرار المالك 2026-09-14:
         #    «خلّ الرفض ما يخصم من الحصة»). والعميلُ يُخبَر ليصحّح عدّاده.
-        if isinstance(result, dict) and result.get("cached"):
-            await v3_quota.arefund(identity["uid"], identity["is_guest"])
-            result["quota_refunded"] = True
     except v3_quiz.QuizError as e:
+        await v3_billing.settle_quota(v3_quota, identity)
         v3_idem.abandon(identity["uid"], req.request_id)
         return _json_response({"answer": str(e), "questions": []}, 200)
     except Exception:
+        await v3_billing.settle_quota(v3_quota, identity)
         v3_idem.abandon(identity["uid"], req.request_id)
         raise
 
+    await v3_billing.settle_quota(v3_quota, identity, result)
     v3_idem.finish(identity["uid"], req.request_id, result)
     return result
 
@@ -127,3 +134,28 @@ async def voice_clean(req: VoiceCleanRequest, request: Request):
     return await v3_voice_clean.clean(req.text, AI_CLIENTS, req.subject)
 
 
+@app.post("/chat/title")
+async def chat_title(req: TitleRequest, request: Request):
+    """🏷️ اسمُ المحادثة من أول سؤال — نفس ChatGPT (طلبُ المالك ٢٠٢٦-٠٩-٢٤).
+
+    🎟️ **بلا حصة** كتنظيف الصوت: خدمةٌ للواجهة لا جوابٌ للطالب، وردُّها
+       ستون رمزاً على الأكثر. ويحرسه حدّان للمعدّل (دقيقةٌ وساعة) كي لا
+       يصير موديلاً مجانياً. والفشلُ `{"title": null}` لا خطأ: يبقى في
+       التطبيق الاسمُ المؤقّت ولا يرى الطالب شيئاً.
+    """
+    identity, auth_error = await _authenticate(request, req)
+    if auth_error is not None:
+        return auth_error
+
+    uid = identity["uid"]
+    if not (v3_ratelimit.check(request, uid, v3_ratelimit.TITLE_LIMIT,
+                               v3_ratelimit.TITLE_WINDOW, scope="title")
+            and v3_ratelimit.check(request, uid, v3_ratelimit.TITLE_HOURLY,
+                                   v3_ratelimit.TITLE_HOUR, scope="title_h")):
+        return JSONResponse(status_code=429,
+                            content={"answer": v3_ratelimit.RATE_LIMIT_MESSAGE})
+
+    title = await v3_chat_title.make_title(
+        req.question, AI_CLIENTS, answer=req.answer,
+        subject=req.subject, section=req.section)
+    return _json_response({"title": title})

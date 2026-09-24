@@ -23,7 +23,7 @@ from . import quiz_bank
 from .curriculum import (model_route, normalize_grade_track,
                          is_valid_subject, call_budget, reasoning_kwargs)
 from .serializer import serialize_lesson
-from . import quiz_prompt
+from . import billing, quiz_prompt
 
 MAX_LESSONS = 3                 # سقف اختيار الطالب (قرار المالك)
 ALLOWED_COUNTS = (5, 10, 15)
@@ -339,6 +339,7 @@ async def _call_model(client_key, model_name, messages, clients):
             "راجع مفاتيح الـAPI في ملف .env.")
     # ☢️ والسقفُ يتّسع لنموذج التفكير وإلا عاد فارغاً بلا خطأ ([call_budget])
     cap, wait = call_budget(model_name, _MAX_TOKENS, _AI_TIMEOUT, "quiz")
+    billing.charge("quiz")
     response = await asyncio.wait_for(
         client.chat.completions.create(
             model=model_name, messages=messages,

@@ -77,6 +77,15 @@ class ConversationSync {
       "grade": c.grade,
       "track": c.track,
       "branch": c.branch,
+      // 🧭 **وسياقُ الدرس يسافر معها** — وإلا عاد العطلُ من باب السحابة:
+      //    طالبٌ أعاد تثبيت التطبيق (أو فتحه على جهازٍ ثانٍ) تُستعاد
+      //    محادثاتُه من هنا لا من القرص، فتصل بمادتها **بلا درسها** —
+      //    وهي بالضبط الحالةُ التي عالجتها حقولُ [ChatConversation.unit].
+      "unit": c.unit,
+      "lesson": c.lesson,
+      "content_mode": c.contentMode,
+      // ⚠️ مقصوصةٌ هنا أيضاً: القاعدةُ ترفض ما فوق ٣ فتسقط المزامنةُ كلُّها.
+      "pages": c.pages.take(ChatConversation.maxPages).toList(),
       // ★ إلزامي: بدونه ترجع المحادثات المستعادة بلا نطاق فتختلط الصفوف والمواد.
       "scope_key": c.scopeKey,
       "messages": kept.map(messageToMap).toList(),
@@ -190,6 +199,12 @@ class ConversationSync {
         grade: (d["grade"] is int) ? d["grade"] as int : 3,
         track: (d["track"] ?? "علمي").toString(),
         branch: (d["branch"] ?? "").toString(),
+        // 🗄️ ومستنداتُ ما قبل هذه الحقول تصل بلا سياق — تُقرأ فارغةً
+        //    كما كانت تماماً، فلا ترحيلَ ولا انهيار.
+        unit: (d["unit"] ?? "").toString(),
+        lesson: (d["lesson"] ?? "").toString(),
+        contentMode: (d["content_mode"] ?? "").toString(),
+        pages: ChatConversation.pagesFrom(d["pages"]),
         messages: ((d["messages"] as List?) ?? const [])
             .map((m) => messageFromMap(Map<String, dynamic>.from(m as Map)))
             .toList(),

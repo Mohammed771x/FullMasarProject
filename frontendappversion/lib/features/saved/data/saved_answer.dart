@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import '../../../core/utils/safe_cut.dart';
 
 part 'saved_answer.g.dart';
 
@@ -64,7 +65,7 @@ class SavedAnswer extends HiveObject {
           .replaceAll(RegExp(r'[*_`]'), '')
           .trim();
       if (line.length >= 4) {
-        return line.length <= 60 ? line : '${line.substring(0, 60)}…';
+        return line.length <= 60 ? line : '${safeCut(line, 60)}…';
       }
     }
     return 'إجابة محفوظة';

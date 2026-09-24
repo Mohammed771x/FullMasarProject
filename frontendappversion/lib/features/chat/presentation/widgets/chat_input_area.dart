@@ -42,7 +42,12 @@ class ChatInputArea extends StatelessWidget {
     //
     // 🚦 و`isBusy` لا `isLoading`: البثُّ طلبٌ جارٍ وإن أطفأ مؤشّر
     //    الانتظار — راجع [ChatController.isBusy].
-    final bool canSend = (controller.inputController.text.trim().isNotEmpty ||
+    //
+    // 🚦 **وقبل كل شيء: البوّابة** ([ChatController.sendBlocker]). نصٌّ مكتوبٌ
+    //    بلا درسٍ مختار لا يُضيء الزرّ — الطلبُ محكومٌ بالرفض قبل أن يُرسل.
+    final String? blocker = controller.sendBlocker;
+    final bool canSend = blocker == null &&
+        (controller.inputController.text.trim().isNotEmpty ||
             controller.canSendWithoutText ||
             controller.hasAttachments) &&
         !controller.isBusy;
@@ -205,6 +210,9 @@ class ChatInputArea extends StatelessWidget {
                     Expanded(
                       child: TextField(
                         controller: controller.inputController,
+                        // ⌨️ تركيزُه وحده يطوي بطاقةَ الإعدادات، ونقرةٌ على
+                        //    المحادثة تُسقطه ([ChatController.inputFocus]).
+                        focusNode: controller.inputFocus,
                         // ⌨️ يبقى مفتوحاً أثناء البثّ: الطالب يُحضّر سؤاله
                         //    التالي وهو يقرأ. المنعُ على **الإرسال** وحده.
                         enabled:
@@ -212,8 +220,15 @@ class ChatInputArea extends StatelessWidget {
                         minLines: 1,
                         maxLines: 4,
                         onChanged: (_) => controller.refresh(),
+                        // 🔠 **16 لا 12.5** (ملاحظة المالك ٢٠٢٦-٠٩-٢٣: «الكتابة
+                        //    في مربع الإرسال صغيرة جداً — خلّها زي ChatGPT
+                        //    وClaude»). ١٦ مقاسُ حقول الكتابة فيهما، وهو
+                        //    أيضاً **الحدُّ الذي لا يُكبّر iOS الصفحةَ دونه**
+                        //    عند التركيز في الويب — فالقراءةُ مريحةٌ بلا
+                        //    تكبير. والتلميحُ بالمقاس نفسِه كي لا يقفز
+                        //    السطرُ حين يبدأ الطالبُ الكتابة.
                         style: TextStyle(
-                            fontSize: 12.5,
+                            fontSize: kInputFontSize,
                             fontWeight: FontWeight.w600,
                             color: AppColors.inputBarText),
                         decoration: InputDecoration(
@@ -224,15 +239,26 @@ class ChatInputArea extends StatelessWidget {
                           //    التصميم الشريطُ **أبيضُ متّصل** من المايك إلى
                           //    الكاميرا — قِستُ بكسلاته: 255 بلا انقطاع.
                           filled: false,
+                          // 🚦 **التلميحُ يقول ما ينقص** قبل أن يُضغط شيء:
+                          //    «اختر الدرس أولاً» أوضحُ من زرٍّ باهتٍ صامت.
                           hintText: controller.isCleaningVoice
                               ? "✨ جارٍ ترتيب النص..."
-                              : "اسأل مسار أو اكتب مسألتك هنا...",
+                              : (blocker != null
+                                  ? "$blocker ☝️"
+                                  : controller.awaitingTeacherConcept
+                                      // 💡 التبسيطُ: أولُ رسالةٍ هي المفهوم.
+                                      ? "اكتب المفهوم الذي تريد تبسيطه..."
+                                      : "اسأل مسار أو اكتب مسألتك هنا..."),
+                          hintMaxLines: 1,
                           hintStyle: TextStyle(
-                              fontSize: 12.5,
+                              fontSize: kInputFontSize,
                               fontWeight: FontWeight.w600,
                               color: AppColors.inputBarIcon),
+                          // 📏 **9 لا 12**: السطرُ صار أطول (١٦×١٫٦ ≈ ٢٦)،
+                          //    فتبقى مراكزُ الحقل والكاميرا ودائرة الإرسال
+                          //    على خطٍّ واحد (٩ + ١٣ = ٢٢ ≈ نصفُ ٤٢ + هامش).
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 12),
+                              horizontal: 10, vertical: kInputVPad),
                           // ⚠️ **الأربعةُ جميعاً.** `border` وحدها لا تكفي:
                           //    فلاتر تأخذ `enabledBorder` و`focusedBorder`
                           //    من سمة التطبيق حين لا تُذكر هنا — فبقي إطارٌ

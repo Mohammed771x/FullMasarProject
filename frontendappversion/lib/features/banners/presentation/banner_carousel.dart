@@ -17,6 +17,7 @@ class BannerCarousel extends StatefulWidget {
     required this.section,
     required this.onAction,
     this.height = 106,
+    this.pinned = const [],
   });
 
   final String section;
@@ -27,6 +28,15 @@ class BannerCarousel extends StatefulWidget {
 
   final double height;
 
+  /// 📌 بانراتٌ رسمية ثابتة تُلحق بعد بانرات اللوحة — **لا تغيب أبداً**.
+  ///
+  /// 🎯 **بلاغ المالك (٢٠٢٦-٠٩-٢٤):** «أحياناً يدخل الطالب — وخصوصاً
+  ///    الزائر — فيكون فراغٌ تحت، لأن البنرات ما تطلع». بانرُ اللوحة يصل
+  ///    من الشبكة أو الكاش، والزائرُ الجديد بلا شبكةٍ لا يملك أيّاً منهما.
+  ///    فالأقسامُ الرئيسية تُعرَّف هنا في الكود، والمضيفُ يمرّرها بعد أن
+  ///    يصفّيها بحارس الأقسام (قسمٌ مُطفأٌ لا يُعلَن عنه).
+  final List<AppBanner> pinned;
+
   @override
   State<BannerCarousel> createState() => _BannerCarouselState();
 }
@@ -36,7 +46,17 @@ class _BannerCarouselState extends State<BannerCarousel> {
   Timer? _timer;
   int _index = 0;
 
-  List<AppBanner> get _items => BannerRepository.I.forSection(widget.section);
+  /// بانراتُ اللوحة أولاً، ثم الرسميةُ **لما لم تُغطِّه اللوحة** — قسمٌ له
+  /// بانرٌ من الأدمن لا يُكرَّر ببانرٍ ثانٍ يعلن الوجهةَ نفسَها.
+  List<AppBanner> get _items {
+    final remote = BannerRepository.I.forSection(widget.section);
+    final covered = {for (final b in remote) b.action};
+    return [
+      ...remote,
+      for (final p in widget.pinned)
+        if (!covered.contains(p.action)) p,
+    ];
+  }
 
   @override
   void initState() {
@@ -54,6 +74,14 @@ class _BannerCarouselState extends State<BannerCarousel> {
       _pc.animateToPage(_index,
           duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant BannerCarousel old) {
+    super.didUpdateWidget(old);
+    // عددٌ تغيّر (قسمٌ أُطفئ من اللوحة) ⇒ مؤشّرٌ خارج المدى يُعاد للصفر.
+    if (_index >= _items.length) _index = 0;
+    if (old.pinned.length != widget.pinned.length) _startAutoPlay();
   }
 
   @override

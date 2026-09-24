@@ -144,6 +144,13 @@ def check_batch(questions: list, want: int, subject: str,
     if len(questions) < max(3, int(want * 0.85)):
         bad.append(f"العدد {len(questions)} وهو أقلُّ من المطلوب {want}")
     bad += draw_defects(questions, source, need_factor=12)
+    # 🇬🇧 **وعيوبُ الإنجليزية تصل الموديلَ في الدفعة نفسِها** — كانت تُقاس
+    #    على البنك المجتمع وحده فلا يسمعها النداءُ التصحيحي أبداً (العلّةُ
+    #    التي تكرّرت في الأوزان والترميز). ومعها الأمثلةُ الجديدة (2026-09-24).
+    if quiz_spec.is_english(subject):
+        from .english import english_defects, english_fresh_defects
+        bad += english_defects(questions, lesson)
+        bad += english_fresh_defects(questions, source)
     return bad + _shape_defects(questions, want, strict=True, lesson=lesson)
 
 

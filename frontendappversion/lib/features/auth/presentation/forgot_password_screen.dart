@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/auth/auth_validators.dart';
 import '../../../core/session/user_session.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/masar_brand.dart';
@@ -34,23 +35,60 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _busy = false;
   bool _sent = false;
 
+  String? _emailError;
+  String? _formError;
+
   @override
   void dispose() {
     _email.dispose();
     super.dispose();
   }
 
+  // ══════════════════════════════════════════════════
+  // 🛡️ ثغرةُ إحصاء الحسابات — أُغلقت ٢٠٢٦-٠٩-٢٣
+  // ══════════════════════════════════════════════════
+  /// 🔴 **ما كان يحدث:** `sendPasswordResetEmail` لبريدٍ غير مسجّل ترمي
+  ///    `user-not-found`، و`AuthRepository._arabicError` تترجمها «البريد
+  ///    أو كلمة المرور غير صحيحة» — فكانت الشاشةُ تعرضها.
+  ///
+  ///    والنتيجة أن هذه الشاشة **تجيب عن سؤالٍ لا يجوز أن تجيب عنه**:
+  ///    «هل لهذا البريد حسابٌ عندكم؟». يكتب المهاجمُ بريداً فإن رأى
+  ///    «تفقّد بريدك» عرف أن صاحبَه مستخدمٌ عندنا، وإن رأى الخطأ عرف
+  ///    أنه ليس كذلك. فيجمع قائمةَ مستخدمي التطبيق بلا كلمةِ مرورٍ واحدة.
+  ///
+  /// ✅ **والعلاج المعياريّ:** الردُّ **واحدٌ في الحالتين** — «إن كان لهذا
+  ///    البريد حساب، فقد وصلته الرسالة». والبريدُ الحقيقي يصله الرابط،
+  ///    وغيرُه لا يصله شيء، ولا فرق في ما تراه الشاشة.
+  ///
+  /// ⚠️ **وما يُعرض فعلاً من الأخطاء؟** ما لا يخصّ وجودَ الحساب وحده:
+  ///    انقطاعُ الشبكة، وصيغةُ البريد، وسقفُ المحاولات. وهذه لا تفشي شيئاً
+  ///    — بل إخفاؤها يترك الطالب ينتظر رسالةً لن تُرسَل أصلاً.
+  static const Set<String> _revealingErrors = {
+    'البريد أو كلمة المرور غير صحيحة.',
+    'هذا الحساب موقوف. تواصل معنا.',
+  };
+
   Future<void> _send() async {
     if (_busy) return;
-    final email = _email.text.trim();
-    if (!email.contains('@') || !email.contains('.')) {
-      return _snack("⚠️  تحقّق من صيغة البريد الإلكتروني", AppColors.warning900);
+    final emailError = AuthValidators.email(_email.text);
+    if (emailError != null) {
+      return setState(() {
+        _emailError = emailError;
+        _formError = null;
+      });
     }
-    setState(() => _busy = true);
-    final error = await UserSession.I.resetPassword(email);
+    setState(() {
+      _busy = true;
+      _emailError = null;
+      _formError = null;
+    });
+    final error = await UserSession.I.resetPassword(_email.text.trim());
     if (!mounted) return;
     setState(() => _busy = false);
-    if (error != null) return _snack("⚠️  $error", AppColors.error500);
+
+    if (error != null && !_revealingErrors.contains(error)) {
+      return setState(() => _formError = error);
+    }
 
     // ✅ **الحالة الناجحة تبقى على الشاشة** لا تُغلقها: الطالب يحتاج أن يعرف
     //    أين يبحث عن الرسالة، وإغلاقُ الشاشة فوراً يترك رسالةً عابرة وحدها.
@@ -66,8 +104,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           const SizedBox(height: 16),
           AuthHeading(
             title: _sent ? "تفقّد بريدك 📨" : "نسيت كلمة المرور؟",
+            // ⚠️ **صيغةُ الشرط مقصودة**: «إن كان لهذا البريد حساب». وهي
+            //    التي تجعل الردَّ واحداً للمسجَّل ولغيره — انظر [_send].
             subtitle: _sent
-                ? "أرسلنا رابط تعيين كلمة مرور جديدة إلى ${_email.text.trim()}.\nافتح الرابط ثم عد لتسجيل الدخول."
+                ? "إن كان لهذا البريد حساب في مسار، فقد أرسلنا إليه رابط تعيين كلمة مرور جديدة.\nتفقّد ${_email.text.trim()} ومجلّد الرسائل غير المرغوبة، ثم عد لتسجيل الدخول."
                 : "أدخل بريد حسابك وسنرسل لك رابط تعيين كلمة مرور جديدة.",
           ),
           const SizedBox(height: 22),
@@ -79,9 +119,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               keyboardType: TextInputType.emailAddress,
               ltr: true,
               textInputAction: TextInputAction.done,
+              enabled: !_busy,
+              errorText: _emailError,
+              onChanged: (_) {
+                if (_emailError == null && _formError == null) return;
+                setState(() {
+                  _emailError = null;
+                  _formError = null;
+                });
+              },
               onSubmitted: (_) => _send(),
+              autofillHints: const [AutofillHints.email],
             ),
             const SizedBox(height: 22),
+            if (_formError != null) ...[
+              AuthAlert(
+                message: _formError!,
+                onClose: () => setState(() => _formError = null),
+              ),
+              const SizedBox(height: 12),
+            ],
             AuthPrimaryButton(label: "إرسال", onTap: _send, busy: _busy),
           ] else ...[
             AuthPrimaryButton(
@@ -103,13 +160,4 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ],
       );
 
-  void _snack(String m, Color c) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(m,
-            style: const TextStyle(
-                fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-        backgroundColor: c,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ));
 }

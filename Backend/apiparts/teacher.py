@@ -14,7 +14,7 @@ from __future__ import annotations
 from api import (  # noqa: E402
     AI_CLIENTS, JSONResponse, Request, TeacherAskRequest,
     _attach_image_text, _authenticate, _json_response, _remember, app,
-    v3_idem, v3_image_guard, v3_quota, v3_ratelimit, v3_teacher,
+    v3_billing, v3_idem, v3_image_guard, v3_quota, v3_ratelimit, v3_teacher,
     v3_teacher_prompts, v3_vision,
 )
 
@@ -73,13 +73,15 @@ async def teacher_ask(req: TeacherAskRequest, request: Request):
             {"answer": v3_idem.IN_FLIGHT_MESSAGE, "references": [],
              "session_active": False, "in_flight": True}, 202)
 
-    allowed, _ = await v3_quota.acheck_and_consume(identity["uid"], identity["is_guest"])
-    if not allowed:
+    reservation = await v3_quota.areserve(identity["uid"], identity["is_guest"])
+    if not reservation.allowed:
         v3_idem.abandon(identity["uid"], req.request_id)
         return _json_response(
             {"answer": v3_quota.message_for(identity["is_guest"]), "references": [],
              "session_active": False, "quota_exceeded": True,
              "is_guest": identity["is_guest"]}, 429)
+    identity["_quota_reservation"] = reservation
+    v3_billing.start()
 
     # 📷 الصورة → نص: نفس مسار `/ask` وحارسه بلا ازدواج. الاستعمال الحقيقي
     #    هنا: صفحة كتاب مصوّرة · ورقة إجابة طالب · سؤال مكتوب بخط اليد.
@@ -93,6 +95,8 @@ async def teacher_ask(req: TeacherAskRequest, request: Request):
                 clean, mime = v3_image_guard.validate(img)
                 extracted.append(await v3_vision.image_to_text(clean, mime, AI_CLIENTS))
         except (v3_image_guard.ImageRejected, v3_vision.VisionFailed) as e:
+            await v3_billing.settle_quota(v3_quota, identity)
+            v3_idem.abandon(identity["uid"], req.request_id)
             return _json_response({"answer": str(e), "references": [],
                                    "session_active": False}, 200)
         req.content = v3_vision.merge_into_question(extracted, req.content)
@@ -104,15 +108,16 @@ async def teacher_ask(req: TeacherAskRequest, request: Request):
         result = await v3_teacher.ask(req, AI_CLIENTS)
     except v3_teacher.TeacherError as e:
         # رسالة عربية جاهزة — تُعرض في الفقاعة كردٍّ لا كعطل شبكة.
+        await v3_billing.settle_quota(v3_quota, identity)
         v3_idem.abandon(identity["uid"], req.request_id)
         return _json_response({"answer": str(e), "references": [],
                                "session_active": False}, 200)
     except Exception:
+        await v3_billing.settle_quota(v3_quota, identity)
         v3_idem.abandon(identity["uid"], req.request_id)
         raise
 
     payload = _attach_image_text(result, image_text)
+    await v3_billing.settle_quota(v3_quota, identity, payload)
     _remember(identity["uid"], req.request_id, payload)
     return _json_response(payload)
-
-

@@ -5,6 +5,7 @@ import '../../../../core/widgets/modern_dropdown.dart';
 import '../../../../core/widgets/phosphor.dart';
 import '../../../chat/presentation/controllers/chat_controller.dart';
 import '../../data/teacher_tool.dart';
+import 'teacher_tool_bar.dart';
 
 // ==========================================
 // ⚙️ بطاقةُ إعدادات أداة المعلم
@@ -33,9 +34,16 @@ import '../../data/teacher_tool.dart';
 // ⚠️ **لا وضع صفحات ولا محتوى وحدات هنا إطلاقاً**: أدوات المعلم تُبنى من نصّ
 //    الدرس وحده، فمادةٌ بلا دروس تُقال صراحةً بدل أن تُنتج خطةً لدرسٍ لا يوجد.
 class TeacherSettingsPanel extends StatelessWidget {
-  const TeacherSettingsPanel({super.key, required this.controller});
+  const TeacherSettingsPanel({
+    super.key,
+    required this.controller,
+    required this.onToolTap,
+  });
 
   final ChatController controller;
+
+  /// لمسةُ شريحة أداة — الشاشةُ تبدّل الأداة وتعرض دليلَها أولَ مرة.
+  final ValueChanged<TeacherTool> onToolTap;
 
   /// 📏 مقاساتُ التصميم — يقرؤها الاختبار بدل أن يُعيد كتابتها.
   static const double radius = 20;
@@ -46,77 +54,43 @@ class TeacherSettingsPanel extends StatelessWidget {
   ChatController get c => controller;
   TeacherTool get tool => c.teacherTool!;
 
+  // ══════════════════════════════════════════════════
+  // 🃏 **جسمُ «إعدادات الجلسة» عند المعلّم** — لا بطاقةٌ مستقلة
+  // ══════════════════════════════════════════════════
+  // 🎯 **قرار المالك (٢٠٢٦-٠٩-٢٤):** «خلّه نفس التعليم بالضبط — مكتوب
+  //    إعدادات الجلسة، يدخل يحصل خطة الدرس، واجب، اسأل المساعد».
+  //    فالغلافُ (الرأسُ والطيُّ والطيُّ مع الكيبورد) هو غلافُ الطالب نفسُه
+  //    في [SessionSettingsPanel]، وهذا ما بداخله: الأدواتُ، ثم حقولُ
+  //    الأداة، ثم زرُّ التوليد.
   @override
   Widget build(BuildContext context) {
     final p = AppColors.toolPalette(tool.slot);
-    return Container(
-      // 📏 **19 لا 16 من أعلى**: حشوةُ التصدير 16 في الجهات الأربع، لكنّ
-      //    قيادةَ سطرِ Cairo في فلاتر أقصرُ بثلاثٍ منها في Figma — فلو
-      //    نُقل الرقمُ حرفياً لوقع الحبرُ أعلى بثلاثٍ من موضعه في الملف.
-      //    والمنقولُ **موضعُ الحبر** لا رقمُ الحشوة.
-      padding:
-          const EdgeInsets.fromLTRB(padding, padding + 3, padding, padding),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: AppColors.quizCardBorder),
-        boxShadow: AppColors.softShadow,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _header(),
-          // 🔽 **مطويّةً يبقى العنوانُ وحده** — فيعرف المعلّمُ أيَّ أداةٍ
-          //    يخاطب، ويفتحها بسهمٍ واحد. (بديلُ «اضغط الشريحةَ ثانيةً»
-          //    الذي لا يدلّ عليه شيءٌ على الشاشة.)
-          if (c.showSettingsPanel) ...[
-            const SizedBox(height: 17),
-            ..._fields(),
-            if (tool.hasGenerate) ...[
-              const SizedBox(height: 9),
-              _generateButton(p),
-            ],
-          ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TeacherToolChips(selected: tool, onTap: onToolTap),
+        const SizedBox(height: 14),
+        ..._fields(),
+        if (tool.hasGenerateButton) ...[
+          const SizedBox(height: 12),
+          _generateButton(p),
         ],
-      ),
+        if (c.awaitingTeacherConcept) ...[
+          const SizedBox(height: 10),
+          _hint("💡 اكتب المفهوم أو المصطلح في رسالتك الأولى بالأسفل — "
+              "وبعدها ناقش التبسيط كمحادثةٍ عادية."),
+        ],
+      ],
     );
   }
 
-  // ───────────────── الرأس ─────────────────
-
-  /// 📐 العنوان في **يمين** السطر (أوّلُ أبناء `Row` في RTL) وسهمُ الطيّ
-  ///    في يساره — وهي مفردةُ رأس بطاقة الجلسة عند الطالب نفسُها.
-  ///
-  /// 🖐️ **والسطرُ كلُّه يُنقر** لا السهمُ وحده: سهمٌ 15pt وحدَه أصغرُ من
-  ///    حدّ اللمس (44)، والعينُ تقصد العنوان.
-  Widget _header() => Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => c.setShowSettingsPanel(!c.showSettingsPanel),
-          borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            height: 24,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(tool.cardTitle,
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.slateTitle)),
-                ),
-                AnimatedRotation(
-                  turns: c.showSettingsPanel ? 0 : 0.5,
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(PI.caretUp.regular,
-                      size: 16, color: AppColors.dropdownCaret),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+  Widget _hint(String text) => Text(text,
+      style: TextStyle(
+          fontSize: 11.5,
+          height: 1.5,
+          fontWeight: FontWeight.w700,
+          color: AppColors.primary));
 
   // ───────────────── الحقول ─────────────────
 
@@ -220,14 +194,6 @@ class TeacherSettingsPanel extends StatelessWidget {
 
   List<Widget> _toolFields() {
     switch (tool) {
-      case TeacherTool.simplify:
-        return [
-          const SizedBox(height: 12),
-          _label("اكتب المفهوم أو المصطلح:"),
-          const SizedBox(height: 7),
-          _conceptField(),
-        ];
-
       case TeacherTool.homework:
         return [
           const SizedBox(height: 12),
@@ -253,47 +219,11 @@ class TeacherSettingsPanel extends StatelessWidget {
         ];
 
       case TeacherTool.lessonPlan:
+      case TeacherTool.simplify:
       case TeacherTool.ask:
         return const [];
     }
   }
-
-  /// 💡 حقلُ المفهوم — بصندوق [ModernDropdown] نفسِه (36 · r9 · `#FAFBFB`)
-  ///    لأن المصمّم رسمه صندوقاً واحداً لا صندوقين مختلفين.
-  Widget _conceptField() => Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: AppColors.fieldFill,
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: AppColors.rowBorder),
-        ),
-        child: TextField(
-          controller: c.conceptController,
-          // ⭐ إعادة البناء ضرورية: زرّ التوليد معطَّل حتى يُكتب المفهوم،
-          //    وبدونها يبقى رمادياً بعد الكتابة حتى يلمس المعلّمُ شيئاً آخر.
-          onChanged: (_) => c.refresh(),
-          textAlignVertical: TextAlignVertical.center,
-          style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w800,
-              color: AppColors.dropdownInk),
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: "مثال: قاعدة لوشاتيليه · الاشتقاق الضمني",
-            hintStyle: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: AppColors.dropdownCaret),
-            filled: false,
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-      );
 
   // ───────────────── زرّ التوليد ─────────────────
 
@@ -356,9 +286,6 @@ class TeacherSettingsPanel extends StatelessWidget {
       return "🚧 لا دروس لهذه المادة — اختر مادة أخرى.";
     }
     if (!c.teacherLessonReady) return "📖 اختر الوحدة ثم الدرس أولاً.";
-    if (tool == TeacherTool.simplify && c.conceptController.text.trim().isEmpty) {
-      return "💡 اكتب المفهوم الذي تريد تبسيطه.";
-    }
     return "";
   }
 

@@ -14,8 +14,8 @@ from __future__ import annotations
 from api import (  # noqa: E402
     AI_CLIENTS, AskRequest, BackgroundTasks, Request, ScholarshipAskRequest,
     TeacherAskRequest, _ask_guards, _dispatch_and_settle, _json_response,
-    app, cleanup_old_sessions, v3_idem, v3_image_guard, v3_sch_assistant,
-    v3_stream, v3_teacher, v3_vision,
+    app, cleanup_old_sessions, v3_billing, v3_idem, v3_image_guard,
+    v3_quota, v3_sch_assistant, v3_stream, v3_teacher, v3_vision,
 )
 from .guards import _scholarship_guards, _teacher_guards  # noqa: E402
 from .sse import _canned_payload, _sse_stream  # noqa: E402
@@ -75,6 +75,7 @@ async def teacher_ask_stream(req: TeacherAskRequest, request: Request):
                 clean, mime = v3_image_guard.validate(img)
                 extracted.append(await v3_vision.image_to_text(clean, mime, AI_CLIENTS))
         except (v3_image_guard.ImageRejected, v3_vision.VisionFailed) as e:
+            await v3_billing.settle_quota(v3_quota, identity)
             v3_idem.abandon(identity["uid"], req.request_id)
             return _json_response({"answer": str(e), "references": [],
                                    "session_active": False}, 200)
@@ -87,11 +88,15 @@ async def teacher_ask_stream(req: TeacherAskRequest, request: Request):
     v3_stream.attach(req, sink)
 
     async def _run():
+        result = None
         try:
-            return await v3_teacher.ask(req, AI_CLIENTS)
+            result = await v3_teacher.ask(req, AI_CLIENTS)
         except v3_teacher.TeacherError as e:
             # رسالة عربية جاهزة — تُعرض في الفقاعة كردٍّ لا كعطل شبكة.
-            return {"answer": str(e), "references": [], "session_active": False}
+            result = {"answer": str(e), "references": [], "session_active": False}
+        finally:
+            await v3_billing.settle_quota(v3_quota, identity, result)
+        return result
 
     return _sse_stream(
         uid=identity["uid"], request_id=req.request_id, sink=sink,
@@ -143,6 +148,5 @@ async def scholarship_ask_stream(req: ScholarshipAskRequest, request: Request):
             sch, question, req.chat_history, AI_CLIENTS, sink=sink),
         fallback={"ok": True},
     )
-
 
 

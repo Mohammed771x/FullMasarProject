@@ -42,6 +42,10 @@ class MasarBottomNav extends StatelessWidget {
   /// كم يعلو زرُّ «مسار» فوق حافّة الشريط (من التصميم: 767 ← 751).
   static const double tutorLift = 16;
 
+  /// عرضُ الروبوت داخل دائرة «مسار» — **٦٨٪ من قطرها** كما في الملف
+  /// (روبوت 34 في دائرة 50). انظر [_tutorButton].
+  static const double _tutorRobot = 32;
+
   @override
   Widget build(BuildContext context) {
     // 📱 مساحة مؤشّر الشاشة أسفل الجهاز تُضاف تحت الشريط لا داخله —
@@ -155,7 +159,7 @@ class MasarBottomNav extends StatelessWidget {
               child: Container(
                 width: 47,
                 height: 47,
-                padding: const EdgeInsets.all(2),
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppColors.primaryFill,
                   shape: BoxShape.circle,
@@ -166,7 +170,14 @@ class MasarBottomNav extends StatelessWidget {
                         offset: const Offset(0, 4)),
                   ],
                 ),
-                child: const MasarRobot(size: 43),
+                // 🔴 **ملاحظةُ المالك (٢٠٢٦-٠٩-٢٢): «الروبوت مطروحٌ داخل
+                //    الدائرة، مش مضبوط».** وكان محقّاً: كان 43 في دائرة 47
+                //    — **٩١٪** من قطرها، فيلتصق رأسُه بحافّتها من كل جهة
+                //    ويبدو محشوراً لا موضوعاً.
+                //
+                // 📐 وقياسُ الملف: الدائرة **50** والروبوت **34** ⇒ **٦٨٪**
+                //    وحلقةٌ زرقاء حوله من كل جهة. فعلى دائرتنا 47 يكون 32.
+                child: const MasarRobot(size: _tutorRobot),
               ),
             ),
           ),

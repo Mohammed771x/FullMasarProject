@@ -66,8 +66,18 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
         primaryColor: AppColors.quizWrong,
         cancelLabel: "أكمل الاختبار",
         onPrimary: () async => leave = true,
+        // 🔴 **النصُّ كان يكذب على الطالب** (Phase 2): كُتب قبل أن يوجد
+        //    الاستئناف، وبقي بعده. والخروجُ اليوم **يحفظ** لقطةً كاملة
+        //    ([QuizResumeStore])، وبطاقةُ «أكمل» تنتظره في شاشة الإعداد.
+        //
+        // ⚖️ وكلفةُ الكذب هنا حقيقية: الطالب يقرأ «ستفقد تقدّمك» فيُكمل
+        //    اختباراً لا يريده خوفاً من ضياعه — أو يخرج ظانّاً أن كل شيء
+        //    ضاع فلا يبحث عن زرّ الاستئناف أصلاً. وحصةُ الأسئلة مدفوعة.
+        //
+        // ⏳ و٢٤ ساعة ليست تفصيلاً: هي [QuizResumeStore.maxAge] حرفياً.
         child: Text(
-          "ستفقد تقدّمك في هذا الاختبار ولن تُحفظ النتيجة.",
+          "تقدّمك محفوظ ويمكنك إكمال الاختبار خلال ٢٤ ساعة.\n"
+          "لكن النتيجة لا تُحسب ولا تدخل «تقدّمي» حتى تُنهيه.",
           style: TextStyle(
               fontSize: 12,
               height: 1.7,
@@ -79,7 +89,17 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     return leave;
   }
 
+  /// 🔒 حارسُ التنقّل: `saveResult` نفسُها لا تُكرّر الحفظ، لكنّ نقرتين
+  ///    كانتا تُكدّسان شاشتَي نتيجة. والحارسان مقصودان معاً — أحدهما
+  ///    يحمي السجلّ والآخر يحمي المكدّس.
+  bool _finishing = false;
+
   Future<void> _finish() async {
+    if (_finishing) return;
+    // ⚠️ `setState` لا إسنادٌ عارٍ: الزرُّ يُبنى داخل `AnimatedBuilder`
+    //    المستمع للمتحكّم، و`saveResult` لا تُخطر أحداً — فبلا إعادةِ
+    //    بناءٍ يبقى الزرُّ مضيئاً طوال الحفظ وإن كانت نقرتُه لا تفعل شيئاً.
+    setState(() => _finishing = true);
     final result = await c.saveResult();
     if (!mounted) return;
     Navigator.pushReplacement(
@@ -511,7 +531,9 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     final canConfirm = c.selected != null && !c.confirmed;
     return QuizPrimaryButton(
       label: c.confirmed ? (c.isLast ? "عرض النتيجة 🏁" : "التالي") : "تأكيد",
-      enabled: canConfirm || c.confirmed,
+      // 🔒 وأثناء حفظ النتيجة يُطفأ الزرّ: النقرةُ الثانية كانت تُكدّس
+      //    شاشةً ثانية وتكتب نتيجةً ثانية في السجلّ ([_finish]).
+      enabled: (canConfirm || c.confirmed) && !_finishing,
       onTap: () {
         if (c.confirmed) {
           if (c.isLast) {

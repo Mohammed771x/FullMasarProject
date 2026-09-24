@@ -115,6 +115,48 @@ class ChatConversation {
   @HiveField(10, defaultValue: "")
   String ownerUid;
 
+  // ══════════════════════════════════════════════════
+  // 🧭 **سياقُ الدرس** — ما كان يضيع بين الحفظ والاستعادة
+  // ══════════════════════════════════════════════════
+  //
+  // 🔴 كانت المحادثة تحفظ (صفاً · مساراً · مادةً · فرعاً · وضعاً) وتترك
+  //    **الوحدةَ والدرسَ ووضعَ المحتوى**. فمحادثةٌ في «وضع الدروس» تعود
+  //    بمادتها صحيحةً و`selectedV3Lesson` فارغاً — والبوصلة أعلى الشاشة
+  //    تعرض «انجليزي • القواعد» بلا درس. ولو أرسل الطالبُ رسالةً لذهبت
+  //    باسم درسٍ فارغ، فيردّ الخادم «قيد الإضافة» على مادةٍ محتواها
+  //    موجود: كلُّ شيءٍ يبدو سليماً والجوابُ وحده خاطئ.
+  //
+  // 🗄️ **والترقيم يمضي في الذيل** كما فعل الصفُّ والمالكُ قبله:
+  //    `defaultValue: ""` تجعل كلَّ محادثةٍ محفوظةٍ قبل اليوم تُقرأ
+  //    **بلا سياق** بدل أن تنهار قراءتُها — وهو بالضبط سلوكُها الحالي،
+  //    فالترقية لا تُغيّر شيئاً على القديم ولا تطلب ترحيلاً.
+
+  /// وحدةُ الدرس (`selectedV3Unit` في وضع الدروس · `selectedUnit` في الصفحات).
+  @HiveField(11, defaultValue: "")
+  final String unit;
+
+  /// اسمُ الدرس المفتوح — فارغٌ في المحادثات الحرّة وفي القديمة.
+  @HiveField(12, defaultValue: "")
+  final String lesson;
+
+  /// `"lessons"` أو `"pages"` — فارغٌ يعني «لم تُحفظ» فيُترك القرار للقدرات.
+  @HiveField(13, defaultValue: "")
+  final String contentMode;
+
+  /// 📄 **صفحاتُ المحادثة** في وضع الوحدات — تعود معها كما يعود درسُها.
+  ///
+  /// 🎯 **بلاغ المالك (٢٠٢٦-٠٩-٢٤):** «محادثةٌ قديمة، اخترتُ فيها ثلاث
+  ///    صفحات… نزلتُ ورجعت فما وجدتُ ما كنّا نناقشه. لكل شاتٍ درسُه —
+  ///    ولو رجعتُ بعد سنة». الوحدةُ كانت تُحفظ والصفحاتُ لا.
+  ///    وهي أيضاً **حدُّ المحادثة**: لا تُضاف إليها صفحةٌ من خارجها
+  ///    ([ChatController.addPage]).
+  @HiveField(14, defaultValue: <int>[])
+  final List<int> pages;
+
+  /// 📏 **٣ صفحاتٍ لا أكثر** — `MAX_PAGES_EXPLAIN_SUMMARY` في الخادم، وسقفُ
+  ///    `pages` في `firestore.rules`. الثلاثةُ تتغيّر معاً أو لا تتغيّر.
+  static const int maxPages = 3;
+
   ChatConversation({
     required this.id,
     required this.title,
@@ -127,6 +169,10 @@ class ChatConversation {
     this.track = "علمي",
     this.branch = "",
     this.ownerUid = "",
+    this.unit = "",
+    this.lesson = "",
+    this.contentMode = "",
+    this.pages = const [],
   }) : createdAt = createdAt ?? DateTime.now(),
        lastUpdated = lastUpdated ?? DateTime.now();
 
@@ -161,6 +207,10 @@ class ChatConversation {
     'track': track,
     'branch': branch,
     'ownerUid': ownerUid,
+    'unit': unit,
+    'lesson': lesson,
+    'contentMode': contentMode,
+    'pages': pages,
   };
 
   factory ChatConversation.fromJson(Map<String, dynamic> json) => ChatConversation(
@@ -175,5 +225,19 @@ class ChatConversation {
     track: json['track'] ?? "علمي",
     branch: json['branch'] ?? "",
     ownerUid: json['ownerUid'] ?? "",
+    // 🗄️ محادثاتٌ سُحبت من السحابة قبل هذه الحقول تصل بلا سياق — تُقرأ
+    //    فارغةً كما كانت تُقرأ تماماً، ولا تُسقط الاستعادة.
+    unit: json['unit'] ?? "",
+    lesson: json['lesson'] ?? "",
+    contentMode: json['contentMode'] ?? "",
+    pages: _pagesFrom(json['pages']),
   );
+
+  /// أرقامٌ صحيحة موجبة وحدها — مستندٌ تالفٌ أو قديمٌ يُقرأ بلا صفحات.
+  static List<int> _pagesFrom(Object? raw) => raw is List
+      ? [for (final p in raw) if (p is int && p > 0) p].take(maxPages).toList()
+      : const [];
+
+  /// للمزامنة: نفسُ التطبيع لمستند Firestore.
+  static List<int> pagesFrom(Object? raw) => _pagesFrom(raw);
 }

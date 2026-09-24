@@ -80,13 +80,17 @@ class ChatConversationAdapter extends TypeAdapter<ChatConversation> {
       track: fields[8] == null ? 'علمي' : fields[8] as String,
       branch: fields[9] == null ? '' : fields[9] as String,
       ownerUid: fields[10] == null ? '' : fields[10] as String,
+      unit: fields[11] == null ? '' : fields[11] as String,
+      lesson: fields[12] == null ? '' : fields[12] as String,
+      contentMode: fields[13] == null ? '' : fields[13] as String,
+      pages: fields[14] == null ? [] : (fields[14] as List).cast<int>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, ChatConversation obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(15)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -108,7 +112,15 @@ class ChatConversationAdapter extends TypeAdapter<ChatConversation> {
       ..writeByte(9)
       ..write(obj.branch)
       ..writeByte(10)
-      ..write(obj.ownerUid);
+      ..write(obj.ownerUid)
+      ..writeByte(11)
+      ..write(obj.unit)
+      ..writeByte(12)
+      ..write(obj.lesson)
+      ..writeByte(13)
+      ..write(obj.contentMode)
+      ..writeByte(14)
+      ..write(obj.pages);
   }
 
   @override

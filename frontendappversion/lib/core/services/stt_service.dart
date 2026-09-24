@@ -147,27 +147,36 @@ class SttService {
   }
 
   /// إيقاف بطلب الطالب — يرجع النص الكامل المتراكم.
+  ///
+  /// ☢️ **ولا يترك الخدمةَ تسجّل مهما وقع:** المؤقّتان و`_userWantsRecording`
+  ///    هي ما يُعيد تشغيل جلسة المحرّك ([_onEngineEnded]). فلو رمى شيءٌ
+  ///    قبل [_teardown] بقيت الخدمةُ **تسجّل بلا شريطٍ يُظهر ذلك** —
+  ///    ميكروفونٌ مفتوحٌ لا يعرف به الطالب، وهذا أسوأ من فقد النص.
   Future<String> finish() async {
-    await _teardown();
     try {
-      await _speech.stop();
-    } catch (_) {}
-    _commitCurrentSession();
-    final text = _committed.trim();
-    _committed = "";
-    _sessionText = "";
-    return text;
+      try {
+        await _speech.stop();
+      } catch (_) {}
+      _commitCurrentSession();
+      return _committed.trim();
+    } finally {
+      await _teardown();
+      _committed = "";
+      _sessionText = "";
+    }
   }
 
   /// إلغاء وحذف — لا يُرجع شيئاً.
   Future<void> discard() async {
-    await _teardown();
     try {
       await _speech.cancel();
-    } catch (_) {}
-    _committed = "";
-    _sessionText = "";
-    liveText.value = "";
-    elapsed.value = Duration.zero;
+    } catch (_) {
+    } finally {
+      await _teardown();
+      _committed = "";
+      _sessionText = "";
+      liveText.value = "";
+      elapsed.value = Duration.zero;
+    }
   }
 }

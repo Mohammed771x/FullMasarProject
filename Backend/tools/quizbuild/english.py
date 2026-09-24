@@ -5,7 +5,7 @@
     والنصُّ أدناه **منقولٌ حرفاً بحرف** بلا تغيير سطرٍ واحد.
 """
 from __future__ import annotations
-from .boot import quiz_spec, re
+from .boot import Counter, quiz_spec, re
 from .consts import CALC_SUBJECTS
 from .checks import _bank_floor, _shape_defects, draw_defects
 
@@ -128,9 +128,15 @@ def english_defects(questions: list, lesson: str = "") -> list:
     #    إيش هي الـpart of speech». والسؤالُ كان: «?…the underlined word»
     #    ثم جملةٌ **لا خطَّ تحت أيِّ كلمةٍ فيها** — فلا جوابَ له أصلاً،
     #    و`why` وحده يعرف الكلمةَ المقصودة. سبعةُ أسئلةٍ كانت كذلك.
+    # ⚖️ **وقائمةُ الكلمات لا خطَّ فيها** (2026-09-24): «Which word is NOT
+    #    the same part of speech? *teacher / driver / writer / easily*» سؤالٌ
+    #    تامّ — الكلماتُ نفسُها هي الخيارات، فلا كلمةَ «تحتها خطّ» تُنتظر.
+    _word_list = re.compile(r"(?:[A-Za-z][A-Za-z'\-]*\s*/\s*){2,}[A-Za-z]")
     unmarked = [q for q in questions
                 if _UNDERLINE_REF.search(q.get("q", ""))
-                and not _MARKED_WORD.search(q.get("q", ""))]
+                and not _MARKED_WORD.search(q.get("q", ""))
+                and not (_word_list.search(q.get("q", ""))
+                         and "underlined" not in q.get("q", "").lower())]
     if unmarked:
         bad.append(f'{len(unmarked)} سؤالاً يقول «the underlined word» ولا خطَّ '
                    f'تحت كلمة — ضع الكلمةَ المقصودة بين شرطتين مزدوجتين: '
@@ -182,6 +188,7 @@ def check_bank(questions: list, want: int, source: str, subject: str,
     # 🇬🇧 وعدسةُ الإنجليزية — بنفس أرقام [quiz_spec.english_clause].
     if quiz_spec.is_english(subject):
         bad += english_defects(questions, lesson)
+        bad += english_fresh_defects(questions, source)
 
     # 🧮 **والحسابُ يُحسب لا يُستحسن** ([tools/arith_check.py], 2026-09-17):
     #    في الرياضيات والمنطق كلُّ سؤالٍ رقميٍّ **يُصحَّح أو يُخطَّأ**،
@@ -197,3 +204,93 @@ def check_bank(questions: list, want: int, source: str, subject: str,
     return bad
 
 
+
+
+# ══════════════════════════════════════════════════
+# 🌍 أمثلةٌ جديدة — **يُقاس ما طُلب** ([quiz_spec.fresh_clause])
+# ══════════════════════════════════════════════════
+# 🔴 **شكوى المالك (2026-09-24):** «كل ١٥ سؤالاً متمحورةٌ على ثلاثة أمثلة —
+#    banana… newspaper، smartphone». وقِيس: ٤٧٪ من البنك مادّتُه أمثلةُ
+#    الكتاب نفسُها، و«Circle the different word» ١٣ من ١٩ على مجموعاته الستّ.
+#
+# 📐 **المادّةُ** = ما بين النجمتين · قائمةُ الشرطات المائلة · جملةُ الفراغ ·
+#    أو الخياراتُ في تمرين الكلمة. ⇒ **كلماتُها المحتوى** (بلا أدوات النحو
+#    ولا كلمات الأمر). سؤالٌ **من الكتاب** إن كان ٧٠٪ منها في نصّ الدرس.
+# ⚖️ **والتكرارُ لا يُعدّ على كلمات القاعدة نفسِها** (wish · since ·
+#    grateful): سؤالان عن «wish» يحملانها بالضرورة. فالمستثنى ما ورد في
+#    `اسم_القاعدة` و`الصيغة`. والقطعةُ الطويلة لا يُعدّ تكرارُها — كلُّ سؤالٍ
+#    عنها يحملها كاملةً ([quiz_spec.english_clause] ⑤).
+_EN_STOP = frozenset("""the a an and or but nor of to in on at for with by from
+into onto over under up down out off about after before as than then so if
+when while which what who whom whose where why how there here all any some
+each every no not do does did done doing has have had having is are was were
+be been being am will would can could must should may might shall it its
+this that these those he she they we you i his her their our your my me him
+them us one two three very too also just only more most less much many
+word words sentence sentences choose correct complete answer following change
+make question underlined form verb passive use write rewrite fill blank
+mistake order reorder join
+yesterday now ago already tomorrow today usually always never often sometimes
+last next like used new still yet ever""".split())
+
+
+def _material(q: dict) -> str:
+    t = q.get("q", "")
+    parts = re.findall(r"\*([^*]+)\*", t)
+    parts += re.findall(r"(?:[A-Za-z][A-Za-z'\-]*\s*[/|+]\s*)+[A-Za-z][A-Za-z'\-]*", t)
+    if not parts and re.search(r"_{3,}|\.{4,}", t):
+        parts = [t]
+    if not parts and _is_word_drill(q):
+        parts = list(q.get("options") or [])
+    return " ".join(parts)
+
+
+def _content(text: str) -> set:
+    return {w.lower().strip("'-") for w in _EN_WORD.findall(text or "")
+            if len(w) > 2 and w.lower() not in _EN_STOP}
+
+
+def _rule_words(source: str) -> set:
+    lines = [l for l in (source or "").splitlines()
+             if re.search(r"اسم_القاعدة|الصيغة|اسم_الدرس", l)]
+    return _content(" ".join(lines))
+
+
+def fresh_stats(questions: list, source: str) -> tuple:
+    """(أسئلةُ الكتاب، {كلمة: عددُ الأسئلة})."""
+    vocab, rule = _content(source), _rule_words(source)
+    book, count = 0, Counter()
+    for q in questions:
+        # 🏷️ وعناوينُ الجدول («Material:» · «Found:») قالبُ الدرس لا مثالُه.
+        words = _content(re.sub(r"[A-Za-z]+\s*:", " ", _material(q)))
+        if not words:
+            continue
+        if len(words & vocab) / len(words) >= 0.7:
+            book += 1
+        if len(_EN_LATIN.findall(q.get("q", ""))) < 160:   # لا القطعة
+            count.update(words - rule)
+    return book, count
+
+
+def english_fresh_defects(questions: list, source: str) -> list:
+    """أمثلةُ الكتاب فوق حصّتها، أو كلمةٌ واحدةٌ تتكرّر في أسئلةٍ كثيرة."""
+    if not questions or not source:
+        return []
+    n = len(questions)
+    cap, _fresh = quiz_spec.fresh_quota(n)
+    book, count = fresh_stats(questions, source)
+    vocab = _content(source)
+    bad = []
+    # 🎯 **هامشُ واحدٍ فوق الحصّة** — الطلبُ هدفٌ والرفضُ أرضية، كالتطبيق.
+    if book > cap + 1:
+        bad.append(f"{book} من {n} سؤالاً مادّتُها أمثلةُ الكتاب نفسُها — "
+                   f"الحدُّ {cap}. القاعدةُ من الدرس والجملُ والكلماتُ "
+                   "جديدةٌ من عندك (⑦)")
+    # 🔁 كلمةٌ من الكتاب في ثلاثة أسئلة، أو أيُّ كلمةٍ في أربعة.
+    rep = [w for w, c in count.most_common()
+           if c >= (3 if w in vocab else 4)]
+    if rep:
+        bad.append("أمثلةٌ مكرّرة: " + " · ".join(
+            f"«{w}» في {count[w]} أسئلة" for w in rep[:5])
+            + " — لكلِّ سؤالٍ مثالُه، ولا كلمةَ في أكثر من سؤالين")
+    return bad

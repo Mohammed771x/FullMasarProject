@@ -44,6 +44,14 @@ class AskFailure extends AskEvent {
   final String message;
 }
 
+/// المحاولة نفسها ما زالت تعمل في الخادم (HTTP 202).
+///
+/// ليست إجابةً للمستخدم ولا فشلاً: على المتحكّم أن يعيد الاستعلام بنفس
+/// `request_id` ونفس الحمولة حتى تتحول المحاولة إلى `done`.
+class AskPending extends AskEvent {
+  const AskPending();
+}
+
 class AskStream {
   AskStream([http.Client? client]) : _injected = client;
 
@@ -59,14 +67,38 @@ class AskStream {
     required Map<String, String> headers,
     required Map<String, dynamic> body,
     Duration timeout = const Duration(seconds: 120),
+    Duration idleTimeout = const Duration(seconds: 35),
   }) async* {
-    final client = _injected ?? http.Client();
+    // ☢️ **ومن فتحه يُغلقه** — وهذا ليس ترتيباً بل تسريبٌ حقيقيّ:
+    //    إعادةُ الاستعلام على 202 تفتح `open()` من جديد كل مرة، وردُّ
+    //    الخادم لا يأتي إلا بعد أن يفرغ من التوليد. فشرحٌ يستغرق ٤٠ ثانية
+    //    كان يُخلّف **عشرات** عملاء `http` مفتوحين، كلٌّ منهم يحمل بركةَ
+    //    اتصالاتٍ حيّة، بلا أن يُغلق واحدٌ منها أبداً.
+    //
+    // ⚖️ والمحقونُ في الاختبارات لا يُغلق: مالكُه من حَقَنه ([_injected])،
+    //    وإغلاقُه هنا يقتل الطلب التالي في نفس الاختبار.
+    final created = _injected == null ? http.Client() : null;
+    final client = _injected ?? created!;
     _active = client;
 
     final request = http.Request("POST", url)
       ..headers.addAll({...headers, "Accept": "text/event-stream"})
       ..body = jsonEncode(body);
 
+    try {
+      yield* _events(client, request, timeout, idleTimeout);
+    } finally {
+      created?.close();
+      if (identical(_active, client)) _active = null;
+    }
+  }
+
+  Stream<AskEvent> _events(
+    http.Client client,
+    http.Request request,
+    Duration timeout,
+    Duration idleTimeout,
+  ) async* {
     final http.StreamedResponse response;
     try {
       response = await client.send(request).timeout(timeout);
@@ -84,7 +116,10 @@ class AskStream {
       try {
         parsed = jsonDecode(raw) as Map<String, dynamic>;
       } catch (_) {}
-      if (parsed != null && (parsed["answer"] ?? "").toString().isNotEmpty) {
+      if (response.statusCode == 202 && parsed?["in_flight"] == true) {
+        yield const AskPending();
+      } else if (parsed != null &&
+          (parsed["answer"] ?? "").toString().isNotEmpty) {
         yield AskDone(parsed);
       } else {
         yield AskFailure("⚠️ تعذّر الوصول للخادم (${response.statusCode}).");
@@ -93,8 +128,12 @@ class AskStream {
     }
 
     var buffer = "";
+    var terminal = false;
     try {
-      await for (final chunk in response.stream.transform(utf8.decoder)) {
+      // `timeout` أعلاه لفتح الاتصال فقط. هذه مهلة خمول متجددة مع كل chunk
+      // (ومنها نبضات SSE)، كي لا يبقى `await for` معلقاً إلى الأبد.
+      await for (final chunk
+          in response.stream.transform(utf8.decoder).timeout(idleTimeout)) {
         buffer += chunk;
 
         // نقصّ على فاصل الأحداث فقط — راجع تحذير التقطيع في الأعلى.
@@ -103,9 +142,18 @@ class AskStream {
           final block = buffer.substring(0, sep);
           buffer = buffer.substring(sep + 2);
           final event = _parseBlock(block);
-          if (event != null) yield event;
+          if (event != null) {
+            if (event is AskDone || event is AskFailure) terminal = true;
+            yield event;
+          }
           sep = buffer.indexOf("\n\n");
         }
+      }
+      // إغلاق TCP بلا `done` انقطاعٌ، حتى لو وصل قبله جزء من النص.
+      if (!terminal) {
+        yield const AskFailure(
+          "📡 **انقطع الاتصال**\n\nتأكد من الإنترنت وحاول مجدداً.",
+        );
       }
     } catch (e) {
       yield AskFailure(_describe(e));
@@ -159,9 +207,15 @@ class AskStream {
 /// ⚠️ نوعٌ خاص لا `Exception` عامة: المتحكّم يعرض رسالته العربية كما هي بدل
 ///    أن يُترجم عطلاً مجهولاً إلى «حدث خطأ غير متوقع».
 class StreamInterrupted implements Exception {
-  const StreamInterrupted(this.message);
+  const StreamInterrupted(this.message, {this.hasPartial = false});
   final String message;
+  final bool hasPartial;
 
   @override
   String toString() => message;
+}
+
+/// إلغاءٌ مقصود من المستخدم/تبديل السياق، لا عطلٌ يستحق فقاعة خطأ.
+class RequestCancelled implements Exception {
+  const RequestCancelled();
 }

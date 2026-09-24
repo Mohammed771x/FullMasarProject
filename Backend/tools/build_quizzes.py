@@ -79,6 +79,8 @@ from tools.quizbuild.english import (  # noqa: F401,E402
     _EN_LATIN, _EN_WORD, _ARABIC_LETTER, _EN_TASK, _EN_DEFINITION,
     _EN_MATERIAL, _is_drill, _EN_PICK, _UNDERLINE_REF, _MARKED_WORD,
     _is_word_drill, english_defects, check_bank,
+    _EN_STOP, _material, _content, _rule_words, fresh_stats,
+    english_fresh_defects,
 )
 
 # ── النداء — العميلُ والتوجيهُ وعدّادُ النداءات ──
@@ -105,7 +107,7 @@ from tools.quizbuild.quarantine import (  # noqa: F401,E402
 
 # ── البناءُ والتقريرُ وسطرُ الأوامر ──
 from tools.quizbuild.run import (  # noqa: F401,E402
-    lessons_of, build_subject, build_all, report, main,
+    lessons_of, build_subject, build_all, report, main, MINISTRY_MODEL,
 )
 
 

@@ -13,10 +13,14 @@ import '../../features/scholarships/data/scholarship_favorites.dart';
 import '../notifications/push_service.dart';
 import '../settings/app_settings.dart';
 import '../auth/auth_repository.dart';
+import '../auth/auth_validators.dart';
+import '../auth/login_throttle.dart';
+import '../auth/password_strength.dart';
 import '../auth/user_repository.dart';
 import 'grade_scope.dart';
 import '../media/avatar_service.dart';
 import '../sync/sync_service.dart';
+import '../utils/safe_cut.dart';
 
 // ==========================================
 // 👤 جلسة المستخدم — المصدر الوحيد لبيانات الحساب
@@ -39,8 +43,10 @@ class UserSession extends ChangeNotifier {
   /// تُحقن في الاختبارات فقط.
   @visibleForTesting
   static void overrideRepositories({AuthRepository? auth, UserRepository? users}) {
-    I._auth = auth ?? I._auth;
-    I._users = users ?? I._users;
+    // ⚠️ لا `?? I._users`: قراءةُ الحقل تُنشئ المستودعَ الحقيقيّ فتنادي
+    //    Firestore — وهو غيرُ مهيّأٍ في الاختبار، فيسقط حقنُ أحدهما وحده.
+    if (auth != null) I._auth = auth;
+    if (users != null) I._users = users;
   }
 
   AuthRepository? _authRepo;
@@ -189,7 +195,7 @@ class UserSession extends ChangeNotifier {
   /// أول حرف من الاسم — يُستخدم في صورة الحساب الافتراضية.
   String get initial {
     final t = name.trim();
-    return t.isEmpty ? 'م' : t.substring(0, 1);
+    return t.isEmpty ? 'م' : firstGlyph(t); // ✂️ الرمزُ كاملاً لا نصفُه
   }
 
   // ===== إنشاء حساب =====
@@ -204,9 +210,19 @@ class UserSession extends ChangeNotifier {
     String track_ = 'علمي',
     String role_ = AppRole.student,
   }) async {
-    if (name_.trim().length < 3) return 'الاسم قصير جداً — اكتب اسمك الكامل.';
+    // 🛡️ **الفحصُ هنا هو الحارسُ الأخير لا الأول.** الشاشاتُ تفحص لتُظهر
+    //    الخطأ تحت حقله، وهذا يفحص لأن `signUp` قد تُنادى من غيرها —
+    //    وبالقواعد نفسها بالضبط ([AuthValidators] · [PasswordStrength])
+    //    فلا تقبل شاشةٌ ما يرفضه اللوجيك.
+    final nameError = AuthValidators.name(name_);
+    if (nameError != null) return '$nameError.';
     if (!_isValidEmail(email_.trim().toLowerCase())) return 'صيغة البريد الإلكتروني غير صحيحة.';
-    if (password.length < 6) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.';
+    // 🔴 **٨ لا ٦** منذ مراجعة الأمان ٢٠٢٦-٠٩-٢٣ — انظر [PasswordStrength].
+    //    وهي سياسةُ **الإنشاء** وحدها: `signIn` لا تفحص طولاً، فلا يُحبس
+    //    صاحبُ حسابٍ قديمٍ خارج حسابه.
+    final blocker =
+        PasswordStrength.of(password, email: email_, name: name_).blocker;
+    if (blocker != null) return '$blocker.';
 
     // زائر يسجّل ⇒ نرقّي حسابه فتنتقل محادثاته وحصته معه.
     final error = _auth.isGuest
@@ -236,8 +252,22 @@ class UserSession extends ChangeNotifier {
     if (!_isValidEmail(e)) return 'صيغة البريد الإلكتروني غير صحيحة.';
     if (password.isEmpty) return 'اكتب كلمة المرور.';
 
+    // ⏳ **التهدئة قبل الشبكة** ([LoginThrottle]): خمسُ محاولاتٍ خاطئة
+    //    ثم مهلةٌ تتضاعف — والفحصُ هنا في اللوجيك لا في الشاشة، فكلُّ
+    //    بابٍ إلى الدخول يمرّ بها.
+    final wait = await LoginThrottle.signIn.remaining();
+    if (wait > Duration.zero) return LoginThrottle.waitMessage(wait);
+
     final error = await _auth.signInWithEmail(email: e, password: password);
-    if (error != null) return error;
+    if (error != null) {
+      // 🎯 تُعدّ **البياناتُ الخاطئة وحدها** — انقطاعُ الشبكة ليس تخميناً.
+      if (error == AuthRepository.genericCredentialError) {
+        final lock = await LoginThrottle.signIn.recordFailure();
+        if (lock > Duration.zero) return LoginThrottle.waitMessage(lock);
+      }
+      return error;
+    }
+    await LoginThrottle.signIn.clear();
 
     email = e;
     isGuest = false;
@@ -260,10 +290,15 @@ class UserSession extends ChangeNotifier {
   ///
   /// 🛡️ ولحسابٍ **قائم** لا أثر لها: `upsert` لا تكتب الدور إلا عند الإنشاء،
   ///    و`_hydrateFromCloud` بعدها تُرجع الصف والمسار من مستنده هو.
-  Future<String?> signInWithGoogle({int? grade_, String? track_, String? role_}) async {
-    final error = await _auth.signInWithGoogle();
-    if (error != null) return error;
-    if (!_auth.isSignedIn) return null; // ألغى المستخدم النافذة
+  ///
+  /// ☢️ **ويرجع [GoogleAuthResult] لا `String?`:** كان الإلغاءُ يُعرف بسؤال
+  ///    «هل من مستخدم؟» — والزائرُ مستخدم. فكان «Cancel» على الآيفون
+  ///    يمضي بالزائر إلى هنا فيصير `isGuest = false` ويُنشأ له ملفّ، ويدخل
+  ///    باسم «طالب مسار». الآن لا يُلمَس شيءٌ من الحالة إلا بعد نجاحٍ
+  ///    **تحقّق منه المستودع** ([AuthRepository.signInWithGoogle]).
+  Future<GoogleAuthResult> signInWithGoogle({int? grade_, String? track_, String? role_}) async {
+    final result = await _auth.signInWithGoogle();
+    if (!result.signedIn) return result; // فشلٌ برسالته، أو إلغاءٌ بلا أثر
 
     if (grade_ != null || role_ != null) {
       final p = _prefs ??= await SharedPreferences.getInstance();
@@ -275,7 +310,11 @@ class UserSession extends ChangeNotifier {
     }
 
     final u = _auth.currentUser!;
-    name = (u.displayName ?? '').trim().isNotEmpty ? u.displayName!.trim() : name;
+    // 🏷️ الاسمُ من حساب جوجل، ثم من بريده — لا «زائر» يُورَث من جلسة
+    //    الضيف قبل الربط، ولا «طالب مسار» الافتراضيّ.
+    final display = (u.displayName ?? '').trim();
+    final mailName = (u.email ?? '').split('@').first.trim();
+    name = display.isNotEmpty ? display : (mailName.isNotEmpty ? mailName : name);
     email = u.email ?? '';
     isGuest = false;
     await _persist();
@@ -283,7 +322,7 @@ class UserSession extends ChangeNotifier {
     await _hydrateFromCloud();
     unawaited(syncAfterLogin().then((_) {}));
     notifyListeners();
-    return null;
+    return result;
   }
 
   /// دخول كزائر — 5 أسئلة تجريبية، وحسابه المجهول يحمل حصته.
@@ -319,7 +358,17 @@ class UserSession extends ChangeNotifier {
   Future<String?> resetPassword(String email_) {
     final e = email_.trim().toLowerCase();
     if (!_isValidEmail(e)) return Future.value('صيغة البريد الإلكتروني غير صحيحة.');
-    return _auth.sendPasswordReset(e);
+    return _throttledReset(e);
+  }
+
+  /// 📨 رابطُ استعادةٍ واحدٌ كل دقيقة من هذا الجهاز — وإلا صار الزرُّ
+  ///    مِدفعاً يُغرق بريدَ أيّ أحدٍ برسائل «مسار» ([LoginThrottle.reset]).
+  Future<String?> _throttledReset(String e) async {
+    final wait = await LoginThrottle.reset.remaining();
+    if (wait > Duration.zero) return LoginThrottle.waitMessage(wait);
+    final error = await _auth.sendPasswordReset(e);
+    await LoginThrottle.reset.lockFor(LoginThrottle.resetGap);
+    return error;
   }
 
   /// بعد كل دخول ناجح: جهاز جديد ⇒ استعادة، وإلا رفع المحلي وتنظيف السحابة.
@@ -408,7 +457,7 @@ class UserSession extends ChangeNotifier {
     if (isGuest || email.isEmpty) {
       return "⚠️ هذه الميزة للحسابات المسجَّلة ببريد إلكتروني.";
     }
-    return _auth.sendPasswordReset(email);
+    return _throttledReset(email); // ⏳ نفسُ سقف شاشة «نسيت كلمة المرور»
   }
 
   Future<void> setGrade(int g) async {
@@ -590,7 +639,11 @@ class UserSession extends ChangeNotifier {
     return null;
   }
 
-  static bool _isValidEmail(String s) => RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$').hasMatch(s);
+  /// ⚠️ **التعبيرُ النمطيّ انتقل إلى [AuthValidators]** ٢٠٢٦-٠٩-٢٣.
+  ///    كان هنا نسخةٌ وفي الشاشات نسخةٌ أضعف (`contains('@')`)، فتقبل
+  ///    الشاشةُ `a@b.` وترفضها هذه بعد **ثلاث خطوات** من التسجيل. وهذا
+  ///    غلافٌ باقٍ ليبقى اللوجيك يحرس نفسَه ولو نودي من غير الشاشات.
+  static bool _isValidEmail(String s) => AuthValidators.isEmail(s);
 }
 
 /// تشغيل عملية غير حرجة بلا انتظار — تُبقي الواجهة فورية.

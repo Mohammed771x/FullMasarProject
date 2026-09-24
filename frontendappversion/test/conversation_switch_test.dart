@@ -101,6 +101,7 @@ void main() {
 
     c.debugSetBusy(streaming: true, streamIndex: 1);
     c.debugAgeBusyState();
+    c.selectedUnit = 'الجهاز العصبي'; // 🚦 اختيارٌ مكتمل — البوّابةُ ليست موضوعَ الاختبار
 
     var warned = false;
     c.onShowBusyWarning = () => warned = true;

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from api import (  # noqa: E402
     Request, _authenticate, _json_response, _section_gate, v3_idem,
-    v3_quota, v3_ratelimit, v3_sch_facts, v3_scholarships,
+    v3_billing, v3_quota, v3_ratelimit, v3_sch_facts, v3_scholarships,
 )
 
 
@@ -45,13 +45,15 @@ async def _teacher_guards(req, request: Request):
             {"answer": v3_idem.IN_FLIGHT_MESSAGE, "references": [],
              "session_active": False, "in_flight": True}, 202)
 
-    allowed, _ = await v3_quota.acheck_and_consume(identity["uid"], identity["is_guest"])
-    if not allowed:
+    reservation = await v3_quota.areserve(identity["uid"], identity["is_guest"])
+    if not reservation.allowed:
         v3_idem.abandon(identity["uid"], req.request_id)
         return identity, _json_response(
             {"answer": v3_quota.message_for(identity["is_guest"]), "references": [],
              "session_active": False, "quota_exceeded": True,
              "is_guest": identity["is_guest"]}, 429)
+    identity["_quota_reservation"] = reservation
+    v3_billing.start()
 
     return identity, None
 
@@ -90,8 +92,13 @@ async def _scholarship_guards(req, request: Request):
     if state == v3_idem.DONE and cached is not None:
         return identity, sch, _json_response(cached), None
     if state == v3_idem.RUNNING:
+        # 🔁 **والرايةُ لا الرسالةُ وحدها**: العميل يميّز «نفس المحاولة ما
+        #    زالت تعمل» بـ`in_flight` كما في `/ask` و`/teacher/ask` تماماً،
+        #    فيُعيد الاستعلام بنفس `request_id`. وبدونها كان يعرض
+        #    «طلبك قيد المعالجة» في الفقاعة كأنه جوابُ المساعد.
         return identity, sch, _json_response(
-            {"answer": v3_idem.IN_FLIGHT_MESSAGE, "ok": False}, 202), None
+            {"answer": v3_idem.IN_FLIGHT_MESSAGE, "ok": False,
+             "in_flight": True}, 202), None
 
     if canned is None:
         allowed, _ = await v3_quota.acheck_and_consume(identity["uid"],
@@ -104,5 +111,3 @@ async def _scholarship_guards(req, request: Request):
                  "ok": False}, 429), None
 
     return identity, sch, None, canned
-
-

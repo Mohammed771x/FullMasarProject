@@ -151,8 +151,10 @@ def test_the_route_table_is_whole():
     for must in ("/ask", "/ask/stream", "/quiz/generate", "/lesson/explanation",
                  "/scholarships", "/scholarships/{sch_id}", "/scholarship/ask",
                  "/scholarship/ask/stream", "/teacher/ask", "/admin", "/ingest",
-                 "/me/quota", "/app/version", "/banners", "/admin/overview"):
+                 "/me/quota", "/app/version", "/banners", "/admin/overview",
+                 "/chat/title"):
         assert must in paths, f"مسارٌ ضاع في التفكيك: {must}"
-    assert len(api.app.routes) == 83, (
+    # 🏷️ ٨٣ ⇐ ٨٤ (٢٠٢٦-٠٩-٢٤): `/chat/title` — اسمُ المحادثة من أول سؤال.
+    assert len(api.app.routes) == 84, (
         f"تغيّر عددُ المسارات: {len(api.app.routes)} — إن كانت إضافةً مقصودةً "
         "فحدّث الرقم، وإلا فجزءٌ لم يُستورد أو استُورد مرّتين")

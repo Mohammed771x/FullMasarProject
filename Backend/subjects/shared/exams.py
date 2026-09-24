@@ -14,6 +14,40 @@ from .mathfmt import _superscript
 from .context import normalize_arabic
 
 
+# ══════════════════════════════════════════════════════════
+# 🛡️ مقطعُ مسارٍ من الطالب — لا يخرج من مجلّده
+# ══════════════════════════════════════════════════════════
+# ☢️ **وُجد ٢٠٢٦-٠٩-٢٣:** السنةُ والفرعُ يصلان من جسم الطلب ويُركَّبان في
+#    مسار ملفٍّ مباشرةً (`f"{year}.json"`). فـ`year = "../../../x"` يقرأ أيَّ
+#    ملفّ JSON على الخادم بصلاحيات العملية — وبينها ملفّاتُ الإعدادات.
+#    والمعالجُ يُحلّل ما قرأه ويعيد منه نصوصاً إلى الطالب.
+#
+# ✅ الحارسُ هنا **قائمةٌ بيضاء لا سوداء**: مقطعٌ واحدٌ بلا فاصلٍ ولا نقطتين
+#    ولا محرفِ تحكّم، وبطولٍ معقول. أسماءُ السنوات («2019» · «2022 الدور
+#    الأول») والفروع («تفاضل») كلُّها تمرّ.
+_SAFE_SEGMENT = re.compile(r"[\w\u0600-\u06FF][\w\u0600-\u06FF \-()]{0,63}")
+
+
+def safe_segment(value) -> bool:
+    """هل يصلح [value] اسمَ ملفٍّ أو مجلّدٍ واحدٍ داخل مجلّد البيانات؟"""
+    if not isinstance(value, str) or ".." in value:
+        return False
+    return bool(_SAFE_SEGMENT.fullmatch(value.strip()))
+
+
+def clamp_count(raw, default: int, lo: int = 1, hi: int = 20) -> int:
+    """عددُ أسئلةٍ/قطعٍ من الطالب — بين [lo] و[hi] دائماً.
+
+    📏 كان يُقبل كما هو: «١٠٠٠٠ قطعة» تُجمّع وتُنسَّق وتُرسل ردّاً واحداً.
+    والتطبيقُ يقيّده بمِعدادٍ من ١ إلى ٢٠، وهذا جدارُ من لا يمرّ به.
+    """
+    try:
+        n = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return default
+    return max(lo, min(hi, n))
+
+
 def extract_keywords(query: str):
     normalized = normalize_arabic(query)
     words = normalized.split()
@@ -170,6 +204,8 @@ def filter_and_rank_exams(questions: list, user_text: str):
 
 def get_math_exam_years(branch: str):
     """يجلب السنوات المتاحة لفرع معين"""
+    if not safe_segment(branch):
+        return []
     exams_dir = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", "exams", branch)
     
     if not os.path.isdir(exams_dir):
@@ -187,6 +223,8 @@ def get_math_exam_years(branch: str):
 
 def get_math_exam_lessons(branch: str, year: str):
     """يجلب أسماء الدروس من ملف السنة"""
+    if not (safe_segment(branch) and safe_segment(year)):
+        return []
     exam_file = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", "exams", branch, f"{year}.json")
     
     if not os.path.isfile(exam_file):
@@ -202,6 +240,8 @@ def get_math_exam_lessons(branch: str, year: str):
 
 
 def get_math_exam_questions(branch: str, year: str, lesson_name: str, count: int):
+    if not (safe_segment(branch) and safe_segment(year)):
+        return {"questions": [], "total": 0, "has_more": False}
     exam_file = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", "exams", branch, f"{year}.json")
     if not os.path.isfile(exam_file):
         return {"questions": [], "total": 0, "has_more": False}

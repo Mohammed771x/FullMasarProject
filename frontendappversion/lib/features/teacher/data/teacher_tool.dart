@@ -107,6 +107,19 @@ extension TeacherToolX on TeacherTool {
   ///    الوحيد بين الأدوات في بنية البطاقة.
   bool get hasGenerate => this != TeacherTool.ask;
 
+  /// 🔘 **هل في البطاقة زرُّ توليد؟** — الخطةُ والواجبُ وحدهما.
+  ///
+  /// 🎯 **قرار المالك (٢٠٢٦-٠٩-٢٤):** «المفهوم لا يُكتب في إعدادات الجلسة —
+  ///    يكتبه في الرسالة». فالتبسيطُ ما زال **توليداً على الخادم**
+  ///    ([hasGenerate])، لكنّ بابَه أولُ رسالةٍ يكتبها المعلّم لا زرٌّ في
+  ///    البطاقة ([conceptFromMessage]).
+  bool get hasGenerateButton =>
+      this == TeacherTool.lessonPlan || this == TeacherTool.homework;
+
+  /// 💡 **أولُ رسالةٍ في المحادثة هي المفهوم** — تُرسل توليداً منسّقاً
+  ///    («بسّط مفهوم «…» من درس «…»»)، وما بعدها محادثةٌ عادية.
+  bool get conceptFromMessage => this == TeacherTool.simplify;
+
   /// ⭐ هل تُلزم الأداةُ باختيار درس قبل العمل؟
   ///    «اسأل المساعد» لا تُلزم: سؤالٌ عن إدارة الحصة لا يحتاج درساً.
   bool get requiresLesson => this != TeacherTool.ask;

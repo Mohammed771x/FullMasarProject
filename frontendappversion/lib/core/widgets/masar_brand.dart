@@ -111,10 +111,17 @@ class MasarRobotAnimated extends StatefulWidget {
     super.key,
     this.size = 120,
     this.pose = MasarRobotPose.fly,
+    this.tight = false,
   });
 
   final double size;
   final MasarRobotPose pose;
+
+  /// 📏 **صندوقٌ بقدر الصورة** (+ مدى الطفو) لا ١١٨٪ من العرض — صورةُ
+  ///    الطيران ٥١٢×٤٠٠ فارتفاعُها ٧٨٪ من عرضها، والصندوقُ الواسع يترك فوقها
+  ///    وتحتها فراغاً يُبعدها عن الكلام. (قرار المالك ٢٠٢٦-٠٩-٢٤: «الروبوت
+  ///    بعيد من الكتابة — قرّبه كما في تصميم المنح».)
+  final bool tight;
 
   @override
   State<MasarRobotAnimated> createState() => _MasarRobotAnimatedState();
@@ -166,17 +173,19 @@ class _MasarRobotAnimatedState extends State<MasarRobotAnimated>
   @override
   Widget build(BuildContext context) {
     final robot = MasarRobot(size: widget.size, pose: widget.pose);
+    final lift = widget.size * 0.055; // ±٥٫٥٪ — يُرى ولا يقفز
+    final boxHeight = widget.tight
+        ? widget.size * (widget.pose == MasarRobotPose.fly ? 0.78 : 1.0) +
+            2 * lift
+        : widget.size * 1.18;
 
     // ♿ لا حركةَ إن طلب النظامُ ذلك — ولا حتى مؤقّتاتٍ تدور بلا فائدة.
     if (MediaQuery.disableAnimationsOf(context)) {
-      return SizedBox(
-          height: widget.size * 1.18,
-          child: Center(child: robot));
+      return SizedBox(height: boxHeight, child: Center(child: robot));
     }
 
-    final lift = widget.size * 0.055; // ±٥٫٥٪ — يُرى ولا يقفز
     return SizedBox(
-      height: widget.size * 1.18,
+      height: boxHeight,
       child: Center(
         child: AnimatedBuilder(
           animation: Listenable.merge([_float, _halo]),

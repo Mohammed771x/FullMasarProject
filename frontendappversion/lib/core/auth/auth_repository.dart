@@ -141,8 +141,24 @@ class AuthRepository {
   }
 
   // ══════════════ Google ══════════════
+  //
+  // ☢️ **ثغرةٌ أُغلقت (بلاغ المالك ٢٠٢٦-٠٩-٢٣):** «سجّلت دخول بجوجل،
+  //    الآيفون يقول Continue أو Cancel — ضغطت Cancel فدخلت البرنامج
+  //    باسم "طالب مسار"».
+  //
+  //    كان الإلغاءُ يرجع `null` — **وهي نفسُها قيمةُ النجاح**. ثم كان
+  //    [UserSession.signInWithGoogle] يميّز الإلغاءَ بسؤال «هل من مستخدمٍ
+  //    في Firebase؟». والزائرُ **مستخدمٌ** (حسابٌ مجهول)، وحسابُ البريد
+  //    غيرُ المفعَّل مستخدمٌ كذلك. فكان الإلغاءُ يمضي في مسار النجاح كاملاً:
+  //    `isGuest = false`، ومستندُ ملفٍّ يُنشأ لحسابٍ مجهول، والشاشةُ تدخل
+  //    بالاسم الافتراضي «طالب مسار». أي أن **زرَّ الإلغاء كان بابَ دخول**.
+  //
+  // ✅ **فالنتيجةُ ثلاثُ حالاتٍ بنوعٍ لا بقيمةٍ فارغة** ([GoogleAuthResult])،
+  //    والنجاحُ لا يُعلَن إلا بعد **فحصِ ما حدث فعلاً**: مستخدمٌ حاضر،
+  //    غيرُ مجهول، ومزوّدُه جوجل. فأيُّ طريقٍ لم يُحسب حسابُه اليوم —
+  //    إصدارٌ جديدٌ من الحزمة يُلغي بلا استثناء مثلاً — **يُغلق لا يُفتح**.
 
-  Future<String?> signInWithGoogle() async {
+  Future<GoogleAuthResult> signInWithGoogle() async {
     try {
       if (!_googleReady) {
         await GoogleSignIn.instance.initialize(serverClientId: googleServerClientId);
@@ -150,60 +166,88 @@ class AuthRepository {
       }
       final account = await GoogleSignIn.instance.authenticate();
       final idToken = account.authentication.idToken;
-      if (idToken == null) return "تعذّر الحصول على بيانات حساب جوجل.";
+      if (idToken == null) {
+        return const GoogleAuthResult.failed("تعذّر الحصول على بيانات حساب جوجل.");
+      }
 
       final credential = GoogleAuthProvider.credential(idToken: idToken);
       // ★ زائر يسجّل بجوجل: نربط الحساب بدل إنشاء واحد جديد فلا يفقد محادثاته.
       final current = _auth.currentUser;
+      var linked = false;
       if (current != null && current.isAnonymous) {
         try {
           await current.linkWithCredential(credential);
-          return null;
+          linked = true;
         } on FirebaseAuthException catch (e) {
-          if (e.code != "credential-already-in-use") return _arabicError(e);
+          if (e.code != "credential-already-in-use") {
+            return GoogleAuthResult.failed(_arabicError(e));
+          }
           // الحساب موجود مسبقاً ⇒ ندخل به عادياً
         }
       }
-      await _auth.signInWithCredential(credential);
-      return null;
+      if (!linked) await _auth.signInWithCredential(credential);
+      return _verifiedGoogleSession();
     } on GoogleSignInException catch (e) {
       debugPrint("🇬 GoogleSignInException: ${e.code} — ${e.description}");
       switch (e.code) {
         case GoogleSignInExceptionCode.canceled:
-          return null; // ألغى بنفسه — ليس خطأ
+          // ألغى بنفسه — ليس خطأً **ولا دخولاً**.
+          return const GoogleAuthResult.cancelled();
         case GoogleSignInExceptionCode.clientConfigurationError:
         case GoogleSignInExceptionCode.providerConfigurationError:
           // ★ السبب الأشيع على أندرويد: بصمة SHA-1 غير مسجّلة في Firebase.
           //   وعلى iOS: مخطط الـURL (REVERSED_CLIENT_ID) ناقص في Info.plist.
-          return "إعداد الدخول بجوجل غير مكتمل على هذا التطبيق. "
-              "جرّب البريد وكلمة المرور، وسنصلحه قريباً.";
+          return const GoogleAuthResult.failed(
+              "إعداد الدخول بجوجل غير مكتمل على هذا التطبيق. "
+              "جرّب البريد وكلمة المرور، وسنصلحه قريباً.");
         case GoogleSignInExceptionCode.uiUnavailable:
-          return "تعذّر فتح نافذة جوجل. أعد المحاولة.";
+          return const GoogleAuthResult.failed("تعذّر فتح نافذة جوجل. أعد المحاولة.");
         case GoogleSignInExceptionCode.interrupted:
-          return "انقطعت العملية قبل أن تكتمل. أعد المحاولة.";
+          return const GoogleAuthResult.failed(
+              "انقطعت العملية قبل أن تكتمل. أعد المحاولة.");
         case GoogleSignInExceptionCode.unknownError:
         default:
-          return "تعذّر الدخول بجوجل. تأكد من تحديث «خدمات Google Play» ثم أعد المحاولة.";
+          return const GoogleAuthResult.failed(
+              "تعذّر الدخول بجوجل. تأكد من تحديث «خدمات Google Play» ثم أعد المحاولة.");
       }
     } on FirebaseAuthException catch (e) {
-      return _arabicError(e);
+      return GoogleAuthResult.failed(_arabicError(e));
     } on StateError {
-      return _notReady;
+      return const GoogleAuthResult.failed(_notReady);
     } on MissingPluginException {
       // يحدث حين يُشغَّل التطبيق بـHot Reload بعد إضافة الحزمة بلا بناء كامل.
       debugPrint("🇬 MissingPluginException — إضافة جوجل غير محمّلة أصلاً.");
-      return "أوقف التطبيق تماماً وأعد تشغيله (لا Hot Reload) ثم جرّب مجدداً.";
+      return const GoogleAuthResult.failed(
+          "أوقف التطبيق تماماً وأعد تشغيله (لا Hot Reload) ثم جرّب مجدداً.");
     } on PlatformException catch (e) {
       debugPrint("🇬 PlatformException: ${e.code} — ${e.message}");
-      if (e.code == "network_error") return "لا يوجد اتصال بالإنترنت.";
-      return "تعذّر الدخول بجوجل (${e.code}). جرّب البريد وكلمة المرور مؤقتاً.";
+      if (e.code == "network_error") {
+        return const GoogleAuthResult.failed("لا يوجد اتصال بالإنترنت.");
+      }
+      return GoogleAuthResult.failed(
+          "تعذّر الدخول بجوجل (${e.code}). جرّب البريد وكلمة المرور مؤقتاً.");
     } catch (e) {
       // ⚠️ لا نبتلع السبب: نطبعه في اللوج ونذكر نوعه في وضع التطوير.
       debugPrint("🇬 خطأ غير متوقّع في الدخول بجوجل: ${e.runtimeType} — $e");
-      return kDebugMode
+      return GoogleAuthResult.failed(kDebugMode
           ? "تعذّر الدخول بجوجل: ${e.runtimeType}"
-          : "تعذّر الدخول بجوجل. أعد المحاولة، وإن تكرر استخدم البريد وكلمة المرور.";
+          : "تعذّر الدخول بجوجل. أعد المحاولة، وإن تكرر استخدم البريد وكلمة المرور.");
     }
+  }
+
+  /// 🔒 **حارسُ النجاح** — لا يُعلَن دخولٌ بجوجل إلا بما يُرى فعلاً.
+  ///
+  /// ⚖️ «لم يرمِ شيء» ليس دليلاً: قيمةُ الرجوع كانت تقول «نجح» والإلغاءُ
+  ///    واقع. فالدليلُ حالةُ الجلسة بعد النداء — مستخدمٌ حاضر، **غيرُ
+  ///    مجهول**، وبين مزوّديه `google.com`. وما سواها فشلٌ صريح.
+  GoogleAuthResult _verifiedGoogleSession() {
+    final u = currentUser;
+    final viaGoogle = u != null &&
+        !u.isAnonymous &&
+        u.providerData.any((p) => p.providerId == GoogleAuthProvider.PROVIDER_ID);
+    if (viaGoogle) return const GoogleAuthResult.signedIn();
+    debugPrint("🇬 حارسُ النجاح رفض الجلسة: ${u == null ? 'لا مستخدم' : 'مستخدمٌ بلا جوجل'}");
+    return const GoogleAuthResult.failed("تعذّر إكمال الدخول بجوجل. أعد المحاولة.");
   }
 
   // ══════════════ الزائر ══════════════
@@ -272,21 +316,39 @@ class AuthRepository {
 
   // ══════════════ الرسائل ══════════════
   // رسائل Firebase إنجليزية وتقنية — نترجمها لرسائل يفهمها الطالب.
-  static String _arabicError(FirebaseAuthException e) {
-    switch (e.code) {
+
+  /// 🛡️ **رسالةٌ واحدة لثلاثة أكواد — وهذا قرارٌ أمنيّ لا تبسيطُ نصّ.**
+  ///
+  /// `user-not-found` و`wrong-password` و`invalid-credential` لو فُرّقت
+  /// لصارت الشاشةُ **أداةَ إحصاءِ حسابات**: يكتب المهاجمُ بُرُداً بالجملة،
+  /// فما ردّت عليه «كلمة المرور خاطئة» فصاحبُه **مسجَّلٌ عندنا** — فتُجمع
+  /// قائمةُ مستخدمي التطبيق ويوجَّه إليها تصيُّد.
+  ///
+  /// ⚠️ **فلا تُفصَّل بنيّة «رسائل أوضح».** وضوحُها هنا ضررٌ لا نفع،
+  ///    وللطالب مخرجٌ صحيح: «نسيت كلمة المرور؟».
+  static const String genericCredentialError =
+      "البريد أو كلمة المرور غير صحيحة.";
+
+  /// ترجمةُ كود Firebase — **دالّةٌ خالصة** تُنادى من الاختبار بلا Firebase.
+  @visibleForTesting
+  static String messageForCode(String code) {
+    switch (code) {
       case "invalid-email":
         return "صيغة البريد الإلكتروني غير صحيحة.";
       case "email-already-in-use":
       case "credential-already-in-use":
         return "هذا البريد مسجّل مسبقاً — سجّل الدخول بدلاً من ذلك.";
       case "weak-password":
-        return "كلمة المرور ضعيفة — اجعلها 6 أحرف على الأقل.";
+        // ⚠️ الرقمُ هنا يجب أن يطابق `PasswordStrength.minLength`؛ وهو
+        //    حدُّ **التطبيق** (٨) لا حدُّ Firebase (٦). ورسالةٌ تقول ٦
+        //    بينما الشاشةُ ترفض ٧ تُفقد الطالبَ الثقة بالاثنين.
+        return "كلمة المرور ضعيفة — اجعلها 8 أحرف على الأقل.";
       case "user-disabled":
         return "هذا الحساب موقوف. تواصل معنا.";
       case "user-not-found":
       case "wrong-password":
       case "invalid-credential":
-        return "البريد أو كلمة المرور غير صحيحة.";
+        return genericCredentialError;   // ← موحَّدةٌ عمداً، انظر أعلاه
       case "too-many-requests":
         return "محاولات كثيرة متتالية — انتظر قليلاً ثم أعد المحاولة.";
       case "network-request-failed":
@@ -297,4 +359,31 @@ class AuthRepository {
         return "حدث خطأ غير متوقع. حاول مرة أخرى.";
     }
   }
+
+  static String _arabicError(FirebaseAuthException e) => messageForCode(e.code);
+}
+
+// ══════════════════════════════════════════════════
+// 🇬 نتيجةُ الدخول بجوجل — ثلاثُ حالاتٍ لا اثنتان
+// ══════════════════════════════════════════════════
+/// ☢️ كانت `String?` — و`null` تعني «نجح» و«ألغى» معاً، فالتمييزُ بينهما
+///    تُرك لسؤالٍ آخر يكذب مع الزائر (انظر [AuthRepository.signInWithGoogle]).
+///    والنوعُ هنا يجعل الخلطَ **خطأَ ترجمة** لا علّةً صامتة.
+class GoogleAuthResult {
+  const GoogleAuthResult.signedIn()
+      : signedIn = true,
+        error = null;
+  const GoogleAuthResult.cancelled()
+      : signedIn = false,
+        error = null;
+  const GoogleAuthResult.failed(String this.error) : signedIn = false;
+
+  /// دخل فعلاً — وتحقّق [AuthRepository] من ذلك بعينه.
+  final bool signedIn;
+
+  /// رسالةٌ عربيةٌ تُعرض — أو `null` حين لا شيءَ يُقال.
+  final String? error;
+
+  /// أغلق الطالبُ نافذةَ جوجل بنفسه: لا رسالة، ولا دخول، ولا أيّ أثر.
+  bool get cancelled => !signedIn && error == null;
 }

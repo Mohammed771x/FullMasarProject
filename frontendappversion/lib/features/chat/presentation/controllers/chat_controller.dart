@@ -28,6 +28,9 @@ import '../../data/repositories/chat_repository.dart';
 import 'stick_to_bottom.dart';
 import '../../data/repositories/tutor_content_repository.dart';
 import '../../../teacher/data/teacher_tool.dart';
+import '../../../../core/services/conversation_titler.dart';
+import '../../../../core/widgets/reveal_in_scroll.dart';
+import '../../../../core/utils/safe_cut.dart';
 
 // ==========================================
 // 🧠 متحكّم شاشة المحادثة
@@ -41,9 +44,13 @@ class ChatController extends ChangeNotifier {
     TutorContentRepository? contentRepository,
     // 🧪 يُحقن في الاختبارات وحدها — الإنتاج لا يمرّر شيئاً.
     AskStream? askStream,
-  })  : _chat = chatRepository ?? ChatRepository(),
-        _content = contentRepository ?? TutorContentRepository(),
-        _stream = askStream ?? AskStream();
+  }) : _chat = chatRepository ?? ChatRepository(),
+       _content = contentRepository ?? TutorContentRepository(),
+       _stream = askStream ?? AskStream() {
+    // ⌨️ البطاقةُ تُطوى حين **يكتب في المحادثة** لا حين يرتفع أيُّ كيبورد
+    //    ([chatInputFocused]) — فتغيّرُ التركيز حالةٌ تُعيد رسمها.
+    inputFocus.addListener(_safeNotify);
+  }
 
   final ChatRepository _chat;
   final TutorContentRepository _content;
@@ -59,10 +66,32 @@ class ChatController extends ChangeNotifier {
 
   // ===== Controllers مملوكة للمتحكّم =====
   final TextEditingController inputController = TextEditingController();
+
+  /// ⌨️ **تركيزُ حقل المحادثة وحده** — لا «هل الكيبورد مرفوع؟».
+  ///
+  /// 🔴 **بلاغُ المالك (٢٠٢٦-٠٩-٢٣):** «في الوزاري لما أضغط على عدد القطع
+  ///    يطلع الكيبورد وتقفل إعدادات الجلسة». كانت البطاقةُ تُطوى مع **أيّ**
+  ///    كيبورد — ومنه كيبوردُ حقلٍ داخلها هي. فصار الطيُّ لمن يكتب في
+  ///    المحادثة وحده ([chatInputFocused]).
+  final FocusNode inputFocus = FocusNode(debugLabel: 'chat-input');
+
+  /// هل الطالبُ يكتب في حقل المحادثة الآن؟
+  bool get chatInputFocused => inputFocus.hasFocus;
+
+  /// 🚪 **كلُّ دخولٍ يبدأ بلا كيبورد** (قرار المالك ٢٠٢٦-٠٩-٢٣): «أول ما
+  ///    ندخل ما يفتح كيبورد — إذا أبغاه يضغط على الحقل». يُنادى عند فتح
+  ///    محادثةٍ جديدة أو مستعادة وعند تبديل المادة.
+  void _dropKeyboard() {
+    if (inputFocus.hasFocus) inputFocus.unfocus();
+  }
   final ScrollController scrollController = ScrollController();
-  final TextEditingController questionCountController = TextEditingController(text: "10");
-  final TextEditingController arabicQuestionCountController = TextEditingController(text: "5");
-  final TextEditingController englishQuestionCountController = TextEditingController(text: "5");
+  final TextEditingController questionCountController = TextEditingController(
+    text: "10",
+  );
+  final TextEditingController arabicQuestionCountController =
+      TextEditingController(text: "5");
+  final TextEditingController englishQuestionCountController =
+      TextEditingController(text: "5");
 
   // ✅ مراقب لإيقاف أنيميشن الكتابة فوراً
   final ValueNotifier<bool> stopTypingNotifier = ValueNotifier(false);
@@ -85,6 +114,18 @@ class ChatController extends ChangeNotifier {
   String get userId => UserSession.I.uid;
 
   final Map<String, List<Map<String, dynamic>>> _allChatsHistory = {};
+
+  /// 🪪 **معرّفُ محادثة كل نطاقٍ مع رسائله** — لا الرسائلُ وحدها.
+  ///
+  /// ☢️ **بلاغُ المالك (٢٠٢٦-٠٩-٢٣):** «الوزاري له جلسة خاصة… كنت في السؤال،
+  ///    رحت للوزاري، اخترت قطعة، يطلع لي في نفس المكان».
+  ///
+  ///    [_allChatsHistory] يحفظ رسائلَ كل وضعٍ عند مغادرته ويعيدها عند
+  ///    العودة — **ولا يحفظ معرّفَها**. فالعودةُ إلى «سؤال» كانت تُظهر رسائلَه
+  ///    و`currentConversationId` ما زال معرّفَ محادثة الوزاري. وأوّلُ حفظٍ
+  ///    بعدها يكتب رسائلَ السؤال **فوق محادثة الوزاري** وبنطاقه الجديد —
+  ///    فتتقلّب محادثةٌ واحدةٌ بين الوضعين ويظهر هذا في ذاك.
+  final Map<String, String> _allChatsIds = {};
 
   // ══════════════════════════════════════════════════
   // 🌊 البثّ + 📌 الالتصاق بالأسفل
@@ -136,7 +177,7 @@ class ChatController extends ChangeNotifier {
   void onUserDragStart() {
     final was = stick.isStuck;
     stick.beginUserDrag();
-    if (was) _safeNotify();     // يظهر زرّ «انزل للأسفل»
+    if (was) _safeNotify(); // يظهر زرّ «انزل للأسفل»
   }
 
   /// ✋ رفع الطالب إصبعه واستقرّت اللفّة — يُعاد الحكم من موضعه النهائي.
@@ -239,6 +280,21 @@ class ChatController extends ChangeNotifier {
   ///    فوضع الصفحات لا يُعرض ولا يُرسل في هذا القسم إطلاقاً.
   bool get teacherLessonReady => selectedV3Lesson.isNotEmpty;
 
+  /// 💡 **«تبسيط مفهوم» تنتظر مفهومَها** — أولُ رسالةٍ يكتبها المعلّم.
+  ///
+  /// 🎯 **قرار المالك (٢٠٢٦-٠٩-٢٤):** «المفهوم ضروري يكتبه في إعدادات
+  ///    الجلسة؟ لا — خلّه يكتبه في الرسالة. أول رسالة يكتب المفهوم، بيرسل
+  ///    مع البرومبت منسّق، وبعدها محادثةٌ عادية». فالحقلُ في البطاقة زال،
+  ///    والرسالةُ الأولى تمضي توليداً (`generate` + `concept`) كما كان
+  ///    يفعل الزرّ — والخادمُ لم يتغيّر فيه حرف.
+  bool get awaitingTeacherConcept =>
+      isTeacher &&
+      teacherTool!.conceptFromMessage &&
+      !messages.any((m) => m["role"] == "user");
+
+  /// سقفُ المفهوم — نظيرُ `MAX_CONCEPT_CHARS` في الخادم (يقصّ ما زاد).
+  static const int maxConceptChars = 200;
+
   /// 📖 هل يكفي الضغط على «إرسال» بلا كتابة؟
   ///
   /// 🔴 **علّة مرصودة (2026-09-04):** لوحة الإعدادات تَعِد الطالب صراحةً
@@ -277,7 +333,7 @@ class ChatController extends ChangeNotifier {
   //
   // 🔄 **وتتبدّل بعد أول جواب**: شرائحُ البداية تصير شرائحَ متابعة. فشريحةٌ
   //    تقول «بسّط لي» قبل أن يُشرح شيءٌ تُنتج رداً بلا معنى وتُستهلك من
-  //    الحصة — نفسُ القاعدة المطبّقة في [TeacherSuggestionChips].
+  //    الحصة — والقاعدةُ نفسُها للمعلّم ([_teacherSuggestions]).
 
   /// نصُّ «اشرح لي الدرس» كما يقبله المخزون على الخادم. **لا يُغيَّر بلا
   /// تغيير `is_full_lesson_request` معه** — وإلا سقط الكاشُ بصمت.
@@ -285,15 +341,16 @@ class ChatController extends ChangeNotifier {
 
   static const List<ChatSuggestion> _followUps = [
     ChatSuggestion("بسّط لي", "بسّط لي ما شرحته بلغةٍ أسهل"),
-    ChatSuggestion("مثال من الحياة",
-        "أعطني مثالاً من الحياة اليومية يوضّح الفكرة"),
+    ChatSuggestion(
+      "مثال من الحياة",
+      "أعطني مثالاً من الحياة اليومية يوضّح الفكرة",
+    ),
     ChatSuggestion("وضّح أكثر", "وضّح أكثر ما شرحته"),
     ChatSuggestion("لخّص", "لخّص لي ما سبق في نقاط"),
   ];
 
   /// عددُ ردودِ المساعد في هذه المحادثة — مقياسُ «أين نحن من الحصة».
-  int get _answerCount =>
-      messages.where((m) => m["role"] == "ai").length;
+  int get _answerCount => messages.where((m) => m["role"] == "ai").length;
 
   /// ⏳ **بعد جولتين تُطفأ الاقتراحات** (قرار المالك 2026-09-16: «الثالثة
   /// خلاص ما عاد شي داعي تطلع الاقتراحات — خلاص هو يتصرّف اليوزر»).
@@ -305,10 +362,10 @@ class ChatController extends ChangeNotifier {
 
   /// الاقتراحاتُ المناسبة للحالة الراهنة — فارغةٌ حين لا معنى لها.
   List<ChatSuggestion> get suggestions {
-    if (isTeacher) return const [];            // للمعلّم شرائحُه الخاصة
-    if (selectedMode == "وزاري" || selectedMode == "اختبارات") return const [];
     final answers = _answerCount;
     if (answers >= _maxSuggestionRounds) return const [];
+    if (isTeacher) return _teacherSuggestions(answers);
+    if (selectedMode == "وزاري" || selectedMode == "اختبارات") return const [];
     if (answers > 0) return _followUps;
 
     // 📖 الزرُّ البارز لا يظهر إلا ودرسٌ مختار — وإلا لا شيءَ ليُشرح.
@@ -322,8 +379,10 @@ class ChatController extends ChangeNotifier {
           if (lessonReady)
             const ChatSuggestion("لخّص لي", "لخّص لي هذا الدرس", primary: true),
           const ChatSuggestion("في نقاط", "لخّص الدرس في نقاطٍ مرقّمة"),
-          const ChatSuggestion("أهم التعريفات",
-              "اجمع لي أهم التعريفات في هذا الدرس"),
+          const ChatSuggestion(
+            "أهم التعريفات",
+            "اجمع لي أهم التعريفات في هذا الدرس",
+          ),
         ];
       case "سؤال":
         // ⚠️ **قوالبُ تُملأ ولا تُرسل**: وضعُ السؤال يشترط أن يكتب الطالبُ
@@ -335,34 +394,136 @@ class ChatController extends ChangeNotifier {
           ChatSuggestion("لماذا…", "لماذا ", send: false),
           ChatSuggestion("اذكر أمثلة على…", "اذكر أمثلة على ", send: false),
         ];
-      default:                                  // شرح
+      default: // شرح
         return [
           if (lessonReady)
             const ChatSuggestion("اشرح لي", explainLessonText, primary: true),
-          const ChatSuggestion("مثال من الحياة",
-              "اشرح لي الدرس وأعطني مثالاً من الحياة اليومية"),
-          const ChatSuggestion("بطريقةٍ مبسّطة",
-              "اشرح لي الدرس بطريقةٍ مبسّطةٍ جداً"),
-          const ChatSuggestion("أهم النقاط",
-              "اشرح لي أهم النقاط في هذا الدرس"),
+          const ChatSuggestion(
+            "مثال من الحياة",
+            "اشرح لي الدرس وأعطني مثالاً من الحياة اليومية",
+          ),
+          const ChatSuggestion(
+            "بطريقةٍ مبسّطة",
+            "اشرح لي الدرس بطريقةٍ مبسّطةٍ جداً",
+          ),
+          const ChatSuggestion("أهم النقاط", "اشرح لي أهم النقاط في هذا الدرس"),
         ];
     }
+  }
+
+  /// 👨‍🏫 **اقتراحاتُ المعلّم بقاعدة الطالب نفسِها** (قرار المالك ٢٠٢٦-٠٩-٢٤):
+  ///    قبل أول ردٍّ فوق الحقل، وبعده في ذيل الردّ، ولجولتين فقط. ولكل أداةٍ
+  ///    اقتراحاتُها ([TeacherToolX.suggestions]).
+  ///
+  /// ⚠️ **وقبل أول ردٍّ لـ«اسأل المساعد» وحدها**: الخطةُ والواجبُ بابُهما
+  ///    زرُّ التوليد، والتبسيطُ بابُه المفهومُ يُكتب — و«أضف مثالاً من
+  ///    الحياة» ولا شيءَ يُضاف إليه ردٌّ بلا معنى يُخصم من الحصة.
+  List<ChatSuggestion> _teacherSuggestions(int answers) {
+    final t = teacherTool!;
+    if (answers == 0 && t != TeacherTool.ask) return const [];
+    return [for (final s in t.suggestions) ChatSuggestion(s, s)];
   }
 
   /// تنفيذُ اقتراح: إرسالٌ فوريّ، أو ملءُ حقل الكتابة لِيُكمله الطالب.
   void applySuggestion(ChatSuggestion s) {
     if (s.send) {
-      processRequest(customText: s.text);
+      processRequest(customText: s.text); // 🚦 البوّابةُ داخلها
       return;
     }
     inputController.text = s.text;
-    inputController.selection =
-        TextSelection.collapsed(offset: s.text.length);
+    inputController.selection = TextSelection.collapsed(offset: s.text.length);
     notifyListeners();
   }
 
+  // ══════════════════════════════════════════════════
+  // 🚦 بوّابةُ الإرسال الواحدة — «كلُّ المكوّنات مختارة»
+  // ══════════════════════════════════════════════════
+  //
+  // 🔴 **قرارُ المالك (٢٠٢٦-٠٩-٢٣):** «ما يخلّي لنا نرسل الرسالة أصلاً إذا
+  //    الدرس مش مختار، أو الصفحات مش مختارة، أو الوزاري ما اخترت السنة…
+  //    ضروري يكون كل شي مختار — **مش أنا أرسل ويقول لي اختر**».
+  //
+  //    وما كان: الزرُّ يُضيء لأيّ نصٍّ مكتوب، فيذهب الطلبُ إلى الخادم بلا
+  //    درس، ويعود «⚠️ يجب اختيار الدرس أولاً» — رحلةُ شبكةٍ وفقاعتان في
+  //    المحادثة وانتظارٌ، والجوابُ معروفٌ قبل الضغط. وشرائحُ الاقتراح
+  //    كذلك: «مثال من الحياة» تُرسل قبل أن يُختار شيءٌ يُمثَّل له.
+  //
+  // ✅ **سؤالٌ واحد يُجيب عنه الكلّ:** الزرُّ ولونُه، وتلميحُ الحقل، وشرائحُ
+  //    الاقتراح، والإرسالُ بالصوت، و[processRequest] نفسُها حارساً أخيراً.
+  //    والجوابُ **سببٌ مكتوب** لا `bool`: الطالبُ يُقال له ما ينقصه بعينه.
+  //
+  // ⚖️ **ومرآةٌ للخادم لا اختراع:** كلُّ شرطٍ هنا ردٌّ يعيده الخادمُ اليوم
+  //    («اختر فرع الرياضيات» · «يجب اختيار الدرس» · «اكتب الصيغة هكذا:
+  //    2019,الموضوع» · «خطأ في صيغة الطلب»). فالبوّابةُ تمنع طلباً محكوماً
+  //    بالرفض — ولا تمنع طلباً كان سيُخدَم.
+  //
+  // 🧭 **وأزرارُ الوزاري خارجها:** «جلب الأسئلة» و«أكمل» و«إيقاف» لها
+  //    جاهزيّتُها في أزرارها، والبوّابةُ هنا لما يكتبه الطالب ويرسله.
+
+  /// ما ينقص قبل الإرسال — أو `null` حين يكتمل كلُّ شيء.
+  String? get sendBlocker {
+    if (isTeacher) {
+      final t = teacherTool!;
+      if (t.requiresLesson && !teacherLessonReady) {
+        return "اختر المادة والوحدة والدرس أولاً";
+      }
+      return null;
+    }
+
+    if (selectedSubject == "رياضيات") {
+      if (selectedMathBranch.isEmpty) return "اختر فرع الرياضيات أولاً";
+      if (mathMode == "وزاري") {
+        return mathWazariQuestionsLoaded ? null : "اختر ثم اضغط «جلب الأسئلة»";
+      }
+      if (selectedLesson.isEmpty) return "اختر الدرس أولاً";
+      return null;
+    }
+
+    if (selectedMode == "وزاري") {
+      if (yearsLoading) return "لحظة… تُجلب السنوات الوزارية";
+      if (availableYears.isEmpty) return "لا أسئلة وزارية لهذه المادة بعد";
+      // 📝 العربيُّ والإنجليزيُّ **لا يقبلان كتابةً حرّة** في الوزاري:
+      //    الخادمُ ينتظر «سنة|قسم|نوع|عدد» من زرّ الجلب وحده، وما سواه
+      //    يعود «❌ خطأ في صيغة الطلب». فالطريقُ الوحيد زرُّ البطاقة.
+      if (selectedSubject == "عربي" || selectedSubject == "انجليزي") {
+        // 📏 قصيرةٌ عمداً: تُعرض تلميحاً في سطرٍ واحد بخطّ ١٦.
+        return "اختر ثم اضغط «جلب الأسئلة»";
+      }
+      if (selectedExamYear.isEmpty) return "اختر السنة الوزارية أولاً";
+      return null;
+    }
+
+    if (capsLoading) return "لحظة… يُجهَّز محتوى المادة";
+    // ⚖️ **يُسأل عمّا اختير لا عمّا حُمّل:** درسٌ مختارٌ يعني وحدتَه (القائمةُ
+    //    لا تعرض الدرسَ قبل وحدته، والخادمُ يجده بلا وحدة)، والقوائمُ لا تُسأل
+    //    إلا لتمييز «لم تختر» من «لا محتوى أصلاً».
+    if (effectiveContentMode == "lessons") {
+      if (selectedV3Lesson.isNotEmpty) return null;
+      if (v3LessonsUnits.isEmpty) return "دروس هذه المادة قيد الإضافة";
+      return selectedV3Unit.isEmpty ? "اختر الوحدة ثم الدرس" : "اختر الدرس أولاً";
+    }
+    // وضعُ الوحدات
+    if (selectedUnit.isEmpty) {
+      return availableUnits.isEmpty
+          ? "محتوى هذه المادة قيد الإضافة"
+          : "اختر الوحدة أولاً";
+    }
+    // 📷 والصورةُ تُغني عن اختيار الصفحة — من صوّرها استغنى عن اختيارها.
+    if (canPickPages && selectedPages.isEmpty && !hasAttachments) {
+      return "اختر الصفحات أولاً";
+    }
+    return null;
+  }
+
+  /// هل البوّابةُ مفتوحة؟ — اختصارٌ لـ[sendBlocker].
+  bool get selectionComplete => sendBlocker == null;
+
+  /// 🚦 أُغلقت البوّابة بعد ضغطة — الشاشةُ تعرض السببَ وتفتح البطاقة.
+  void Function(String reason)? onSendBlocked;
+
   bool get canSendWithoutText =>
       !isTeacher &&
+      selectionComplete &&
       !questionNeedsTypedText &&
       ((effectiveContentMode == "lessons" && selectedV3Lesson.isNotEmpty) ||
           // 📄 صفحاتٌ مختارة = طلبٌ كامل بذاته. طلبُ المالك: «الزر يكون
@@ -378,9 +539,8 @@ class ChatController extends ChangeNotifier {
   /// هل الأداة جاهزة للتوليد؟ (الدرس + ما تطلبه الأداة من حقول)
   bool get canGenerateTeacher {
     final t = teacherTool;
-    if (t == null || !t.hasGenerate || isLoading) return false;
+    if (t == null || !t.hasGenerateButton || isLoading) return false;
     if (t.requiresLesson && !teacherLessonReady) return false;
-    if (t == TeacherTool.simplify && conceptController.text.trim().isEmpty) return false;
     return true;
   }
 
@@ -391,8 +551,8 @@ class ChatController extends ChangeNotifier {
   String contentMode = "pages";
   SubjectCapabilities? caps;
   bool capsLoading = false;
-  String selectedV3Unit = "";     // وحدة وضع الدروس
-  String selectedV3Lesson = "";   // درس وضع الدروس
+  String selectedV3Unit = ""; // وحدة وضع الدروس
+  String selectedV3Lesson = ""; // درس وضع الدروس
 
   /// هل تظهر واجهة الوضعين؟ (لكل المواد عدا الرياضيات، وليس في الوزاري)
   /// 👨‍🏫 وقسم المعلم **خارجها كلياً**: لا اختيار بين دروس وصفحات — الدروس فقط.
@@ -401,6 +561,11 @@ class ChatController extends ChangeNotifier {
 
   /// القيمة المُرسلة للخادم — null يعني «المسار القديم كما هو».
   String? get effectiveContentMode => usesContentModes ? contentMode : null;
+
+  /// 🌳 **هل الدرسُ من شجرة الدروس؟** — وضعُ الدروس عند الطالب، والمعلّمُ
+  ///    دائماً (لا صفحاتَ عنده). سؤالٌ واحدٌ للحفظ والاستعادة كي لا يُنسى
+  ///    المعلّمُ في أحدهما ([effectiveContentMode] فارغٌ عنده).
+  bool get _usesLessonTree => isTeacher || effectiveContentMode == "lessons";
 
   String _inputType = "برومت";
 
@@ -448,17 +613,23 @@ class ChatController extends ChangeNotifier {
   ///    يُنسى هو عودةٌ لنفس العطل.
   bool get canPickPages =>
       !isTeacher &&
-      effectiveContentMode == "pages" &&   // 👈 وضع الوحدات حصراً
+      effectiveContentMode == "pages" && // 👈 وضع الوحدات حصراً
       inputType == "صفحة" &&
       (caps?.pagesAvailable ?? false);
 
   /// صفحات النطاق الحالي — الوحدة المختارة، أو المنهج كلّه عند «الكل».
-  List<int> get availablePages =>
-      caps?.pagesIn(selectedUnit) ?? const <int>[];
+  List<int> get availablePages => caps?.pagesIn(selectedUnit) ?? const <int>[];
 
   /// يضيف صفحةً ويعيد سبب الرفض إن رُفضت — **رسالةٌ لا صمت**.
   String? addPage(int page) {
     if (selectedPages.contains(page)) return "الصفحة $page مضافة أصلاً.";
+    // 🔒 صفحةٌ جديدةٌ على محادثةٍ بدأت بصفحاتٍ أخرى ⇒ محادثةٌ جديدة.
+    if (conversationStarted &&
+        _conversationPages.isNotEmpty &&
+        !_conversationPages.contains(page)) {
+      _addPageInNewConversation(page);
+      return null;
+    }
     if (selectedPages.length >= maxPages) {
       return "الصفحات زائدة — الحد $maxPages صفحات في المرة الواحدة.";
     }
@@ -478,6 +649,79 @@ class ChatController extends ChangeNotifier {
     selectedPages.clear();
     notifyListeners();
   }
+
+  // ══════════════════════════════════════════════════
+  // 🔒 لكل محادثةٍ درسُها — تغييرُه يعني محادثةً جديدة
+  // ══════════════════════════════════════════════════
+  //
+  // 🎯 **قرار المالك (٢٠٢٦-٠٩-٢٤) — للقسمين:** «ما يقدر يغيّر الدرس في نفس
+  //    المحادثة. أول ما يختار درساً ثانياً يقول: اخترتَ درساً جديداً،
+  //    الأفضل تفتح محادثة جديدة — موافق؟ موافق ⇒ محادثةٌ جديدة بالدرس
+  //    الجديد. غير موافق ⇒ يبقى على نفس الدرس. والصفحاتُ كذلك: يقدر يحدّث
+  //    الصفحات، لكن يضيف صفحاتٍ ما يقدر».
+  //
+  // ⚖️ **ولماذا هو صحيحٌ لا تقييدٌ فحسب:** سجلُّ المحادثة يُرسل مع كل
+  //    سؤال. محادثةٌ بدأت بـ«الحال» ثم تحوّلت إلى «التمييز» تُرسل للموديل
+  //    شرحَ الحال سياقاً لسؤالٍ عن التمييز — فيخلط بينهما. وتُحفظ باسم
+  //    درسٍ واحد ([ChatConversation.lesson]) فتعود بغير ما نوقش فيها.
+  //
+  // 🧭 **ما يُقفل:** الدرسُ، والوحدةُ (تبديلُها يُسقط الدرس)، ومصدرُ المحتوى
+  //    (دروس/صفحات)، ووحدةُ الصفحات، وصفحةٌ **من خارج** صفحات المحادثة.
+  //    **وما لا يُقفل:** إزالةُ صفحةٍ أو إعادتُها من صفحات المحادثة، والدرسُ
+  //    الأول في محادثةٍ بدأت بلا درس («اسأل المساعد»)، والوضعُ (لكل وضعٍ
+  //    محادثتُه أصلاً) والمادة (لكل مادةٍ سجلُّها).
+
+  /// 📄 صفحاتُ هذه المحادثة — تُثبَّت مع أول رسالةٍ أُرسلت بصفحات.
+  final List<int> _conversationPages = [];
+
+  /// صفحاتُ المحادثة (للعرض والاختبار) — فارغةٌ قبل أول إرسالٍ بصفحات.
+  List<int> get conversationPages => List.unmodifiable(_conversationPages);
+
+  /// هل بدأت المحادثة؟ — رسالةٌ أرسلها صاحبُها تحت هذا السياق.
+  bool get conversationStarted => messages.any((m) => m["role"] == "user");
+
+  /// 🗨️ **السؤالُ للشاشة:** «افتح محادثةً جديدة؟» — `true` موافق.
+  ///    بلا شاشة (اختبارٌ أو متحكّمٌ عارٍ) يمضي التغييرُ في محادثةٍ جديدة
+  ///    بلا سؤال: القاعدةُ لا تُعلَّق لغياب من يُسأل.
+  Future<bool> Function(ContextChange change)? onConfirmNewConversation;
+
+  /// ⚠️ **يُسأل `conversationStarted` قبله عند النداء** لا داخله وحده:
+  ///    `await` على دالةٍ غير متزامنة يؤجّل ما بعده دورةً ولو لم يلزم شيء،
+  ///    فيصير الإسنادُ الفوريّ (القائمةُ تُرسم بالقيمة الجديدة) متأخّراً.
+  /// يُنادى قبل كل تغييرٍ مُقفَل. `true` ⇒ امضِ (وقد فُتحت محادثةٌ جديدة
+  /// إن لزم)، `false` ⇒ الطالبُ اختار البقاء فلا يُمسّ شيء.
+  Future<bool> _allowContextChange(ContextChange change) async {
+    if (!conversationStarted) return true;
+    final ask = onConfirmNewConversation;
+    if (ask != null) {
+      final ok = await ask(change);
+      if (_disposed) return false;
+      if (!ok) {
+        _safeNotify(); // القائمةُ المنسدلة تعود إلى قيمتها
+        return false;
+      }
+    }
+    // 💾 المحفوظُ يُحفظ قبل المغادرة — لا تضيع جولةٌ لم تُكتب بعد.
+    if (messages.isNotEmpty) {
+      try {
+        await saveCurrentConversation();
+      } catch (_) {}
+    }
+    await createNewConversation();
+    return true;
+  }
+
+  /// ➕ صفحةٌ **من خارج** صفحات المحادثة ⇒ السؤال، ثم محادثةٌ جديدة
+  ///    بما اختاره الآن مع الصفحة الجديدة.
+  Future<void> _addPageInNewConversation(int page) async {
+    final carry = [...selectedPages, page]..sort();
+    if (!await _allowContextChange(ContextChange.pages)) return;
+    selectedPages
+      ..clear()
+      ..addAll(carry.take(maxPages));
+    _safeNotify();
+  }
+
   int summaryLevel = 3;
   String selectedUnitName = "";
   bool isLoading = false;
@@ -494,7 +738,7 @@ class ChatController extends ChangeNotifier {
   ///
   /// ⚖️ فصار سؤالُ «هل أنا مشغول؟» **مشتقّاً واحداً** لا حقلاً عارياً:
   ///    كلُّ موضعٍ ينسى `isStreaming` هو عودةٌ لنفس العطل.
-  bool get isBusy => isLoading || isStreaming;
+  bool get isBusy => _requestInFlight || isLoading || isStreaming;
 
   /// للاختبارات وحدها: يُشيخ الحالةَ المشغولة كأن الطلب تجمّد.
   @visibleForTesting
@@ -502,6 +746,7 @@ class ChatController extends ChangeNotifier {
       _busySince = DateTime.now().subtract(_busyCeiling * 2);
 
   bool sessionActive = false;
+
   /// جاري جلب سنوات الوزاري — تميّز «لم تصل بعد» عن «لا يوجد بنك لهذا الصف».
   bool yearsLoading = false;
   bool mathWazariQuestionsLoaded = false;
@@ -512,15 +757,55 @@ class ChatController extends ChangeNotifier {
   List<String> get subjects => Curriculum.subjectsFor(grade, track);
 
   /// هل محتوى المادة الحالية متاح على الخادم؟
-  bool get isCurrentSubjectAvailable => Curriculum.isAvailable(grade, track, selectedSubject);
+  bool get isCurrentSubjectAvailable =>
+      Curriculum.isAvailable(grade, track, selectedSubject);
 
   String get gradeLabel => Curriculum.gradeLabel(grade);
   String get trackLabel => track.label;
 
   bool _isResponseCancelled = false;
+  bool _requestInFlight = false;
+  Completer<void>? _requestFinished;
+
+  // ══════════════════════════════════════════════════
+  // 🎫 **ختمُ النطاق** — أيُّ قائمةٍ تصل، لأيّ مادةٍ هي؟
+  // ══════════════════════════════════════════════════
+  //
+  // 🔴 **العطل:** كلُّ محمّلٍ هنا يطلب باسم `selectedSubject` **لحظةَ
+  //    الطلب** ويكتب في حقولٍ مشتركة **لحظةَ الوصول**. وبينهما رحلةُ شبكة.
+  //    فمن بدّل المادة بسرعة — فيزياء ← كيمياء — أطلق طلبين، ولا شيء
+  //    يضمن ترتيب عودتهما. فإن تأخّرت فيزياء وعادت أخيراً كتبت `caps`
+  //    الخاصّة بها **على كيمياء**: شجرةُ دروسٍ من مادةٍ أخرى أمام الطالب،
+  //    و`contentMode` يُحسم بقدراتٍ ليست لها، وسؤالُه يمضي بدرسٍ لا وجود
+  //    له في مادته. وأسوأُ ما فيه أنه يبدو سليماً تماماً.
+  //
+  // ☢️ ومعه `capsLoading = false` من الطلب القديم **يُطفئ الانتظار**
+  //    بينما الجديد ما زال في الطريق — فتظهر الشاشة جاهزةً وهي فارغة.
+  //
+  // ⚖️ **الحل ختمٌ لا إلغاء:** رقمٌ يزيد مع كل تبديل نطاق، يلتقطه المحمّل
+  //    عند انطلاقه ويقارنه عند وصوله. فما عاد لنطاقٍ انصرف **يُطرح
+  //    صامتاً** — لا رسالةَ خطأ ولا كتابةَ حقل. ولا نعتمد على إلغاء
+  //    الطلب نفسه: `http` قد يكون سلّم الرد قبل أن يصل الإلغاء.
+  int _scopeGeneration = 0;
+
+  /// ختمُ النطاق الحالي — يُلتقط عند انطلاق أي محمّل.
+  int get _scopeToken => _scopeGeneration;
+
+  /// هل انصرف النطاق (أو مات المتحكّم) منذ التقاط الختم؟
+  bool _scopeExpired(int token) => _disposed || token != _scopeGeneration;
+
+  /// يُبطل كلَّ ما هو في الطريق — يُنادى مع كل تبديل نطاق.
+  void _bumpScope() => _scopeGeneration++;
+
+  /// للاختبارات وحدها: ختمُ النطاق الحالي.
+  @visibleForTesting
+  int get debugScopeToken => _scopeGeneration;
 
   // UI State
-  bool showSettingsPanel = true;
+  /// 🃏 **مطويّةٌ عند الدخول** (قرار المالك ٢٠٢٦-٠٩-٢٤ — يعكس قرار الأمس):
+  ///    «لما ندخل أول مرة لا تخلّي إعدادات الجلسة مفتوحة… يطلع له الروبوت
+  ///    بشكلٍ جميل، وهو يضغط على إعدادات الجلسة». وسيُضاف دليلٌ يشير إليها.
+  bool showSettingsPanel = false;
 
   // ===== التهيئة =====
   /// [openSubject] و[openLesson] وأخواتها: فتحٌ موجَّه من خارج الشات —
@@ -541,9 +826,13 @@ class ChatController extends ChangeNotifier {
     unawaited(QuotaRepository.I.refresh());
 
     grade = UserSession.I.grade;
-    track = Curriculum.normalizeTrack(grade, TrackLabel.fromKey(UserSession.I.track));
+    track = Curriculum.normalizeTrack(
+      grade,
+      TrackLabel.fromKey(UserSession.I.track),
+    );
     selectedSubject = Curriculum.defaultSubject(grade, track);
-    if (openSubject != null && Curriculum.subjectsFor(grade, track).contains(openSubject)) {
+    if (openSubject != null &&
+        Curriculum.subjectsFor(grade, track).contains(openSubject)) {
       selectedSubject = openSubject;
     }
     _resetModeForSubject();
@@ -553,7 +842,8 @@ class ChatController extends ChangeNotifier {
     //    والوضعُ هما مفتاحُ النطاق الذي تُقرأ به المحادثات وتُحفظ به.
     //    ولا تُستعاد لفتحةٍ موجَّهة (نتيجةُ اختبارٍ أو تحليل): تلك تقول
     //    أين تذهب صراحةً، فالجلسةُ لا تنقضها ([EduSession]).
-    final resumed = (openSubject == null && openLesson == null && openMode == null)
+    final resumed =
+        (openSubject == null && openLesson == null && openMode == null)
         ? _restorePlace()
         : null;
 
@@ -572,7 +862,7 @@ class ChatController extends ChangeNotifier {
     // 🎓 ويتبع الطالبَ أينما بدّل صفَّه — من الدرج أو من الإعدادات.
     UserSession.I.addListener(_onSessionScopeChanged);
     await loadCapabilities();
-    if (!isTeacher) await loadAvailableUnits();   // 👨‍🏫 الدروس وحدها
+    if (!isTeacher) await loadAvailableUnits(); // 👨‍🏫 الدروس وحدها
 
     // بعد وصول القدرات: نُثبّت الوحدة والدرس المطلوبين.
     //
@@ -583,7 +873,8 @@ class ChatController extends ChangeNotifier {
     if (openLesson != null && openLesson.isNotEmpty) {
       if (selectedSubject == "رياضيات") {
         await applyMathDeepLink(openUnit ?? "", openLesson);
-      } else if (caps?.lessonsAvailable == true && caps!.lessonsUnits.isNotEmpty) {
+      } else if (caps?.lessonsAvailable == true &&
+          caps!.lessonsUnits.isNotEmpty) {
         contentMode = "lessons";
         final unit = resolveLessonUnit(caps!, openUnit, openLesson);
         selectedV3Unit = unit;
@@ -622,7 +913,9 @@ class ChatController extends ChangeNotifier {
         selectedMode = p.mathMode;
       }
       selectedLesson = p.mathLesson;
-      if (selectedMathBranch.isNotEmpty) unawaited(loadMathLessons(selectedMathBranch));
+      if (selectedMathBranch.isNotEmpty) {
+        unawaited(loadMathLessons(selectedMathBranch));
+      }
     } else {
       // ⚠️ وضعٌ لم يعد لهذا الصف (وزاريُّ من تشغيلةٍ قبل تبديل الصف) يُهمَل
       //    ويبقى «شرح» — الشريحةُ غيرُ مرسومةٍ أصلاً فلا يُفتح عليها.
@@ -679,7 +972,10 @@ class ChatController extends ChangeNotifier {
   void _onSessionScopeChanged() {
     if (_disposed || isTeacher) return;
     final g = UserSession.I.grade;
-    final t = Curriculum.normalizeTrack(g, TrackLabel.fromKey(UserSession.I.track));
+    final t = Curriculum.normalizeTrack(
+      g,
+      TrackLabel.fromKey(UserSession.I.track),
+    );
     if (g == grade && t == track) return;
     grade = g;
     track = t;
@@ -706,7 +1002,10 @@ class ChatController extends ChangeNotifier {
   /// فالقاعدة: تُقبل [openUnit] **فقط إن كانت تحوي الدرس**، وإلا يُبحث عنه.
   @visibleForTesting
   static String resolveLessonUnit(
-      SubjectCapabilities caps, String? openUnit, String lesson) {
+    SubjectCapabilities caps,
+    String? openUnit,
+    String lesson,
+  ) {
     if (openUnit != null && caps.lessonsIn(openUnit).contains(lesson)) {
       return openUnit;
     }
@@ -752,6 +1051,7 @@ class ChatController extends ChangeNotifier {
   ///    **الإعدادات** لا يرى ذلك — بابان لفعلٍ واحد وسلوكان مختلفان.
   Future<void> setGrade(int g) async {
     if (g == grade) return;
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
     grade = g;
     track = Curriculum.normalizeTrack(grade, track);
     await UserSession.I.setGrade(g);
@@ -761,14 +1061,16 @@ class ChatController extends ChangeNotifier {
   /// يغيّر المسار (علمي/أدبي) — متاح للصفين الثاني والثالث فقط.
   Future<void> setTrack(Track t) async {
     if (!Curriculum.hasTracks(grade) || t == track) return;
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
     track = t;
-    await UserSession.I.setTrack(t.key);   // ← نفسُ سبب [setGrade] حرفياً
+    await UserSession.I.setTrack(t.key); // ← نفسُ سبب [setGrade] حرفياً
     await _onScopeChanged();
   }
 
   /// يغيّر المادة داخل نفس الصف/المسار.
   Future<void> setSubject(String subject) async {
     if (subject == selectedSubject) return;
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
     selectedSubject = subject;
     await _onScopeChanged(keepSubject: true);
   }
@@ -789,6 +1091,7 @@ class ChatController extends ChangeNotifier {
   ///    لأن المادة تغيّرت، وهنا لم تتغيّر.
   Future<void> setTeacherTool(TeacherTool tool) async {
     if (!isTeacher || tool == teacherTool) return;
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
     teacherTool = tool;
     selectedMode = "معلم:${tool.id}";
     loadConversations();
@@ -798,6 +1101,8 @@ class ChatController extends ChangeNotifier {
 
   /// كل ما يجب أن يحدث عند تغيّر النطاق (صف/مسار/مادة).
   Future<void> _onScopeChanged({bool keepSubject = false}) async {
+    // 🎫 كلُّ ما طار لمادةٍ سابقة يُطرح عند وصوله ([_scopeExpired]).
+    _bumpScope();
     if (!keepSubject || !subjects.contains(selectedSubject)) {
       selectedSubject = Curriculum.defaultSubject(grade, track);
     }
@@ -814,13 +1119,13 @@ class ChatController extends ChangeNotifier {
     _resetModeForSubject();
 
     caps = null;
-    _thinkingAvailable = false;   // 🧠 حتى تصل قدرةُ المادة الجديدة
+    _thinkingAvailable = false; // 🧠 حتى تصل قدرةُ المادة الجديدة
     selectedV3Unit = "";
     selectedV3Lesson = "";
     // 👨‍🏫 الدروس وحدها في قسم المعلم — تبديل المادة لا يعيده لوضع الصفحات.
     contentMode = isTeacher ? "lessons" : "pages";
 
-    loadConversations();     // ← سجلّ محادثات النطاق الجديد
+    loadConversations(); // ← سجلّ محادثات النطاق الجديد
     createNewConversation();
     _safeNotify();
 
@@ -979,8 +1284,29 @@ class ChatController extends ChangeNotifier {
   /// يرجع null إن لم يُلتقط شيء.
   Future<String?> _endRecordingAndClean() async {
     if (!isRecording) return null;
-    final raw = await SttService.I.finish();
-    isRecording = false;
+
+    // ══════════════════════════════════════════════════
+    // 🎤 **الحالةُ تُطفأ في `finally` لا في السطر التالي**
+    // ══════════════════════════════════════════════════
+    //
+    // 🔴 **العطلان اللذان يعالجهما هذا الحارس:**
+    //
+    //    ① `finish()` تلمس محرّك النظام. فلو رمى أيُّ جزءٍ منها بقيت
+    //      `isRecording = true` **إلى الأبد**: شريطُ الموجات لا يختفي،
+    //      وزرُّ المايك يرفض أن يبدأ من جديد (`if (isRecording) return`)،
+    //      ولا مخرجَ للطالب إلا إغلاق التطبيق.
+    //
+    //    ② `/voice/clean` رحلةُ شبكة — وشبكةُ الطالب تتقطّع. وكان الرمي
+    //      يترك `isCleaningVoice = true` **ويبتلع النصّ الخام معه**:
+    //      الطالب أملى جملته كاملةً، والتقطها الجهاز فعلاً، ثم اختفت
+    //      لأن **تحسينَها** فشل. والتنظيفُ تجميلٌ لا شرط.
+    final String raw;
+    try {
+      raw = await SttService.I.finish();
+    } finally {
+      isRecording = false;
+      _safeNotify();
+    }
 
     if (raw.isEmpty) {
       onVoiceNotice?.call("🎤 لم أسمع شيئاً — حاول مجدداً");
@@ -992,19 +1318,27 @@ class ChatController extends ChangeNotifier {
     isCleaningVoice = true;
     _safeNotify();
 
-    final cleaned = await _chat.cleanVoiceText(
-      userId: userId,
-      subject: selectedSubject,
-      rawText: raw,
-      idToken: await UserSession.I.idToken(),
-    );
-
-    isCleaningVoice = false;
+    var cleaned = "";
+    try {
+      cleaned = await _chat.cleanVoiceText(
+        userId: userId,
+        subject: selectedSubject,
+        rawText: raw,
+        idToken: await UserSession.I.idToken(),
+      );
+    } catch (_) {
+      // 🛟 صامتٌ عمداً: الخامُ في اليد، ورسالةُ خطأٍ عن «تحسينٍ» لم يقع
+      //    تُقلق الطالبَ على شيءٍ لم يفقده.
+    } finally {
+      isCleaningVoice = false;
+      _safeNotify();
+    }
     return cleaned.isEmpty ? raw : cleaned;
   }
 
   /// 🆕 جلب قدرات المادة (الأوضاع + الشجرة) — استدعاء واحد.
   Future<void> loadCapabilities() async {
+    final token = _scopeToken;
     // ⚠️ الرياضيات مستثناة في قسم الطالب (لها تدفّقها الخاص عبر `/math/lessons`)
     //    — أما قسم المعلم فيقرؤها من القدرات كبقية المواد، لأن الخادم يبني لها
     //    شجرة دروس فعلاً (`capabilities.describe`) والمعلّم يحتاج فرعاً ودرساً
@@ -1014,11 +1348,16 @@ class ChatController extends ChangeNotifier {
       // 🧠 ويبقى زرُّ التفكير: قدرةٌ لا شأنَ لها بشجرة الدروس، ومصدرُها
       //    الخادمُ لا قائمةٌ هنا. فتُقرأ وحدَها ويُطرح ما عداها.
       try {
-        final c =
-            await _content.getCapabilities(selectedSubject, grade, track.key);
+        final c = await _content.getCapabilities(
+          selectedSubject,
+          grade,
+          track.key,
+        );
+        if (_scopeExpired(token)) return;
         _thinkingAvailable = c.thinkingAvailable;
       } catch (_) {
-        _thinkingAvailable = false;   // 🛟 فشلُ الشبكة يُخفي ولا يُعطّل
+        if (_scopeExpired(token)) return;
+        _thinkingAvailable = false; // 🛟 فشلُ الشبكة يُخفي ولا يُعطّل
       }
       _safeNotify();
       return;
@@ -1026,7 +1365,14 @@ class ChatController extends ChangeNotifier {
     capsLoading = true;
     _safeNotify();
     try {
-      caps = await _content.getCapabilities(selectedSubject, grade, track.key);
+      final fresh = await _content.getCapabilities(
+        selectedSubject,
+        grade,
+        track.key,
+      );
+      // 🎫 قدراتُ مادةٍ انصرفت لا تُكتب فوق الحالية — ولا تُطفئ انتظارها.
+      if (_scopeExpired(token)) return;
+      caps = fresh;
       _thinkingAvailable = caps!.thinkingAvailable;
       if (isTeacher) {
         // 👨‍🏫 لا مساومة: الدروس أو رسالة «قيد الإضافة». ولا سقوط على الصفحات.
@@ -1046,6 +1392,7 @@ class ChatController extends ChangeNotifier {
       _resetV3Selection();
       _applyPagesUnits();
     } catch (_) {
+      if (_scopeExpired(token)) return;
       caps = null; // فشل الشبكة → الواجهة تُبقي الوضع الحالي بلا انهيار
       _thinkingAvailable = false;
     }
@@ -1065,8 +1412,9 @@ class ChatController extends ChangeNotifier {
   /// البحثُ في ١٩ يميّز بين جيرانٍ متقاربين، وفي ١٦٢ يُزاحم الموضوعَ
   /// صفحاتٌ من وحداتٍ لا علاقة لها به. والخادمُ يردّ الطلبَ بلا وحدة.
   void _applyPagesUnits() {
-    availableUnits =
-        (caps?.pagesAvailable ?? false) ? [...caps!.pagesUnits] : <String>[];
+    availableUnits = (caps?.pagesAvailable ?? false)
+        ? [...caps!.pagesUnits]
+        : <String>[];
     if (!availableUnits.contains(selectedUnit)) {
       // أولُ وحدةٍ افتراضاً — لا «الكل»، ولا فراغٌ يُربك الطالب.
       selectedUnit = availableUnits.isNotEmpty ? availableUnits.first : "";
@@ -1085,8 +1433,13 @@ class ChatController extends ChangeNotifier {
   }
 
   /// تبديل مصدر المحتوى من اللوحة.
-  void setContentMode(String mode) {
+  Future<void> setContentMode(String mode) async {
     if (mode == contentMode) return;
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
+    if (conversationStarted &&
+        !await _allowContextChange(ContextChange.contentMode)) {
+      return;
+    }
     contentMode = mode;
     if (mode == "lessons") {
       _resetV3Selection();
@@ -1100,19 +1453,61 @@ class ChatController extends ChangeNotifier {
     _safeNotify();
   }
 
-  void setV3Unit(String unit) {
+  Future<void> setV3Unit(String unit) async {
+    if (unit == selectedV3Unit) return;
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
+    // الوحدةُ تُسقط الدرس — فهي تغييرُ درسٍ متى كان للمحادثة درس.
+    if (selectedV3Lesson.isNotEmpty &&
+        conversationStarted &&
+        !await _allowContextChange(ContextChange.lesson)) {
+      return;
+    }
     selectedV3Unit = unit;
     selectedV3Lesson = "";
     _safeNotify();
   }
 
-  void setV3Lesson(String lesson) {
+  Future<void> setV3Lesson(String lesson) async {
+    if (lesson == selectedV3Lesson) return;
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
+    if (selectedV3Lesson.isNotEmpty &&
+        conversationStarted &&
+        !await _allowContextChange(ContextChange.lesson)) {
+      return;
+    }
     selectedV3Lesson = lesson;
     _safeNotify();
   }
 
-  List<String> get v3LessonsUnits => (caps?.lessonsUnits ?? const []).map((u) => u.unit).toList();
-  List<String> get v3LessonsInSelectedUnit => caps?.lessonsIn(selectedV3Unit) ?? const [];
+  Future<void> setMathLesson(String lesson) async {
+    if (lesson == selectedLesson) return;
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
+    if (selectedLesson.isNotEmpty &&
+        conversationStarted &&
+        !await _allowContextChange(ContextChange.lesson)) {
+      return;
+    }
+    selectedLesson = lesson;
+    _safeNotify();
+  }
+
+  Future<void> setPageUnit(String unit) async {
+    if (unit == selectedUnit) return;
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
+    if (conversationStarted &&
+        !await _allowContextChange(ContextChange.unit)) {
+      return;
+    }
+    selectedUnit = unit;
+    selectedUnitName = unit;
+    selectedPages.clear();
+    _safeNotify();
+  }
+
+  List<String> get v3LessonsUnits =>
+      (caps?.lessonsUnits ?? const []).map((u) => u.unit).toList();
+  List<String> get v3LessonsInSelectedUnit =>
+      caps?.lessonsIn(selectedV3Unit) ?? const [];
 
   /// مفتاح نطاق المحادثات الحالي.
   ///
@@ -1120,12 +1515,16 @@ class ChatController extends ChangeNotifier {
   ///    «معلم + رياضيات» هو `…|تفاضل|شرح` — أي **مفتاح الطالب نفسه**، فتظهر
   ///    خطط المعلّم في سجلّ محادثات الطالب والعكس.
   String get currentScopeKey => ChatConversation.buildScopeKey(
-        grade: grade,
-        track: track.key,
-        subject: selectedSubject,
-        branch: (!isTeacher && selectedSubject == "رياضيات") ? selectedMathBranch : "",
-        mode: (!isTeacher && selectedSubject == "رياضيات") ? mathMode : selectedMode,
-      );
+    grade: grade,
+    track: track.key,
+    subject: selectedSubject,
+    branch: (!isTeacher && selectedSubject == "رياضيات")
+        ? selectedMathBranch
+        : "",
+    mode: (!isTeacher && selectedSubject == "رياضيات")
+        ? mathMode
+        : selectedMode,
+  );
 
   // ══════════════════════════════════════════════════
   // ⚡ الشرحُ المخزون يُسحب **قبل أن يُطلب**
@@ -1152,9 +1551,9 @@ class ChatController extends ChangeNotifier {
   //    وواحدٌ منها يُنسى يعني ميزةً تعمل أحياناً — وهي أسوأُ من ميزةٍ لا
   //    تعمل. والحارسُ مقارنةُ نصٍّ واحدة، فلا كلفةَ لتكرارها.
 
-  String _prefetchKey = "";        // آخرُ مفتاحٍ طُلب (كي لا يتكرّر النداء)
-  String _prefetchedFor = "";      // مفتاحُ ما وصل فعلاً
-  String _prefetchedAnswer = "";   // الشرحُ المخزون في اليد
+  String _prefetchKey = ""; // آخرُ مفتاحٍ طُلب (كي لا يتكرّر النداء)
+  String _prefetchedFor = ""; // مفتاحُ ما وصل فعلاً
+  String _prefetchedAnswer = ""; // الشرحُ المخزون في اليد
 
   /// مفتاحُ الدرس الذي يصحّ له شرحٌ مخزون — أو فراغ.
   ///
@@ -1166,7 +1565,9 @@ class ChatController extends ChangeNotifier {
       if (mathMode != "شرح" || selectedLesson.isEmpty) return "";
       return "$grade|${track.key}|رياضيات|$selectedMathBranch|$selectedLesson";
     }
-    if (effectiveContentMode != "lessons" || selectedV3Lesson.isEmpty) return "";
+    if (effectiveContentMode != "lessons" || selectedV3Lesson.isEmpty) {
+      return "";
+    }
     return "$grade|${track.key}|$selectedSubject|$selectedV3Unit|$selectedV3Lesson";
   }
 
@@ -1181,7 +1582,12 @@ class ChatController extends ChangeNotifier {
     final parts = key.split('|');
     if (parts.length != 5) return;
     final answer = await _content.getStoredExplanation(
-        parts[2], parts[3], parts[4], int.tryParse(parts[0]) ?? grade, parts[1]);
+      parts[2],
+      parts[3],
+      parts[4],
+      int.tryParse(parts[0]) ?? grade,
+      parts[1],
+    );
     if (_disposed || answer.isEmpty) return;
     // ⏱️ وقد يكون الطالبُ بدّل درسَه أثناء الرحلة — فالنتيجةُ تُنسب لمفتاحها.
     _prefetchedFor = key;
@@ -1195,7 +1601,9 @@ class ChatController extends ChangeNotifier {
   ///    جاهزة — تلك حالةُ الموديل لا حالةُ المخزون.
   String? get _readyExplanation {
     if (_prefetchedAnswer.isEmpty) return null;
-    if (_prefetchedFor.isEmpty || _prefetchedFor != _explainScopeKey) return null;
+    if (_prefetchedFor.isEmpty || _prefetchedFor != _explainScopeKey) {
+      return null;
+    }
     if (_answerCount > 0) return null;
     return _prefetchedAnswer;
   }
@@ -1204,7 +1612,9 @@ class ChatController extends ChangeNotifier {
   String get _explainRef {
     final parts = _explainScopeKey.split('|');
     if (parts.length != 5) return "";
-    return "${parts[3]} › ${parts[4]}".replaceAll(RegExp(r'^\s*›\s*'), '').trim();
+    return "${parts[3]} › ${parts[4]}"
+        .replaceAll(RegExp(r'^\s*›\s*'), '')
+        .trim();
   }
 
   void _safeNotify() {
@@ -1223,17 +1633,27 @@ class ChatController extends ChangeNotifier {
   //    طالبٌ يضغط إيقاف عشر مرات = عشر مكالماتٍ مدفوعة بلا فائدة لأحد،
   //    وعشرُ حصصٍ خُصمت من يومه بلا أن يقرأ حرفاً.
   //
-  // ✅ **والتفريق بين ثلاث حالاتٍ مختلفةٍ حقاً:**
-  //    • أثناء **الأنيميشن** (الردّ وصل): إيقافٌ فوريّ للكتابة — النصّ
-  //      كاملٌ أمامه أصلاً، وهذا هو الاستعمال الغالب للزر.
-  //    • أثناء **التحميل** (الردّ لم يصل): لا نقطع الاتصال. نُخفي مؤشّر
-  //      الانتظار ونترك الطلب يُكمل، فإذا وصل الجواب ظهر بلا أنيميشن
-  //      وحُفظ. الحصةُ التي دُفعت تُشترى بها إجابة، لا فراغ.
-  //    • أثناء **البثّ** (الردّ يصل الآن): نُثبّت ما وصل ونقطع — وهذه
-  //      الحالة لم تكن محسوبة هنا أصلاً (راجع الشرح في المتن).
+  // ✅ **والتفريق بين حالتين:**
+  //    • أثناء **الأنيميشن** (الردّ وصل كاملاً): إيقافٌ فوريّ للكتابة —
+  //      النصّ كاملٌ أمامه أصلاً، وهذا هو الاستعمال الغالب للزر.
+  //    • أثناء **الطلب** (تحميلاً كان أو بثّاً): نُثبّت ما وصل — إن وصل —
+  //      ونطلب الإلغاء. والنصّ الذي قرأه الطالب حتى الآن ملكُه لأن الحصة
+  //      دُفعت، فنحفظه ولا نمحوه.
+  //
+  // ⚠️ **ولا نُطفئ [isBusy] هنا** (توحيدُ دورة الطلب 2026-09-23): الإلغاء
+  //    غير متزامن، فالطلبُ لا يصير `idle` إلا في `finally` بعد أن ينتهي
+  //    الـFuture فعلاً. وعليه يقوم [_cancelAndWaitForActiveRequest]:
+  //    تبديلُ السياق **ينتظر** الإلغاء بدل أن يمضي فوق طلبٍ ما زال حيّاً.
+  //
+  // 📜 **وما سقط عمداً:** كان الإيقافُ أثناء التحميل يترك الطلب يُكمل
+  //    بصمت (`_quietlyAwaitingAnswer`) ليصل الجوابُ بلا أنيميشن. وهو لا
+  //    يجتمع مع «تبديلُ السياق ينتظر الإلغاء»: طلبٌ لا يُلغى أبداً يُبقي
+  //    الشاشة مقفلةً على قرارِ الطالب أن يمضي. فصار الإيقاف إلغاءً حقيقياً
+  //    في الحالتين، والحقلُ باقٍ `false` دائماً حتى تُحسم الحالة الثالثة.
   void stopCurrentRequest() {
-    final bool isAnimating = messages.isNotEmpty && messages.last["animating"] == true;
-    if (!isLoading && !isStreaming && !isAnimating) return;
+    final bool isAnimating =
+        messages.isNotEmpty && messages.last["animating"] == true;
+    if (!_requestInFlight && !isLoading && !isStreaming && !isAnimating) return;
 
     // 1️⃣ الأنيميشن يتوقف فوراً في الحالتين (رصاصة الإيقاف).
     stopTypingNotifier.value = true;
@@ -1244,24 +1664,18 @@ class ChatController extends ChangeNotifier {
     //
     // ✅ ونُثبّت ما وصل ولا نمحوه: الحصةُ دُفعت، والنصُّ الذي قرأه
     //    الطالب حتى الآن ملكُه. ثم نُغلق الاتصال فلا شيء بعده يُنتظر.
-    if (isStreaming) {
-      _isResponseCancelled = true;      // فلا يُكتب الجواب فوق ما ثبّتناه
+    if (_requestInFlight) {
+      _isResponseCancelled = true; // فلا يُكتب الجواب فوق ما ثبّتناه
       _quietlyAwaitingAnswer = false;
       _stream.cancel();
-      _finalizePartialStream(suffix: "\n\n⏹️ *تم الإيقاف*");
-      isLoading = false;
+      _chat.cancel();
+      if (isStreaming) {
+        _finalizePartialStream(suffix: "\n\n⏹️ *تم الإيقاف*");
+      }
+      // لا نطفئ حالة الانشغال هنا: الإلغاء غير متزامن، ولا تصبح الدورة
+      // idle إلا في `finally` بعد أن ينتهي الـFuture فعلياً.
       _safeNotify();
       unawaited(saveCurrentConversation());
-      onShowStopConfirmation?.call();
-      return;
-    }
-
-    if (isLoading) {
-      // 2️⃣ التحميل: نُسكت الواجهة ولا نقتل الطلب — راجع الشرح أعلاه.
-      //    `_isResponseCancelled` يبقى `false` كي يُقبل الجواب حين يصل.
-      _quietlyAwaitingAnswer = true;
-      isLoading = false;
-      _safeNotify();
       onShowStopConfirmation?.call();
       return;
     }
@@ -1274,9 +1688,15 @@ class ChatController extends ChangeNotifier {
 
   // ========== تحميل صيغ أسئلة الإنجليزي (الوزاري) ==========
   Future<void> loadExamSections(String subject, String year) async {
+    final token = _scopeToken;
     try {
-      final list = await _content.getExamSections(subject, year, grade, track.key);
-      if (_disposed) return;
+      final list = await _content.getExamSections(
+        subject,
+        year,
+        grade,
+        track.key,
+      );
+      if (_scopeExpired(token)) return;
       if (subject == "انجليزي") {
         englishQuestionTypes = list;
         selectedEnglishQuestionType = "";
@@ -1290,16 +1710,24 @@ class ChatController extends ChangeNotifier {
   }
 
   // ========== تبديل السياق (تغيير المادة أو الوضع) ==========
-  void switchContext(VoidCallback updateSettings) {
+  Future<void> switchContext(VoidCallback updateSettings) async {
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
+    _clearOrphanedBusyState();
     // 1. حفظ المحادثة الحالية قبل الانتقال
     String currentKey = getCurrentChatKey();
     if (messages.isNotEmpty) {
       _allChatsHistory[currentKey] = List.from(messages);
+      final id = currentConversationId;
+      if (id != null) _allChatsIds[currentKey] = id; // 🪪 المعرّفُ مع رسائله
       // ★ حفظ دائم في Hive قبل مغادرة النطاق، وإلا ضاعت المحادثة عند التبديل.
       saveCurrentConversation();
     }
 
     // 2. تنفيذ التغيير (تغيير المادة أو الوضع)
+    // 🎫 والختمُ يزيد **قبل** التنفيذ: شرائحُ فروع الرياضيات تُطلق
+    //    `loadMathLessons` من داخل `updateSettings`، فالمحمّلُ الجديد
+    //    يلتقط الختمَ الجديد والقديمُ يسقط ([_scopeExpired]).
+    _bumpScope();
     updateSettings();
 
     // ✅ 3. تصفير حالة زر شرح الرياضيات
@@ -1313,9 +1741,15 @@ class ChatController extends ChangeNotifier {
     // ★ 4.ب سجلّ محادثات النطاق الجديد + معرّف محادثة جديد إن كانت فارغة.
     //   هذا ما يجعل تبديل الوضع (شرح ← تلخيص) يبدّل قائمة المحادثات كاملةً.
     loadConversations();
-    if (messages.isEmpty) {
+    // 🪪 **كلُّ وضعٍ بمحادثته هو** — المعرّفُ يعود مع رسائله، ووضعٌ بلا
+    //    رسائل يبدأ محادثةً جديدة. ولا يُترك معرّفُ الوضع السابق أبداً.
+    final restoredId = _allChatsIds[newKey];
+    if (messages.isEmpty || restoredId == null) {
+      messages = <Map<String, dynamic>>[];
       currentConversationId = const Uuid().v4();
       sessionActive = false;
+    } else {
+      currentConversationId = restoredId;
     }
 
     // 5. تأثيرات بصرية
@@ -1336,6 +1770,8 @@ class ChatController extends ChangeNotifier {
     if (selectedSubject == "عربي") {
       selectedArabicExamYear = "";
       selectedArabicExamSection = "";
+      // 🔴 والنوعُ معهما: كان يبقى فيظهر «عدد القطع» تحت قسمٍ فارغ (رُئي في المحاكي).
+      selectedArabicExamType = "";
     }
 
     if (selectedSubject == "انجليزي") {
@@ -1358,18 +1794,28 @@ class ChatController extends ChangeNotifier {
 
   void loadConversations() {
     // ★ مفلترة بالنطاق (صف + مسار + مادة + فرع + وضع) **وبالمالك**.
-    conversations = ChatStorage.getConversationsByScope(currentScopeKey, ownerUid);
+    conversations = ChatStorage.getConversationsByScope(
+      currentScopeKey,
+      ownerUid,
+    );
     _safeNotify();
   }
 
-  void createNewConversation() {
-    _endInFlightRequest();  // 🧹 نفسُ سبب [loadConversation] حرفياً
+  Future<void> createNewConversation() async {
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
+    _clearOrphanedBusyState();
     // 📷 المرفق سياقُ المحادثة التي التُقط فيها — لا يعبر إلى غيرها.
     clearAttachments();
     currentConversationId = const Uuid().v4();
     messages = <Map<String, dynamic>>[];
     sessionActive = false;
-    showSettingsPanel = true;
+    conceptController.clear(); // 💡 مفهومُ التبسيط يخصّ محادثتَه
+    _conversationPages.clear(); // 📄 وصفحاتُها كذلك
+    // 🃏 **البطاقةُ تبقى كما هي** — لا تُفتح ولا تُطوى هنا: محادثةٌ جديدة
+    //    من الدرج تُري الروبوتَ وترحيبَه (قرار المالك ٢٠٢٦-٠٩-٢٤)، ومحادثةٌ
+    //    جديدة من اختيار درسٍ آخر تُبقي البطاقةَ مفتوحةً حيث كان يختار.
+    //    والكيبورد نازل: أوّلُ ما يُرى الترحيبُ لا لوحةُ مفاتيح.
+    _dropKeyboard();
     _safeNotify();
   }
 
@@ -1384,17 +1830,36 @@ class ChatController extends ChangeNotifier {
   ///
   /// ⚠️ ولذلك يُضبط النطاق **قبل** الاستعادة: `currentScopeKey` مشتقٌّ من
   ///    هذه الحقول، وهو ما يُحفظ به الرد التالي.
-  Future<void> openFromSearch(ChatConversation conversation) async {
+  Future<void> openFromSearch(
+    ChatConversation conversation, {
+    int messageIndex = -1,
+    double position = 0,
+  }) async {
+    // 👨‍🏫 **لا عبورَ بين الدورين** — قبل أن يُمسّ شيء: محادثةُ معلّمٍ لا
+    //    تُفتح في شاشة الطالب ولا العكس (الدرجُ يصفّيها أصلاً؛ هذا حارسٌ).
+    if (isTeacherMode(conversation.mode) != isTeacher) return;
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
+    _clearOrphanedBusyState();
     // 1️⃣ احفظ ما هو مفتوح الآن قبل مغادرة نطاقه (وإلا ضاعت رسائل غير محفوظة).
     if (messages.isNotEmpty) await saveCurrentConversation();
 
     // 2️⃣ انقل الشاشة إلى نطاق المحادثة المطلوبة.
     grade = conversation.grade;
-    track = Curriculum.normalizeTrack(grade, TrackLabel.fromKey(conversation.track));
+    track = Curriculum.normalizeTrack(
+      grade,
+      TrackLabel.fromKey(conversation.track),
+    );
     if (Curriculum.subjectsFor(grade, track).contains(conversation.subject)) {
       selectedSubject = conversation.subject;
     }
-    if (conversation.subject == "رياضيات") {
+    if (isTeacher) {
+      // 👨‍🏫 الوضعُ عند المعلّم هو الأداة — نتيجةٌ من «واجب» وهو في «خطة»
+      //    تنقله إلى أداتها، وإلا حُفظ ردُّه التالي بمفتاح أداةٍ وأُرسل بأخرى.
+      teacherTool = TeacherToolX.fromId(
+              conversation.mode.substring(kTeacherModePrefix.length)) ??
+          teacherTool;
+      selectedMode = conversation.mode;
+    } else if (conversation.subject == "رياضيات") {
       selectedMathBranch = conversation.branch;
       mathMode = conversation.mode;
     } else {
@@ -1403,29 +1868,95 @@ class ChatController extends ChangeNotifier {
 
     // 3️⃣ أعد بناء قائمة المحادثات للنطاق الجديد ثم استعد المطلوبة.
     loadConversations();
-    loadConversation(conversation);
+    loadConversation(conversation,
+        revealIndex: messageIndex, revealPosition: position);
 
     // 4️⃣ قوائم الوحدات/الدروس تتبع المادة — بلا هذا تبقى قوائم المادة السابقة.
     //    ⚠️ و**تُنتظَر** لا تُطلق: القرار في الخطوة ٥ يعتمد على نتيجتها.
     await loadCapabilities();
     if (_disposed) return;
 
-    // 5️⃣ 🔴 **الدرس لا يُستعاد — لأن المحادثة لا تحفظه أصلاً.**
+    // 5️⃣ 🧭 **السياقُ يعود مع المحادثة** — الوحدةُ والدرسُ ووضعُ المحتوى.
     //
-    //    `ChatConversation` تحفظ (الصف · المسار · المادة · الفرع · الوضع)
-    //    ولا تحفظ الوحدة ولا الدرس. فمحادثةٌ في «وضع الدروس» تعود بمادتها
-    //    صحيحةً و`selectedV3Lesson` **فارغاً** (يمسحه `_resetV3Selection`).
+    // 🔴 **ما كان يحدث:** `ChatConversation` تحفظ (الصف · المسار · المادة ·
+    //    الفرع · الوضع) ولا تحفظ الوحدة ولا الدرس. فمحادثةٌ في «وضع
+    //    الدروس» تعود بمادتها صحيحةً و`selectedV3Lesson` **فارغاً**
+    //    (يمسحه `_resetV3Selection` داخل `loadCapabilities`). والبوصلة
+    //    تعرض «انجليزي • القواعد» بلا درس، ولو أرسل الطالبُ رسالةً لذهبت
+    //    باسم درسٍ فارغ فيردّ الخادم «قيد الإضافة» على مادةٍ محتواها موجود.
     //
-    //    ورأيتُ أثر ذلك في المحاكي: الطالب يفتح نتيجة بحثٍ من مادة أخرى،
-    //    فتظهر البوصلة «انجليزي • القواعد» بلا درس — ولو أرسل رسالةً لذهبت
-    //    باسم درسٍ فارغ، فيردّ الخادم «قيد الإضافة» على مادةٍ محتواها موجود.
-    //    وهو أسوأ أنواع الأعطال: كل شيء يبدو سليماً والجواب وحده خاطئ.
-    //
-    // ✅ فنفتح لوحة الإعدادات ليختار درسه — تماماً كما تُفتح لمحادثةٍ جديدة
-    //    في تلك المادة. سطرٌ واحد يحوّل حالةً مكسورة إلى خطوةٍ مفهومة.
-    if (!isTeacher && effectiveContentMode == "lessons" && selectedV3Lesson.isEmpty) {
+    // ⚖️ **ويُستعاد بعد القدرات لا قبلها**: `_resetV3Selection` تمسح
+    //    الاختيار، فالكتابةُ قبلها تضيع. وهنا أيضاً نملك الشجرةَ التي
+    //    نتحقّق بها — فلا نُعيد درساً حُذف من المنهج.
+    _restoreConversationContext(conversation);
+
+    // ✅ وإن بقي الدرسُ مجهولاً (محادثةٌ قديمة بلا سياق، أو درسٌ لم يعد
+    //    موجوداً) نفتح لوحة الإعدادات ليختاره — تماماً كما تُفتح لمحادثةٍ
+    //    جديدة. سطرٌ واحد يحوّل حالةً مكسورة إلى خطوةٍ مفهومة.
+    if (!isTeacher &&
+        effectiveContentMode == "lessons" &&
+        selectedV3Lesson.isEmpty) {
       showSettingsPanel = true;
-      _safeNotify();
+    }
+    _safeNotify();
+  }
+
+  /// يُعيد (وضعَ المحتوى · الوحدةَ · الدرس) من محادثةٍ محفوظة.
+  ///
+  /// 🗄️ **ومحادثاتُ ما قبل الحقول تمرّ بلا أثر**: حقولُها فارغة، فكلُّ
+  ///    فرعٍ هنا يخرج صامتاً وتبقى الشاشةُ على سلوكها القديم حرفياً.
+  ///
+  /// 🛡️ **ولا يُستعاد ما لم يعد موجوداً**: المنهجُ يتغيّر بين الإصدارات،
+  ///    ودرسٌ محذوفٌ يُعاد اختيارُه يُرسل الطالبَ إلى «قيد الإضافة» — وهي
+  ///    نفسُ الحالة المكسورة التي جاء هذا الإصلاح ليزيلها.
+  void _restoreConversationContext(ChatConversation conversation) {
+    _conversationPages
+      ..clear()
+      ..addAll(conversation.pages);
+    if (conversation.contentMode.isNotEmpty &&
+        usesContentModes &&
+        !isTeacher) {
+      final wanted = conversation.contentMode;
+      final canUse =
+          (wanted == "lessons" && (caps?.lessonsAvailable ?? false)) ||
+          (wanted == "pages" && (caps?.pagesAvailable ?? false));
+      if (canUse) contentMode = wanted;
+    }
+
+    if (!isTeacher && selectedSubject == "رياضيات") {
+      // 📐 الرياضياتُ شجرتُها من `/math/lessons` لا من القدرات، وقد لا تكون
+      //    وصلت بعد. فنُعيد الدرس كما هو ونترك التحقّق لقائمته حين تصل.
+      if (conversation.lesson.isNotEmpty) selectedLesson = conversation.lesson;
+      return;
+    }
+
+    if (_usesLessonTree) {
+      // 🔒 **درسُ المحادثة لا درسُ الشاشة** (بلاغ المالك ٢٠٢٦-٠٩-٢٤: «لكل
+      //    شاتٍ درسُه، ولو رجعتُ بعد سنة»). كان الإسنادُ مشروطاً بوجود
+      //    الدرس، فمحادثةٌ بلا درسٍ محفوظ (أو درسٍ حُذف من المنهج) تبقى
+      //    على **درسِ ما قبلها** — وأولُ رسالةٍ تُرسَل باسم درسٍ غريب.
+      //    الآن: درسُها أو لا شيء، والبطاقةُ تُفتح ليُختار.
+      final units = caps?.lessonsUnits ?? const [];
+      final unitExists = units.any((u) => u.unit == conversation.unit);
+      if (unitExists) selectedV3Unit = conversation.unit;
+      final lessons = caps?.lessonsIn(selectedV3Unit) ?? const <String>[];
+      selectedV3Lesson =
+          lessons.contains(conversation.lesson) ? conversation.lesson : "";
+    } else if (effectiveContentMode == "pages") {
+      selectedPages.clear(); // صفحاتُ محادثةٍ سابقة لا تُرسل مع هذه
+      if ((caps?.pagesUnits ?? const []).contains(conversation.unit)) {
+        selectedUnit = conversation.unit;
+        selectedUnitName = conversation.unit;
+        // 📄 وصفحاتُها معها — ما بقي منها في وحدتها ([ChatConversation.pages]).
+        final ok = caps?.pagesIn(selectedUnit) ?? const <int>[];
+        final pages = [for (final p in conversation.pages) if (ok.contains(p)) p];
+        if (pages.isNotEmpty) {
+          inputType = "صفحة";
+          selectedPages
+            ..clear()
+            ..addAll(pages);
+        }
+      }
     }
   }
 
@@ -1466,22 +1997,38 @@ class ChatController extends ChangeNotifier {
 
   void _markBusy() => _busySince = DateTime.now();
 
-  void _endInFlightRequest() {
-    if (!isBusy && _streamIndex == null && !_quietlyAwaitingAnswer) return;
-    _isResponseCancelled = true;
-    _quietlyAwaitingAnswer = false;
-    _stream.cancel();
+  void _clearOrphanedBusyState() {
+    if (_requestInFlight) return;
     _pending.clear();
     _streamIndex = null;
     isStreaming = false;
     isLoading = false;
+    _quietlyAwaitingAnswer = false;
     _busySince = null;
-    stopTypingNotifier.value = true;
+  }
+
+  /// يطلب الإلغاء وينتظر انتهاء دورة الطلب نفسها. لا يسمح المتصل بتغيير
+  /// السياق أو إطلاق محاولة جديدة قبل أن تحرّر `finally` الملكية.
+  Future<bool> _cancelAndWaitForActiveRequest() async {
+    if (!_requestInFlight) return true;
+    final done = _requestFinished;
+    stopCurrentRequest();
+    if (done == null) return !_requestInFlight;
+    try {
+      await done.future.timeout(const Duration(seconds: 3));
+    } on TimeoutException {
+      return false;
+    }
+    return !_requestInFlight;
   }
 
   /// للاختبارات وحدها: يضع الحالةَ المشغولة التي كانت تُقفل الزرّ.
   @visibleForTesting
-  void debugSetBusy({bool loading = false, bool streaming = false, int? streamIndex}) {
+  void debugSetBusy({
+    bool loading = false,
+    bool streaming = false,
+    int? streamIndex,
+  }) {
     isLoading = loading;
     isStreaming = streaming;
     _streamIndex = streamIndex;
@@ -1492,9 +2039,16 @@ class ChatController extends ChangeNotifier {
   int? get debugStreamIndex => _streamIndex;
 
   /// يحمّل محادثة محفوظة (إغلاق الـ Drawer يتم في طبقة الويدجت).
-  void loadConversation(ChatConversation conversation) {
-    _endInFlightRequest();  // 🧹 وإلا بقي زرّ الإرسال مقفولاً ([_endInFlightRequest])
-    clearAttachments();     // 📷 صورةُ محادثةٍ لا تُرسل في أخرى
+  /// [revealIndex] ≥ 0: رسالةٌ جاء إليها من نتيجة بحث — تُعرض هي لا آخرُ
+  /// المحادثة ([revealMessage]).
+  Future<void> loadConversation(
+    ChatConversation conversation, {
+    int revealIndex = -1,
+    double revealPosition = 0,
+  }) async {
+    if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
+    _clearOrphanedBusyState();
+    clearAttachments(); // 📷 صورةُ محادثةٍ لا تُرسل في أخرى
     currentConversationId = conversation.id;
     // ☢️ **`<String, dynamic>` صريحةً — وهذا ليس تجميلاً.**
     //
@@ -1516,24 +2070,81 @@ class ChatController extends ChangeNotifier {
     //
     // ⚠️ ولا تحذّر أداةُ التحليل منه: النوعان متوافقان عند الترجمة.
     messages = conversation.messages
-        .map<Map<String, dynamic>>((m) => <String, dynamic>{
-              'role': m.role,
-              'text': m.text,
-              'refs': m.refs,
-              'animating': false,
-              if (m.allImages.isNotEmpty) 'images': m.allImages,
-              // ★ يعود مع المحادثة المستعادة: الصورة قد تكون فُقدت، والنصّ
-              //   وحده يُبقي المتابعة مفهومة.
-              if (m.imageText.isNotEmpty) 'imageText': m.imageText,
-            })
+        .map<Map<String, dynamic>>(
+          (m) => <String, dynamic>{
+            'role': m.role,
+            'text': m.text,
+            'refs': m.refs,
+            'animating': false,
+            if (m.allImages.isNotEmpty) 'images': m.allImages,
+            // ★ يعود مع المحادثة المستعادة: الصورة قد تكون فُقدت، والنصّ
+            //   وحده يُبقي المتابعة مفهومة.
+            if (m.imageText.isNotEmpty) 'imageText': m.imageText,
+          },
+        )
         .toList();
     selectedMode = conversation.mode;
+    // 🧭 والسياقُ معها — هذا هو بابُ الدرج، وهو البابُ الغالب.
+    //    القدراتُ محمّلةٌ أصلاً لهذا النطاق (الدرجُ يعرض محادثاتِه وحده)،
+    //    فالتحقّقُ داخل [_restoreConversationContext] يجد شجرتَه جاهزة.
+    //    ومن جاء من البحث يمرّ هنا ثم يُعاد ضبطُه بعد القدرات الجديدة.
+    _restoreConversationContext(conversation);
+    // 💬 محادثةٌ فيها كلام ⇒ البطاقةُ مطويّة: الطالبُ جاء يكمل لا يضبط.
+    //    والكيبورد لا يرتفع وحده — يفتحه بلمس الحقل متى أراد.
     showSettingsPanel = false;
+    _dropKeyboard();
     _safeNotify();
     ChatStorage.updateLastUsed(conversation.id);
+    if (revealIndex >= 0 && revealIndex < messages.length) {
+      unawaited(revealMessage(revealIndex, position: revealPosition));
+      return;
+    }
     // محادثةٌ فُتحت للتوّ ⇒ ابدأ من آخرها حتماً، ثم الالتصاق من جديد.
     stick.stick();
     scrollToBottom(force: true);
+  }
+
+  // ══════════════════════════════════════════════════
+  // 📍 الذهابُ إلى رسالةٍ بعينها — من نتيجة بحث
+  // ══════════════════════════════════════════════════
+  // 🎯 «ويوديني على المحادثة المطلوبة» (المالك ٢٠٢٦-٠٩-٢٤) — وإلى **موضع**
+  //    الكلمة فيها لا إلى آخرها، كما في ChatGPT: تُعرض الرسالةُ وتومض لحظة.
+  //
+  // ⚠️ **القائمةُ كسولة** (`ListView.builder`): رسالةٌ بعيدةٌ عن الشاشة لم
+  //    تُبنَ بعد، فلا سياقَ لمفتاحها يُمرَّر إليه. فنقفز أولاً إلى موضعٍ
+  //    تقديريّ (نسبةُ ترتيبها من الطول) كي تُبنى، ثم `ensureVisible` الدقيق.
+
+  /// الرسالةُ المطلوبة الآن — تومض بلون الهوية ([ChatListView]).
+  int? revealedIndex;
+
+  /// مفتاحُ الرسالة المطلوبة — يُلصَق بها وحدها أثناء البناء.
+  final GlobalKey revealKey = GlobalKey(debugLabel: 'reveal');
+
+  /// [position]: موضعُ الكلمة في الرسالة (٠…١) — الرسالةُ الطويلة تُمرَّر
+  /// إلى موضعها لا إلى رأسها.
+  Future<void> revealMessage(int index, {double position = 0}) async {
+    revealedIndex = index;
+    stick.release(); // 📌 لا تسحبه الشاشةُ إلى القاع وهو يقرأ ما جاء إليه
+    _safeNotify();
+    for (var attempt = 0; attempt < 8 && !_disposed; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      if (_disposed || revealedIndex != index) return;
+      final ctx = revealKey.currentContext;
+      if (ctx != null && ctx.mounted) {
+        await revealInScroll(scrollController, ctx, position: position);
+        break;
+      }
+      if (scrollController.hasClients && messages.length > 1) {
+        final max = scrollController.position.maxScrollExtent;
+        scrollController.jumpTo(max * index / (messages.length - 1));
+      }
+    }
+    // ✨ الوميضُ لحظةً ثم يزول — دلالةٌ لا تلوينٌ دائم.
+    //    (ويبقى أطولَ قليلاً حين مُرِّر داخل رسالةٍ طويلة.)
+    await Future<void>.delayed(const Duration(milliseconds: 2200));
+    if (_disposed || revealedIndex != index) return;
+    revealedIndex = null;
+    _safeNotify();
   }
 
   Future<void> saveCurrentConversation() async {
@@ -1546,24 +2157,29 @@ class ChatController extends ChangeNotifier {
     //    فتعود «اشرح لي قانون نيوتن» بعد رسالةٍ واحدة. وُجدت وأنا أضيف
     //    الزرَّ نفسَه في مساعد المنحة (2026-09-21) — والعلّةُ هنا أقدم.
     // 🔒 المحكومةُ بالمالك لا المطلقة — انضباطُ المخزن نفسُه.
-    final stored = (ChatStorage.getOwnedConversation(
-                currentConversationId!, ownerUid)
-            ?.title ??
-        '')
-        .trim();
+    final stored =
+        (ChatStorage.getOwnedConversation(
+                  currentConversationId!,
+                  ownerUid,
+                )?.title ??
+                '')
+            .trim();
     String title = stored;
     if (title.isEmpty || title == 'محادثة جديدة') {
-      title = messages.first['text'] ?? 'محادثة جديدة';
-      if (title.length > 50) title = '${title.substring(0, 47)}...';
+      // مؤقّتٌ حتى يصل اسمُ الموديل ([_nameOnce]).
+      title = ConversationTitler.provisional(
+          (messages.first['text'] ?? '').toString());
     }
     final chatMessages = messages
-        .map((m) => ChatMessage(
-              role: m['role'],
-              text: m['text'],
-              refs: List<String>.from(m['refs'] ?? []),
-              imagePaths: List<String>.from(m['images'] ?? const []),
-              imageText: (m['imageText'] ?? "").toString(),
-            ))
+        .map(
+          (m) => ChatMessage(
+            role: m['role'],
+            text: m['text'],
+            refs: List<String>.from(m['refs'] ?? []),
+            imagePaths: List<String>.from(m['images'] ?? const []),
+            imageText: (m['imageText'] ?? "").toString(),
+          ),
+        )
         .toList();
     final conversation = ChatConversation(
       id: currentConversationId!,
@@ -1571,16 +2187,82 @@ class ChatController extends ChangeNotifier {
       subject: selectedSubject,
       // ⚠️ نفس حرس `currentScopeKey` حرفياً: اختلافهما يجعل المحادثة تُحفظ
       //    بمفتاح ولا تُقرأ به — فتختفي من السجلّ فور حفظها.
-      mode: (!isTeacher && selectedSubject == "رياضيات") ? mathMode : selectedMode,
+      mode: (!isTeacher && selectedSubject == "رياضيات")
+          ? mathMode
+          : selectedMode,
       messages: chatMessages,
       grade: grade,
       track: track.key,
-      branch: (!isTeacher && selectedSubject == "رياضيات") ? selectedMathBranch : "",
+      branch: (!isTeacher && selectedSubject == "رياضيات")
+          ? selectedMathBranch
+          : "",
+      // 🧭 وسياقُ الدرس معها — وإلا عادت المحادثةُ بمادتها بلا درسها
+      //    ([ChatConversation.unit]). والوحدةُ تتبع الوضع: وضعُ الدروس
+      //    له شجرتُه، ووضعُ الصفحات له وحداتُه، والرياضيات فرعٌ ودرس.
+      contentMode: effectiveContentMode ?? "",
+      // 👨‍🏫 **والمعلّمُ شجرتُه شجرةُ الدروس** ([_usesLessonTree]) — كان
+      //    يُحفظ له `selectedUnit` (وحدةُ الصفحات، فارغةٌ عنده أبداً).
+      unit: _usesLessonTree ? selectedV3Unit : selectedUnit,
+      lesson: (!isTeacher && selectedSubject == "رياضيات")
+          ? selectedLesson
+          : selectedV3Lesson,
+      pages: List<int>.of(_conversationPages),
     );
     await ChatStorage.saveConversation(conversation, ownerUid: ownerUid);
     // ☁️ نسخة سحابية بلا انتظار: الطالب لا يشعر بها، وفشلها يُسجَّل للإعادة.
     SyncService.I.pushConversation(conversation);
     loadConversations();
+    if (ConversationTitler.shouldName(messages)) {
+      unawaited(_nameOnce(conversation));
+    }
+  }
+
+  /// محادثاتٌ طُلب اسمُها — الحفظُ يتكرّر، والتسميةُ مرّةً واحدة.
+  final Set<String> _namedConversations = {};
+
+  /// 🏷️ **اسمٌ من أول سؤال** ([ConversationTitler]) — طلبُ المالك ٢٠٢٦-٠٩-٢٤.
+  ///
+  /// الشرحُ المخزون يُسمّى «شرح درس …» بلا نداء؛ وما عداه يسأل الموديلَ
+  /// الرخيص. ولا يُكتب الاسمُ إلا إن بقي الحاليُّ هو المؤقّت — فمن سمّاها
+  /// بنفسه في الأثناء لا يُمحى اختيارُه.
+  Future<void> _nameOnce(ChatConversation conversation) async {
+    if (!_namedConversations.add(conversation.id)) return;
+    final provisional = conversation.title;
+    final user = messages.firstWhere((m) => m["role"] == "user");
+    final ai = messages.firstWhere((m) => m["role"] == "ai");
+    final answer = (ai["fullText"] ?? ai["text"] ?? "").toString();
+    if (answer.trim().isEmpty) {
+      _namedConversations.remove(conversation.id); // ردٌّ لم يكتمل — لاحقاً
+      return;
+    }
+    String? title;
+    final lesson = conversation.lesson;
+    if (ai["cached"] == true && lesson.isNotEmpty) {
+      title = ConversationTitler.storedLessonTitle(lesson);
+    } else {
+      // 📷 سؤالُ الصورة نصُّها المستخرج لا «📷 صورة».
+      final imageText = (user["imageText"] ?? "").toString();
+      final question = imageText.isNotEmpty
+          ? "${user["text"]}\n$imageText"
+          : (user["text"] ?? "").toString();
+      title = await ConversationTitler.suggest(
+        question: question,
+        answer: answer,
+        subject: conversation.subject,
+        section: isTeacher ? "teacher" : "education",
+      );
+    }
+    if (title == null || _disposed) return;
+    final current =
+        ChatStorage.getOwnedConversation(conversation.id, ownerUid);
+    if (current == null ||
+        !ConversationTitler.applies(current.title, provisional)) {
+      return;
+    }
+    current.title = title;
+    await ChatStorage.saveConversation(current, ownerUid: ownerUid);
+    SyncService.I.pushConversation(current);
+    if (!_disposed) loadConversations();
   }
 
   Future<void> deleteConversation(String id) async {
@@ -1589,9 +2271,11 @@ class ChatController extends ChangeNotifier {
     // 🔴 **تسريبٌ صامت:** الصور تُحفظ في `chat_images` على الجوال وحده،
     //    ولا أحد يحذفها. فمحادثةٌ حُذفت تترك ميجاباياتٍ من صور صفحاتٍ لا
     //    يراها أحد ولا يصل إليها شيء — تتراكم حتى يمتلئ جوال الطالب.
-    for (final path in ChatStorage.getConversation(id)?.messages
-            .expand((m) => m.allImages) ??
-        const <String>[]) {
+    for (final path
+        in ChatStorage.getConversation(
+              id,
+            )?.messages.expand((m) => m.allImages) ??
+            const <String>[]) {
       unawaited(ImageService.I.delete(path));
     }
     await ChatStorage.deleteConversation(id);
@@ -1613,7 +2297,9 @@ class ChatController extends ChangeNotifier {
   ///    في مكانه وتُحفظ المحادثةُ نفسُها. نسخُ الحقول يدوياً يعني أن كل
   ///    حقلٍ يُضاف مستقبلاً سيسقط هنا بصمت — وهذا ما وقع بالضبط.
   Future<void> renameConversation(
-      ChatConversation conversation, String newTitle) async {
+    ChatConversation conversation,
+    String newTitle,
+  ) async {
     conversation.title = newTitle;
     await ChatStorage.saveConversation(conversation, ownerUid: ownerUid);
     loadConversations();
@@ -1621,26 +2307,34 @@ class ChatController extends ChangeNotifier {
 
   // ========== تحميل السنوات/الوحدات/الدروس ==========
   Future<void> loadAvailableYears() async {
+    final token = _scopeToken;
     yearsLoading = true;
     _safeNotify();
     try {
-      final list = await _content.getExamYears(selectedSubject, grade, track.key);
-      if (_disposed) return;
+      final list = await _content.getExamYears(
+        selectedSubject,
+        grade,
+        track.key,
+      );
+      if (_scopeExpired(token)) return;
       availableYears = list..sort((a, b) => b.compareTo(a));
     } on ServerException {
       onShowDataError?.call("تعذر جلب سنوات الاختبار. السيرفر مشغول.");
     } catch (e) {
       onShowDataError?.call("مشكلة في الاتصال أثناء جلب السنوات.");
     } finally {
-      yearsLoading = false;
-      _safeNotify();
+      if (!_scopeExpired(token)) {
+        yearsLoading = false;
+        _safeNotify();
+      }
     }
   }
 
   Future<void> loadMathLessons(String branch) async {
+    final token = _scopeToken;
     try {
       final list = await _content.getMathLessons(branch, grade, track.key);
-      if (_disposed) return;
+      if (_scopeExpired(token)) return;
       mathLessons = list;
       _safeNotify();
     } on ServerException {
@@ -1651,9 +2345,10 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> loadMathExamYears(String branch) async {
+    final token = _scopeToken;
     try {
       final list = await _content.getMathExamYears(branch, grade, track.key);
-      if (_disposed) return;
+      if (_scopeExpired(token)) return;
       mathExamYears = list;
       selectedMathExamYear = "";
       mathExamLessons = [];
@@ -1667,9 +2362,15 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> loadMathExamLessons(String branch, String year) async {
+    final token = _scopeToken;
     try {
-      final list = await _content.getMathExamLessons(branch, year, grade, track.key);
-      if (_disposed) return;
+      final list = await _content.getMathExamLessons(
+        branch,
+        year,
+        grade,
+        track.key,
+      );
+      if (_scopeExpired(token)) return;
       mathExamLessons = list;
       selectedMathExamLesson = "";
       _safeNotify();
@@ -1681,6 +2382,7 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> loadAvailableUnits() async {
+    final token = _scopeToken;
     // ✅ وصلت القدرات ⇒ هي المصدر. و`/subjects/units` احتياطٌ لسقوط الشبكة
     //    وحده، حتى لا تفرغ الشاشة إن تعذّر الطلب الأول.
     if (caps != null) {
@@ -1690,7 +2392,7 @@ class ChatController extends ChangeNotifier {
     }
     try {
       final units = await _content.getUnits(selectedSubject, grade, track.key);
-      if (_disposed) return;
+      if (_scopeExpired(token)) return;
       // 📚 بلا «الكل» — راجع [_applyPagesUnits].
       availableUnits = [
         for (final unit in units)
@@ -1797,7 +2499,9 @@ class ChatController extends ChangeNotifier {
     // 👨‍🏫 المعلم دائماً في وضع الدروس — بوصلته من اختيار الوحدة والدرس.
     if (isTeacher) {
       if (selectedV3Unit.isNotEmpty) path.add(_truncateText(selectedV3Unit, 3));
-      if (selectedV3Lesson.isNotEmpty) path.add(_truncateText(selectedV3Lesson, 4));
+      if (selectedV3Lesson.isNotEmpty) {
+        path.add(_truncateText(selectedV3Lesson, 4));
+      }
       return path.join(' • ');
     }
 
@@ -1808,7 +2512,9 @@ class ChatController extends ChangeNotifier {
       // 📖 وضع الدروس: وحدته ودرسه هما ما يُرسل فعلاً — وكانت البوصلة تعرض
       //    وحدةَ وضع الوحدات بدلهما، فتقول غير ما يذهب للخادم.
       if (selectedV3Unit.isNotEmpty) path.add(_truncateText(selectedV3Unit, 3));
-      if (selectedV3Lesson.isNotEmpty) path.add(_truncateText(selectedV3Lesson, 4));
+      if (selectedV3Lesson.isNotEmpty) {
+        path.add(_truncateText(selectedV3Lesson, 4));
+      }
     } else {
       if (selectedUnit != "الكل" && selectedUnit.isNotEmpty) {
         path.add(_truncateText(selectedUnit, 3));
@@ -1834,12 +2540,21 @@ class ChatController extends ChangeNotifier {
     return "$n سؤالاً";
   }
 
+  /// فقاعةُ «جلب الأسئلة» مقروءةً — العربي: سنة|قسم|نوع|عدد، والإنجليزي: سنة|نوع|عدد.
+  String _wazariBubble(String raw) {
+    final p = raw.split('|').map((e) => e.trim()).toList();
+    if (p.length >= 4) return "جلب أسئلة وزاري: ${p[1]} — ${p[2]} × ${p[3]} (${p[0]})";
+    if (p.length == 3) return "جلب أسئلة وزاري: ${p[1]} × ${p[2]} (${p[0]})";
+    return raw;
+  }
+
   /// نصّ فقاعة المعلّم عند ضغط زرّ التوليد — يُعرض ويُحفظ ويدخل في السياق.
   String teacherActionText() {
     final concept = conceptController.text.trim();
     return switch (teacherTool!) {
       TeacherTool.lessonPlan => "أنشئ خطة درس لـ«$selectedV3Lesson»",
-      TeacherTool.simplify => "بسّط مفهوم «$concept» من درس «$selectedV3Lesson»",
+      TeacherTool.simplify =>
+        "بسّط مفهوم «$concept» من درس «$selectedV3Lesson»",
       TeacherTool.homework =>
         "أنشئ واجباً من درس «$selectedV3Lesson» — المستوى $teacherDifficulty — ${questionsLabel(teacherCount)}",
       TeacherTool.ask => "",
@@ -1847,11 +2562,15 @@ class ChatController extends ChangeNotifier {
   }
 
   // ========== معالجة الطلب (إرسال السؤال للسيرفر) ==========
-  Future<void> processRequest({String? customText, bool teacherGenerate = false}) async {
+  Future<void> processRequest({
+    String? customText,
+    bool teacherGenerate = false,
+  }) async {
     // ✅ حماية 1: تحقق من الشروط الأساسية
     var text = customText ?? inputController.text.trim();
 
     final bool hasImage = hasAttachments;
+
 
     // 📄 وضعُ الصفحات: لا إرسال بلا اختيار — **ورسالةٌ تقول لماذا**.
     //    (طلب المالك: «إذا ما اخترت صفحات يقول له ما اخترت شي صفحات»)
@@ -1859,27 +2578,42 @@ class ChatController extends ChangeNotifier {
     // 📷 **إلا مع صورة:** من صوّر الصفحة بكاميرته لم ينسَ اختيارها — هو
     //    استغنى عنه. ورفضُه هنا كان يعني «اختر الصفحات أولاً» في وجه
     //    طالبٍ صفحتُه بين يديه بالفعل.
-    if (canPickPages && selectedPages.isEmpty && customText == null && !hasImage) {
+    if (canPickPages &&
+        selectedPages.isEmpty &&
+        customText == null &&
+        !hasImage) {
       onShowPagesRequired?.call();
       return;
     }
     // وضغطُ الإرسال بلا كتابةٍ طلبٌ كامل: «اشرح الصفحات الآتية».
     // 📄 صفحاتٌ مختارة بلا كتابة = «اشرح الصفحات الآتية» — إلا في وضع
     //    السؤال، فالسؤالُ يكتبه الطالب ([questionNeedsTypedText]).
-    if (text.isEmpty && customText == null && !hasImage &&
+    if (text.isEmpty &&
+        customText == null &&
+        !hasImage &&
         !questionNeedsTypedText &&
-        canPickPages && selectedPages.isNotEmpty) {
+        canPickPages &&
+        selectedPages.isNotEmpty) {
       text = _defaultPagesPrompt;
     }
 
-    bool isMathExplain = selectedSubject == "رياضيات" && mathMode == "شرح" && selectedLesson.isNotEmpty;
+    bool isMathExplain =
+        selectedSubject == "رياضيات" &&
+        mathMode == "شرح" &&
+        selectedLesson.isNotEmpty;
     // 🆕 وضع الدروس: اختيار الدرس يكفي لبدء الشرح بلا كتابة
-    bool isV3LessonReady = effectiveContentMode == "lessons" &&
-        selectedV3Lesson.isNotEmpty && !questionNeedsTypedText;
+    bool isV3LessonReady =
+        effectiveContentMode == "lessons" &&
+        selectedV3Lesson.isNotEmpty &&
+        !questionNeedsTypedText;
 
     // 👨‍🏫 ضغطُ زرّ الأداة طلبٌ كامل بلا نصّ مكتوب — كما «ابدأ الشرح» للطالب.
-    if (text.isEmpty && customText == null && !isMathExplain && !isV3LessonReady
-        && !hasImage && !teacherGenerate) {
+    if (text.isEmpty &&
+        customText == null &&
+        !isMathExplain &&
+        !isV3LessonReady &&
+        !hasImage &&
+        !teacherGenerate) {
       return;
     }
 
@@ -1893,8 +2627,45 @@ class ChatController extends ChangeNotifier {
         onShowBusyWarning?.call();
         return;
       }
-      _endInFlightRequest();
+      if (_requestInFlight) {
+        if (!await _cancelAndWaitForActiveRequest()) {
+          onShowBusyWarning?.call();
+          return;
+        }
+      } else {
+        // حالة واجهة قديمة بلا مالك (ترقية/اختبار): لا Future يمكن انتظاره.
+        _pending.clear();
+        _streamIndex = null;
+        isStreaming = false;
+        isLoading = false;
+        _busySince = null;
+      }
       stopTypingNotifier.value = false;
+    }
+
+    // 🚦 **البوّابةُ الواحدة** ([sendBlocker]) — الحارسُ الأخير خلف الزرّ.
+    //    تمرّ منها أزرارُ الوزاري وحدها (نصٌّ مُركَّبٌ من زرٍّ له جاهزيّتُه)
+    //    وزرُّ توليد المعلّم (حارسُه [canGenerateTeacher]).
+    // ⚖️ **وموضعُها بعد «مشغول» وقبل تفريغ المرفقات:** طلبٌ جارٍ يُقال له
+    //    «انتظر» لا «اختر الدرس»، والمرفوضُ لا يبتلع صورةَ الطالب.
+    final bool wazariCommand = customText != null && selectedMode == "وزاري";
+    if (!teacherGenerate && !wazariCommand) {
+      final blocker = sendBlocker;
+      if (blocker != null) {
+        onSendBlocked?.call(blocker);
+        return;
+      }
+    }
+
+    // 💡 **أولُ رسالةٍ في «تبسيط مفهوم» هي المفهوم** ([awaitingTeacherConcept]):
+    //    تمضي توليداً منسّقاً لا سؤالاً حرّاً. وبعد البوّابة لا قبلها —
+    //    فالمفهومُ بلا درسٍ يُقال له «اختر الدرس» كأيّ رسالة.
+    if (!teacherGenerate &&
+        customText == null &&
+        text.isNotEmpty &&
+        awaitingTeacherConcept) {
+      conceptController.text = safeCut(text, maxConceptChars);
+      teacherGenerate = true;
     }
 
     // ══════════════════════════════════════════════════
@@ -1906,7 +2677,9 @@ class ChatController extends ChangeNotifier {
     //
     // ★ وحين يمضي الطلب يُفرَّغ **فوراً** لا بعد `await` — وإلا بقيت
     //   المعاينة معلّقةً فوق حقل الكتابة طوال الانتظار (علّةٌ سابقة).
-    final List<PickedImage> sendingImages = List<PickedImage>.of(attachedImages);
+    final List<PickedImage> sendingImages = List<PickedImage>.of(
+      attachedImages,
+    );
     attachedImages.clear();
 
     if (currentConversationId == null) createNewConversation();
@@ -1928,7 +2701,11 @@ class ChatController extends ChangeNotifier {
           "images": sendingImages.map((e) => e.path).toList(),
         });
       } else if (effectiveContentMode == "lessons" && text.isEmpty) {
-        messages.add({"role": "user", "text": "${selectedMode == "تلخيص" ? "تلخيص" : "شرح"} درس: $selectedV3Lesson"});
+        messages.add({
+          "role": "user",
+          "text":
+              "${selectedMode == "تلخيص" ? "تلخيص" : "شرح"} درس: $selectedV3Lesson",
+        });
       } else {
         messages.add({
           "role": "user",
@@ -1939,15 +2716,31 @@ class ChatController extends ChangeNotifier {
     } else if (selectedSubject == "رياضيات" && mathMode == "وزاري") {
       final parts = text.split('|');
       if (parts.length >= 2) {
-        messages.add({"role": "user", "text": "جلب أسئلة وزاري: ${parts[1]} (${parts[0]})"});
+        messages.add({
+          "role": "user",
+          "text": "جلب أسئلة وزاري: ${parts[1]} (${parts[0]})",
+        });
       } else {
         messages.add({"role": "user", "text": text});
       }
+    } else if (selectedMode == "وزاري" && text.contains('|')) {
+      // 🏷️ **زرُّ الجلب نصٌّ مُركَّبٌ للخادم** («2024|أولاً: القراءة|قطعة|3») —
+      //    وكان يُعرض في فقاعة الطالب كما هو. يُرسَل كما هو، ويُعرض مقروءاً
+      //    كما تُعرض فقاعةُ وزاري الرياضيات أعلاه.
+      messages.add({"role": "user", "text": _wazariBubble(text)});
     } else {
       messages.add({"role": "user", "text": text});
     }
 
+    // 📄 **أولُ إرسالٍ بصفحاتٍ يثبّتها صفحاتٍ للمحادثة** — حدُّها من
+    //    الآن: تُزال منها وتُعاد، ولا يُضاف إليها ([addPage]).
+    if (canPickPages && selectedPages.isNotEmpty && _conversationPages.isEmpty) {
+      _conversationPages.addAll(selectedPages.take(ChatConversation.maxPages));
+    }
+
     inputController.clear();
+    _requestInFlight = true;
+    _requestFinished = Completer<void>();
     isLoading = true;
     _markBusy();
     // 🧾 معرّف هذه المحاولة — يثبت عبر إعادات المحاولة فلا تُخصم الحصة مرتين.
@@ -1980,7 +2773,9 @@ class ChatController extends ChangeNotifier {
     //
     // 💳 ولا حصةَ تُخصم: الخادمُ نفسُه يردّها للشرح المخزون
     //    ([_dispatch_and_settle])، فتخطّي الرحلة لا يغيّر حساباً.
-    if (!teacherGenerate && !hasImage && !questionNeedsTypedText &&
+    if (!teacherGenerate &&
+        !hasImage &&
+        !questionNeedsTypedText &&
         (text.isEmpty || text == explainLessonText)) {
       final ready = _readyExplanation;
       if (ready != null) {
@@ -2003,6 +2798,11 @@ class ChatController extends ChangeNotifier {
         try {
           await saveCurrentConversation();
         } catch (_) {}
+        _requestInFlight = false;
+        _busySince = null;
+        final finished = _requestFinished;
+        _requestFinished = null;
+        if (finished != null && !finished.isCompleted) finished.complete();
         return;
       }
     }
@@ -2025,7 +2825,9 @@ class ChatController extends ChangeNotifier {
         finalLessonName = selectedLesson;
       }
 
-      if (selectedSubject != "رياضيات" && selectedMode == "وزاري" && customText == null) {
+      if (selectedSubject != "رياضيات" &&
+          selectedMode == "وزاري" &&
+          customText == null) {
         finalContentToSend = "$selectedExamYear,$text";
       }
 
@@ -2112,7 +2914,7 @@ class ChatController extends ChangeNotifier {
         m["fullText"] = response.answer;
         m["refs"] = response.references;
         m["streaming"] = false;
-        m["animating"] = false;      // البثّ بديلٌ عن الطابعة لا يجتمعان
+        m["animating"] = false; // البثّ بديلٌ عن الطابعة لا يجتمعان
         if (response.offTopic) m["offTopic"] = true;
         // ⚡ وسمُ «من المحفوظ» — سؤالُ المالك: «ما أدري هل يجي من المخزون
         //    ولا لا». فالجوابُ يُرى على الفقاعة، ولا يُقاس بالإحساس.
@@ -2166,7 +2968,31 @@ class ChatController extends ChangeNotifier {
       // 🌊 فقاعةٌ بدأت ولم تكتمل: نُغلق حالتها فلا يبقى المؤشّر يومض إلى
       //    الأبد على ردٍّ توقّف — والنصّ الواصل يبقى معروضاً.
       _finalizePartialStream();
-      if (!_disposed && !_isResponseCancelled) {
+
+      // ══════════════════════════════════════════════
+      // 🛟 **وما وصل من الشرح يُحفظ ويُحتسب** — وإن لم يكتمل
+      // ══════════════════════════════════════════════
+      // 🔴 **انحدارٌ دخل مع توحيد دورة الطلب:** الانقطاعُ بعد وصول جزءٍ
+      //    من النص كان يعود من [_askStreaming] **نجاحاً** بالنصّ الجزئي،
+      //    فيمرّ على `saveCurrentConversation` و`consumeOne` كأي جواب.
+      //    وبعد أن صار يرمي `StreamInterrupted(hasPartial: true)` سقط
+      //    المساران معاً: الطالب يقرأ نصّاً على الشاشة، فإذا خرج من
+      //    المحادثة وعاد **لم يجد منه حرفاً** — ونداءُ الموديل قد دُفع.
+      //
+      // 💳 والعدّادُ ينزل هنا يقيناً لا احتمالاً: وصولُ جزءٍ يعني أن
+      //    `streaming.complete` نُوديت، وهي موضعُ `billing.charge` على
+      //    الخادم — فالحصة خُصمت هناك قطعاً ([core/billing.py]).
+      if (!_disposed && e is StreamInterrupted && e.hasPartial) {
+        QuotaRepository.I.consumeOne();
+        try {
+          await saveCurrentConversation();
+        } catch (_) {}
+      }
+
+      if (!_disposed &&
+          !_isResponseCancelled &&
+          e is! RequestCancelled &&
+          !(e is StreamInterrupted && e.hasPartial)) {
         isLoading = false;
         // 📷 **الصورة تعود إلى خانة الإرفاق** عند فشل الإرسال.
         //
@@ -2201,13 +3027,17 @@ class ChatController extends ChangeNotifier {
       _chat.cancel();
       _quietlyAwaitingAnswer = false;
       isStreaming = false;
+      _requestInFlight = false;
+      _busySince = null;
+      final finished = _requestFinished;
+      _requestFinished = null;
+      if (finished != null && !finished.isCompleted) finished.complete();
       if (!_disposed) {
         isLoading = false;
         _safeNotify();
       }
     }
   }
-
 
   // ══════════════════════════════════════════════════
   // 🌊 الإرسال بالبثّ — الفقاعة تنمو أمام الطالب
@@ -2229,61 +3059,90 @@ class ChatController extends ChangeNotifier {
     List<String> imagesBase64 = const [],
   }) async {
     final token = await UserSession.I.idToken();
+    // لقطةٌ ثابتة للمحاولة: لا نعيد قراءة النص/الصور/السياق أثناء retry.
+    final attemptBody = <String, dynamic>{
+      "user_id": userId,
+      "request_id": requestId,
+      "grade": grade,
+      "track": track.key,
+      "thinking": thinking,
+      ...body,
+      if (imagesBase64.isNotEmpty)
+        "images_base64": List<String>.of(imagesBase64),
+    };
+    final deadline = DateTime.now().add(
+      thinking ? AppConfig.askTimeoutThinking : AppConfig.askTimeout,
+    );
+    var transientRetries = 0;
+    // ⏳ **والاستعلامُ يتباطأ** ([AskPending]): الحمولة نفسُها تُرسل في كل
+    //    مرة — تاريخُ المحادثة كاملاً، وقد تحمل معه صورةً بـbase64. وردُّ
+    //    الخادم لا يأتي إلا بعد أن يفرغ من التوليد (٢٠–٤٠ ثانية)، فسؤالٌ
+    //    كل ٣٥٠ملّي يعني **مئةَ** رفعةٍ كاملةٍ على شبكة الطالب بلا فائدة.
+    //    فنبدأ سريعاً (ربما فرغ توّاً) ثم نتمهّل إلى ثانيتين.
+    var pendingDelay = const Duration(milliseconds: 350);
+    const pendingDelayCeiling = Duration(seconds: 2);
 
-    Map<String, dynamic>? finished;
-    String? failure;
+    while (true) {
+      Map<String, dynamic>? finished;
+      String? failure;
+      var pending = false;
 
-    await for (final ev in _stream.open(
-      url: Uri.parse(url),
-      headers: ApiClient.authHeaders(token),
-      // ⏱️ ومهلةُ التفكير أطول — راجع [AppConfig.askTimeoutThinking]
-      timeout: thinking ? AppConfig.askTimeoutThinking : AppConfig.askTimeout,
-      body: {
-        // 🔐 الهوية والنطاق يُضافان هنا لا في المُنادي — حقولٌ يجب أن
-        //    ترافق **كل** طلب، ونسيانها في مسارٍ عطلٌ صامت.
-        //    (والخادم يكتب `user_id` فوق ما نرسله على أي حال.)
-        "user_id": userId,
-        "request_id": requestId,
-        "grade": grade,
-        "track": track.key,
-        // 🧠 زرُّ «تفكير» — يُرسل من **هنا** لا من المُنادي، فيرافق مسارَ
-        //    الطالب ومسارَ المعلّم معاً ولا يُنسى في أحدهما.
-        "thinking": thinking,
-        ...body,
-        if (imagesBase64.isNotEmpty) "images_base64": imagesBase64,
-      },
-    )) {
-      if (_disposed) break;
-
-      switch (ev) {
-        case AskDelta(text: final piece):
-          _appendStreamDelta(piece);
-        case AskDone(payload: final p):
-          finished = p;
-        case AskFailure(message: final m):
-          failure = m;
+      await for (final ev in _stream.open(
+        url: Uri.parse(url),
+        headers: ApiClient.authHeaders(token),
+        timeout: thinking ? AppConfig.askTimeoutThinking : AppConfig.askTimeout,
+        body: attemptBody,
+      )) {
+        if (_disposed || _isResponseCancelled) break;
+        switch (ev) {
+          case AskDelta(text: final piece):
+            _appendStreamDelta(piece);
+          case AskDone(payload: final p):
+            finished = p;
+          case AskPending():
+            pending = true;
+          case AskFailure(message: final m):
+            failure = m;
+        }
       }
-    }
 
-    if (failure != null && finished == null) {
+      if (_disposed || _isResponseCancelled) throw const RequestCancelled();
+      if (finished != null) return AskResponse.fromJson(finished);
+
+      // 202 يعني أن **نفس** request_id يعمل في الخادم. ننتظر ثم نستعلم
+      // بنفس الحمولة؛ لا نعرض رسالة «قيد المعالجة» كأنها جواب ولا نخصم محلياً.
+      if (pending && DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(pendingDelay);
+        final next = pendingDelay * 1.6;
+        pendingDelay = next > pendingDelayCeiling ? pendingDelayCeiling : next;
+        continue;
+      }
+
+      // عطلٌ قبل أول حرف يمكن إعادته مرةً واحدة بأمان لأن request_id ثابت.
+      if (failure != null &&
+          _streamIndex == null &&
+          transientRetries++ == 0 &&
+          DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+        continue;
+      }
+
+      if (failure == null) {
+        throw const StreamInterrupted(ErrorMessages.askStreamStalled);
+      }
       // 🛟 انقطاعٌ **بعد** وصول جزءٍ من الشرح: نُبقي ما وصل ونُلحق سبب
       //    التوقّف. حذفُه كان سيمحو نصّاً دُفع ثمنه وقرأه الطالب فعلاً.
+      _drainPending();
       final partial = _streamIndex == null
           ? ""
           : (messages[_streamIndex!]["text"] ?? "").toString();
       if (partial.trim().isNotEmpty) {
         _finalizePartialStream(suffix: "\n\n$failure");
-        return AskResponse(
-          answer: messages.last["text"].toString(),
-          references: const [],
-          sessionActive: false,
-        );
+        throw StreamInterrupted(failure, hasPartial: true);
       }
       _finalizePartialStream();
       throw StreamInterrupted(failure);
     }
-
-    return AskResponse.fromJson(finished ?? const {});
   }
 
   // ══════════════════════════════════════════════════
@@ -2341,7 +3200,7 @@ class ChatController extends ChangeNotifier {
       _safeNotify();
     }
 
-    _markBusy();                 // ⏱️ جزءٌ وصل ⇒ الطلبُ حيّ
+    _markBusy(); // ⏱️ جزءٌ وصل ⇒ الطلبُ حيّ
     _pending.write(piece);
     _flushTimer ??= Timer(_flushEvery, _flushStream);
   }
@@ -2421,21 +3280,45 @@ class ChatController extends ChangeNotifier {
   void dispose() {
     // 🪑 **قبل كل شيء**: المكانُ يُلتقط من حالةٍ حيّة، وما بعده يُفكّكها.
     _rememberPlace();
-    SyncService.I.flushNow();   // لا تترك آخر رسالة معلّقة
     SyncService.I.revision.removeListener(_onRemoteConversations);
     UserSession.I.removeListener(_onSessionScopeChanged);
-    _disposed = true;
     try {
-      // 1. احفظ آخر محادثة
-      if (currentConversationId != null && messages.isNotEmpty) {
-        saveCurrentConversation();
-      }
-      // 2. ألغِ أي طلب شغال وأغلق الاتصال (العادي **والبثّ** معاً)
+      // ══════════════════════════════════════════════════
+      // 💾 **ترتيبُ الإغلاق هو ما يُنجي آخر رسالة**
+      // ══════════════════════════════════════════════════
+      //
+      // 🔴 **ثلاثةُ أخطاءِ ترتيبٍ كانت هنا، وكلُّها تضيّع نصّاً مدفوعاً:**
+      //
+      //    ① `_disposed = true` **قبل** الحفظ: كلُّ ما بعده يعمل في
+      //      متحكّمٍ يعلن أنه ميت.
+      //
+      //    ② **المتراكمُ لم يُسكب**: البثُّ يجمع الأحرف في `_pending`
+      //      ويسكبها كل ٥٠ملّي ([_flushEvery]). و`saveCurrentConversation`
+      //      تبني قائمتها من `messages` **قبل** أوّل `await`، فما بقي في
+      //      المصرف لم يكن قد وصلها بعد — ثم يُلغى المؤقّت فيضيع نهائياً.
+      //      أي أن الخروج أثناء البثّ كان يبتر آخر جملةٍ من الشرح.
+      //
+      //    ③ `flushNow()` **قبل** الحفظ: هي ترفع ما في طابور المزامنة،
+      //      والمحادثةُ الأخيرة لم تدخله بعد (تدخله في
+      //      `pushConversation` داخل الحفظ). فكانت ترفع كلَّ شيءٍ **إلا**
+      //      ما جاءت لأجله. فصار الرفعُ **بعد** الحفظ ومربوطاً به.
+      _drainPending();
       _flushTimer?.cancel();
+
+      if (currentConversationId != null && messages.isNotEmpty) {
+        // ⚠️ `dispose` متزامنة فلا تُنتظر: الجزءُ الحرج (بناءُ الرسائل من
+        //    `messages`) يقع متزامناً قبل أول `await`، والرفعُ يتبعه.
+        unawaited(saveCurrentConversation().then((_) => SyncService.I.flushNow()));
+      } else {
+        SyncService.I.flushNow(); // لا تترك رسالةً معلّقة من قبلُ
+      }
+
+      // 2. ألغِ أي طلب شغال وأغلق الاتصال (العادي **والبثّ** معاً)
       _chat.cancel();
       _stream.cancel();
       // 3. أغلق الـ ValueNotifiers والـ Controllers
       stopTypingNotifier.dispose();
+      inputFocus.dispose();
       inputController.dispose();
       conceptController.dispose();
       scrollController.dispose();
@@ -2445,6 +3328,12 @@ class ChatController extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error in ChatController dispose: $e');
     }
+    // 🪦 وبعد أن أُخذ كلُّ ما يلزم من حالةٍ حيّة: ما يصل متأخّراً من
+    //    `saveCurrentConversation` يجد [_safeNotify] صامتةً كما ينبغي.
+    _disposed = true;
     super.dispose();
   }
 }
+
+/// 🔒 ما الذي تغيّر في سياق محادثةٍ بدأت؟ — يختار نصَّ سؤال «محادثة جديدة».
+enum ContextChange { lesson, pages, unit, contentMode }

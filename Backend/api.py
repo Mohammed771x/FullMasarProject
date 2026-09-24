@@ -658,14 +658,14 @@ async def _ask_guards(req, request: Request):
              "session_active": False, "in_flight": True}, 202)
 
     # 🎟️ الحصة — البوابة الوحيدة على فاتورة الـAI بعد حذف الأكواد.
-    allowed, _remaining = await v3_quota.acheck_and_consume(
-        identity["uid"], identity["is_guest"])
-    if not allowed:
+    reservation = await v3_quota.areserve(identity["uid"], identity["is_guest"])
+    if not reservation.allowed:
         v3_idem.abandon(identity["uid"], req.request_id)
         return identity, "", _json_response(
             {"answer": v3_quota.message_for(identity["is_guest"]),
              "references": [], "session_active": False,
              "quota_exceeded": True, "is_guest": identity["is_guest"]}, 429)
+    identity["_quota_reservation"] = reservation
 
     # 🧾 عدّادُ نداءات الموديل لهذا الطلب — عليه يقوم ردُّ الحصة إن لم
     #    يُنادَ موديلٌ أصلاً ([core/billing.py] · قرار المالك 2026-09-14).
@@ -680,6 +680,7 @@ async def _ask_guards(req, request: Request):
                 clean, mime = v3_image_guard.validate(img)
                 extracted.append(await v3_vision.image_to_text(clean, mime, AI_CLIENTS))
         except (v3_image_guard.ImageRejected, v3_vision.VisionFailed) as e:
+            await v3_billing.settle_quota(v3_quota, identity)
             v3_idem.abandon(identity["uid"], req.request_id)
             return identity, "", _json_response(
                 {"answer": str(e), "references": [], "session_active": False}, 200)
@@ -705,15 +706,14 @@ async def _dispatch_and_settle(req, identity):
        على حدة كان يعني مساراً يُنسى — وهو بالضبط ما وقع في حرّاس الوحدة.
     """
     meter = v3_billing.current()
-    result = await _dispatch_ask(req)
-    if v3_billing.was_free(meter):
-        await v3_quota.arefund(identity["uid"], identity["is_guest"])
-        # 📣 **ويُخبَر العميل**: التطبيق يُنقص عدّاده محلياً فور نجاح السؤال
-        #    ([QuotaRepository.consumeOne])، فبلا هذه الراية يرى الطالب رقماً
-        #    أقلّ من الحقيقة حتى يُعيد فتح التطبيق.
-        if isinstance(result, dict):
-            result["quota_refunded"] = True
-    return result
+    result = None
+    try:
+        result = await _dispatch_ask(req)
+        return result
+    finally:
+        # 📣 يوسم القاموس إن رُدّت الحصة، والاستثناء قبل أي model call يُسوّى
+        # هنا أيضاً بدل أن يترك خصماً يتيمًا.
+        await v3_billing.settle_quota(v3_quota, identity, result, meter)
 
 
 @app.post("/ask")
@@ -818,4 +818,3 @@ from apiparts.ingest import (  # noqa: F401,E402
     ingest_page, ingest_targets, ingest_models, ingest_run, ingest_save,
     admin_page,
 )
-

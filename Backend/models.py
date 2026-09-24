@@ -247,6 +247,15 @@ class VoiceCleanRequest(BaseModel):
     # 📚 المادة قرينةٌ ترجّح المصطلح عند الالتباس الصوتي («الخميرة» ⇒ «النخامية»).
     subject: str = Field(default="", max_length=64)
 
+class TitleRequest(BaseModel):
+    """🏷️ اسمُ محادثةٍ من أول سؤال ([core/chat_title]) — نصوصٌ قصيرةٌ مسقوفة."""
+    user_id: str = Field(default="", max_length=128)   # يملؤه الخادم من التوكن
+    question: str = Field(max_length=2000)
+    answer: str = Field(default="", max_length=2000)
+    subject: str = Field(default="", max_length=64)
+    # "education" · "teacher" · "scholarship" — قرينةٌ للموضوع لا أكثر.
+    section: str = Field(default="", max_length=16)
+
 class ChatMessage(BaseModel):
     """رسالة في الشات"""
     role: str

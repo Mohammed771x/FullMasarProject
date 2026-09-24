@@ -33,6 +33,33 @@ class _SlowClient extends http.BaseClient {
   }
 }
 
+/// خادمٌ يردّ 202 «قيد المعالجة» أولاً ثم يُسلّم الجواب — تماماً كما يفعل
+/// حارسُ التكرار حين تصل محاولةٌ ثانيةٌ بنفس `request_id`.
+class _PendingThenAnswerClient extends http.BaseClient {
+  final List<Map<String, dynamic>> bodies = [];
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    bodies.add(
+        jsonDecode((request as http.Request).body) as Map<String, dynamic>);
+    if (bodies.length == 1) {
+      return http.StreamedResponse(
+        Stream.value(
+            utf8.encode('{"answer":"طلبك قيد المعالجة","in_flight":true}')),
+        202,
+      );
+    }
+    // ⚠️ والمحاولةُ الثانية تُبَثّ بصيغة SSE لا جسماً عارياً: ذاك ما
+    //    يرسله الخادم على 200، وبدونه يقرأ العميل «إغلاقاً بلا `done`».
+    final done = jsonEncode(
+        {"t": "done", "answer": "آخر موعد ٣٠ يونيو", "ok": true});
+    return http.StreamedResponse(
+      Stream.value(utf8.encode('data: $done\n\n')),
+      200,
+    );
+  }
+}
+
 final _sch = Scholarship.fromJson(
     {"id": "turkey", "name": "المنحة التركية", "country": "تركيا"});
 
@@ -102,6 +129,37 @@ void main() {
     await pending;
 
     expect(c.messages, isEmpty);           // ⭐ لم يُلحق شيء بالجديدة
+    c.dispose();
+  });
+
+  // ══════════════════════════════════════════════════
+  // 🔁 202 ليس جواباً — نفسُ قاعدة قسم التعليم حرفياً
+  // ══════════════════════════════════════════════════
+  //
+  // 🔴 **ما كان يحدث:** حارسُ التكرار يردّ 202 بنصٍّ عربيّ («طلبك قيد
+  //    المعالجة»)، وكان العميل يراه جواباً مكتملاً فيعرضه في الفقاعة —
+  //    فيقرأ الطالب جملةً إداريةً مكان ردّ المساعد، والردُّ الحقيقي الذي
+  //    يُولّده الخادم في تلك اللحظة يُلقى في القمامة.
+  //
+  // ⚖️ والصواب: نفسُ `request_id` ونفسُ الحمولة حتى يتحوّل إلى جواب —
+  //    فلا حصةٌ ثانيةٌ تُخصم ولا نداءُ موديلٍ يتكرّر.
+  test('202 قيد المعالجة يُعاد الاستعلام لا يُعرض جواباً', () async {
+    final client = _PendingThenAnswerClient();
+    final c = ScholarshipChatController(
+        scholarship: _sch, repository: ScholarshipRepository(client))
+      ..start();
+
+    await c.send("متى آخر موعد؟");
+
+    expect(client.bodies, hasLength(2), reason: 'لم يُعد الاستعلام أصلاً');
+    expect(client.bodies[1]["request_id"], client.bodies[0]["request_id"],
+        reason: 'معرّفٌ جديد ⇒ خصمُ حصةٍ ثانيةٍ ونداءٌ ثانٍ للموديل');
+    expect(client.bodies[1], client.bodies[0], reason: 'الحمولة تغيّرت');
+
+    final replies = c.messages.where((m) => !m.isUser).toList();
+    expect(replies, hasLength(1));
+    expect(replies.single.text, contains("٣٠ يونيو"));
+    expect(replies.single.text, isNot(contains("قيد المعالجة")));
     c.dispose();
   });
 

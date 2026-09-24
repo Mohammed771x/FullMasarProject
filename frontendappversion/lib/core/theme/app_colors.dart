@@ -232,8 +232,51 @@ class AppColors {
   /// حدّ الحقل — `#EBEDF0`.
   static Color get fieldBorder => _dark ? n875 : const Color(0xFFEBEDF0);
 
-  /// النصّ النائب داخل الحقل — `#6B788E`.
-  static Color get fieldHint => _dark ? n600 : const Color(0xFF6B788E);
+  /// النصّ النائب داخل الحقل — `#B5BDC7` **مقروءاً من الملف** لا مقدَّراً.
+  ///
+  /// 🔎 كان `#6B788E` (رمادٌ داكن) فبدا النصُّ النائب كنصٍّ مكتوبٍ فعلاً.
+  ///    وفي التصميم هو **باهتٌ جداً** عمداً: علامةُ «هنا يُكتب» لا محتوى.
+  ///    وفي الداكن لا يصلح فاتحاً بهذا القدر، فيُشتقّ من سلّم الحياد.
+  static Color get fieldHint => _dark ? n600 : const Color(0xFFB5BDC7);
+
+  // ── 🚦 حالاتُ الحقل: خطأ · صحّة · قوّة ──
+  // 🔴 **أُضيفت ٢٠٢٦-٠٩-٢٣** حين انتقلت رسائلُ الخطأ من `SnackBar` عائمةٍ
+  //    في وسط الشاشة إلى **تحت الحقل نفسه**. ولا لون منها مخترع: كلُّها
+  //    مشتقّةٌ من سلّمَي `error`/`success` أعلاه.
+  //
+  // ⚠️ **ولمَ لا `error500` في الداكن؟** `#ED2C2C` على `#0B0B0B` نسبةُ
+  //    تباينه 3.6:1 — تحت حدّ AA لنصٍّ صغير. فيُفتَح الحبر في الداكن،
+  //    ويبقى الإطارُ أشدَّ لأنه شكلٌ لا نصّ.
+
+  /// إطارُ حقلٍ خاطئ — أشدُّ ما في الشاشة، فهو العلامة الأولى التي تُرى.
+  static Color get fieldErrorBorder =>
+      _dark ? const Color(0xFFFF6B6B) : error500;
+
+  /// تعبئتُه — وردةٌ خفيفة تكفي لتقول «هنا» ولا تُنافس الحبر.
+  static Color get fieldErrorFill =>
+      _dark ? error500.withValues(alpha: 0.10) : error50;
+
+  /// حبرُ رسالة الخطأ تحت الحقل.
+  static Color get fieldErrorInk =>
+      _dark ? const Color(0xFFFF8A8A) : error700;
+
+  /// ✅ إطارُ حقلٍ استوفى شرطَه — بلا تعبئةٍ صارخة: الصحّةُ لا تُعلَن.
+  static Color get fieldOkBorder => _dark ? success600 : success700;
+  static Color get fieldOkInk => _dark ? success500 : success800;
+
+  /// 🔋 سلّمُ شريط قوّة كلمة المرور — ثلاثُ درجات.
+  ///
+  /// ⚠️ **الدرجةُ الوسطى ليست `warning500`** (`#F3D31B` أصفرُ ليمونيّ):
+  ///    تباينُه على الأبيض 1.5:1، فالشريطُ يختفي. فبرتقاليٌّ صريح.
+  static Color get strengthWeak =>
+      _dark ? const Color(0xFFFF6B6B) : error500;
+  static Color get strengthFair =>
+      _dark ? const Color(0xFFF5A524) : const Color(0xFFE07B00);
+  static Color get strengthStrong => _dark ? success500 : success700;
+
+  /// مجرى الشريط الفارغ.
+  static Color get strengthTrack =>
+      _dark ? n875 : const Color(0xFFE7EAEE);
 
   /// سطحٌ مصبوغٌ بلون الهوية — أزرار جوجل والزائر وبطاقة الاختيار المحدّدة.
   ///

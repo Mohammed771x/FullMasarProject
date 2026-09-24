@@ -51,12 +51,16 @@ class _CapturingClient extends http.BaseClient {
       {this.answer = "الجواب",
       this.imageText = "",
       this.fail = false,
+      this.pendingFirst = false,
+      this.omitDone = false,
       this.firstDelta = "جزء"});
 
   final String firstDelta;
   final String answer;
   final String imageText;
   final bool fail;
+  final bool pendingFirst;
+  final bool omitDone;
 
   final List<Map<String, dynamic>> bodies = [];
   /// بوّابة اختيارية: تُبقي الطلب معلّقاً حتى نفتحها (لمحاكاة «جارٍ الرد»).
@@ -68,6 +72,13 @@ class _CapturingClient extends http.BaseClient {
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     bodies.add(jsonDecode((request as http.Request).body) as Map<String, dynamic>);
     if (fail) throw const SocketException("لا شبكة");
+    if (pendingFirst && bodies.length == 1) {
+      return http.StreamedResponse(
+        Stream.value(utf8.encode('{"answer":"قيد المعالجة","in_flight":true}')),
+        202,
+        request: request,
+      );
+    }
     final done = jsonEncode({
       "t": "done",
       "answer": answer,
@@ -80,10 +91,17 @@ class _CapturingClient extends http.BaseClient {
     Stream<List<int>> body() async* {
       yield utf8.encode('data: {"t":"delta","v":"$firstDelta"}\n\n');
       if (gate != null) await gate!.future;
+      if (omitDone) return;
       yield utf8.encode('data: $done\n\n');
     }
 
     return http.StreamedResponse(body(), 200, request: request);
+  }
+
+  @override
+  void close() {
+    final waiting = gate;
+    if (waiting != null && !waiting.isCompleted) waiting.complete();
   }
 }
 
@@ -93,7 +111,10 @@ ChatController _controller({_CapturingClient? client}) => ChatController(
       askStream: client == null ? null : AskStream(client),
     )
       ..selectedSubject = "احياء"
-      ..selectedMode = "شرح";
+      ..selectedMode = "شرح"
+      // 🚦 اختيارٌ مكتمل ([ChatController.sendBlocker]): هذه الاختباراتُ
+      //    تفحص الصورَ والبثّ، لا بوّابةَ الاختيار — ولها ملفُّها.
+      ..selectedUnit = "الجهاز العصبي";
 
 SubjectCapabilities _caps() => SubjectCapabilities.fromJson({
       "subject": "احياء",
@@ -328,11 +349,16 @@ void main() {
       c.inputController.text = "اشرح";
       addTearDown(c.dispose);
 
-      var asked = false;
-      c.onShowPagesRequired = () => asked = true;
+      // 🚦 صار السببُ يصل من البوّابة الواحدة ([ChatController.sendBlocker])
+      //    — بالكلمة نفسها — والشاشةُ تفتح البطاقةَ حيث تُختار الصفحات.
+      //    وحارسُ الصفحات الأقدم (`onShowPagesRequired`) يسبقها — أيُّهما
+      //    نطق فقد قال السببَ نفسَه.
+      String? reason;
+      c.onSendBlocked = (r) => reason = r;
+      c.onShowPagesRequired = () => reason = 'اختر الصفحات أولاً';
       await c.processRequest();
 
-      expect(asked, isTrue);
+      expect(reason, contains('الصفحات'));
       expect(c.messages, isEmpty);
     });
 
@@ -370,6 +396,64 @@ void main() {
   // 🚀 ③ الإرسال الفعلي — ما الذي يصل الخادم؟
   // ══════════════════════════════════════════════════
   group('🚀 حمولة الإرسال', () {
+    test('HTTP 202 يعيد نفس المحاولة بالنص والصورة والسياق نفسيهما', () async {
+      final client = _CapturingClient(pendingFirst: true);
+      final c = _controller(client: client);
+      c.inputController.text = "اشرح الصورة";
+      c.attachedImages.add(_img("a"));
+      addTearDown(c.dispose);
+
+      await c.processRequest();
+
+      expect(client.bodies, hasLength(2));
+      expect(client.bodies[1], client.bodies[0]);
+      expect(client.bodies[0]["request_id"], isNotEmpty);
+      expect(c.messages.where((m) => m["role"] == "ai"), hasLength(1));
+    });
+
+    test('انقطاع البث بعد partial يثبت فقاعة واحدة ولا يكرر الإجابة', () async {
+      final client = _CapturingClient(
+          omitDone: true, firstDelta: "جزء وصل قبل الانقطاع");
+      final c = _controller(client: client);
+      c.inputController.text = "اشرح";
+      addTearDown(c.dispose);
+
+      await c.processRequest();
+
+      final answers = c.messages.where((m) => m["role"] == "ai").toList();
+      expect(answers, hasLength(1));
+      expect(answers.single["text"], contains("جزء وصل قبل الانقطاع"));
+      expect(answers.single["streaming"], isFalse);
+    });
+
+    // ══════════════════════════════════════════════
+    // 🛟 وما قُرئ على الشاشة يُقرأ بعد العودة إليها
+    // ══════════════════════════════════════════════
+    // 🔴 **انحدارٌ دخل مع توحيد دورة الطلب:** بعد أن صار الانقطاعُ الجزئي
+    //    يرمي `StreamInterrupted(hasPartial: true)` بدل أن يعود نجاحاً،
+    //    سقط `saveCurrentConversation` من مساره. فالنصُّ يبقى على الشاشة
+    //    ما دام الطالب فيها، فإذا خرج وعاد **لم يجد منه حرفاً** — ونداءُ
+    //    الموديل قد دُفع ثمنُه كاملاً.
+    //
+    // ⚖️ واختبارُ الشاشة وحدها كان سيمرّ: الفقاعةُ هناك. فنقرأ من القرص.
+    test('انقطاعٌ بعد partial يُحفظ على القرص لا على الشاشة وحدها', () async {
+      final client = _CapturingClient(
+        omitDone: true,
+        firstDelta: "نصفُ الشرح وصل",
+      );
+      final c = _controller(client: client);
+      c.inputController.text = "اشرح";
+      addTearDown(c.dispose);
+
+      await c.processRequest();
+
+      final saved = ChatStorage.getConversation(c.currentConversationId!);
+      expect(saved, isNotNull, reason: 'الانقطاعُ الجزئي لم يحفظ شيئاً');
+      final stored = saved!.messages.where((m) => m.role == "ai").toList();
+      expect(stored, hasLength(1));
+      expect(stored.single.text, contains("نصفُ الشرح وصل"));
+    });
+
     test('صورة واحدة بلا نصّ', () async {
       final client = _CapturingClient();
       final c = _controller(client: client);
@@ -569,16 +653,38 @@ void main() {
 
     expect(confirmed, isTrue, reason: '🔴 كان يخرج فوراً بلا أن يوقف شيئاً');
     expect(c.isStreaming, isFalse);
-    expect(c.isBusy, isFalse);
+    expect(c.isBusy, isTrue,
+        reason: 'الإلغاء لم ينته بعد؛ لا يجوز إعلان idle مبكراً');
     expect(c.messages.last["streaming"], isFalse);
     expect(c.messages.last["text"], contains("نصفُ الشرح"),
         reason: 'الحصةُ دُفعت وما قرأه الطالب ملكُه');
     expect(c.messages.last["text"], contains("تم الإيقاف"));
 
     // والجواب الكامل يصل بعد الإيقاف ⇒ يُطرح ولا يُكتب فوق ما ثبّتناه.
-    client.gate!.complete();
     await pending;
+    expect(c.isBusy, isFalse);
     expect(c.messages.last["text"], contains("تم الإيقاف"));
     expect(c.messages.last["text"], isNot(contains("الجواب الكامل")));
+  });
+
+  test('تبديل الوضع ينتظر إلغاء الطلب ولا يخلط السياقين', () async {
+    final client = _CapturingClient()..gate = Completer<void>();
+    final c = _controller(client: client);
+    c.inputController.text = "اشرح";
+    addTearDown(c.dispose);
+
+    final pending = c.processRequest();
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(c.isBusy, isTrue);
+
+    final switching = c.switchContext(() => c.selectedMode = "تلخيص");
+    // الإعداد لا يتغير قبل اكتمال إلغاء مالك الطلب القديم.
+    expect(c.selectedMode, "شرح");
+    await switching;
+    await pending;
+
+    expect(c.isBusy, isFalse);
+    expect(c.selectedMode, "تلخيص");
+    expect(c.messages.where((m) => m["text"] == "الجواب"), isEmpty);
   });
 }

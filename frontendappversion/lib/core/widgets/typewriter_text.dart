@@ -74,6 +74,14 @@ class _TypewriterTextState extends State<TypewriterText> {
       if (currentIndex > fullText.length) {
         currentIndex = fullText.length;
       }
+      // ☢️ **لا يُقطع الرمزُ التعبيريّ نصفين** (رُئي في المحاكي ٢٠٢٦-٠٩-٢٣):
+      //    الخطوةُ ١٢ وحدةَ UTF-16، والرمزُ مثل 📝 وحدتان (زوجٌ بديل). فإن
+      //    وقع القطعُ بينهما مرّ نصفُ رمزٍ إلى محرّك النصّ فرمى «string is not
+      //    well-formed UTF-16» — مربّعاً رمادياً في النسخة المنشورة.
+      if (currentIndex < fullText.length &&
+          _isHighSurrogate(fullText.codeUnitAt(currentIndex - 1))) {
+        currentIndex++;
+      }
 
       await Future.delayed(const Duration(milliseconds: 15));
 
@@ -133,3 +141,6 @@ class _TypewriterTextState extends State<TypewriterText> {
     );
   }
 }
+
+/// النصفُ الأوّلُ من زوجٍ بديل (U+D800–U+DBFF) — لا يُعرض وحده أبداً.
+bool _isHighSurrogate(int unit) => unit >= 0xD800 && unit <= 0xDBFF;

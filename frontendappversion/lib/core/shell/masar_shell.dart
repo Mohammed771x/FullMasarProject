@@ -27,6 +27,12 @@ class MasarShell extends StatefulWidget {
 
   final MasarTab initial;
 
+  /// 📬 طلبُ تبويبٍ من شاشةٍ **فوق** القشرة (ليست ابنتَها فلا تملك
+  ///    `onOpenTab`). مثالُه: «متابعة ورؤية مستواي» في نتيجة الاختبار —
+  ///    يُطلب تبويبُ «اختبر نفسك» قبل النزول إلى القشرة، فيعود «رجوع» من
+  ///    التحليل إليه لا إلى الرئيسية. يمرّ بـ`_onTap` فحارسُ الأقسام يسري.
+  static final ValueNotifier<MasarTab?> tabRequest = ValueNotifier(null);
+
   @override
   State<MasarShell> createState() => _MasarShellState();
 }
@@ -62,12 +68,23 @@ class _MasarShellState extends State<MasarShell> {
     super.initState();
     _scope = _currentScope;
     UserSession.I.addListener(_onSessionChanged);
+    MasarShell.tabRequest.addListener(_onTabRequest);
   }
 
   @override
   void dispose() {
     UserSession.I.removeListener(_onSessionChanged);
+    MasarShell.tabRequest.removeListener(_onTabRequest);
     super.dispose();
+  }
+
+  void _onTabRequest() {
+    final tab = MasarShell.tabRequest.value;
+    if (tab == null || !mounted) return;
+    MasarShell.tabRequest.value = null;
+    // «مسار» يدفع شاشةً ولا يُطلب من هنا — التبويباتُ المقيمة وحدها.
+    if (tab == MasarTab.tutor || tab == MasarTab.services) return;
+    _onTap(tab);
   }
 
   void _onSessionChanged() {

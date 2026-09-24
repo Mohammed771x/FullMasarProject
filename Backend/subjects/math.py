@@ -29,7 +29,8 @@ from .common import (
     enhanced_qa_search, faiss_search, filter_and_rank_exams,
     collect_exam_questions_by_years, normalize_text_match,
     normalize_lesson_name, get_math_exam_years, get_math_exam_lessons,
-    get_math_exam_questions, load_math_lesson,format_arabic_math
+    get_math_exam_questions, load_math_lesson,format_arabic_math,
+    clamp_count,
 )
 from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
@@ -732,10 +733,7 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
     if len(parts) == 3:
         year = parts[0].strip()
         lesson = parts[1].strip()
-        try:
-            count = int(parts[2].strip())
-        except:
-            count = 10
+        count = clamp_count(parts[2], 10)  # 📏 بين ١ و٢٠ دائماً
         
         result = get_math_exam_questions(branch, year, lesson, count)
         

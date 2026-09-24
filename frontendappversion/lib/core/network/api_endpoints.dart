@@ -18,6 +18,9 @@ class ApiEndpoints {
   // 🎤 تنظيف نص التسجيل الصوتي
   static String voiceClean() => "$_base/voice/clean";
 
+  // 🏷️ اسمُ المحادثة من أول سؤال (بلا حصة) — [ConversationTitler].
+  static String chatTitle() => "$_base/chat/title";
+
   /// 👤 صورة الحساب — رفعاً وحذفاً.
   static String avatar() => "$_base/me/avatar";
 

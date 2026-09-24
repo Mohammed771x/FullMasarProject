@@ -68,7 +68,10 @@ async def ask_model(subject: str, messages: list) -> str:
         #    الثمن: `deepseek-v4-pro` بسقف ٤٠٠٠ ينفقها **كلَّها على
         #    التفكير** ويعيد **صفرَ حروف** و`finish_reason="length"` —
         #    جوابٌ فارغٌ بلا خطأ ولا سجلّ. فالسقفُ ثلاثةُ أضعاف والمهلةُ معه.
-        cap, wait = 12000, 240
+        # ☢️☢️ **وقِيس ثانيةً (2026-09-24)**: بنكُ الإنجليزية بعد طلب «أمثلةٍ
+        #    جديدة وحُلَّ السؤالَ مرّتين» أنفق **١٨٬٥٤١** رمزَ تفكير — فعاد ١٥
+        #    درساً من ١٧ بصفر حروف تحت سقف ١٢٠٠٠. والكلفةُ ٠٫٩ سنتٍ للنداء.
+        cap, wait = 40000, 480
     res = await asyncio.wait_for(
         client.chat.completions.create(
             model=model, messages=messages,

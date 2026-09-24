@@ -5,6 +5,8 @@ import '../../../../core/session/user_session.dart';
 import '../../../../core/widgets/masar_brand.dart';
 import '../../../../core/widgets/masar_dialog.dart';
 import '../../../../core/widgets/phosphor.dart';
+import '../../../../core/widgets/search_hit_tile.dart';
+import '../../../chat/data/conversation_search.dart';
 import '../../data/models/scholarship_chat.dart';
 import '../controllers/scholarship_chat_controller.dart';
 import 'scholarship_ui.dart';
@@ -22,9 +24,37 @@ import 'scholarship_ui.dart';
 //    عرضٌ 0.8 من الشاشة · شعارُ مسار يميناً في الرأس · زرُّ «محادثة جديدة»
 //    52 بتدرّج الهوية · بطاقاتُ محادثةٍ 64 بحدٍّ `#F2F3F2` فيها مربّعُ
 //    أيقونةٍ 32 يميناً وزرُّ حذفٍ 27 يساراً.
-class ScholarshipChatDrawer extends StatelessWidget {
+//
+// 🔎 **والبحثُ هنا كما في قسم التعليم** (طلبُ المالك ٢٠٢٦-٠٩-٢٤: «ضِف البحث
+//    في حق المنح»): حرفٌ واحد ⇒ النتائجُ وحدها، كلُّ موضعٍ ذُكرت فيه الكلمة
+//    بأسطرٍ من مكانها ([SearchHitTile])، واللمسُ يفتح المحادثة على تلك
+//    الرسالة. والنطاقُ محادثاتُ **هذه المنحة** — كالدرج نفسه.
+class ScholarshipChatDrawer extends StatefulWidget {
   final ScholarshipChatController controller;
   const ScholarshipChatDrawer({super.key, required this.controller});
+
+  @override
+  State<ScholarshipChatDrawer> createState() => _ScholarshipChatDrawerState();
+}
+
+class _ScholarshipChatDrawerState extends State<ScholarshipChatDrawer> {
+  ScholarshipChatController get controller => widget.controller;
+
+  final TextEditingController _search = TextEditingController();
+  String _query = "";
+
+  bool get _searching => _query.trim().isNotEmpty;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  void _clearSearch() {
+    _search.clear();
+    setState(() => _query = "");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,8 +85,14 @@ class ScholarshipChatDrawer extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
+            if (list.isNotEmpty) ...[
+              _searchField(),
+              const SizedBox(height: 10),
+            ],
             Expanded(
-              child: list.isEmpty
+              child: _searching
+                  ? _searchResults(context, list)
+                  : list.isEmpty
                   ? _emptyState()
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(
@@ -148,6 +184,125 @@ class ScholarshipChatDrawer extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  // ─────────────── 🔎 البحث ───────────────
+  Widget _searchField() => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: SchMetrics.cardPad),
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: AppColors.fieldFill,
+            borderRadius: BorderRadius.circular(SchMetrics.buttonRadius),
+            border: Border.all(color: AppColors.rowBorder),
+          ),
+          child: Row(
+            children: [
+              Icon(PI.magnifyingGlass.regular,
+                  size: 18, color: AppColors.dropdownCaret),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _search,
+                  onChanged: (v) => setState(() => _query = v),
+                  textInputAction: TextInputAction.search,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                    hintText: "ابحث في محادثات هذه المنحة…",
+                    hintStyle: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.dropdownCaret),
+                  ),
+                ),
+              ),
+              if (_query.isNotEmpty)
+                InkWell(
+                  onTap: _clearSearch,
+                  child: Icon(PI.x.bold, size: 15, color: AppColors.cardHint),
+                ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _searchResults(BuildContext context, List<SchConversation> list) {
+    final hits = searchHits<SchConversation>(
+      list,
+      _query,
+      titleOf: (c) => c.title,
+      messagesOf: (c) => [
+        for (final m in c.messages) SearchableMessage(m.text, isUser: m.isUser),
+      ],
+    );
+    if (hits.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.symmetric(
+            horizontal: SchMetrics.cardPad, vertical: 24),
+        children: [
+          Text("لا توجد محادثة تطابق «${_query.trim()}».",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.cardHint)),
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              onPressed: _clearSearch,
+              icon: Icon(PI.arrowRight.bold, size: 16, color: AppColors.primary),
+              label: Text("العودة إلى القائمة",
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary)),
+            ),
+          ),
+        ],
+      );
+    }
+    final conversations = hits.map((h) => h.conversation.id).toSet().length;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+          SchMetrics.cardPad, 0, SchMetrics.cardPad, 12),
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text("نتائج البحث — ${hits.length} في $conversations محادثة",
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.cardHint)),
+        ),
+        for (final h in hits)
+          SearchHitTile(
+            title: h.conversation.title,
+            tag: controller.scholarship.name,
+            before: h.before,
+            match: h.match,
+            after: h.after,
+            isUser: h.isUser,
+            inTitleOnly: h.messageIndex < 0,
+            assistantName: "المساعد",
+            onTap: () {
+              FocusScope.of(context).unfocus();
+              controller.openConversation(h.conversation.id,
+                  revealIndex: h.messageIndex, revealPosition: h.position);
+              Navigator.pop(context);
+            },
+          ),
+      ],
     );
   }
 

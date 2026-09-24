@@ -20,6 +20,7 @@
 import os
 import json
 import threading
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 # ── الحدود ──
@@ -61,6 +62,27 @@ _MAX_MEMORY_KEYS = 20_000
 
 _db = None
 _db_ready = False
+
+
+@dataclass
+class Reservation:
+    """خصمٌ يخص طلباً واحداً، وتسويته idempotent.
+
+    ربط الردّ بهذا الكائن يمنع `refund()` مكرراً من إنقاص عدّاد طلب آخر.
+    """
+    uid: str
+    is_guest: bool
+    allowed: bool
+    remaining: int
+    _settled: bool = False
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+
+    def begin_settlement(self) -> bool:
+        with self._lock:
+            if self._settled:
+                return False
+            self._settled = True
+            return True
 
 
 def _today() -> str:
@@ -330,6 +352,27 @@ def reset_memory():
 async def acheck_and_consume(uid: str, is_guest: bool = False):
     import asyncio
     return await asyncio.to_thread(check_and_consume, uid, is_guest)
+
+
+async def areserve(uid: str, is_guest: bool = False) -> Reservation:
+    """يحجز حصةً واحدة ويعيد تذكرة التسوية الخاصة بهذه المحاولة."""
+    allowed, remaining = await acheck_and_consume(uid, is_guest)
+    return Reservation(uid, is_guest, allowed, remaining)
+
+
+async def asettle(reservation: Reservation | None, *, billable: bool) -> bool:
+    """يثبّت الخصم أو يردّه مرةً واحدة فقط.
+
+    يعيد `True` فقط حين وقع refund فعلاً، ليضيف المستدعي راية العميل.
+    """
+    if reservation is None or not reservation.allowed:
+        return False
+    if not reservation.begin_settlement():
+        return False
+    if billable:
+        return False
+    await arefund(reservation.uid, reservation.is_guest)
+    return True
 
 
 async def arefund(uid: str, is_guest: bool = False) -> None:

@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+
+import '../../../../core/services/conversation_titler.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/services/image_service.dart';
@@ -9,6 +12,7 @@ import '../../data/models/scholarship.dart';
 import '../../data/models/scholarship_chat.dart';
 import '../../data/scholarship_chat_storage.dart';
 import '../../data/scholarship_repository.dart';
+import '../../../../core/utils/safe_cut.dart';
 
 // ==========================================
 // 🧠 متحكّم شات المنحة
@@ -122,13 +126,30 @@ class ScholarshipChatController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void openConversation(String id) {
+  /// [revealIndex] ≥ 0: جاء من نتيجة بحث — تُعرض تلك الرسالة لا آخرُ
+  /// المحادثة ([takePendingReveal]).
+  void openConversation(String id,
+      {int revealIndex = -1, double revealPosition = 0}) {
     final c = SchChatStorage.get(id, _uid);
     if (c == null) return;
+    // 📍 يُسجَّل **قبل** `stop()`: تلك تُخطر الشاشة، وإخطارٌ بلا طلبٍ مسجَّل
+    //    يُطلق التمريرَ إلى الآخر فيسابق التمريرَ إلى الرسالة (رُئي في المحاكي).
+    _pendingReveal = revealIndex >= 0 && revealIndex < c.messages.length
+        ? (revealIndex, revealPosition)
+        : null;
+    _current = c;
     stop();                 // 🛑 الرد الجاري يخصّ المحادثة السابقة
     _notice = null;
-    _current = c;
     notifyListeners();
+  }
+
+  (int, double)? _pendingReveal;
+
+  /// 📍 رسالةٌ تنتظر أن تُعرض (ترتيبُها وموضعُ الكلمة فيها) — تُؤخذ مرّةً.
+  (int, double)? takePendingReveal() {
+    final i = _pendingReveal;
+    _pendingReveal = null;
+    return i;
   }
 
   Future<void> deleteConversation(String id) async {
@@ -149,6 +170,30 @@ class ScholarshipChatController extends ChangeNotifier {
   ///
   /// ☁️ ويمرّ الحفظُ من [_persist] لا من المخزن مباشرةً، كي يُرفع
   ///    الاسمُ الجديدُ للسحابة أيضاً فلا يعود القديمُ على جهازٍ آخر.
+  /// محادثاتٌ طُلب اسمُها — مرّةً واحدة لكلٍّ منها.
+  final Set<String> _named = {};
+
+  /// 🏷️ **اسمٌ من أول سؤال** — كقسمَي التعليم والمعلّم ([ConversationTitler]).
+  ///    ولا يُكتب فوق اسمٍ اختاره الطالب في الأثناء.
+  Future<void> _nameOnce(SchConversation conv) async {
+    if (!_named.add(conv.id)) return;
+    final provisional = conv.title;
+    final user = conv.messages.firstWhere((m) => m.isUser);
+    final ai = conv.messages.firstWhere((m) => !m.isUser);
+    final title = await ConversationTitler.suggest(
+      question: user.imageText.isEmpty
+          ? user.text
+          : "${user.text}\n${user.imageText}",
+      answer: ai.text,
+      subject: scholarship.name,
+      section: "scholarship",
+    );
+    if (title == null || conv.title != provisional) return;
+    conv.title = title;
+    await _persist(conv);
+    notifyListeners();
+  }
+
   Future<void> renameConversation(SchConversation c, String title) async {
     final clean = title.trim();
     if (clean.isEmpty) return;
@@ -213,10 +258,20 @@ class ScholarshipChatController extends ChangeNotifier {
   }
 
   /// ⏹️ إنهاء → تنظيف → يعيد النص ليوضع في الحقل (أو null).
+  /// ⚠️ **نفسُ حارس قسم التعليم حرفياً** ([ChatController._endRecordingAndClean]):
+  ///    رميُ المحرّك كان يُجمّد `isRecording` فيموت زرُّ المايك، ورميُ
+  ///    `/voice/clean` كان يبتلع النصّ الخام لأن **تحسينَه** فشل.
   Future<String?> stopVoiceToText() async {
     if (!isRecording) return null;
-    final raw = await SttService.I.finish();
-    isRecording = false;
+
+    final String raw;
+    try {
+      raw = await SttService.I.finish();
+    } finally {
+      isRecording = false;
+      notifyListeners();
+    }
+
     if (raw.trim().isEmpty) {
       notifyListeners();
       return null;
@@ -224,13 +279,19 @@ class ScholarshipChatController extends ChangeNotifier {
 
     isCleaningVoice = true;
     notifyListeners();
-    final cleaned = await _repo.cleanVoice(
-      rawText: raw,
-      idToken: await UserSession.I.idToken(),
-      userId: _uid,
-    );
-    isCleaningVoice = false;
-    notifyListeners();
+    var cleaned = "";
+    try {
+      cleaned = await _repo.cleanVoice(
+        rawText: raw,
+        idToken: await UserSession.I.idToken(),
+        userId: _uid,
+      );
+    } catch (_) {
+      // 🛟 الخامُ في اليد — والتنظيف تجميلٌ لا شرط.
+    } finally {
+      isCleaningVoice = false;
+      notifyListeners();
+    }
     return cleaned.isEmpty ? raw : cleaned;
   }
 
@@ -286,7 +347,7 @@ class ScholarshipChatController extends ChangeNotifier {
         "role": m.isUser ? "user" : "assistant",
         "content": content.length <= kSchHistoryChars
             ? content
-            : content.substring(0, kSchHistoryChars),
+            : safeCut(content, kSchHistoryChars),
       };
     }).toList();
   }
@@ -392,6 +453,12 @@ class ScholarshipChatController extends ChangeNotifier {
       conv.messages.add(SchMessage(role: "ai", text: answer.text));
     }
     await _persist(conv);
+    // 🏷️ أولُ جوابٍ على أول سؤال ⇒ اسمٌ من الموديل ([_nameOnce]).
+    if (!answer.quotaExceeded &&
+        answer.text.trim().isNotEmpty &&
+        conv.messages.where((m) => m.isUser).length == 1) {
+      unawaited(_nameOnce(conv));
+    }
 
     if (answer.quotaExceeded) {
       _notice = answer.isGuest

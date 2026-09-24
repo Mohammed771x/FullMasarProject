@@ -29,15 +29,58 @@ class QuizResumeStore {
 
   static String _key(String uid) => "$_prefix$uid";
 
+  // ══════════════════════════════════════════════════
+  // 🔗 **طابورٌ واحد: تُكتب بترتيب النداء لا بترتيب الوصول**
+  // ══════════════════════════════════════════════════
+  //
+  // 🔴 **العطل:** [QuizController._persistProgress] تُنادى بلا `await`
+  //    عمداً (نقرةُ «التالي» لا تنتظر القرص). فطالبٌ يجيب سؤالين بسرعة
+  //    يُطلق كتابتين متوازيتين على نفس المفتاح — ولا شيء يضمن أيُّهما
+  //    تصل أخيراً. فإن تأخّرت كتابةُ السؤال ٥ وسبقتها كتابةُ السؤال ٦،
+  //    استأنف الطالبُ **من السؤال ٥** وأعاد إجابةً أجابها.
+  //
+  // ☢️ **وأخطرُ منها:** `clear()` عند انتهاء الاختبار قد تسبق كتابةً
+  //    معلّقة من آخر «التالي» — فتُمحى اللقطة ثم **تُكتب من جديد**،
+  //    ويعود زرُّ «استأنف» يفتح اختباراً انتهى وحُسبت نتيجتُه.
+  //
+  // ⚖️ **والحلُّ طابورٌ لا قفل:** كلُّ عمليةٍ تتسلسل خلف سابقتها، فترتيبُ
+  //    الوصول هو ترتيبُ النداء حتماً. وعطلُ إحداها لا يقطع الطابور
+  //    (`catchError`) — تعذُّرُ الحفظ يفقد الاستئناف ولا يوقف اختباراً.
+  static Future<void> _chain = Future<void>.value();
+
+  static Future<void> _enqueue(Future<void> Function() op) {
+    final next = _chain.then((_) => op()).catchError((_) {});
+    _chain = next;
+    return next;
+  }
+
+  /// 🔒 حساباتٌ أُنهيت اختباراتُها — لا لقطة تُكتب لها بعد الآن.
+  ///
+  /// الطابورُ يحفظ الترتيب، وهذا يحفظ **المعنى**: كتابةٌ وُلدت قبل
+  /// الانتهاء ووصلت بعده لا يجوز أن تُحيي اختباراً حُسبت نتيجتُه.
+  static final Set<String> _sealed = <String>{};
+
+  /// يفتح الحساب للقطات من جديد — يُنادى مع بداية كل اختبار.
+  static void unseal(String uid) => _sealed.remove(uid);
+
+  /// للاختبارات وحدها: يُعيد المخزن إلى حالته الأولى.
+  static void resetForTests() {
+    _sealed.clear();
+    _chain = Future<void>.value();
+  }
+
   /// يحفظ لقطةً كاملة عن الاختبار الجاري. **لا يرمي أبداً.**
-  static Future<void> save(QuizSnapshot snap) async {
-    if (snap.ownerUid.isEmpty || snap.questions.isEmpty) return;
-    try {
+  static Future<void> save(QuizSnapshot snap) {
+    if (snap.ownerUid.isEmpty || snap.questions.isEmpty) {
+      return Future<void>.value();
+    }
+    if (_sealed.contains(snap.ownerUid)) return Future<void>.value();
+    return _enqueue(() async {
+      // 🔒 ويُعاد الفحص **داخل** الطابور: الختم قد يقع بينما هذه تنتظر دورها.
+      if (_sealed.contains(snap.ownerUid)) return;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_key(snap.ownerUid), jsonEncode(snap.toJson()));
-    } catch (_) {
-      // 🛟 تعذُّرُ الحفظ لا يوقف اختباراً جارياً — يفقد الاستئناف فقط.
-    }
+    });
   }
 
   /// يقرأ اللقطة إن وُجدت وكانت حديثة، وإلا `null` (ويمسح المنتهية).
@@ -69,12 +112,15 @@ class QuizResumeStore {
     }
   }
 
-  static Future<void> clear(String uid) async {
-    if (uid.isEmpty) return;
-    try {
+  /// يمسح اللقطة. و[seal] يمنع أيَّ كتابةٍ لاحقة لهذا الحساب — تُستعمل
+  /// عند **انتهاء** الاختبار، لا حين يتجاهل الطالب لقطةً قديمة.
+  static Future<void> clear(String uid, {bool seal = false}) {
+    if (uid.isEmpty) return Future<void>.value();
+    if (seal) _sealed.add(uid);
+    return _enqueue(() async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_key(uid));
-    } catch (_) {}
+    });
   }
 }
 

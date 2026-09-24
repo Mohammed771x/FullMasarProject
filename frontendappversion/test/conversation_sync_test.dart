@@ -146,4 +146,57 @@ void main() {
       expect(restored.messages, isEmpty);
     });
   });
+  cloudContextTests();
+}
+
+// ══════════════════════════════════════════════════
+// 🧭 سياقُ الدرس يسافر إلى السحابة ويعود
+// ══════════════════════════════════════════════════
+//
+// 🔴 **ثغرةٌ وُجدت في فحص Phase 2:** حقولُ (الوحدة · الدرس · وضع المحتوى)
+//    أُضيفت إلى [ChatConversation] وإلى Hive، وسقط `toDoc`/`fromDoc` من
+//    الحساب. فالقرصُ يحفظ السياق والسحابةُ لا — وطالبٌ أعاد تثبيت التطبيق
+//    أو فتحه على جهازٍ ثانٍ تُستعاد محادثاتُه **من السحابة**، فتعود
+//    بمادتها بلا درسها. أي أن العطل يعود من بابٍ آخر.
+void cloudContextTests() {
+  test('☢️ الوحدةُ والدرسُ ووضعُ المحتوى يعبرون المستند ذهاباً وإياباً', () {
+    final conv = ChatConversation(
+      id: "c-ctx",
+      title: "شرح",
+      subject: "احياء",
+      mode: "شرح",
+      grade: 3,
+      track: "علمي",
+      contentMode: "lessons",
+      unit: "الجهاز العصبي",
+      lesson: "الخلية العصبية",
+      messages: [_msg("اشرح", role: "user")],
+    );
+
+    final doc = ConversationSync().toDoc(conv);
+    expect(doc["unit"], "الجهاز العصبي");
+    expect(doc["lesson"], "الخلية العصبية");
+    expect(doc["content_mode"], "lessons");
+
+    final back = ConversationSync.fromDoc("c-ctx", doc);
+    expect(back.unit, "الجهاز العصبي",
+        reason: '🔴 المحادثة تعود من السحابة بلا وحدتها');
+    expect(back.lesson, "الخلية العصبية",
+        reason: '🔴 المحادثة تعود من السحابة بلا درسها');
+    expect(back.contentMode, "lessons");
+  });
+
+  test('🗄️ ومستندٌ قديم بلا هذه الحقول يُقرأ فارغاً لا منهاراً', () {
+    final legacy = ConversationSync.fromDoc("c-old", {
+      "title": "قديمة",
+      "subject": "احياء",
+      "mode": "شرح",
+      "grade": 3,
+      "track": "علمي",
+      "messages": const [],
+    });
+    expect(legacy.unit, "");
+    expect(legacy.lesson, "");
+    expect(legacy.contentMode, "");
+  });
 }

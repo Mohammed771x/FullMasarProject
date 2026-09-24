@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/access/access_repository.dart';
+import '../../../core/shell/masar_bottom_nav.dart';
+import '../../../core/shell/masar_shell.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/fade_in_slide.dart';
 import '../../../core/widgets/masar_brand.dart';
 import '../../../core/widgets/masar_markdown.dart';
 import '../../../core/widgets/phosphor.dart';
 import '../../chat/presentation/screens/main_chat_screen.dart';
+import '../../future_masar/presentation/screens/analysis_screen.dart';
 import '../data/models/quiz_models.dart';
 import 'quiz_controller.dart';
 import 'quiz_play_screen.dart';
@@ -332,12 +336,35 @@ class _QuizResultScreenState extends State<QuizResultScreen>
 
   // ───────────────────── ▶️ الزرّان ─────────────────────
 
+  /// 📊 **طلبُ المالك (٢٠٢٦-٠٩-٢٤):** «زرٌّ يقول متابعة ورؤية مستواي،
+  ///    ولما نرجع من تحليل مستواي يرجعنا إلى اختبر نفسك لا إلى النتيجة».
+  ///    فالمكدّسُ يُطوى حتى القشرة وقد طُلب تبويبُ الاختبار، ثم يُدفع
+  ///    التحليلُ فوقها — «رجوع» منه يقع على «اختبر نفسك» أينما بدأ الاختبار.
+  void _seeLevel() {
+    MasarShell.tabRequest.value = MasarTab.quiz;
+    final nav = Navigator.of(context);
+    nav.popUntil((route) => route.isFirst);
+    if (!AccessRepository.I.usable(AppSection.analysis)) return;
+    nav.push(MaterialPageRoute(builder: (_) => const AnalysisScreen()));
+  }
+
   Widget _actions() => Column(
         children: [
+          if (AccessRepository.I.visible(AppSection.analysis)) ...[
+            QuizPrimaryButton(
+              label: "متابعة ورؤية مستواي",
+              icon: PI.chartLine,
+              height: 53,
+              onTap: _seeLevel,
+            ),
+            const SizedBox(height: 10),
+          ],
           QuizPrimaryButton(
             label: "اختبار جديد بنفس الدروس",
             icon: PI.arrowCounterClockwise,
             height: 53,
+            fill: AppColors.quizTint,
+            ink: AppColors.primary,
             onTap: () {
               final c = widget.controller;
               Navigator.pushReplacement(

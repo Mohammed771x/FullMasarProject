@@ -206,7 +206,14 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
   Widget build(BuildContext context) {
     // ⬅️ سهمٌ يرجع إلى شيء، أو لا سهمَ إطلاقاً. الشاشة تُعرض تبويباً داخل
     //    `MasarShell` (لا شيءَ خلفها) وتُفتح مدفوعةً من التحليل والمحادثة.
-    final canBack = Navigator.of(context).canPop();
+    //
+    // 🔴 **`ModalRoute.isFirst` لا `Navigator.canPop()`** (بلاغ المالك
+    //    ٢٠٢٦-٠٩-٢٤: «زرّ رجوع ظهر في اختبر نفسك، ضغطناه فشاشةٌ سوداء»).
+    //    `canPop` يسأل **الملّاح كلّه**: هل فيه أكثرُ من مسار؟ والتبويبُ
+    //    يُبنى داخل القشرة بينما النتيجةُ والتحليلُ مدفوعان فوقها — فيجيب
+    //    «نعم» ويظهر سهمٌ يُسقط **القشرةَ نفسَها** من تحتها. والسؤالُ
+    //    الصحيح: هل **مساري أنا** فوق شيء؟
+    final canBack = ModalRoute.of(context)?.isFirst == false;
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,

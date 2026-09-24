@@ -183,6 +183,42 @@ String isolateSignedNumbers(String text) {
   });
 }
 
+/// ⚡ **شحنةُ الأيون تُعزل كي تبقى فوقَ يمين رمزه.**
+///
+/// 🔴 **سؤالُ المالك (٢٠٢٦-٠٩-٢٢):** «العناصر الانتقالية… أعتقد إن الأُس
+///    يكون فوق العنصر من اليمين». وكان محقّاً، والقياسُ أثبته:
+///
+/// | النصّ | كما كان يُرسم | الصواب |
+/// |---|---|---|
+/// | «تمتلك Zn²⁺ شحنة» | «⁺Zn²» | «Zn²⁺» |
+/// | «أيون الكلوريد Cl⁻» | «⁻Cl» | «Cl⁻» |
+/// | «المركب SO₄²⁻» | «⁻SO₄²» | «SO₄²⁻» |
+/// | «الرقم 10⁻³» | «³⁻10» | «10⁻³» |
+///
+/// ⚖️ **والسببُ في جدول Unicode لا في الخطّ:** الأُسُّ الرقميّ (`²`) صنفُه
+///    **EN** فينضمّ إلى الرمز اللاتينيّ، أمّا `⁺` و`⁻` (U+207A/U+207B)
+///    فصنفُهما **ES** — فاصلٌ محايد. والمحايدُ في فقرةٍ عربية يأخذ اتجاه
+///    الفقرة، فيقفز إلى يسار الرمز ويُقرأ كأنه شحنةُ ما بعده.
+///
+/// وهي **علّةُ «-1» عينُها** ([isolateSignedNumbers]) وعلاجُها عينُه:
+/// عزلُ الرمز وشحنته بمحرفَي الاتجاه (U+2066 … U+2069).
+///
+/// 🔒 **والحارسُ أنّ الشحنةَ لا تُكتب إلا هكذا**: النمطُ يشترط علامةً
+///    مرتفعة (`⁺`/`⁻`) بعد رمزٍ لاتينيٍّ أو عدد — ولا يقع ذلك في نصٍّ
+///    عربيّ عادي. و**٨٨٥ موضعاً في المخزون** كانت تُعرض مقلوبة.
+final RegExp _chargedFormula = RegExp(
+    r'(?:[A-Za-z][A-Za-z0-9₀-₉]*|[0-9]+(?:[.,][0-9]+)?)'
+    r'[⁰¹²³⁴-⁹]*'
+    r'[⁺⁻]'
+    r'[⁰¹²³⁴-⁹]*');
+
+String isolateChargeSigns(String text) {
+  // ⚡ خروجٌ سريع: لا علامةَ مرتفعة ⇒ لا عمل (أغلبُ الأسطر).
+  if (!text.contains('\u207a') && !text.contains('\u207b')) return text;
+  return text.replaceAllMapped(
+      _chargedFormula, (m) => '\u2066${m.group(0)}\u2069');
+}
+
 /// نصٌّ لا حرفَ عربياً فيه ولا رقماً عربياً — يُقرأ من اليسار.
 ///
 /// ⚖️ **والرقمُ العربيّ يُخرجه من الحكم**: «-٥» إشارتُها يمينَ الرقم بقرار
@@ -445,9 +481,11 @@ class MasarMarkdown extends StatelessWidget {
       return MarkdownBody(
         // ⚠️ `prepared` لا `data`: الحارس يجب أن يمرّ حتى على النصّ الخالي
         //    من الكسور — وهو بالضبط حيث ظهرت «int» (شرحُ تكاملٍ بلا `\frac`).
-        data: _latinSign
+        // ⚡ وعزلُ الشحنة **بلا شرط**: صيغةُ الأيون لاتينيةٌ في كل مادة،
+        //    و`latinSign` قرارُ الأرقام لا قرارُ الصيغ الكيميائية.
+        data: isolateChargeSigns(_latinSign
             ? isolateSignedNumbers(math ? prepared : data)
-            : (math ? prepared : data),
+            : (math ? prepared : data)),
         styleSheet: _withHeadings(styleSheet, context),
         selectable: selectable,
         softLineBreak: true,
@@ -482,9 +520,9 @@ class MasarMarkdown extends StatelessWidget {
             )
           else if (block.text.trim().isNotEmpty)
             MarkdownBody(
-              data: _latinSign
+              data: isolateChargeSigns(_latinSign
                   ? isolateSignedNumbers(block.text)
-                  : block.text,
+                  : block.text),
               styleSheet: _withHeadings(styleSheet, context),
               selectable: selectable,
               softLineBreak: true,
@@ -966,7 +1004,7 @@ class MathOrText extends StatelessWidget {
         );
       }
       return Text(
-        latinSign ? isolateSignedNumbers(text) : text,
+        isolateChargeSigns(latinSign ? isolateSignedNumbers(text) : text),
         style: style,
         textAlign: textAlign,
         maxLines: maxLines,

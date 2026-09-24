@@ -102,6 +102,75 @@ def test_a_refunded_question_can_be_asked_again():
     assert quota.check_and_consume(UID)[0], "الردُّ لم يفتح سؤالاً حقيقياً"
 
 
+def test_reservation_settlement_is_idempotent_and_cannot_refund_another_request():
+    """تكرار finally/error لن يرد خصم طلبٍ جارٍ آخر لنفس المستخدم."""
+    async def scenario():
+        first = await quota.areserve(UID)
+        second = await quota.areserve(UID)
+        assert first.allowed and second.allowed
+        before = quota.peek(UID)
+        assert await quota.asettle(first, billable=False) is True
+        assert await quota.asettle(first, billable=False) is False
+        return before
+
+    before = asyncio.run(scenario())
+    assert quota.peek(UID) == before + 1, "تسويةٌ مكررة ردّت خصم الطلب الثاني"
+
+
+def test_central_settlement_marks_a_free_response_once():
+    async def scenario():
+        reservation = await quota.areserve(UID)
+        identity = {"_quota_reservation": reservation}
+        meter = billing.start()
+        payload = {"answer": "رفض تحقق"}
+        first = await billing.settle_quota(quota, identity, payload, meter)
+        second = await billing.settle_quota(quota, identity, payload, meter)
+        return first, second, payload
+
+    first, second, payload = asyncio.run(scenario())
+    assert first is True and second is False
+    assert payload["quota_refunded"] is True
+
+
+def test_image_rejection_before_model_call_costs_no_quota():
+    from fastapi.testclient import TestClient
+    import api
+
+    before = quota.peek("test-uid")
+    body = {
+        "request_id": "bad-image-free", "subject": "فيزياء",
+        "mode": "شرح", "input_type": "برومت", "summary_level": 3,
+        "content": "اشرح", "unit_name": "الفيزياء الذرية",
+        "lesson_name": "", "chat_history": [], "grade": 3,
+        "track": "علمي", "images_base64": ["not-base64"],
+    }
+    response = TestClient(api.app).post(
+        "/ask", json=body, headers={"Authorization": "Bearer t"})
+    assert response.status_code == 200
+    assert quota.peek("test-uid") == before
+
+
+def test_quiz_validation_error_before_model_call_costs_no_quota(monkeypatch):
+    from fastapi.testclient import TestClient
+    import api
+    from core import quiz
+
+    async def invalid(*_args, **_kwargs):
+        raise quiz.QuizError("اختر درساً")
+
+    monkeypatch.setattr(api.v3_quiz, "generate", invalid)
+    before = quota.peek("test-uid")
+    response = TestClient(api.app).post(
+        "/quiz/generate",
+        json={"request_id": "bad-quiz-free", "subject": "فيزياء",
+              "grade": 3, "track": "علمي", "unit": "الفيزياء الذرية",
+              "lessons": [], "count": 10},
+        headers={"Authorization": "Bearer t"},
+    )
+    assert response.status_code == 200
+    assert quota.peek("test-uid") == before
+
+
 # ══════════════ ③ المسارُ كاملاً ══════════════
 
 def test_the_dispatch_settles_the_quota_in_one_place():
@@ -144,8 +213,10 @@ def test_every_model_call_on_the_ask_path_passes_the_meter():
                     offenders.append(f"{folder}/{name}:{i + 1}")
     # مساراتٌ أخرى لها حصّتُها الخاصة (اختبر نفسك · المعلّم · تنظيف الصوت
     # · الاستيعاب) — تُستثنى صراحةً كي لا يمرّ جديدٌ بصمت.
+    # 🏷️ و`chat_title` (٢٠٢٦-٠٩-٢٤): اسمُ المحادثة بلا حصة كتنظيف الصوت —
+    #    ستون رمزاً يحرسها حدّا معدّلٍ في `/chat/title` لا العدّاد.
     known = {"core/quiz.py", "core/teacher_assistant.py", "core/voice_clean.py",
-             "core/ingest.py"}
+             "core/ingest.py", "core/chat_title.py"}
     surprises = [o for o in offenders if o.rsplit(":", 1)[0] not in known]
     assert not surprises, f"نداءُ موديلٍ يلتفّ على العدّاد: {surprises}"
 
@@ -161,8 +232,10 @@ def test_the_client_is_told_when_the_question_was_given_back():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     src = open(os.path.join(root, "api.py"), encoding="utf-8").read()
     settle = src.split("async def _dispatch_and_settle")[1].split("\n@app")[0]
-    assert "arefund" in settle
-    assert '"quota_refunded"' in settle, "الردُّ يقع ولا يُخبر العميل"
+    assert "settle_quota" in settle
+    billing_src = open(os.path.join(root, "core", "billing.py"),
+                       encoding="utf-8").read()
+    assert '"quota_refunded"' in billing_src, "الردُّ يقع ولا يُخبر العميل"
 
     app_root = os.path.join(os.path.dirname(root), "frontendappversion")
     ctrl = os.path.join(app_root, "lib", "features", "chat", "presentation",

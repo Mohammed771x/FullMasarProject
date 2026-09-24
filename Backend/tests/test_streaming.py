@@ -315,13 +315,38 @@ def test_teacher_stream_requires_a_token(client, anonymous):
 
 
 def test_teacher_stream_consumes_quota(client, monkeypatch):
-    """🎟️ لا باب خلفي: مسار البثّ يخصم كنظيره العادي تماماً."""
+    """🎟️ لا باب خلفي: مسار البثّ يخصم كنظيره العادي تماماً.
+
+    ⚠️ **ودرسٌ حقيقيّ عمداً** — نفسُ سبب [_body] حرفياً: بعد أن صارت
+       التسوية مركزيةً على عدّاد النداءات ([core/billing.settle_quota])
+       صار طلبُ المعلّم بلا درسٍ يُرفض **مجاناً** (`TeacherError` قبل أي
+       نداء)، فلا يصلح لقياس الحصة. فنُرسل طلباً **يكلّف** فعلاً.
+    """
     monkeypatch.setattr(q, "_general_limit", lambda guest: 1)
     q.reset_memory()
+    body = _teacher_body(unit_name="الفيزياء الذرية", lesson_name="نظرية بوهر")
+    assert client.post("/teacher/ask/stream", json=body,
+                       headers=HDR).status_code == 200
+    second = client.post("/teacher/ask/stream", json=body, headers=HDR)
+    assert second.status_code == 429
+
+
+def test_teacher_stream_refunds_a_request_that_never_reached_the_model(client):
+    """💳 ورفضُ التحقّق لا يخصم — في البثّ كما في المسار العادي.
+
+    ⚖️ الاختبار أعلاه يحرس «لا باب خلفي يتهرّب من الخصم»، وهذا يحرس
+       ضدَّه: باباً يخصم على لا شيء. الطلبان بنفس الجسم الناقص، والفرقُ
+       بينهما المسارُ وحده — فلو اختلف الرصيد، اختلفت التجربتان.
+    """
+    q.reset_memory()
+    before = q.peek("test-uid")
     assert client.post("/teacher/ask/stream", json=_teacher_body(),
                        headers=HDR).status_code == 200
-    second = client.post("/teacher/ask/stream", json=_teacher_body(), headers=HDR)
-    assert second.status_code == 429
+    after_stream = q.peek("test-uid")
+    assert client.post("/teacher/ask", json=_teacher_body(),
+                       headers=HDR).status_code == 200
+    assert after_stream == before, "رفضٌ قبل الموديل خصم من حصة المعلّم"
+    assert q.peek("test-uid") == before, "المساران اختلفا في الخصم"
 
 
 def test_every_subject_handler_can_stream():

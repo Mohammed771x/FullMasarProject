@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_repository.dart';
+import '../../../core/auth/auth_validators.dart';
+import '../../../core/auth/password_strength.dart';
 import '../../../core/config/app_constants.dart';
 import '../../../core/config/curriculum.dart';
 import '../../../core/auth/user_repository.dart';
@@ -51,6 +55,14 @@ class _SignUpFlowState extends State<SignUpFlow> {
   int _step = 0;
   bool _busy = false;
 
+  /// 📨 خطأٌ يخصّ **حقل البريد** جاء من الخادم في الخطوة الأخيرة.
+  ///    يُمرَّر إلى [_StepAccount] ويرجع التدفّقُ إليها — انظر [_finish].
+  String? _serverEmailError;
+
+  /// 📣 خطأٌ لا حقلَ له (شبكة · إعدادُ جوجل · رفضٌ عامّ) — يُعرض في
+  ///    شاشة «تأكيد» فوق الزرّ الذي ضُغط للتوّ.
+  String? _formError;
+
   static const _lastStep = 3;
 
   @override
@@ -81,12 +93,22 @@ class _SignUpFlowState extends State<SignUpFlow> {
     setState(() => _busy = true);
 
     final track = Curriculum.normalizeTrack(_draft.grade, _draft.track).key;
-    final String? error = _draft.viaGoogle
+    // ☢️ **جوجل يرجع نتيجةً بثلاث حالات** ([GoogleAuthResult]) — والإلغاءُ
+    //    منها يُسقَط هنا صامتاً قبل أن يمسّ شيئاً. كان يُحرَس بـ`loggedIn`
+    //    تحت، والزائرُ الذي يسجّل من «سجّل الآن» `loggedIn` أصلاً.
+    final GoogleAuthResult? google = _draft.viaGoogle
         ? await UserSession.I.signInWithGoogle(
             grade_: _draft.grade,
             track_: track,
             role_: _draft.role,
           )
+        : null;
+    if (google != null && google.cancelled) {
+      if (mounted) setState(() => _busy = false);
+      return;
+    }
+    final String? error = google != null
+        ? google.error
         : await UserSession.I.signUp(
             name_: _draft.name,
             email_: _draft.email,
@@ -99,9 +121,17 @@ class _SignUpFlowState extends State<SignUpFlow> {
     if (!mounted) return;
     setState(() => _busy = false);
 
-    if (error != null) return _snack("⚠️  $error", AppColors.error500);
-    // ألغى نافذة جوجل — نبقى في مكاننا بلا رسالة خطأ مُربكة.
-    if (_draft.viaGoogle && !UserSession.I.loggedIn) return;
+    if (error != null) return _routeError(error);
+    // 🔒 حارسٌ ثانٍ لا يعتمد على الأول: جوجل بلا دخولٍ مُثبَت لا يمضي.
+    if (google != null && !google.signedIn) return;
+
+    // 💾 نجاحٌ مؤكَّد ⇒ يُسأل مديرُ كلمات المرور أن يحفظها.
+    TextInput.finishAutofillContext();
+
+    // 🧹 **وتُمحى كلمةُ المرور من الذاكرة.** كانت تبقى في `_Draft` حيّةً
+    //    ما بقيت الشاشة — نصّاً صريحاً في كومة التطبيق. ولا حاجة إليها
+    //    بعد النداء، وما لا يُحتاج لا يُحتفظ به.
+    _draft.password = '';
 
     if (UserSession.I.needsVerification) {
       Navigator.pushReplacement(
@@ -110,6 +140,58 @@ class _SignUpFlowState extends State<SignUpFlow> {
       );
       return;
     }
+    Navigator.pushAndRemoveUntil(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 600),
+        pageBuilder: (_, _, _) => RoleHome.screen(),
+        transitionsBuilder: (_, a, _, c) =>
+            FadeTransition(opacity: a, child: c),
+      ),
+      (r) => false,
+    );
+  }
+
+  // ══════════════════════════════════════════════════
+  // 📍 خطأُ الخطوة الأخيرة — يُعاد إلى الحقل الذي يخصّه
+  // ══════════════════════════════════════════════════
+  /// 🔴 **العطل الذي يعالجه:** «هذا البريد مسجّل مسبقاً» لا تُعرف إلا عند
+  ///    `createUser` — أي في الخطوة **الرابعة**. وكانت تخرج `SnackBar`
+  ///    في شاشة «تأكيد»: رسالةٌ عن حقلٍ لا وجود له في الشاشة، والطالبُ
+  ///    لا يعرف أنه يستطيع الرجوع ثلاثَ خطواتٍ ليصحّحه.
+  ///
+  /// فما يخصّ البريد **يُعيد التدفّق إلى الخطوة الأولى** وقد احمرّ حقلُه
+  /// وتحته سببُه. وما لا يخصّ حقلاً يبقى شريطاً في مكانه.
+  void _routeError(String message) {
+    final aboutEmail = message.contains('البريد') &&
+        (message.contains('مسجّل') || message.contains('صيغة'));
+    if (aboutEmail) {
+      setState(() {
+        _serverEmailError = message;
+        _formError = null;
+      });
+      _go(0);
+      return;
+    }
+    setState(() => _formError = message);
+  }
+
+  // ══════════════════════════════════════════════════
+  // 👀 جرّب كزائر — الزرّ الثالث في الملف
+  // ══════════════════════════════════════════════════
+  /// 🎨 التصميم يرسم في «إنشاء حساب جديد» ثلاثة أزرار كما في «تسجيل دخول»:
+  ///    الأساسي ثم جوجل ثم **«جرب كزائر»**. وكان الزرّ الثالث ساقطاً من
+  ///    هذه الخطوة وحدها.
+  ///
+  /// 🔒 ولا لوجيك جديد: هو `continueAsGuest` نفسُه الذي يستدعيه زرُّ الزائر
+  ///    في شاشة الدخول، بالانتقال نفسِه.
+  Future<void> _guest() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final error = await UserSession.I.continueAsGuest();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (error != null) return _routeError(error);
     Navigator.pushAndRemoveUntil(
       context,
       PageRouteBuilder(
@@ -137,17 +219,26 @@ class _SignUpFlowState extends State<SignUpFlow> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
                 AuthMetrics.gutter,
-                16,
+                AuthMetrics.topGap,
                 AuthMetrics.gutter,
-                20,
+                AuthMetrics.bottomGap,
               ),
               child: Column(
                 children: [
+                  // 📐 صفُّ الرجوع في الملف **فارغٌ إلا من الزرّ** — فوُضع
+                  //    فيه مؤشّرُ الخطوات (وهو إضافتُنا) بدل أن يأخذ سطراً
+                  //    أسفل الشاشة. الفرق 27 نقطة كانت تقطع آخر سطرٍ في
+                  //    خطوة «إنشاء حساب» على الأجهزة الطويلة.
                   SizedBox(
-                    height: 40,
-                    child: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: AuthBackButton(onTap: _back),
+                    height: AuthMetrics.backSize,
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: AuthBackButton(onTap: _back),
+                        ),
+                        Align(alignment: Alignment.center, child: _dots()),
+                      ],
                     ),
                   ),
                   Expanded(
@@ -164,7 +255,13 @@ class _SignUpFlowState extends State<SignUpFlow> {
                             _draft.viaGoogle = true;
                             _next();
                           },
+                          onGuest: _guest,
                           onSignIn: () => Navigator.pop(context),
+                          serverEmailError: _serverEmailError,
+                          onEmailTouched: () {
+                            if (_serverEmailError == null) return;
+                            setState(() => _serverEmailError = null);
+                          },
                         ),
                         _StepRole(draft: _draft, onNext: _next),
                         _StepGrade(draft: _draft, onNext: _next),
@@ -172,12 +269,13 @@ class _SignUpFlowState extends State<SignUpFlow> {
                           draft: _draft,
                           busy: _busy,
                           onFinish: _finish,
+                          error: _formError,
+                          onDismissError: () =>
+                              setState(() => _formError = null),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  _dots(),
                 ],
               ),
             ),
@@ -190,6 +288,7 @@ class _SignUpFlowState extends State<SignUpFlow> {
   /// 🆕 مؤشّر الخطوات — غير موجود في التصميم، وأُضيف لأن التدفّق صار أربع
   ///    شاشاتٍ متتابعة: بلا مؤشّر لا يعرف الطالب كم بقي ولا أين هو.
   Widget _dots() => Row(
+    mainAxisSize: MainAxisSize.min,
     mainAxisAlignment: MainAxisAlignment.center,
     children: List.generate(
       _lastStep + 1,
@@ -206,37 +305,44 @@ class _SignUpFlowState extends State<SignUpFlow> {
     ),
   );
 
-  void _snack(String m, Color c) => ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        m,
-        style: const TextStyle(
-          fontFamily: 'Cairo',
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      backgroundColor: c,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-  );
 }
 
 // ══════════════════════════════════════════════════
 // ① بيانات الحساب
 // ══════════════════════════════════════════════════
+// 🚦 **الأخطاء تحت حقولها — ٢٠٢٦-٠٩-٢٣.** كانت الأربعةُ كلُّها تخرج
+//    `SnackBar` واحداً في وسط الشاشة: «كلمتا المرور غير متطابقتين» في
+//    شاشةٍ فيها **حقلا مرورٍ** لا تقول أيَّهما يصحّح. فصار كلُّ حقلٍ يحمل
+//    خطأه، ويُمسح الخطأ عند أول حرفٍ يكتبه الطالب.
+//
+// 🔋 **وشريطُ القوّة** تحت حقل كلمة المرور — طلبُ المالك: «لما يكتب، تقعة
+//    برتقالية، بعدها تقعة خضراء». والسياسةُ كلُّها في [PasswordStrength].
 class _StepAccount extends StatefulWidget {
   const _StepAccount({
     required this.draft,
     required this.onNext,
     required this.onGoogle,
+    required this.onGuest,
     required this.onSignIn,
+    this.serverEmailError,
+    this.onEmailTouched,
   });
 
   final _Draft draft;
   final VoidCallback onNext;
   final VoidCallback onGoogle;
+  final VoidCallback onGuest;
   final VoidCallback onSignIn;
+
+  /// 📨 خطأٌ جاء من الخادم في **الخطوة الأخيرة** ويخصّ هذا الحقل.
+  ///
+  /// 🔴 «هذا البريد مسجّل مسبقاً» لا يُعرف إلا عند `createUser` — أي بعد
+  ///    ثلاث خطوات. وعرضُه هناك يترك الطالب أمام رسالةٍ لا حقلَ لها،
+  ///    فيرجع التدفّقُ به إلى هنا **وقد احمرّ الحقلُ الصحيح**.
+  final String? serverEmailError;
+
+  /// يُنادى حين يعدّل الطالبُ البريد — ليمسح [serverEmailError] من الأب.
+  final VoidCallback? onEmailTouched;
 
   @override
   State<_StepAccount> createState() => _StepAccountState();
@@ -248,6 +354,28 @@ class _StepAccountState extends State<_StepAccount> {
   final _pass = TextEditingController();
   final _confirm = TextEditingController();
 
+  final _nameKey = GlobalKey();
+  final _emailKey = GlobalKey();
+  final _passKey = GlobalKey();
+  final _confirmKey = GlobalKey();
+
+  String? _nameError;
+  String? _emailError;
+  String? _passError;
+  String? _confirmError;
+
+  /// 📊 يُحسب مع كل حرف — والشريطُ يعرضه، والفحصُ يقرأ [PasswordStrength.blocker].
+  PasswordStrength _strength = PasswordStrength.of('');
+
+  @override
+  void initState() {
+    super.initState();
+    // 🔁 استعادةُ ما كُتب حين يرجع الطالبُ من خطوةٍ تالية — `PageView`
+    //    تُبقي الحالة، لكنّ `_draft` هي مصدرُ الحقيقة بعد «متابعة».
+    _name.text = widget.draft.name;
+    _email.text = widget.draft.email;
+  }
+
   @override
   void dispose() {
     _name.dispose();
@@ -257,131 +385,222 @@ class _StepAccountState extends State<_StepAccount> {
     super.dispose();
   }
 
-  /// ✅ **تحقّقٌ في الواجهة لا في اللوجيك.** خانة «تأكيد كلمة المرور» جديدةٌ
-  ///    من التصميم، وفحصُها هنا يمنع خطأً يكتشفه الطالب بعد ثلاث خطوات.
+  /// خطأُ البريد المعروض: المحلّيُّ أولاً ثم ما جاء من الخادم.
+  String? get _emailShown => _emailError ?? widget.serverEmailError;
+
+  // ══════════════════════════════════════════════════
+  // ✅ الفحص — كلُّ حقلٍ يحمل خطأه
+  // ══════════════════════════════════════════════════
+  /// ⚠️ **يُفحص الأربعةُ معاً لا حتى أوّل خطأ:** إظهارُ خطأٍ واحدٍ في كل
+  ///    ضغطةٍ يجعل الطالب يضغط «إنشاء حساب» أربع مرّات. والشاشةُ تقول كلَّ
+  ///    ما فيها مرّةً واحدة، وتُساق الرؤيةُ إلى **أوّلها** لا غير.
   void _next() {
-    final name = _name.text.trim();
-    final email = _email.text.trim();
-    if (name.isEmpty) return _err("اكتب اسمك الكامل");
-    if (!email.contains('@') || !email.contains('.')) {
-      return _err("تحقّق من صيغة البريد الإلكتروني");
-    }
-    if (_pass.text.length < 6) {
-      return _err("كلمة المرور ٦ أحرف على الأقل");
-    }
-    if (_pass.text != _confirm.text) {
-      return _err("كلمتا المرور غير متطابقتين");
-    }
+    final nameError = AuthValidators.name(_name.text);
+    final emailError = AuthValidators.email(_email.text);
+    final strength = PasswordStrength.of(_pass.text,
+        email: _email.text, name: _name.text);
+    final confirmError = AuthValidators.confirm(_pass.text, _confirm.text);
+
+    setState(() {
+      _nameError = nameError;
+      _emailError = emailError;
+      _strength = strength;
+      _passError = strength.blocker;
+      // ⚠️ «غير متطابقتين» لا تُعرض وكلمةُ المرور نفسُها مرفوضة: خطآن
+      //    تحت حقلين متجاورين يُقرآن مشكلةً واحدةً مضاعَفة.
+      _confirmError = strength.blocker == null ? confirmError : null;
+    });
+
+    final firstBad = nameError != null
+        ? _nameKey
+        : emailError != null
+            ? _emailKey
+            : strength.blocker != null
+                ? _passKey
+                : confirmError != null
+                    ? _confirmKey
+                    : null;
+    if (firstBad != null) return _reveal(firstBad);
+
     widget.draft
-      ..name = name
-      ..email = email
+      ..name = _name.text.trim()
+      ..email = _email.text.trim()
       ..password = _pass.text
       ..viaGoogle = false;
+    FocusScope.of(context).unfocus();
     widget.onNext();
   }
 
-  void _err(String m) => ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        "⚠️  $m",
-        style: const TextStyle(
-          fontFamily: 'Cairo',
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      backgroundColor: AppColors.warning900,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-  );
+  void _reveal(GlobalKey key) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = key.currentContext;
+      if (ctx == null || !mounted) return;
+      Scrollable.ensureVisible(ctx,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOut,
+          alignment: 0.2);
+    });
+  }
 
+  /// ✅ علامةُ الصحّة — لا تظهر على حقلٍ فارغ ولا على حقلٍ لم يُكتب فيه.
+  bool _ok(TextEditingController c, String? Function(String) check) =>
+      c.text.isNotEmpty && check(c.text) == null;
+
+  // 📐 **إحداثيات الملف** («إنشاء حساب جديد» · 703:15946)، مطروحةً من
+  //    حافة المنطقة الآمنة 47:
+  //
+  //    | العنصر | الملف |
+  //    |---|---|
+  //    | الروبوت | 88 · عرض **110** (أصغر من شاشة الدخول) |
+  //    | العنوان (حبر) | 193 |
+  //    | صندوق الاسم | **286 → 328** |
+  //    | صندوق البريد | **362 → 404** |
+  //    | صندوق كلمة المرور | **435 → 476** |
+  //    | سطر الشرط (أزرق) | 482 |
+  //    | صندوق التأكيد | **529 → 569.5** |
+  //    | الزرّ الأساسي | **578 → 625** |
+  //    | زرّ جوجل | **633 → 672** |
+  //    | زرّ الزائر | **680.5 → 719.5** |
+  //    | «لديك حساب بالفعل؟» | 740 |
+  //
+  // ⚠️ والارتفاعاتُ كبرت ٢٠٢٦-٠٩-٢٣ — انظر [AuthMetrics]. فهذه الشاشة
+  //    **تمرّر** على الأجهزة القصيرة، وهو مقصود: أربعةُ حقولٍ وثلاثةُ
+  //    أزرارٍ بمقاسٍ يُلمس لا تسع شاشةَ 844 إلا بتصغيرها دون حدّ اللمس.
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Center(child: MasarRobot(size: 104, pose: MasarRobotPose.fly)),
-        const SizedBox(height: 8),
-        AuthHeading(
-          title: "إنشاء حساب جديد",
-          subtitle: "أنشئ حسابك لتبدأ رحلتك التعليمية مع مسار",
-          titleSize: 20,
-        ),
-        const SizedBox(height: 18),
-        AuthField(
-          label: "الاسم الكامل",
-          hint: "أدخل اسمك الكامل",
-          controller: _name,
-          textInputAction: TextInputAction.next,
-        ),
-        const SizedBox(height: 10),
-        AuthField(
-          label: "البريد الإلكتروني",
-          hint: "example@domain.com",
-          controller: _email,
-          keyboardType: TextInputType.emailAddress,
-          ltr: true,
-          textInputAction: TextInputAction.next,
-        ),
-        const SizedBox(height: 10),
-        AuthField(
-          label: "كلمة المرور",
-          hint: "••••••••",
-          controller: _pass,
-          obscure: true,
-          ltr: true,
-          helper: "٦ أحرف على الأقل، ويُستحسن رمزٌ خاص (@#\$&)",
-          textInputAction: TextInputAction.next,
-        ),
-        const SizedBox(height: 10),
-        AuthField(
-          label: "تأكيد كلمة المرور",
-          hint: "••••••••",
-          controller: _confirm,
-          obscure: true,
-          ltr: true,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _next(),
-        ),
-        const SizedBox(height: 18),
-        AuthPrimaryButton(label: "إنشاء حساب", onTap: _next),
-        const SizedBox(height: 14),
-        AuthOutlineButton(
-          label: "المتابعة بحساب جوجل",
-          leading: const GoogleGlyph(),
-          onTap: widget.onGoogle,
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+  Widget build(BuildContext context) => AutofillGroup(
+        child: AuthBody(
           children: [
-            Text(
-              "لديك حساب بالفعل؟ ",
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
+            const SizedBox(height: 14),
+            const AuthRobot(110),
+            const SizedBox(height: 10),
+            AuthHeading(
+              title: "إنشاء حساب جديد",
+              subtitle: "أنشئ حسابك لتبدأ رحلتك التعليمية مع مسار",
+            ),
+            const AuthSlack(16),
+            AuthField(
+              key: _nameKey,
+              label: "الاسم الكامل",
+              hint: "أدخل اسمك الكامل",
+              controller: _name,
+              textInputAction: TextInputAction.next,
+              errorText: _nameError,
+              ok: _ok(_name, AuthValidators.name),
+              onChanged: (_) => setState(() => _nameError = null),
+              autofillHints: const [AutofillHints.name],
+            ),
+            const SizedBox(height: AuthMetrics.fieldGap),
+            AuthField(
+              key: _emailKey,
+              label: "البريد الإلكتروني",
+              hint: "example@domain.com",
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              ltr: true,
+              textInputAction: TextInputAction.next,
+              errorText: _emailShown,
+              ok: _emailShown == null && _ok(_email, AuthValidators.email),
+              onChanged: (_) {
+                widget.onEmailTouched?.call();
+                setState(() => _emailError = null);
+              },
+              autofillHints: const [AutofillHints.email],
+            ),
+            const SizedBox(height: AuthMetrics.fieldGap),
+            AuthField(
+              key: _passKey,
+              label: "كلمة المرور",
+              hint: "••••••••",
+              controller: _pass,
+              obscure: true,
+              ltr: true,
+              helper: "${PasswordStrength.minLengthLabel} أحرف على الأقل — "
+                  "امزج حروفاً وأرقاماً",
+              textInputAction: TextInputAction.next,
+              errorText: _passError,
+              strength: _strength,
+              onChanged: (v) => setState(() {
+                _passError = null;
+                _strength = PasswordStrength.of(v,
+                    email: _email.text, name: _name.text);
+                // 🔁 تغييرُ كلمة المرور يُبطل تطابقَ التأكيد المعروض.
+                if (_confirmError != null) _confirmError = null;
+              }),
+              // 🔐 `newPassword` لا `password`: بها يعرض مديرُ الكلمات
+              //    **توليدَ كلمةٍ قوية** بدل اقتراح كلمةٍ محفوظة.
+              autofillHints: const [AutofillHints.newPassword],
+            ),
+            const SizedBox(height: AuthMetrics.fieldGap),
+            AuthField(
+              key: _confirmKey,
+              label: "تأكيد كلمة المرور",
+              hint: "••••••••",
+              controller: _confirm,
+              obscure: true,
+              ltr: true,
+              textInputAction: TextInputAction.done,
+              errorText: _confirmError,
+              ok: _confirm.text.isNotEmpty && _confirm.text == _pass.text,
+              onChanged: (_) => setState(() => _confirmError = null),
+              onSubmitted: (_) => _next(),
+              autofillHints: const [AutofillHints.newPassword],
+            ),
+            const SizedBox(height: 18),
+            AuthPrimaryButton(label: "إنشاء حساب", onTap: _next),
+            const SizedBox(height: 12),
+            AuthOutlineButton(
+              label: "المتابعة بحساب جوجل",
+              leading: const GoogleGlyph(),
+              onTap: widget.onGoogle,
+            ),
+            const SizedBox(height: 12),
+            // 👀 الزرّ الثالث كما في الملف — انظر `_SignUpFlowState._guest`.
+            AuthOutlineButton(
+              label: "جرّب كزائر",
+              leading: const Text("👀", style: TextStyle(fontSize: 15)),
+              onTap: widget.onGuest,
+            ),
+            const SizedBox(height: 8),
+            // 📏 **على خطّ الكتابة لا على المركز** (ملاحظة المالك ٢٠٢٦-٠٩-٢٣:
+            //    «تسجيل الدخول مرفوعة لفوق شوي»). الرابطُ المضغوط حشوتُه
+            //    6 فوق و16 تحت، فتوسيطُ الصندوقين يرفع حبرَه خمسَ نقاط عن
+            //    السؤال بجانبه. والمحاذاةُ بالخطّ تقرأ موضعَ الحبر نفسِه،
+            //    فلا تتأثّر بأيّ حشوةٍ تُعطى للرابط يوماً.
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  "لديك حساب بالفعل؟ ",
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    height: 1.65,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                // 🔴 `dense` هنا لا في شاشة الدخول: هذه الشاشة أربعةُ حقولٍ
+                //    وثلاثةُ أزرار، وحشوةُ الرابط 12+12 كانت تقطع سطر الإصدار.
+                AuthLink(
+                    label: "تسجيل الدخول", dense: true, onTap: widget.onSignIn),
+              ],
+            ),
+            Center(
+              child: Text(
+                "v${AppConstants.appVersionName}",
+                textDirection: TextDirection.ltr,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  height: 1.65,
+                  color: AppColors.n500,
+                ),
               ),
             ),
-            AuthLink(label: "تسجيل الدخول", onTap: widget.onSignIn),
           ],
         ),
-        const SizedBox(height: 10),
-        Center(
-          child: Text(
-            "v${AppConstants.appVersionName}",
-            textDirection: TextDirection.ltr,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.n500,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+      );
 }
 
 // ══════════════════════════════════════════════════
@@ -925,11 +1144,17 @@ class _StepConfirm extends StatelessWidget {
     required this.draft,
     required this.busy,
     required this.onFinish,
+    this.error,
+    this.onDismissError,
   });
 
   final _Draft draft;
   final bool busy;
   final VoidCallback onFinish;
+
+  /// 📣 خطأُ النداء الأخير — يُعرض **فوق الزرّ** لا في وسط الشاشة.
+  final String? error;
+  final VoidCallback? onDismissError;
 
   @override
   Widget build(BuildContext context) {
@@ -959,6 +1184,10 @@ class _StepConfirm extends StatelessWidget {
             ),
           ),
         ),
+        if (error != null) ...[
+          AuthAlert(message: error!, onClose: onDismissError),
+          const SizedBox(height: 12),
+        ],
         AuthPrimaryButton(label: "متابعة", onTap: onFinish, busy: busy),
       ],
     );

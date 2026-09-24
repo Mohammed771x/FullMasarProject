@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import '../../../../core/utils/safe_cut.dart';
 
 part 'scholarship_chat.g.dart';
 
@@ -156,7 +157,7 @@ class SchConversation {
   String get preview {
     if (messages.isEmpty) return "محادثة جديدة";
     final last = messages.last.text.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return last.length <= 60 ? last : "${last.substring(0, 60)}…";
+    return last.length <= 60 ? last : "${safeCut(last, 60)}…";
   }
 
   int get questionCount => messages.where((m) => m.isUser).length;

@@ -25,6 +25,17 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    /// 👤 **الزائرُ لا مستندَ له** — حسابُه مجهولٌ للتجربة لا للتسجيل.
+    ///
+    /// ☢️ أُضيف ٢٠٢٦-٠٩-٢٣ بعد ثغرةٍ في التطبيق: «Cancel» في نافذة جوجل
+    ///    كان يُمضي الزائرَ في مسار النجاح فيُنشئ له مستندَ طالبٍ كامل
+    ///    (`_ensureProfile`). أُصلح في التطبيق، وهذا **الجدارُ الثاني**:
+    ///    من لا يمرّ بتطبيقنا أصلاً لا يصنع لحسابٍ مجهولٍ ملفاً أيضاً.
+    ///    والتطبيقُ لا يكتب مستنداً لزائرٍ أبداً ([UserSession._ensureProfile]).
+    function notAnonymous() {
+      return request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
     function isAdmin() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -98,7 +109,12 @@ service cloud.firestore {
         && d.title is string && d.title.size() <= 120
         && d.grade is int && d.grade >= 1 && d.grade <= 3
         && d.track in ['عام', 'علمي', 'أدبي']
-        && d.scope_key is string && d.scope_key.size() <= 200;
+        && d.scope_key is string && d.scope_key.size() <= 200
+        // 📄 صفحاتُ المحادثة (٢٠٢٦-٠٩-٢٤) — اختياريةٌ لمستنداتِ ما قبلها،
+        //    وسقفُها **٣** = `MAX_PAGES_EXPLAIN_SUMMARY` في الخادم وحدُّ المُنتقي
+        //    في التطبيق (`ChatConversation.maxPages`). رفعُ أحدها وحده يُفشل
+        //    المزامنةَ صامتةً.
+        && (!('pages' in d) || (d.pages is list && d.pages.size() <= 3));
     }
 
     /// شكل محادثة المنحة — نفس سقوف محادثة التعليم كي لا تنتفخ القاعدة.
@@ -128,8 +144,8 @@ service cloud.firestore {
 
       // الإنشاء: الدور من القائمة المغلقة (أو غائباً ⇒ طالب)، ولا حقول
       // إدارية إطلاقاً — راجع `noAdminFieldsOnCreate` أعلاه.
-      allow create: if isOwner(uid) && validProfile() && validRole()
-        && noAdminFieldsOnCreate();
+      allow create: if isOwner(uid) && notAnonymous() && validProfile()
+        && validRole() && noAdminFieldsOnCreate();
 
       // التحديث: تاريخ الإنشاء ورموز الأجهزة محميّة دائماً، والدور يُبدَّل
       // بين طالبٍ ومعلّم فقط — ومن كان `admin` يبقى كما هو ولا يُنزَع منه

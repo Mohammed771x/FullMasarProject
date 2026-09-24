@@ -287,9 +287,14 @@ def test_english_bank_marks_every_underlined_word():
         return
     ref = re.compile(r"underlined|part of speech", re.I)
     mark = re.compile(r"(?<!_)__[^_\n]{1,40}__(?!_)")
+    # ⚖️ وقائمةُ الكلمات لا خطَّ فيها (2026-09-24): «NOT the same part of
+    #    speech? *teacher / driver / writer / easily*» — الكلماتُ هي الخيارات.
+    word_list = re.compile(r"(?:[A-Za-z][A-Za-z'\-]*\s*/\s*){2,}[A-Za-z]")
     data = json.load(open(p, encoding="utf-8"))
     for entry in data.values():
         for q in entry["questions"]:
+            if word_list.search(q["q"]) and "underlined" not in q["q"].lower():
+                continue
             if ref.search(q["q"]):
                 assert mark.search(q["q"]), q["q"]
 

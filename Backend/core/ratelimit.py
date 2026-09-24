@@ -21,6 +21,12 @@ CONTENT_LIMIT = 120     # طلبات المحتوى (GET) أخف كلفة
 CONTENT_WINDOW = 60.0
 VOICE_LIMIT = 15        # تنظيف الصوت: نداء Flash-Lite قصير — أرخص من /ask وأغلى من GET
 VOICE_WINDOW = 60.0
+# 🏷️ اسمُ المحادثة: نداءٌ واحدٌ لكل محادثة، بلا حصة — فحدّان: الدقيقةُ للسكربت
+#    السريع، والساعةُ لمن يتّخذه موديلاً مجانياً ببطء ([core/chat_title]).
+TITLE_LIMIT = 10
+TITLE_WINDOW = 60.0
+TITLE_HOURLY = 60
+TITLE_HOUR = 3600.0
 
 _MAX_KEYS = 10_000      # سقف الذاكرة
 _buckets: dict = {}     # {key: [timestamps]}

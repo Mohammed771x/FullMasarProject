@@ -94,7 +94,7 @@ from .shared.exams import (  # noqa: F401
     parse_exams_input, restrict_book_to_unit,
     collect_exam_questions_by_years, filter_and_rank_exams,
     get_math_exam_years, get_math_exam_lessons, get_math_exam_questions,
-    load_math_lesson,
+    load_math_lesson, safe_segment, clamp_count, _SAFE_SEGMENT,
 )
 
 # ── قواعدُ الرسّام في البرومبت ──

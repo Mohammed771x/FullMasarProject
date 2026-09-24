@@ -88,10 +88,36 @@ void main() {
       expect(c.suggestions, isEmpty);
     });
 
-    test('وقسمُ المعلّم له شرائحُه الخاصة', () {
+    // 👨‍🏫 قرار المالك (٢٠٢٦-٠٩-٢٤): اقتراحاتُ المعلّم بقاعدة الطالب —
+    //    لكل أداةٍ اقتراحاتُها، فوق الحقل قبل أول ردّ ثم في ذيل الردّ.
+    test('وقسمُ المعلّم له اقتراحاتُ أداته — «اسأل» تبدأ بها', () {
       final c = _withLesson()..teacherTool = TeacherTool.ask;
       addTearDown(c.dispose);
-      expect(c.suggestions, isEmpty);
+      expect(c.suggestions.map((s) => s.label),
+          TeacherTool.ask.suggestions);
+    });
+
+    test('وأدواتُ التوليد والتبسيط لا تقترح قبل أول ردّ', () {
+      for (final t in [
+        TeacherTool.lessonPlan,
+        TeacherTool.homework,
+        TeacherTool.simplify,
+      ]) {
+        final c = _withLesson()..teacherTool = t;
+        addTearDown(c.dispose);
+        expect(c.suggestions, isEmpty, reason: t.id);
+        c.messages = [
+          {"role": "user", "text": "س"},
+          {"role": "ai", "text": "ج"},
+        ];
+        expect(c.suggestions.map((s) => s.label), t.suggestions,
+            reason: 'بعد الردّ الأول — ${t.id}');
+        c.messages.addAll([
+          {"role": "user", "text": "س"},
+          {"role": "ai", "text": "ج٢"},
+        ]);
+        expect(c.suggestions, isEmpty, reason: 'جولتان ثم تغيب — ${t.id}');
+      }
     });
   });
 

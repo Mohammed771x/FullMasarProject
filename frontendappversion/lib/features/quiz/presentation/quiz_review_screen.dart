@@ -65,26 +65,40 @@ class QuizReviewScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       body: SafeArea(
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(
-              QuizMetrics.margin, 27, QuizMetrics.margin, 28),
-          itemCount: qs.length + 1,
-          itemBuilder: (_, i) {
-            if (i == 0) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 18),
-                child: QuizHeader(
-                  title: _title,
-                  fontSize: 17,
-                  iconSize: 28,
-                  icon: PD.notePencil,
-                  art: null,
-                  onBack: () => Navigator.pop(context),
-                ),
-              );
-            }
-            return FadeInSlide(child: _card(qs[i - 1], i - 1));
-          },
+        // 🔴 **ملاحظةُ المالك (٢٠٢٦-٠٩-٢٢):** «لما ننزل تحت نراجع إجاباتي،
+        //    بغيت زرّ رجوع — ماشي لازم نطلع إلى فوق».
+        //
+        //    وكان الرأسُ **أولَ عنصرٍ في القائمة** فيمرّ مع التمرير ويغيب
+        //    معه زرُّ الرجوع. ومراجعةُ عشرين سؤالاً تعني تمريراً طويلاً،
+        //    فيبقى الخروجُ رحلةَ صعودٍ كاملة.
+        //
+        // ✅ فصار الرأسُ **ثابتاً خارج القائمة**: الأسئلةُ تمرّ تحته
+        //    والزرُّ في متناول الإبهام في كل لحظة. والرسمُ هو هو.
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  QuizMetrics.margin, 27, QuizMetrics.margin, 18),
+              child: QuizHeader(
+                title: _title,
+                fontSize: 17,
+                iconSize: 28,
+                icon: PD.notePencil,
+                art: null,
+                onBack: () => Navigator.pop(context),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(
+                    QuizMetrics.margin, 0, QuizMetrics.margin, 28),
+                itemCount: qs.length,
+                itemBuilder: (_, i) =>
+                    FadeInSlide(child: _card(qs[i], i)),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -56,3 +56,19 @@ def was_free(meter) -> bool:
 def clear() -> None:
     """للاختبارات: يُغلق أيَّ عدّادٍ مفتوح في هذا السياق."""
     _meter.set(None)
+
+
+async def settle_quota(quota_module, identity: dict, result=None, meter=None) -> bool:
+    """التسوية الوحيدة لخصم الطلب: تثبيت إن وقع model call، وإلا refund.
+
+    التذكرة داخل `identity` تخص هذا الطلب، و`quota.asettle` تمنع التسوية
+    المكررة من ردّ حصة طلب آخر. إن كان الناتج قاموساً نخبر العميل بالردّ.
+    """
+    active_meter = meter if meter is not None else current()
+    refunded = await quota_module.asettle(
+        identity.get("_quota_reservation"),
+        billable=not was_free(active_meter),
+    )
+    if refunded and isinstance(result, dict):
+        result["quota_refunded"] = True
+    return refunded

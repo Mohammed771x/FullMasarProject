@@ -11,6 +11,7 @@
 """
 from __future__ import annotations
 
+from subjects.shared.exams import safe_segment
 from api import (  # noqa: E402
     JSONResponse, Request, _is_legacy_content_scope, app,
     get_math_exam_lessons, get_math_exam_years, load_json_safe, os,
@@ -171,6 +172,9 @@ async def get_exam_sections(subject: str, year: str, grade: int = 3, track: str 
         files_to_read = [f for f in os.listdir(exams_dir) if f.endswith(".json")]
     else:
         # إذا اختار سنة معينة، نقرأ ملفها فقط
+        # 🛡️ والسنةُ من الطلب تُركَّب في مسار — مقطعٌ واحدٌ لا يخرج منه.
+        if not safe_segment(year):
+            return []
         files_to_read = [f"{year}.json"]
         
     sections = []

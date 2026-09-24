@@ -331,13 +331,29 @@ void detailSheetTests() {
     expect(find.text('أضعف مادة'), findsOneWidget);
   });
 
-  testWidgets('مادة واحدة ⇒ لا تُعرض «أضعف مادة» (هي نفسها الأفضل)', (t) async {
+  // 🎯 بلاغ المالك (٢٠٢٦-٠٩-٢٤): «مادةٌ واحدة فقال هي أفضل مادة — ما يصلح».
+  testWidgets('مادة واحدة ⇒ لا «أفضل» ولا «أضعف» — تقييمُها وسطرٌ يشرح', (t) async {
     await t.runAsync(() => QuizStorage.save(_r(subject: 'فيزياء', score: 9, total: 10)));
     await t.pumpWidget(_app(const AnalysisScreen(ownerUid: _owner)));
     await t.pump();
 
-    expect(find.text('أفضل مادة'), findsOneWidget);
+    expect(find.text('أفضل مادة'), findsNothing);
     expect(find.text('أضعف مادة'), findsNothing);
+    expect(find.text('ممتاز — \u206690%\u2069'), findsOneWidget);
+    expect(find.textContaining('اختبرتَ مادةً واحدة'), findsOneWidget);
+  });
+
+  testWidgets('مادتان ⇒ أفضلُهما وأضعفُهما', (t) async {
+    await t.runAsync(() async {
+      await QuizStorage.save(_r(subject: 'فيزياء', score: 9, total: 10));
+      await QuizStorage.save(_r(subject: 'كيمياء', score: 4, total: 10));
+    });
+    await t.pumpWidget(_app(const AnalysisScreen(ownerUid: _owner)));
+    await t.pump();
+
+    expect(find.text('أفضل مادة'), findsOneWidget);
+    expect(find.text('أضعف مادة'), findsOneWidget);
+    expect(find.textContaining('اختبرتَ مادةً واحدة'), findsNothing);
   });
 }
 

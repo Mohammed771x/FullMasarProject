@@ -310,7 +310,14 @@ def test_normalize_history_tolerates_junk():
     assert out[1]["role"] == ""
 
 
-# ══════════════ ٧️⃣ التقريبُ المسموح — مثالٌ من الحياة بشروطه ══════════════
+# ══════════════ ٧️⃣ الأمثلةُ من خارج الكتاب — بشروطها ══════════════
+#
+# 🔄 **وُسّع بقرار المالك (٢٠٢٦-٠٩-٢٣):** «قلت له أعطني أمثلة إضافية من خارج
+#    الدرس — قال لا، أنا ملتزم بالدرس. الأمثلة تقدر تخرج من الدرس، لكن الشرح
+#    نفسه من الدرس… إذا له علاقة بالدرس يكون له علاقة، وإذا ما له علاقة لا».
+#    فصار المفتوحُ **أمثلةً إضافيةً على مفهوم الدرس** مع التشبيه، والمقفولُ
+#    كما هو: التعريفُ والقانونُ والرقمُ والمصطلح. قِيس على الموديل الحقيقي:
+#    ٢٣/٢٧ ⇐ ٢٧/٢٧، ووضعُ السؤال في الإنجليزي كان يرفض ٣ من ٣.
 #
 # ⚖️ **قرار المالك (2026-09-14):** «خله الإنجليزي يقدر يضيف أمثلة من برا، وكل
 #    المواد برضو — بس محصورة على شي… بحيث إنه يدعم النقطة ذي ويوضحها أكثر،
@@ -326,7 +333,7 @@ from subjects.common import SUPPORT_EXAMPLE_RULES
 @pytest.mark.parametrize("mode", MODES)
 def test_support_example_rule_reaches_every_subject_and_mode(subject, mode):
     prompt = lesson_mode._system_prompt(mode, subject, 3, None)
-    assert "التقريبُ المسموح" in prompt, f"{subject} · {mode}"
+    assert "الأمثلةُ من خارج الكتاب" in prompt, f"{subject} · {mode}"
 
 
 @pytest.mark.parametrize("module_name", OWN_MODULES)
@@ -334,7 +341,7 @@ def test_support_example_rule_reaches_every_subject_and_mode(subject, mode):
 def test_support_example_rule_reaches_own_modules(module_name, mode):
     mod = importlib.import_module(f"subjects.{module_name}")
     prompt = pages_mode._system_prompt(mode, mod.SUBJECT, 3, mod)
-    assert "التقريبُ المسموح" in prompt
+    assert "الأمثلةُ من خارج الكتاب" in prompt
 
 
 def test_math_gets_it_even_though_it_skips_source_rules():
@@ -347,14 +354,19 @@ def test_math_gets_it_even_though_it_skips_source_rules():
     assert source_rules("رياضيات") not in p
 
 
-def test_the_four_conditions_are_all_stated():
+def test_the_conditions_are_all_stated():
     """إذنٌ مفتوح جُرِّب وسقط: «بإمكانك اضافة معلومات خارجية تدعم الشرح» في
-    برومبت الإنجليزي — جملةٌ بلا سقف. فالشروطُ هي الفرقُ بين تقريبٍ وإضافة."""
-    for mark in ("من الحياة لا من العلم",     # ① لا محتوى علمي جديد
-                 "يخدم نقطةً في النصّ",        # ② لا يفتح موضوعاً
-                 "مُعلَّمٌ صراحةً",             # ③ الطالب يعرف أنه ليس للامتحان
-                 "سطرٌ أو سطران",              # ④ قصير
-                 "أمثلةُ الكتاب أوّلاً"):       # ⛔ الأولوية للكتاب
+    برومبت الإنجليزي — جملةٌ بلا سقف. فالشروطُ هي الفرقُ بين مثالٍ وإضافة."""
+    for mark in ("أمثلةٌ إضافيةٌ على ما في الدرس نفسِه",  # ① المفتوحُ الجديد
+                 "ولا تعتذر بأنك",                          #    والاعتذارُ ممنوع
+                 "قاعدةَ الدرس أو مفهومَه كما شرحه الكتاب",  #    لا قاعدةً أخرى
+                 "صحيحةٌ يقيناً",                           #    لا تخمين
+                 "لا تنسب نصّاً",                           #    لا آيةَ ولا بيتاً مخترَعاً
+                 "تشبيهٌ من الحياة اليومية",                # ② التشبيهُ كما كان
+                 "مُعلَّمةٌ صراحةً",                         # الطالبُ يعرف أنها ليست من كتابه
+                 "أمثلةُ الكتاب أوّلاً",                     # الأولويةُ للكتاب
+                 "لا معلومةَ جديدةً في ثوب مثال",           # المحتوى مقفول
+                 "الصلةُ بالدرس لا مصدرُ الكلمة"):          # 🚧 الحدّ
         assert mark in SUPPORT_EXAMPLE_RULES, mark
 
 
@@ -366,7 +378,7 @@ def test_the_content_lock_survived_the_exception(subject):
         pytest.skip("الرياضيات بلا `source_rules` عمداً — قيدُها طريقةُ الحل")
     prompt = lesson_mode._system_prompt("سؤال", subject, 3, None)
     assert "لا تُضِف من معرفتك العامة محتوىً جديداً" in prompt
-    assert "لا مصطلحَ جديداً" in prompt          # داخل شرط ① نفسِه
+    assert "لا معلومةَ جديدةً في ثوب مثال" in prompt   # داخل الاستثناء نفسِه
     assert "والشرحُ نفسُه يلتزم بالموجود حرفاً" in prompt
 
 
@@ -374,7 +386,26 @@ def test_followup_example_rule_no_longer_contradicts_it():
     """🔴 كانت `FOLLOWUP_RULES` تقول «المثالُ… لا من خارجهما» — وهو نقيضُ
     الاستثناء الجديد. وقاعدتان متضاربتان في برومبتٍ واحد أسوأُ من غيابهما."""
     assert "لا من خارجهما" not in FOLLOWUP_RULES
-    assert "بشروط «التقريب المسموح»" in FOLLOWUP_RULES
+    assert "بشروط «الأمثلةُ من خارج الكتاب»" in FOLLOWUP_RULES
+    assert "أو طلب الطالبُ أمثلةً أكثر أو من خارج الكتاب" in FOLLOWUP_RULES
+
+
+def test_request_for_examples_is_not_a_missing_answer():
+    """🔴 القاعدةُ ٥ («إن لم يكن جوابُ السؤال في النصّ فقل ذلك») كانت تلتقط
+    «أعطني أمثلة من خارج الدرس» — جوابُها **لا يُنتظر** أن يكون في النصّ."""
+    from subjects.common import source_rules
+    assert "طلبُ أمثلةٍ إضافيةٍ على ما في الدرس ليس من هذا" in source_rules("احياء")
+
+
+def test_english_lens_allows_extra_examples_in_every_mode():
+    """🔴 **جذرُ شكوى المالك:** توسعةُ الإنجليزي كانت في برومبتٍ قديم
+    (`system_prompt_English_explain`) **لا يمرّ به وضعُ الدروس أصلاً**. فصارت
+    في العدسة، والعدسةُ في الأوضاع الثلاثة."""
+    from subjects.common import subject_lens
+    lens = subject_lens("انجليزي")
+    assert "Extra examples" in lens
+    for mode in MODES:
+        assert lens in lesson_mode._system_prompt(mode, "انجليزي", 3, None), mode
 
 
 def test_english_keeps_its_extra_sentences_allowance():

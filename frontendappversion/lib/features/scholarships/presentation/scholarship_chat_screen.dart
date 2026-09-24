@@ -12,6 +12,9 @@ import '../../../core/media/image_editor_screen.dart';
 import '../../../core/media/image_viewer_screen.dart';
 import '../../../core/services/image_service.dart';
 import '../../../core/services/voice_text_merge.dart';
+import '../../../core/widgets/chat_welcome_hero.dart';
+import '../../../core/widgets/reveal_in_scroll.dart';
+import '../../../core/widgets/tap_to_dismiss_keyboard.dart';
 import '../../../core/widgets/masar_markdown.dart';
 import '../../../core/widgets/streaming_text.dart';
 import '../../../core/widgets/voice_recording_bar.dart';
@@ -73,7 +76,40 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
 
   void _onChange() {
     if (mounted) setState(() {});
+    // 📍 فُتحت من نتيجة بحث ⇒ إلى تلك الرسالة لا إلى الآخر.
+    final reveal = _c.takePendingReveal();
+    if (reveal != null) {
+      _reveal(reveal.$1, position: reveal.$2);
+      return;
+    }
+    // 📌 ما دام يقرأ ما جاء إليه من البحث لا يُسحب إلى الآخر بإشعارٍ عابر.
+    if (_revealed != null) return;
     _scrollToEnd();
+  }
+
+  // ══════════════ 📍 الذهابُ إلى رسالة (من البحث) ══════════════
+  // نظيرُ [ChatController.revealMessage]: القائمةُ كسولة، فقفزةٌ تقديريّةٌ
+  // تبني الرسالة ثم `ensureVisible` الدقيق، ووميضٌ لحظيٌّ يدلّ عليها.
+  int? _revealed;
+  final GlobalKey _revealKey = GlobalKey(debugLabel: 'sch-reveal');
+
+  Future<void> _reveal(int index, {double position = 0}) async {
+    setState(() => _revealed = index);
+    for (var attempt = 0; attempt < 8; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      if (!mounted || _revealed != index) return;
+      final ctx = _revealKey.currentContext;
+      if (ctx != null && ctx.mounted) {
+        await revealInScroll(_scroll, ctx, position: position);
+        break;
+      }
+      final n = _c.messages.length;
+      if (_scroll.hasClients && n > 1) {
+        _scroll.jumpTo(_scroll.position.maxScrollExtent * index / (n - 1));
+      }
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 2200));
+    if (mounted && _revealed == index) setState(() => _revealed = null);
   }
 
   void _scrollToEnd() {
@@ -117,7 +153,13 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
           Column(
         children: [
           _appBar(context, s),
-          Expanded(child: _c.isEmpty ? _intro(s) : _list()),
+          // ⌨️ نقرةٌ على المحادثة تُنزل الكيبورد — تجربةُ المحادثة واحدةٌ
+          //    في كل الأقسام ([TapToDismissKeyboard]).
+          Expanded(
+            child: TapToDismissKeyboard(
+              child: _c.isEmpty ? _intro(s) : _list(),
+            ),
+          ),
           if (_c.notice != null) _noticeBar(_c.notice!),
           // 🔴 **كانت تختفي بعد أول سؤال** — فيرى الطالبُ بابَ «الوثائق»
           //    مرّةً واحدةً ثم لا يجد المواعيدَ ولا المزايا أبداً
@@ -239,45 +281,19 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
   /// 📐 من `05-الرفيق الذاكي`: الروبوتُ فوق هالةٍ زرقاء، ثم الترحيبُ
   ///    18/w900، ثم الوصفُ 12/w600 — والكلُّ في وسط الشاشة لا أعلاها.
   Widget _intro(Scholarship s) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(SchMetrics.margin, 40, SchMetrics.margin, 10),
-      children: [
-        const SizedBox(height: 40),
-        Center(
-          child: Container(
-            width: 190,
-            height: 190,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [
-                AppColors.schTint,
-                AppColors.schTint.withValues(alpha: 0),
-              ]),
-            ),
-            child: const MasarRobotAnimated(size: 118),
+    // 🤖 [ChatWelcomeHero] نفسُه في الأقسام الثلاثة — مقيسٌ من هذا التصميم.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: SchMetrics.margin),
+      child: Center(
+        child: SingleChildScrollView(
+          child: ChatWelcomeHero(
+            title: "أهلاً! أنا مساعد ${s.name}",
+            body:
+                "اسألني عن الشروط، المواعيد، الوثائق المطلوبة، أو طريقة التقديم.\n"
+                "أجيب من بيانات هذه المنحة — وما لا أعرفه أقول لك إني لا أعرفه.",
           ),
         ),
-        const SizedBox(height: 18),
-        Text("أهلاً! أنا مساعد ${s.name}",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 18,
-                height: 1.6,
-                fontWeight: FontWeight.w900,
-                color: AppColors.headingInk)),
-        const SizedBox(height: 12),
-        Text(
-          "اسألني عن الشروط، المواعيد، الوثائق المطلوبة، أو طريقة التقديم.\n"
-          "أجيب من بيانات هذه المنحة — وما لا أعرفه أقول لك إني لا أعرفه.",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              fontSize: 12,
-              height: 1.9,
-              fontWeight: FontWeight.w600,
-              color: AppColors.chipInk),
-        ),
-      ],
+      ),
     );
   }
 
@@ -301,8 +317,22 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
           );
         }
         // 🌊 الفقاعة الأخيرة وحدها هي التي تُبثّ — وما قبلها مكتملٌ ثابت.
-        return _bubble(msgs[i],
+        final bubble = _bubble(msgs[i],
             streaming: _c.isStreaming && i == msgs.length - 1 && !msgs[i].isUser);
+        final revealed = _revealed == i;
+        return KeyedSubtree(
+          key: revealed ? _revealKey : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 400),
+            decoration: BoxDecoration(
+              color: revealed
+                  ? AppColors.primary.withValues(alpha: 0.10)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: bubble,
+          ),
+        );
       },
     );
   }
@@ -882,8 +912,9 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                   onSubmitted: (_) {
                     if (canSend) _send();
                   },
+                  // 🔠 مقاسُ الشريطين واحد ([kInputFontSize]) — ١٦ كتعليمٍ.
                   style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: kInputFontSize,
                       fontWeight: FontWeight.w600,
                       color: AppColors.inputBarText),
                   decoration: InputDecoration(
@@ -902,11 +933,11 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                             ? "اكتب سؤالك عن الصورة (اختياري)..."
                             : "اسأل عن المنحة...",
                     hintStyle: TextStyle(
-                        fontSize: 12.5,
+                        fontSize: kInputFontSize,
                         fontWeight: FontWeight.w600,
                         color: AppColors.inputBarIcon),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 12),
+                        horizontal: 10, vertical: kInputVPad),
                   ),
                 ),
               ),

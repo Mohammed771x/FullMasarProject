@@ -395,6 +395,12 @@ class PI {
     fill: IconData(0xe3d4, fontFamily: 'PhosphorFill'),
     bold: IconData(0xe3d4, fontFamily: 'PhosphorBold'),
   );
+  /// 🔢 نظيرُ [plus] في [CountStepper] — `0xe32a` من الحزمة نفسِها.
+  static const minus = PIcon(
+    regular: IconData(0xe32a, fontFamily: 'Phosphor'),
+    fill: IconData(0xe32a, fontFamily: 'PhosphorFill'),
+    bold: IconData(0xe32a, fontFamily: 'PhosphorBold'),
+  );
   static const share = PIcon(
     regular: IconData(0xe406, fontFamily: 'Phosphor'),
     fill: IconData(0xe406, fontFamily: 'PhosphorFill'),

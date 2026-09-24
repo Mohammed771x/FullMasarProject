@@ -22,8 +22,9 @@ String _read(String p) => File(p).readAsStringSync();
 const _bar = 'lib/features/teacher/presentation/widgets/teacher_tool_bar.dart';
 const _panel =
     'lib/features/teacher/presentation/widgets/teacher_settings_panel.dart';
-const _chips =
-    'lib/features/teacher/presentation/widgets/teacher_suggestion_chips.dart';
+/// 💡 اقتراحاتُ المعلّم تُعرض بشريط الطالب نفسِه منذ ٢٠٢٦-٠٩-٢٤
+///    (قرار المالك: «نفس التعليم بالضبط») — لا ملفَّ خاصّاً بها بعد.
+const _chips = 'lib/features/chat/presentation/widgets/mode_suggestions.dart';
 const _home = 'lib/features/teacher/presentation/teacher_home_screen.dart';
 const _drawer = 'lib/features/chat/presentation/widgets/chat_drawer.dart';
 const _screen = 'lib/features/chat/presentation/screens/main_chat_screen.dart';
@@ -149,17 +150,23 @@ void main() {
     });
 
     test('لا شرائحَ من مادّة جوجل في شريط الاقتراحات', () {
-      expect(_read(_chips).contains('ActionChip'), isFalse);
+      expect(_read(_chips).contains('ActionChip('), isFalse);
       expect(_read(_chips), contains('SuggestionChip'));
     });
 
-    test('خلفيّةُ قسم المعلم بيضاءُ لا متدرّجة', () {
-      expect(_read(_screen), contains('if (!_c.isTeacher)'));
+    // 🔄 قرار المالك ٢٠٢٦-٠٩-٢٤: «نفس التعليم ونفس المنح بالأزرق المتموّج».
+    test('خلفيّةُ قسم المعلم متدرّجةٌ كالتعليم — لا بيضاء', () {
+      final src = _read(_screen);
+      expect(src, contains('AppColors.chatBackdrop'));
+      expect(src, isNot(contains('if (!_c.isTeacher)\n                      Positioned.fill(')));
     });
 
-    test('لوحةُ ترحيبِ المعلّم غيرُ فقاعة الطالب', () {
-      expect(_read(_list), contains('_TeacherWelcome'));
-      expect(_read(_list), contains('MasarRobotPose.fly'));
+    // 🔄 قرار المالك ٢٠٢٦-٠٩-٢٤: ترحيبٌ واحدٌ للقسمين والمنح — روبوتٌ في
+    //    الوسط وكلامٌ بحسب الأداة. فالمطلوب الآن **ألّا** يفترقا.
+    test('ترحيبُ المعلّم هو ترحيبُ الطالب — ونصُّه بحسب الأداة', () {
+      expect(_read(_list), contains('_ChatWelcome'));
+      expect(_read(_list), isNot(contains('_TeacherWelcome')));
+      expect(_read(_list), contains('TeacherTool.simplify =>'));
     });
   });
 

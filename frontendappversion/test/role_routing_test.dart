@@ -63,14 +63,20 @@ void main() {
     expect(RoleHome.screen(), isA<MasarShell>());
   });
 
-  testWidgets('رئيسيةُ المعلّم هي شاتُه: شريطُ الأدوات وترحيبُه، ولا شريط رجوع',
-      (tester) async {
+  // 🎯 **قرار المالك (٢٠٢٦-٠٩-٢٤):** «خلّه نفس التعليم بالضبط — مكتوب
+  //    إعدادات الجلسة، يدخل يحصل خطة الدرس، واجب، اسأل المساعد… كله تحت
+  //    إعدادات الجلسة عشان تكون مساحة كبيرة للشات». فلا شريطَ فوق المحادثة.
+  Future<void> openTeacherHome(WidgetTester tester) async {
+    // 📱 مقاسُ جوالٍ لا ٨٠٠×٦٠٠: البطاقةُ المفتوحة أطولُ من سطح الاختبار
+    //    الافتراضيّ، فتقع الشرائحُ تحت تلميح الشاشة ولا تصلها اللمسة.
+    tester.view.physicalSize = const Size(1179, 2556);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
     UserSession.I
       ..role = AppRole.teacher
       ..name = 'أستاذ خالد'
       ..grade = 2
       ..track = 'أدبي';
-
     await tester.pumpWidget(const MaterialApp(
       home: Directionality(
         textDirection: TextDirection.rtl,
@@ -78,80 +84,79 @@ void main() {
       ),
     ));
     await tester.pump();
-
-    // 🧰 شريطُ الأدوات — أربعُ شرائح بترتيب التصميم.
-    expect(find.byType(TeacherToolBar), findsOneWidget);
-    for (final t in TeacherToolX.bar) {
-      expect(find.text(t.chipLabel), findsOneWidget,
-          reason: 'شريحةُ «${t.chipLabel}» مفقودة من الشريط');
+    // 💡 دليلُ «اسأل المساعد» يُعرض أولَ فتح — يُغلق كي تُلمس الشاشة.
+    final close = find.byType(ElevatedButton);
+    if (close.evaluate().isNotEmpty && find.byType(Dialog).evaluate().isNotEmpty) {
+      await tester.tap(close.last);
+      await tester.pump(const Duration(milliseconds: 400));
     }
+  }
 
+  // 🔄 ٢٠٢٦-٠٩-٢٤: البطاقةُ **مطويّةٌ** عند الدخول (الروبوتُ وترحيبُه أولاً)،
+  //    وتُفتح بلمس رأسها.
+  Future<void> openPanel(WidgetTester tester) async {
+    await tester.pump(const Duration(milliseconds: 800)); // يُغلق الدليلُ تماماً
+    await tester.tap(find.text('إعدادات الجلسة'));
+    // ⏱️ إطارٌ يبدأ فيه `AnimatedSize` ثم زمنُه — وإلا بقي الجسمُ بارتفاعٍ صفر
+    //    وإن وُجدت شرائحُه في الشجرة، فلا تصلها اللمسة.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(TeacherToolChips), findsOneWidget);
+  }
+
+  testWidgets('رئيسيةُ المعلّم: «إعدادات الجلسة» مطويّةٌ ثم فيها الأدوات، ولا شريطَ فوق',
+      (tester) async {
+    await openTeacherHome(tester);
+    expect(find.text('إعدادات الجلسة'), findsOneWidget);
+    expect(find.byType(TeacherToolChips), findsNothing,
+        reason: 'مطويّةٌ عند الدخول');
+    expect(find.text('مساعد المعلم الذكي'), findsWidgets,
+        reason: 'الروبوتُ وترحيبُه في الوسط');
+    await openPanel(tester);
+
+    expect(find.byType(TeacherToolBar), findsNothing,
+        reason: 'الشريطُ الدائم انطوى في البطاقة');
+    expect(find.text('إعدادات الجلسة'), findsOneWidget);
+    expect(find.byType(TeacherToolChips), findsOneWidget);
+    for (final t in TeacherToolX.bar) {
+      expect(find.text(t.chipLabel), findsWidgets,
+          reason: 'شريحةُ «${t.chipLabel}» مفقودة من البطاقة');
+    }
     // 👋 لوحةُ الترحيب باسم المعلّم (لا فقاعةُ الطالب).
     expect(find.textContaining('أستاذ خالد'), findsOneWidget);
-
-    // 🔘 **ولا بطاقةَ إعداداتٍ في البداية** — الإطار ٢ من التصميم.
-    expect(find.byType(TeacherSettingsPanel), findsNothing);
-
     // بيتُ الدور لا يُرجع إلى شيء.
     expect(find.byType(BackButton), findsNothing);
   });
 
-  testWidgets('لمسةُ شريحةٍ تفتح بطاقتَها، ولمسةٌ ثانيةٌ تطويها', (tester) async {
-    UserSession.I
-      ..role = AppRole.teacher
-      ..name = 'أستاذ خالد'
-      ..grade = 1;
-
-    await tester.pumpWidget(const MaterialApp(
-      home: Directionality(
-        textDirection: TextDirection.rtl,
-        child: TeacherHomeScreen(isHome: true),
-      ),
-    ));
-    await tester.pump();
+  testWidgets('لمسةُ شريحةٍ تبدّل الأداة — وزرُّ التوليد لأداته وحدها', (tester) async {
+    await openTeacherHome(tester);
+    await openPanel(tester);
+    // «اسأل المساعد» بلا زرّ توليد.
+    expect(find.text('توليد خطة الدرس ✨'), findsNothing);
 
     await tester.tap(find.text('خطة درس'));
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    final dialog = find.byType(Dialog);
+    if (dialog.evaluate().isNotEmpty) {
+      await tester.tap(find.byType(ElevatedButton).last);
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+    expect(find.text('توليد خطة الدرس ✨'), findsOneWidget);
     expect(find.byType(TeacherSettingsPanel), findsOneWidget);
-    // 🎨 وعنوانُها كما سمّاه المالك لا كما كتبه المصمّم.
-    expect(find.text('إعداد خطة الدرس'), findsOneWidget);
-
-    await tester.tap(find.text('خطة درس'));
-    await tester.pump();
-    expect(find.byType(TeacherSettingsPanel), findsNothing);
   });
 
-  // 🔽 **طلبُ المالك ٢٠٢٦-٠٩-٢١:** «سهم جنب … إنك تقدر بعدين تطوي البطاقة».
-  //    فاللمسُ على الشريحة ثانيةً يُخفيها كلَّها ولا يدلّ عليه شيءٌ على
-  //    الشاشة؛ والسهمُ يطويها **ويُبقي عنوانَها** فيعرف أيَّ أداةٍ يخاطب.
-  testWidgets('سهمُ الرأس يطوي البطاقة ويُبقي عنوانَها', (tester) async {
-    UserSession.I
-      ..role = AppRole.teacher
-      ..name = 'أستاذ خالد'
-      ..grade = 1;
-
-    await tester.pumpWidget(const MaterialApp(
-      home: Directionality(
-        textDirection: TextDirection.rtl,
-        child: TeacherHomeScreen(isHome: true),
-      ),
-    ));
-    await tester.pump();
-
-    await tester.tap(find.text('خطة درس'));
-    await tester.pump();
+  testWidgets('رأسُ «إعدادات الجلسة» يطوي الجسم ويُبقي العنوان', (tester) async {
+    await openTeacherHome(tester);
+    await openPanel(tester);
     expect(find.text('المادة الدراسية:'), findsOneWidget);
 
-    // اللمسُ على الرأس (العنوان أو سهمُه) يطوي الجسم.
-    await tester.tap(find.text('إعداد خطة الدرس'));
-    await tester.pump();
+    await tester.tap(find.text('إعدادات الجلسة'));
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('المادة الدراسية:'), findsNothing);
-    // 🔑 والعنوانُ باقٍ — وإلا لم يعرف المعلّمُ ما طوى ولا كيف يفتحه.
-    expect(find.text('إعداد خطة الدرس'), findsOneWidget);
-    expect(find.byType(TeacherSettingsPanel), findsOneWidget);
+    expect(find.text('إعدادات الجلسة'), findsOneWidget);
 
-    await tester.tap(find.text('إعداد خطة الدرس'));
-    await tester.pump();
+    await tester.tap(find.text('إعدادات الجلسة'));
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('المادة الدراسية:'), findsOneWidget);
   });
 }

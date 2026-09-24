@@ -105,6 +105,49 @@ class _HomeTabState extends State<HomeTab> {
     }
   }
 
+  /// 📌 البانراتُ الرسمية الأربعة — ثابتةٌ في الكود فلا فراغَ تحت أبداً
+  ///    (راجع [BannerCarousel.pinned]). ترتيبُها ترتيبُ الأقسام في الشريط،
+  ///    وقسمٌ أطفأه الأدمن يغيب بانرُه معه.
+  ///    (الخدماتُ «قيد التطوير» فلا يُعلَن عنها بعد.)
+  List<AppBanner> _pinnedBanners() => [
+        if (_visible(AppSection.education))
+          const AppBanner(
+            id: 'pinned:education',
+            title: 'قسم التعليم 📚',
+            subtitle: 'اشرح، لخّص، واسأل عن أي درسٍ من كتابك — مع مسار',
+            icon: 'book',
+            colors: ['#0EA5E9', '#0369A1'],
+            action: 'education',
+          ),
+        if (_visible(AppSection.scholarships))
+          const AppBanner(
+            id: 'pinned:scholarships',
+            title: 'قسم المنح الدراسية 🎓',
+            subtitle: 'منحٌ داخل الدولة وخارجها — شروطُها ومواعيدُها في مكانٍ واحد',
+            icon: 'flight',
+            colors: ['#3B82F6', '#1D4ED8'],
+            action: 'scholarships',
+          ),
+        if (_visible(AppSection.quiz))
+          const AppBanner(
+            id: 'pinned:quiz',
+            title: 'اختبر نفسك 📝',
+            subtitle: 'اختبارٌ قصير من دروسك يكشف ما أتقنتَه وما تحتاج مراجعته',
+            icon: 'quiz',
+            colors: ['#8B5CF6', '#5B21B6'],
+            action: 'quiz',
+          ),
+        if (_visible(AppSection.analysis))
+          const AppBanner(
+            id: 'pinned:analysis',
+            title: 'تحليل مستواي 📊',
+            subtitle: 'مستواك في كل مادة، ونقاطُ قوّتك وما يحتاج تركيزاً',
+            icon: 'chart',
+            colors: ['#10B981', '#047857'],
+            action: 'analysis',
+          ),
+      ];
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -134,6 +177,7 @@ class _HomeTabState extends State<HomeTab> {
               BannerCarousel(
                 section: BannerSection.home,
                 onAction: _onBannerAction,
+                pinned: _pinnedBanners(),
               ),
               const SizedBox(height: 8),
               if (_visible(AppSection.analysis)) ...[
@@ -408,7 +452,6 @@ class _HomeTabState extends State<HomeTab> {
       scope: UserSession.I.scope,
     );
     final weak = QuizAnalytics.weakSpots(results, limit: 3);
-    if (weak.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -428,31 +471,36 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
               const Spacer(),
-              InkWell(
-                onTap: () => _guard(
-                  AppSection.analysis,
-                  "تحليل مستواي",
-                  () => _go(const AnalysisScreen()),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 4,
+              // 🔗 **«عرض الكل» تختفي وحدها حين لا شيءَ يُعرض** — رابطٌ
+              //    يفتح شاشةً فارغة يبدو عطلاً، والبطاقةُ تحته تقول
+              //    للطالب ما يفعل بدلاً منه.
+              if (weak.isNotEmpty)
+                InkWell(
+                  onTap: () => _guard(
+                    AppSection.analysis,
+                    "تحليل مستواي",
+                    () => _go(const AnalysisScreen()),
                   ),
-                  child: Text(
-                    "عرض الكل",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      "عرض الكل",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
         const SizedBox(height: 8),
+        if (weak.isEmpty) _weakSpotsEmpty(),
         for (final w in weak) ...[
           // 🧩 **القطعةُ المشتركة** — الصفُّ نفسُه في شاشة التحليل وشاشة
           //    المادة. كان منسوخاً هنا، فافترق عن نفسِه عند أوّل تعديل.
@@ -487,6 +535,98 @@ class _HomeTabState extends State<HomeTab> {
       ],
     );
   }
+
+  // ══════════════════════════════════════════════════
+  // 🎯 وحين لا أخطاءَ بعد — بطاقةٌ تدعو لا فراغٌ أبيض
+  // ══════════════════════════════════════════════════
+  /// 🔴 **ملاحظةُ المالك (٢٠٢٦-٠٩-٢٢):** «أوّلُ ما يدخل الطالب، تحت ماشي
+  ///    دروسٌ تحتاج تركيز… ماشي مكانٌ فاضي يكون».
+  ///
+  /// وكان القسمُ كلُّه يُحذف (`SizedBox.shrink`) فيبقى تحت بطاقة التحليل
+  /// بياضٌ لا يقول شيئاً — **وأوّلُ شاشةٍ يراها الطالبُ في حياته مع
+  /// التطبيق هي هذه**. فصار مكانَه بابٌ إلى أوّل خطوةٍ يحتاجها: اختبار.
+  ///
+  /// 🎨 وبمفردات الملف نفسِها: نصفُ قطرِ صفِّ التركيز (22)، ومربّعُ أيقونةٍ
+  ///    مصبوغٌ بلون الهوية، وزرٌّ 150×27 r8 هو زرُّ بطاقة التعليم عينُه.
+  Widget _weakSpotsEmpty() => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.fieldFill,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.fieldBorder),
+        ),
+        // ⚠️ RTL: أوّلُ ابنٍ يميناً ⇒ الأيقونةُ يمين والنصُّ إلى يسارها،
+        //    كترتيب صفِّ «الدروس التي تحتاج تركيز» فوقها.
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.primaryTintSurface,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(PI.target.regular,
+                  size: 22, color: AppColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "هنا تظهر دروسك التي تحتاج تركيز",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.headingInk,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    "اختبر نفسك في أي درس، ونرتّب لك بعدها ما تحتاج "
+                    "مراجعته — من الأكثر خطأً إلى الأقل.",
+                    style: TextStyle(
+                      fontSize: 11,
+                      height: 1.6,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.rowHint,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  InkWell(
+                    onTap: () => _guard(
+                      AppSection.quiz,
+                      "اختبر نفسك",
+                      () => widget.onOpenTab(MasarTab.quiz),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 150,
+                      height: 27,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryFill,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        "ابدأ اختباراً الآن",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
 
   /// 🔁 «أكمل من حيث توقفت» — غير موجودة في التصميم، وأُبقيت لأنها ميزةٌ قائمة.
   ///

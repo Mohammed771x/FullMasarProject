@@ -22,6 +22,10 @@ class QuizGeneration {
   final bool quotaExceeded;
   final bool isGuest;
 
+  /// 💳 ردَّ الخادمُ الحصةَ لأن الاختبار لم يكلّف نداءَ موديل (جاء من
+  /// البنك). فلا يُنقص العميلُ عدّادَه ([core/billing.settle_quota]).
+  final bool quotaRefunded;
+
   const QuizGeneration({
     required this.questions,
     this.lessons = const [],
@@ -29,6 +33,7 @@ class QuizGeneration {
     this.message,
     this.quotaExceeded = false,
     this.isGuest = false,
+    this.quotaRefunded = false,
   });
 
   bool get isEmpty => questions.isEmpty;
@@ -53,26 +58,37 @@ class QuizRepository {
     String requestId = "",
     List<String> seenIds = const [],
   }) async {
-    final res = await _client
-        .post(
-          Uri.parse("${AppConfig.baseUrl}/quiz/generate"),
-          headers: ApiClient.authHeaders(idToken),
-          body: jsonEncode({
-            "user_id": userId,
-            "request_id": requestId,
-            "subject": subject,
-            "grade": grade,
-            "track": track,
-            "unit": unit,
-            "lessons": lessons,
-            "count": count,
-            // 🔁 ما سُئل عنه قريباً — كي لا يُعاد عليه ([QuizSeenStore]).
-            //    يُرسَل من الجهاز كي يبقى الخادمُ بلا حالةٍ فيتوسّع أفقياً.
-            "seen_ids": seenIds,
-          }),
-        )
-        .timeout(const Duration(seconds: 90),
-            onTimeout: () => throw TimeoutException("quiz timeout"));
+    // حمولة محاولة ثابتة: 202/retry لا يعيدان قراءة إعدادات قابلة للتغيير.
+    final encodedAttempt = jsonEncode({
+      "user_id": userId,
+      "request_id": requestId,
+      "subject": subject,
+      "grade": grade,
+      "track": track,
+      "unit": unit,
+      "lessons": List<String>.of(lessons),
+      "count": count,
+      "seen_ids": List<String>.of(seenIds),
+    });
+    final deadline = DateTime.now().add(const Duration(seconds: 90));
+    http.Response res;
+    while (true) {
+      res = await _client
+          .post(
+            Uri.parse("${AppConfig.baseUrl}/quiz/generate"),
+            headers: ApiClient.authHeaders(idToken),
+            body: encodedAttempt,
+          )
+          .timeout(
+            const Duration(seconds: 90),
+            onTimeout: () => throw TimeoutException("quiz timeout"),
+          );
+      if (res.statusCode != 202) break;
+      if (!DateTime.now().isBefore(deadline)) {
+        throw TimeoutException("quiz still in flight");
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+    }
 
     if (res.statusCode != 200 && res.statusCode != 429) {
       throw HttpException("Server error: ${res.statusCode}");
@@ -82,13 +98,18 @@ class QuizRepository {
     final raw = (data["questions"] as List?) ?? const [];
     return QuizGeneration(
       questions: raw
-          .map((e) => QuizQuestion.fromJson(Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) => QuizQuestion.fromJson(Map<String, dynamic>.from(e as Map)),
+          )
           .toList(),
       lessons: List<String>.from(data["lessons"] ?? const []),
       unit: (data["unit"] ?? "").toString(),
-      message: (data["answer"] ?? "").toString().isEmpty ? null : data["answer"].toString(),
+      message: (data["answer"] ?? "").toString().isEmpty
+          ? null
+          : data["answer"].toString(),
       quotaExceeded: data["quota_exceeded"] == true,
       isGuest: data["is_guest"] == true,
+      quotaRefunded: data["quota_refunded"] == true,
     );
   }
 }

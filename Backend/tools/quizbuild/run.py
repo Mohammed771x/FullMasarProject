@@ -7,12 +7,15 @@
 from __future__ import annotations
 from .boot import (Counter, QB, argparse, asyncio, find_lesson, get_lessons_book, json, lessons_in_unit, lessons_units, normalize_grade_track, quiz_spec, serialize_lesson, subjects_for, time)
 from .consts import MAX_CALLS_PER_LESSON
+
 from .sizing import bank_size
 from .english import check_bank
 from .models import CALLS, route
 from .lesson import build_lesson
 from .quarantine import quarantine, rescan_all, retry_rejected, salvage_narrow
 
+# 🏛️ وسمُ البنك المكتوب باليد من الامتحانات الوزارية ([QB.put] `model=`).
+MINISTRY_MODEL = "ministry-exams"
 
 # ══════════════════════════════════════════════════
 # 🚚 البناء
@@ -29,7 +32,6 @@ def lessons_of(grade, track, subject):
             if doc is not None:
                 out.append((unit, name, doc))
     return out
-
 
 async def build_subject(grade, track, subject, *, limit=0, skip_existing=True,
                         retries=1, jobs=2, dry=False):
@@ -52,6 +54,13 @@ async def build_subject(grade, track, subject, *, limit=0, skip_existing=True,
 
         if skip_existing and QB.entry_spec(grade, track, subject, unit, name,
                                            source) == quiz_spec.VERSION:
+            return
+        # 🏛️ **بنكُ الوزاري يُكتب باليد ولا يُولَّد فوقه** — أمرُ المالك
+        #    (2026-09-24): «شيل الأسئلة من الامتحانات الوزارية… هذول اللي
+        #    موجودات احذفها، ولا تقرأ أي نداء API». فحتى `--rebuild` يتخطّاه.
+        if (QB.entry(grade, track, subject, unit, name) or {}).get(
+                "model", "").startswith(MINISTRY_MODEL):
+            print(f"  🏛️ [{i}] {name[:44]:44s} وزاريٌّ باليد — لا يُمسّ")
             return
         if dry:
             print(f"  [{i}] {name[:44]:44s} ⇒ {want} سؤالاً")
@@ -92,7 +101,6 @@ async def build_subject(grade, track, subject, *, limit=0, skip_existing=True,
         CALLS.clear()
     return (done, failed, calls_used)
 
-
 async def build_all(grade, tracks, **kw):
     t0 = time.time()
     total = Counter()
@@ -109,7 +117,6 @@ async def build_all(grade, tracks, **kw):
     print(f"\n{'='*60}\n✅✅✅ اكتمل: {total['done']} بنكاً · "
           f"❌ {total['failed']} · نداءات {total['calls']} · "
           f"{(time.time()-t0)/60:.1f} دقيقة")
-
 
 def report():
     s = QB.stats()
@@ -129,7 +136,6 @@ def report():
         rel = path.relative_to(QB.QUIZZES_DIR)
         print(f"  {str(rel):34s} {len(data):3d} درساً · {len(qs):4d} سؤالاً · "
               f"مستويات {dict(lv)} · أوزان {dict(sorted(ws.items()))}")
-
 
 async def main():
     p = argparse.ArgumentParser()
@@ -182,5 +188,3 @@ async def main():
         await build_subject(grade, track, a.subject, **kw)
     else:
         await build_all(grade, (track,), **kw)
-
-

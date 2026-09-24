@@ -11,7 +11,7 @@ from .common import (
     system_prompt_strict_explain, system_prompt_strict_summary, system_prompt_strict_qa,
     collect_exam_questions_by_years, parse_exams_input, faiss_search, format_arabic_math,
     hybrid_rank, contextual_search_text, Ranked,
-    unit_missing, unit_required_response, book_context,
+    unit_missing, unit_required_response, book_context, clamp_count,
 )
 from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
@@ -124,10 +124,11 @@ def system_prompt_English_explain(subject: str):
   هذه مادةُ لغةٍ أجنبية، ونصُّها هو المقصود بالدرس.
 
 🪄 **وتوسعةُ الأمثلة في الإنجليزي** (قرار المالك 2026-09-14 — أُعيد بعد
-   ضبطه): القاعدةُ والشرحُ والمفرداتُ من الكتاب كما هي، **ولك أن تكتب
-   جملةً إنجليزيةً بسيطةً من عندك تطبّق القاعدةَ نفسها** إن طلب الطالب
-   مثالاً أو بقي في القاعدة غموض — فتعلّمُ اللغة يحتاج تكرارَ النمط.
-   بشروط «التقريب المسموح» أعلاه، وبثلاثةٍ تخصّ هذه المادة:
+   ضبطه، ووُسّع ٢٠٢٦-٠٩-٢٣): القاعدةُ والشرحُ والمفرداتُ من الكتاب كما هي،
+   **ولك أن تكتب أمثلةً إنجليزيةً من عندك — كلماتٍ أو جملاً — تطبّق القاعدةَ
+   نفسها** إن طلب الطالب أمثلةً أكثر أو من خارج الدرس، أو بقي في القاعدة
+   غموض — فتعلّمُ اللغة يحتاج تكرارَ النمط. ولا تعتذر بأنك ملتزمٌ بالكتاب.
+   بشروط «الأمثلةُ من خارج الكتاب» أعلاه، وبثلاثةٍ تخصّ هذه المادة:
    ① **القاعدةُ نفسُها لا قاعدةٌ أخرى** — لا زمنَ جديداً ولا تركيباً لم يُدرَس.
    ② **بمفرداتٍ سهلةٍ مألوفة** من مستوى الكتاب، ومعها معناها بالعربية.
    ③ **مُعلَّمةٌ صراحةً**: «مثالٌ إضافيٌّ من عندي (Extra example):».
@@ -567,9 +568,8 @@ async def handle_english_exams(req: AskRequest, sessions: Dict, gemini_client):
     year = parts[0].strip()
     question_type = parts[1].strip() 
     
-    count = 5
-    if len(parts) > 2 and parts[2].isdigit():
-        count = int(parts[2])
+    # 📏 بين ١ و٢٠ دائماً ([clamp_count]).
+    count = clamp_count(parts[2] if len(parts) > 2 else None, 5)
 
     all_exams_data = get_english_exams() 
     

@@ -13,12 +13,14 @@ import '../../../../core/widgets/fade_in_slide.dart';
 import '../../../../core/widgets/typewriter_text.dart';
 import '../../../../core/widgets/typing_indicator.dart';
 import '../../../../core/session/user_session.dart';
+import '../../../../core/widgets/chat_welcome_hero.dart';
 import '../../../../core/widgets/masar_brand.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../../data/models/chat_suggestion.dart';
 import '../../../../core/settings/app_settings.dart';
 import '../../../saved/data/saved_storage.dart';
 import '../controllers/chat_controller.dart';
+import '../../../teacher/data/teacher_tool.dart';
 import '../controllers/stick_to_bottom.dart';
 import '../../../../core/widgets/phosphor.dart';
 
@@ -96,8 +98,7 @@ class ChatListView extends StatelessWidget {
     // 🔴 **كانت الشاشة فارغةً تماماً** قبل أول رسالة — بياضٌ لا يقول للطالب
     //    ماذا يفعل. والتصميمُ يملؤه بترحيبٍ يشرح الدور.
     if (messages.isEmpty && !controller.isLoading) {
-      return _Greeting(
-          isTeacher: controller.isTeacher, topExtra: topExtra);
+      return _ChatWelcome(controller: controller);
     }
     return ListView.builder(
       controller: controller.scrollController,
@@ -138,273 +139,391 @@ class ChatListView extends StatelessWidget {
         // ⚠️ وهي **خارج صفّ الفقاعة** لا داخله: الصفُّ يحاذي أبناءه من
         //    الأسفل، فلو دخلت فيه لانزلقت صورةُ الروبوت إلى أسفل آخر سهم
         //    بدل أن تلازم الفقاعة. رأيتُه في المحاكي.
-        final bool showFollowUps = !isUser &&
+        final bool showFollowUps =
+            !isUser &&
             isLast &&
             msg["streaming"] != true &&
             msg["animating"] != true &&
             followUps.isNotEmpty;
 
-        return FadeInSlide(
-          delay: 0.0,
-          beginOffset: Offset(isUser ? -0.05 : 0.05, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-          Align(
-            alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // 👥 **الصورتان في جهةٍ واحدة: اليمين** (قرار المالك).
-                //
-                //    اليمينُ في العربية أوّلُ السطر — فمن هناك «تخرج»
-                //    الرسالةُ نحو اليسار. فصورةُ صاحبِها أوّلُ ما يُقرأ:
-                //    الروبوتُ يمينَ ردِّه، والطالبُ يمينَ رسالته. ووضعُ
-                //    صورة الطالب في اليسار كان يجعل رسالتَه تبدو خارجةً
-                //    من الجهة المقابلة.
-                //
-                // ⚠️ و`Row` في RTL يضع **أوّلَ ابنٍ في اليمين** — فكلتاهما
-                //    تُكتب قبل الفقاعة لا بعدها.
-                //
-                // 🤖 والروبوتُ نفسُه لا ثلاثُ نجمات: شخصيّةُ «مسار» هي وجهُ
-                //    الردّ، وأيقونةُ «تألّق» عامّةٌ لا تقول من يتكلّم.
-                if (!isUser)
-                  Container(
-                    margin: const EdgeInsets.only(left: 10, bottom: 8),
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                        color: AppColors.primaryTintSurface,
-                        shape: BoxShape.circle,
-                        boxShadow: AppColors.bubbleShadow),
-                    child: const MasarRobot(size: 28),
-                  ),
-                // 👤 صورةُ الطالب — `UserAvatar` نفسُه المستعمل في الرئيسية:
-                //    يعرف الزائرَ من صاحب الحساب ويتحدّث بعد رفع الصورة.
-                if (isUser)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 10, bottom: 8),
-                    child: UserAvatar(radius: 15),
-                  ),
-                Flexible(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    // ⚠️ التطبيق RTL: `start` = يمين الشاشة و`end` = يسارها.
-                    //    رسالة الطالب تُحاذى لليمين، ورد المساعد لليسار —
-                    //    وبهذا تلتصق الفقاعة بحافة الصور المرفقة نفسها
-                    //    بدل أن تنزاح للجهة المقابلة عند إرسال صورتين.
-                    crossAxisAlignment: isUser ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-                    children: [
-                      // 📷 الصور المرفقة — قابلة للضغط لعرضها ملء الشاشة
-                      if (((msg["images"] as List?) ?? const []).isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: _AttachedImages(
-                            key: const ValueKey("attachedImages"),
-                            paths: List<String>.from(msg["images"]),
+        // 📍 رسالةٌ جاء إليها من البحث: مفتاحٌ يُمرَّر إليه، ووميضٌ لحظيّ.
+        final bool revealed = controller.revealedIndex == i;
+        return KeyedSubtree(
+          key: revealed ? controller.revealKey : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 400),
+            decoration: BoxDecoration(
+              color: revealed
+                  ? AppColors.primary.withValues(alpha: 0.10)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: FadeInSlide(
+              delay: 0.0,
+              beginOffset: Offset(isUser ? -0.05 : 0.05, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    alignment: isUser
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        // 👥 **الصورتان في جهةٍ واحدة: اليمين** (قرار المالك).
+                        //
+                        //    اليمينُ في العربية أوّلُ السطر — فمن هناك «تخرج»
+                        //    الرسالةُ نحو اليسار. فصورةُ صاحبِها أوّلُ ما يُقرأ:
+                        //    الروبوتُ يمينَ ردِّه، والطالبُ يمينَ رسالته. ووضعُ
+                        //    صورة الطالب في اليسار كان يجعل رسالتَه تبدو خارجةً
+                        //    من الجهة المقابلة.
+                        //
+                        // ⚠️ و`Row` في RTL يضع **أوّلَ ابنٍ في اليمين** — فكلتاهما
+                        //    تُكتب قبل الفقاعة لا بعدها.
+                        //
+                        // 🤖 والروبوتُ نفسُه لا ثلاثُ نجمات: شخصيّةُ «مسار» هي وجهُ
+                        //    الردّ، وأيقونةُ «تألّق» عامّةٌ لا تقول من يتكلّم.
+                        if (!isUser)
+                          Container(
+                            margin: const EdgeInsets.only(left: 10, bottom: 8),
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryTintSurface,
+                              shape: BoxShape.circle,
+                              boxShadow: AppColors.bubbleShadow,
+                            ),
+                            child: const MasarRobot(size: 28),
                           ),
-                        ),
-                      Container(
-                        key: const ValueKey("bubble"),
-                        margin: EdgeInsets.only(bottom: isUser ? 4 : 12),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        decoration: BoxDecoration(
-                          gradient: isUser ? AppColors.bubbleGradient : null,
-                          color: isUser ? null : AppColors.surfaceWhite,
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(24),
-                            topRight: const Radius.circular(24),
-                            bottomLeft: Radius.circular(isUser ? 24 : 4),
-                            bottomRight: Radius.circular(isUser ? 4 : 24),
+                        // 👤 صورةُ الطالب — `UserAvatar` نفسُه المستعمل في الرئيسية:
+                        //    يعرف الزائرَ من صاحب الحساب ويتحدّث بعد رفع الصورة.
+                        if (isUser)
+                          const Padding(
+                            padding: EdgeInsets.only(left: 10, bottom: 8),
+                            child: UserAvatar(radius: 15),
                           ),
-                          boxShadow: AppColors.bubbleShadow,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (!isUser)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                        Flexible(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            // ⚠️ التطبيق RTL: `start` = يمين الشاشة و`end` = يسارها.
+                            //    رسالة الطالب تُحاذى لليمين، ورد المساعد لليسار —
+                            //    وبهذا تلتصق الفقاعة بحافة الصور المرفقة نفسها
+                            //    بدل أن تنزاح للجهة المقابلة عند إرسال صورتين.
+                            crossAxisAlignment: isUser
+                                ? CrossAxisAlignment.start
+                                : CrossAxisAlignment.end,
+                            children: [
+                              // 📷 الصور المرفقة — قابلة للضغط لعرضها ملء الشاشة
+                              if (((msg["images"] as List?) ?? const [])
+                                  .isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 6),
+                                  child: _AttachedImages(
+                                    key: const ValueKey("attachedImages"),
+                                    paths: List<String>.from(msg["images"]),
+                                  ),
+                                ),
+                              Container(
+                                key: const ValueKey("bubble"),
+                                margin: EdgeInsets.only(
+                                  bottom: isUser ? 4 : 12,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: isUser
+                                      ? AppColors.bubbleGradient
+                                      : null,
+                                  color: isUser ? null : AppColors.surfaceWhite,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(24),
+                                    topRight: const Radius.circular(24),
+                                    bottomLeft: Radius.circular(
+                                      isUser ? 24 : 4,
+                                    ),
+                                    bottomRight: Radius.circular(
+                                      isUser ? 4 : 24,
+                                    ),
+                                  ),
+                                  boxShadow: AppColors.bubbleShadow,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text("مسار AI", style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold)),
-                                    // ⚡ **وسمُ «من المحفوظ»** — شرحٌ جاهزٌ من
-                                    //    المخزون ([core/lesson_cache]) لا مولَّد:
-                                    //    يصل في جزءٍ من الثانية وبلا خصمٍ من
-                                    //    الحصة. سأل المالك «ما أدري هل يجي من
-                                    //    المخزون ولا لا» — فصار يُرى لا يُحزَر.
-                                    if (msg["cached"] == true) ...[
-                                      const SizedBox(width: 7),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary.withValues(alpha: 0.10),
-                                          borderRadius: BorderRadius.circular(9),
+                                    if (!isUser)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 8,
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(PI.lightning.fill, size: 12, color: AppColors.primary),
-                                            const SizedBox(width: 2),
-                                            Text("من المحفوظ",
-                                                style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: AppColors.primary)),
+                                            Text(
+                                              "مسار AI",
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            // ⚡ **وسمُ «من المحفوظ»** — شرحٌ جاهزٌ من
+                                            //    المخزون ([core/lesson_cache]) لا مولَّد:
+                                            //    يصل في جزءٍ من الثانية وبلا خصمٍ من
+                                            //    الحصة. سأل المالك «ما أدري هل يجي من
+                                            //    المخزون ولا لا» — فصار يُرى لا يُحزَر.
+                                            if (msg["cached"] == true) ...[
+                                              const SizedBox(width: 7),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 7,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primary
+                                                      .withValues(alpha: 0.10),
+                                                  borderRadius:
+                                                      BorderRadius.circular(9),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      PI.lightning.fill,
+                                                      size: 12,
+                                                      color: AppColors.primary,
+                                                    ),
+                                                    const SizedBox(width: 2),
+                                                    Text(
+                                                      "من المحفوظ",
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            AppColors.primary,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
                                           ],
                                         ),
+                                      ),
+                                    // 🌊 **البثّ جارٍ**: النصّ ينمو، وحافته السفلى
+                                    //    تتلاشى فينبثق الجديد بهدوء بدل أن يقفز،
+                                    //    ومؤشّرٌ يقول «ما زال يكتب» ([StreamingText]).
+                                    if (msg["streaming"] == true)
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          StreamingText(
+                                            streaming: true,
+                                            child: MasarMarkdown(
+                                              data: (msg["text"] ?? "")
+                                                  .toString(),
+                                              selectable: false,
+                                              // 🧪 رسّامُ الكيمياء في الكيمياء وحدها
+                                              subject:
+                                                  controller.selectedSubject,
+                                              styleSheet: MarkdownStyleSheet(
+                                                p: TextStyle(
+                                                  color: AppColors.textPrimary,
+                                                  fontSize: AppSettings
+                                                      .I
+                                                      .answerFontSize,
+                                                  fontWeight: FontWeight.w500,
+                                                  height: 1.6,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 2,
+                                            ),
+                                            child: TypingCaret(
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    else if (msg["animating"] == true &&
+                                        !controller.isLoading)
+                                      TypewriterText(
+                                        text: msg["fullText"] ?? msg["text"],
+                                        stopNotifier:
+                                            controller.stopTypingNotifier,
+                                        // 📌 **والطابعةُ تتبع قاعدةَ التمرير كالبثّ
+                                        //    تماماً** (أمرُ المالك 2026-09-19):
+                                        //    «لو جات رسالة من المخزون تو على طول
+                                        //    ينزل بآخر شيء… أنا أبغاه نفس لو أرسلت
+                                        //    رسالة للمودل ويجيبها».
+                                        //
+                                        // 🔴 وكان هنا `jumpTo(maxScrollExtent)`
+                                        //    **بلا شرط** مع كل حرف — يتجاوز
+                                        //    [StickToBottom] كلَّه. فالشرحُ المخزون
+                                        //    (وهو وحده ما يُكتب بالطابعة) كان يسحب
+                                        //    الشاشةَ من تحت القارئ ولا يُفلتها، ولو
+                                        //    وضع إصبعَه عليها. والبثُّ من الموديل
+                                        //    يحترمها منذ 2026-09-09
+                                        //    ([chat_controller._flushStream]) —
+                                        //    فاختلف المساران في شيءٍ يراه الطالب.
+                                        //
+                                        // ⏱️ وبعد إطارٍ واحد: `maxScrollExtent` لا
+                                        //    يعرف الحرفَ الجديد قبل أن يُخطَّط.
+                                        onTyping: () {
+                                          WidgetsBinding.instance
+                                              .addPostFrameCallback((_) {
+                                                controller.scrollController
+                                                    .followBottom(
+                                                      controller.stick,
+                                                    );
+                                              });
+                                        },
+                                        onStopped: (stoppedText) {
+                                          msg["text"] =
+                                              "$stoppedText\n\n⏹️ *تم الإيقاف*";
+                                          msg["animating"] = false;
+                                          controller.refresh();
+                                          controller.saveCurrentConversation();
+                                        },
+                                        onFinished: () {
+                                          msg["animating"] = false;
+                                          controller.refresh();
+                                          controller.saveCurrentConversation();
+                                        },
+                                      )
+                                    else
+                                      MasarMarkdown(
+                                        data: msg["text"],
+                                        selectable: true,
+                                        subject: controller.selectedSubject,
+                                        styleSheet: MarkdownStyleSheet(
+                                          p: TextStyle(
+                                            color: isUser
+                                                ? Colors.white
+                                                : AppColors.textPrimary,
+                                            fontSize:
+                                                AppSettings.I.answerFontSize,
+                                            fontWeight: FontWeight.w500,
+                                            height: 1.6,
+                                          ),
+                                        ),
+                                      ),
+                                    if (msg["refs"] != null &&
+                                        (msg["refs"] as List).isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 12),
+                                        child: Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: (msg["refs"] as List)
+                                              .map<Widget>(
+                                                (ref) => Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 6,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        AppColors.softSurface,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: AppColors.primary
+                                                          .withValues(
+                                                            alpha: 0.1,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Icon(
+                                                        PI.link.bold,
+                                                        size: 12,
+                                                        color:
+                                                            AppColors.secondary,
+                                                      ),
+                                                      const SizedBox(width: 6),
+                                                      Flexible(
+                                                        child: Tooltip(
+                                                          message: "$ref",
+                                                          child: Text(
+                                                            "$ref",
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color: AppColors
+                                                                  .textSecondary,
+                                                            ),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            maxLines: 1,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              )
+                                              .toList(),
+                                        ),
+                                      ),
+
+                                    // 👇 زر النسخ للذكاء الاصطناعي 👇
+                                    if (!isUser) ...[
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          _copyButton(msg, dense: false),
+                                          const SizedBox(width: 8),
+                                          _saveButton(context, msg),
+                                        ],
                                       ),
                                     ],
                                   ],
                                 ),
                               ),
-                            // 🌊 **البثّ جارٍ**: النصّ ينمو، وحافته السفلى
-                            //    تتلاشى فينبثق الجديد بهدوء بدل أن يقفز،
-                            //    ومؤشّرٌ يقول «ما زال يكتب» ([StreamingText]).
-                            if (msg["streaming"] == true)
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  StreamingText(
-                                    streaming: true,
-                                    child: MasarMarkdown(
-                                      data: (msg["text"] ?? "").toString(),
-                                      selectable: false,
-                                      // 🧪 رسّامُ الكيمياء في الكيمياء وحدها
-                                      subject: controller.selectedSubject,
-                                      styleSheet: MarkdownStyleSheet(
-                                        p: TextStyle(
-                                            color: AppColors.textPrimary,
-                                            fontSize: AppSettings.I.answerFontSize,
-                                            fontWeight: FontWeight.w500,
-                                            height: 1.6),
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 2),
-                                    child: TypingCaret(color: AppColors.primary),
-                                  ),
-                                ],
-                              )
-                            else if (msg["animating"] == true && !controller.isLoading)
-                              TypewriterText(
-                                text: msg["fullText"] ?? msg["text"],
-                                stopNotifier: controller.stopTypingNotifier,
-                                // 📌 **والطابعةُ تتبع قاعدةَ التمرير كالبثّ
-                                //    تماماً** (أمرُ المالك 2026-09-19):
-                                //    «لو جات رسالة من المخزون تو على طول
-                                //    ينزل بآخر شيء… أنا أبغاه نفس لو أرسلت
-                                //    رسالة للمودل ويجيبها».
-                                //
-                                // 🔴 وكان هنا `jumpTo(maxScrollExtent)`
-                                //    **بلا شرط** مع كل حرف — يتجاوز
-                                //    [StickToBottom] كلَّه. فالشرحُ المخزون
-                                //    (وهو وحده ما يُكتب بالطابعة) كان يسحب
-                                //    الشاشةَ من تحت القارئ ولا يُفلتها، ولو
-                                //    وضع إصبعَه عليها. والبثُّ من الموديل
-                                //    يحترمها منذ 2026-09-09
-                                //    ([chat_controller._flushStream]) —
-                                //    فاختلف المساران في شيءٍ يراه الطالب.
-                                //
-                                // ⏱️ وبعد إطارٍ واحد: `maxScrollExtent` لا
-                                //    يعرف الحرفَ الجديد قبل أن يُخطَّط.
-                                onTyping: () {
-                                  WidgetsBinding.instance
-                                      .addPostFrameCallback((_) {
-                                    controller.scrollController
-                                        .followBottom(controller.stick);
-                                  });
-                                },
-                                onStopped: (stoppedText) {
-                                  msg["text"] = "$stoppedText\n\n⏹️ *تم الإيقاف*";
-                                  msg["animating"] = false;
-                                  controller.refresh();
-                                  controller.saveCurrentConversation();
-                                },
-                                onFinished: () {
-                                  msg["animating"] = false;
-                                  controller.refresh();
-                                  controller.saveCurrentConversation();
-                                },
-                              )
-                            else
-                              MasarMarkdown(
-                                data: msg["text"],
-                                selectable: true,
-                                subject: controller.selectedSubject,
-                                styleSheet: MarkdownStyleSheet(
-                                  p: TextStyle(color: isUser ? Colors.white : AppColors.textPrimary, fontSize: AppSettings.I.answerFontSize, fontWeight: FontWeight.w500, height: 1.6),
-                                ),
-                              ),
-                            if (msg["refs"] != null && (msg["refs"] as List).isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 12),
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: (msg["refs"] as List)
-                                      .map<Widget>((ref) => Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                            decoration: BoxDecoration(color: AppColors.softSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.primary.withValues(alpha: 0.1))),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(PI.link.bold, size: 12, color: AppColors.secondary),
-                                                const SizedBox(width: 6),
-                                                Flexible(
-                                                  child: Tooltip(
-                                                    message: "$ref",
-                                                    child: Text(
-                                                      "$ref",
-                                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
-                                                      overflow: TextOverflow.ellipsis,
-                                                      maxLines: 1,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ))
-                                      .toList(),
-                                ),
-                              ),
 
-                            // 👇 زر النسخ للذكاء الاصطناعي 👇
-                            if (!isUser) ...[
-                              const SizedBox(height: 12),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _copyButton(msg, dense: false),
-                                  const SizedBox(width: 8),
-                                  _saveButton(context, msg),
-                                ],
-                              ),
+                              // 👇 زر النسخ للطالب 👇
+                              if (isUser)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: 12,
+                                    right: 6,
+                                  ),
+                                  child: _copyButton(msg, dense: true),
+                                ),
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-
-                      // 👇 زر النسخ للطالب 👇
-                      if (isUser)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12, right: 6),
-                          child: _copyButton(msg, dense: true),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  if (showFollowUps)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 44),
+                      child: followUpsBuilder!(followUps),
+                    ),
+                ],
+              ),
             ),
-          ),
-          if (showFollowUps)
-            Padding(
-              padding: const EdgeInsets.only(right: 44),
-              child: followUpsBuilder!(followUps),
-            ),
-            ],
           ),
         );
       },
@@ -437,23 +556,23 @@ class ChatListView extends StatelessWidget {
               if (!context.mounted) return;
               ScaffoldMessenger.of(context)
                 ..hideCurrentSnackBar()
-                ..showSnackBar(SnackBar(
-                  content: Text(
-                    nowSaved ? "⭐ حُفظت في المحفوظات" : "أُزيلت من المحفوظات",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                ..showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      nowSaved ? "⭐ حُفظت في المحفوظات" : "أُزيلت من المحفوظات",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: AppColors.textPrimary,
                   ),
-                  behavior: SnackBarBehavior.floating,
-                  backgroundColor: AppColors.textPrimary,
-                ));
+                );
             },
       borderRadius: BorderRadius.circular(8),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: saved
-              ? AppColors.savedSurface
-              : AppColors.softSurface,
+          color: saved ? AppColors.savedSurface : AppColors.softSurface,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -486,13 +605,21 @@ class ChatListView extends StatelessWidget {
     final inner = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(copied ? PI.check.bold : PI.copy.regular, size: dense ? 13 : 14, color: copied ? AppColors.copiedInk : AppColors.textSecondary),
+        Icon(
+          copied ? PI.check.bold : PI.copy.regular,
+          size: dense ? 13 : 14,
+          color: copied ? AppColors.copiedInk : AppColors.textSecondary,
+        ),
         SizedBox(width: dense ? 4 : 6),
         Text(
           copied ? "تم النسخ" : "نسخ",
           style: TextStyle(
             fontSize: 11,
-            color: copied ? Colors.green : (dense ? AppColors.textSecondary.withValues(alpha: 0.8) : AppColors.textSecondary),
+            color: copied
+                ? Colors.green
+                : (dense
+                      ? AppColors.textSecondary.withValues(alpha: 0.8)
+                      : AppColors.textSecondary),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -521,7 +648,9 @@ class ChatListView extends StatelessWidget {
               duration: const Duration(milliseconds: 300),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: copied ? Colors.green.withValues(alpha: 0.1) : AppColors.softSurface,
+                color: copied
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : AppColors.softSurface,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: inner,
@@ -529,7 +658,6 @@ class ChatListView extends StatelessWidget {
     );
   }
 }
-
 
 /// صور الرسالة — ضغطة تفتح العارض ملء الشاشة.
 class _AttachedImages extends StatelessWidget {
@@ -553,7 +681,8 @@ class _AttachedImages extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => ImageViewerScreen(paths: paths, initialIndex: i),
+                builder: (_) =>
+                    ImageViewerScreen(paths: paths, initialIndex: i),
               ),
             ),
             borderRadius: BorderRadius.circular(18),
@@ -572,14 +701,20 @@ class _AttachedImages extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(PI.imageBroken.regular,
-                          color: AppColors.textSecondary, size: 24),
+                      Icon(
+                        PI.imageBroken.regular,
+                        color: AppColors.textSecondary,
+                        size: 24,
+                      ),
                       const SizedBox(height: 4),
-                      Text("الصورة لم تعد متاحة",
-                          style: TextStyle(
-                              fontSize: 10.5,
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w600)),
+                      Text(
+                        "الصورة لم تعد متاحة",
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -593,145 +728,104 @@ class _AttachedImages extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════
-// 👋 فقاعة الترحيب — حالة المحادثة الفارغة
+// 🤖 ترحيبُ المحادثة الفارغة — روبوتٌ في الوسط وتحته كلام
 // ══════════════════════════════════════════════════
-class _Greeting extends StatelessWidget {
-  const _Greeting({required this.isTeacher, required this.topExtra});
+// 🎯 **قرار المالك (٢٠٢٦-٠٩-٢٤):** «لما يدخل على أي محادثة يطلع له الروبوت
+//    بشكلٍ جميل جداً في النص، وتحته كلام — نفس المنح ونفس المعلم. والكلامُ
+//    يتغيّر على حسب الوضع». فالقسمان وشاشةُ المنح لغةٌ واحدة: هالةٌ زرقاء
+//    ١٩٠ فيها الروبوتُ المتحرّك ١١٨ (مقاسُ ترحيب المنح نفسُه)، ثم عنوانٌ
+//    ١٨/w900، ثم سطرٌ صغيرٌ بالمادة والوضع، ثم فقرةٌ وسطيّة.
+//
+// 🔄 **وما كان:** فقاعةٌ صغيرةٌ عند الطالب («أنا مسار، رفيقك التعليمي»)
+//    ولوحةٌ وسطيّةٌ عند المعلّم (روبوت `fly` ١٠٤) — شكلان لحالةٍ واحدة،
+//    ونصٌّ ثابتٌ لا يقول ماذا يفعل الطالب **الآن**.
+//
+// 🃏 **والبطاقةُ مطويّةٌ عند الدخول** ([ChatController.showSettingsPanel])،
+//    فالفقرةُ تدلّ عليها بالاسم: «اضغط «إعدادات الجلسة» في الأعلى».
+//
+// 📐 **ويتوسّط ما بقي تحت البطاقة، ويعلو حين يضيق** (بطاقةٌ مفتوحةٌ طويلة).
+class _ChatWelcome extends StatelessWidget {
+  const _ChatWelcome({required this.controller});
 
-  final bool isTeacher;
+  final ChatController controller;
 
-  /// ما تشغله بطاقةُ الجلسة الثابتة فوق القائمة.
-  final double topExtra;
+  static const double gapUnderCard = 24;
 
-  @override
-  Widget build(BuildContext context) {
-    final name = UserSession.I.name;
-    if (isTeacher) return _TeacherWelcome(name: name, topExtra: topExtra);
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(24, 8 + topExtra, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 🤖 الروبوت في **بداية** السطر (يمين RTL) كما في التصميم.
-          const MasarRobot(size: 45),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.primaryTintSurface,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "مرحباً $name! أنا مسار، رفيقك التعليمي",
-                    style: TextStyle(
-                        fontSize: 12,
-                        height: 22 / 12,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.headingInk),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "اسألني عن كل ما يخص مسارك التعليمي",
-                    style: TextStyle(
-                        fontSize: 12,
-                        height: 22 / 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.greetInk),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-          ),
-        ],
-      ),
-    );
+  ChatController get c => controller;
+
+  /// الوضعُ كما يراه الطالب — الرياضياتُ وضعُها في `mathMode`.
+  String get _mode =>
+      c.selectedSubject == "رياضيات" ? c.mathMode : c.selectedMode;
+
+  String get _title => c.isTeacher
+      ? "مساعد المعلم الذكي"
+      : "مرحباً ${UserSession.I.name}! أنا مسار";
+
+  String get _tag {
+    final t = c.teacherTool;
+    if (t != null) return "${c.selectedSubject} · ${t.label}";
+    return "${c.selectedSubject} · $_mode";
   }
-}
 
-// ══════════════════════════════════════════════════
-// 👨‍🏫 ترحيبُ مساعد المعلم — حالةُ المحادثة الفارغة
-// ══════════════════════════════════════════════════
-// 🎨 **تصميم Figma** — `design/09-teacher/02` · إحداثيات مطلقة:
-//    الروبوت وسطَ الشاشة 104 عرضاً عند y=319 · العنوان **16**/w900
-//    `#091E42` عند y=429 · والفقرةُ **12** وسطيّةٌ `#15294B` بعرضٍ أقصاه
-//    **270** وارتفاعِ سطرٍ 22.5 (وهو مقاسُ `Small` في التوكنات حرفاً)،
-//    عند y=474.
-//
-// 📏 **والمقاسان مقيسان لا مقدَّران**: ارتفاعُ حبر العنوان في التصدير
-//    19.5 وفي فلاتر عند 18 هو 21.3 ⇒ 16؛ وسطرُ الفقرة 14.5 مقابل 17.3
-//    عند 14 ⇒ 12. (عايرتُ الطريقةَ على عنوان الشريط المعلوم: 14.3/14.)
-//
-// 🔴 **وهي ليست فقاعةَ قسم التعليم**: هناك روبوتٌ 45 إلى يمين فقاعةٍ
-//    زرقاء؛ وهنا لوحةٌ وسطيّةٌ كاملة. قِستُ الإطارين فاختلفا، فبُنيتا
-//    اثنتين — ولو وُحّدتا لظهر أحدُ القسمين بتصميم الآخر.
-//
-// 📝 **والنصُّ من التطبيق لا من الملف** (قاعدة المالك): المصمّم كتب
-//    ترحيباً توضيحياً، وهذا ترحيبُ المعلّم الذي في التطبيق باسمه.
-//
-// 📐 **ويتوسّط رأسياً ما دام يتّسع، ويعلو حين يضيق**: المصمّم وضعه في
-//    الإطار ٢ (بلا بطاقة) على بُعد 140 من الشريط، وفي الإطارات ١·٣·٤
-//    (وفوقه بطاقة) على بُعد 30 منها — أي أنه يتوسّط ما بقي. فلو ثُبّت
-//    على 30 دائماً لتكوّم في الأعلى وتُرك تحته فراغٌ بمقدار شاشةٍ نصفية.
-class _TeacherWelcome extends StatelessWidget {
-  const _TeacherWelcome({required this.name, required this.topExtra});
+  /// 📝 **ماذا يفعل الآن — بحسب الوضع أو الأداة.**
+  String get _body {
+    const open = "اضغط «إعدادات الجلسة» في الأعلى";
+    final t = c.teacherTool;
+    if (t != null) {
+      // 👋 باسم المعلّم كما كان ترحيبُه — العنوانُ للقسم والتحيّةُ له.
+      final body = switch (t) {
+        TeacherTool.lessonPlan =>
+          "$open واختر المادة والوحدة والدرس، ثم «توليد خطة الدرس» — "
+              "أهدافٌ وخطواتٌ بأزمنتها ونشاطٌ وتقويم، وناقشها معي بعدها.",
+        TeacherTool.homework =>
+          "$open واختر الدرس والمستوى وعدد الأسئلة، ثم «إنشاء الواجب» — "
+              "متدرّجَ الصعوبة ومعه سلّمُ التصحيح.",
+        TeacherTool.simplify =>
+          "$open واختر الدرس، ثم اكتب لي المفهوم الذي يتعثّر فيه طلابك — "
+              "وأبسّطه بتشبيهاتٍ وتمثيلٍ وسؤالٍ كاشف.",
+        TeacherTool.ask =>
+          "اسألني عن التدريس وإدارة الحصة والتقويم والطلاب الضعاف — "
+              "ومع درسٍ من «إعدادات الجلسة» إن أردت أن نتكلّم عنه.",
+      };
+      return "مرحباً ${UserSession.I.name}! $body";
+    }
+    return switch (_mode) {
+      "تلخيص" =>
+        "$open واختر درسك ومستوى التلخيص — وألخّصه لك "
+            "في نقاطٍ واضحةٍ تراجعها قبل الاختبار.",
+      "سؤال" =>
+        "$open واختر درسك، ثم اكتب سؤالك — "
+            "أجيبك من كتابك مباشرةً، بأمثلةٍ إن احتجت.",
+      "اختبارات" =>
+        "$open واختر دروسك — وأجهّز لك اختباراً قصيراً "
+            "يكشف ما أتقنتَه وما يحتاج مراجعة.",
+      "وزاري" =>
+        "$open واختر السنة والقسم — وأعرض لك أسئلة الوزارة "
+            "وأحلّها معك خطوةً بخطوة.",
+      _ =>
+        "$open واختر درسك — وأشرحه لك من كتابك خطوةً بخطوة، "
+            "ثم اسألني عمّا لم يتّضح.",
+    };
+  }
 
-  final String name;
-  final double topExtra;
-
-  /// 📏 عرضُ الفقرة في التصميم — أضيقُ من اللوح عمداً فتُقرأ في أربعة أسطر.
-  static const double paragraphWidth = 270;
-
-  /// 📏 فجوةُ ما بين البطاقة (أو الشريط) وأعلى اللوحة.
-  static const double gapUnderCard = 30;
+  // 📌 **ثابتٌ خلف البطاقة — لا يتقلّص ولا يتحرّك** (قرار المالك
+  //    ٢٠٢٦-٠٩-٢٤: «لو طلّعت إعدادات الجلسة، خلاص هو يتمّ واقف ورا —
+  //    الإعدادات تطلع فوقها، وإذا رجعتها ترجع. ما في داعي تصغّر وتكبّر
+  //    الروبوت»). فموضعُه يُحسب من **رأس البطاقة المطويّ** لا من ارتفاعها
+  //    الحاليّ ([topExtra])، والبطاقةُ المفتوحةُ تغطّيه كما تغطّي أيَّ رسالة.
+  static const double collapsedCard = 62;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(24, topExtra + gapUnderCard, 24, 24),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: (constraints.maxHeight - topExtra - gapUnderCard - 24)
-                .clamp(0, double.infinity),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const MasarRobot(size: 104, pose: MasarRobotPose.fly),
-                const SizedBox(height: 24),
-                Text("مساعد المعلم الذكي",
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.brandInk)),
-                const SizedBox(height: 18),
-                ConstrainedBox(
-                  constraints:
-                      const BoxConstraints(maxWidth: paragraphWidth),
-                  child: Text(
-                    "مرحباً $name! أنا مسار، مساعدك في التحضير. "
-                    "اختر أداةً من الأعلى وحدّد المادة والدرس، "
-                    "أو اسألني مباشرةً عن التدريس وإدارة الحصة.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 12,
-                        height: 22.5 / 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.inkB800),
-                  ),
-                ),
-              ],
-            ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, collapsedCard + gapUnderCard, 24, 16),
+      child: Center(
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: ChatWelcomeHero(
+            title: _title,
+            tag: _tag,
+            body: _body,
           ),
         ),
       ),

@@ -245,19 +245,24 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             const SizedBox(height: 16),
             Divider(color: Colors.white.withValues(alpha: 0.22), height: 1),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                    child: _subjectFact(
-                        best.subject, "أفضل مادة", AppColors.success500)),
-                if (weakest != null) ...[
+            // 🎯 **بلاغ المالك (٢٠٢٦-٠٩-٢٤):** «اختبرتُ مادةً واحدة فقط
+            //    فقال: هي أفضل مادة — ما يصلح». الأفضليةُ مقارنةٌ، ومادةٌ
+            //    وحيدةٌ لا تُقارَن بشيء: نعرض تقييمَها هي ونقول صراحةً إن
+            //    الترتيب ينتظر مادةً ثانية.
+            if (weakest == null)
+              _singleSubject(best)
+            else
+              Row(
+                children: [
+                  Expanded(
+                      child: _subjectFact(
+                          best.subject, "أفضل مادة", AppColors.success500)),
                   const AnalysisNavyDivider(),
                   Expanded(
                       child: _subjectFact(
                           weakest.subject, "أضعف مادة", AppColors.error500)),
                 ],
-              ],
-            ),
+              ),
           ],
           // 🔥 سلسلةُ الأيام — 🆕 ليست في التصدير، ويملكها التطبيق.
           //    تظهر عند يومين فأكثر: «يومٌ واحدٌ متتالٍ» لا معنى له.
@@ -279,6 +284,34 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  /// مادةٌ وحيدة: تقييمُها («رياضيات · جيد ٧٢٪») وسطرٌ يشرح غيابَ الترتيب.
+  Widget _singleSubject(SubjectStats only) {
+    final dot = only.isStrong
+        ? AppColors.success500
+        : only.isWeak
+            ? AppColors.error500
+            : AppColors.warning500;
+    return Column(
+      children: [
+        _subjectFact(
+            // ⇆ النسبةُ معزولةٌ يساراً (LRI…PDI) وإلا قُرئت «%20» وسط العربية.
+            only.subject,
+            "${only.label} — \u2066${only.currentPercent}%\u2069",
+            dot),
+        const SizedBox(height: 10),
+        Text(
+          "اختبرتَ مادةً واحدة حتى الآن — اختبر مادةً ثانية لنعرف أفضلَ موادك وأضعفَها.",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+              fontSize: 11.5,
+              height: 1.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.86)),
+        ),
+      ],
     );
   }
 
