@@ -148,15 +148,18 @@ void main() {
   testWidgets('رأسُ «إعدادات الجلسة» يطوي الجسم ويُبقي العنوان', (tester) async {
     await openTeacherHome(tester);
     await openPanel(tester);
-    expect(find.text('المادة الدراسية:'), findsOneWidget);
+    expect(find.text('خطة درس'), findsOneWidget);
+    // 📚 **لا مادةَ في بطاقة المعلّم** — تُختار من القائمة الجانبية وحدها
+    //    (أمرُ المالك ٢٠٢٦-٠٩-٢٤).
+    expect(find.text('المادة الدراسية:'), findsNothing);
 
     await tester.tap(find.text('إعدادات الجلسة'));
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('المادة الدراسية:'), findsNothing);
+    expect(find.text('خطة درس'), findsNothing);
     expect(find.text('إعدادات الجلسة'), findsOneWidget);
 
     await tester.tap(find.text('إعدادات الجلسة'));
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('المادة الدراسية:'), findsOneWidget);
+    expect(find.text('خطة درس'), findsOneWidget);
   });
 }

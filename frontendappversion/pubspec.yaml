@@ -110,6 +110,7 @@ flutter:
     - assets/brand/logo_full.png
     - assets/brand/robot_face.png
     - assets/brand/robot_fly.png
+    - assets/characters/
     - assets/art/art_analysis.png
     - assets/art/art_checklist.png
     - assets/art/art_services.png

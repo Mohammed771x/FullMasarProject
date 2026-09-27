@@ -15,6 +15,7 @@ import '../../../../core/widgets/typing_indicator.dart';
 import '../../../../core/session/user_session.dart';
 import '../../../../core/widgets/chat_welcome_hero.dart';
 import '../../../../core/widgets/masar_brand.dart';
+import '../../../../core/widgets/masar_character.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../../data/models/chat_suggestion.dart';
 import '../../../../core/settings/app_settings.dart';
@@ -23,6 +24,7 @@ import '../controllers/chat_controller.dart';
 import '../../../teacher/data/teacher_tool.dart';
 import '../controllers/stick_to_bottom.dart';
 import '../../../../core/widgets/phosphor.dart';
+import '../../../../core/widgets/masar_notice.dart';
 
 // ==========================================
 // 💬 قائمة فقاعات المحادثة
@@ -186,15 +188,9 @@ class ChatListView extends StatelessWidget {
                         // 🤖 والروبوتُ نفسُه لا ثلاثُ نجمات: شخصيّةُ «مسار» هي وجهُ
                         //    الردّ، وأيقونةُ «تألّق» عامّةٌ لا تقول من يتكلّم.
                         if (!isUser)
-                          Container(
-                            margin: const EdgeInsets.only(left: 10, bottom: 8),
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryTintSurface,
-                              shape: BoxShape.circle,
-                              boxShadow: AppColors.bubbleShadow,
-                            ),
-                            child: const MasarRobot(size: 28),
+                          const Padding(
+                            padding: EdgeInsets.only(left: 10, bottom: 8),
+                            child: MasarRobotAvatar(),
                           ),
                         // 👤 صورةُ الطالب — `UserAvatar` نفسُه المستعمل في الرئيسية:
                         //    يعرف الزائرَ من صاحب الحساب ويتحدّث بعد رفع الصورة.
@@ -241,12 +237,10 @@ class ChatListView extends StatelessWidget {
                                   borderRadius: BorderRadius.only(
                                     topLeft: const Radius.circular(24),
                                     topRight: const Radius.circular(24),
-                                    bottomLeft: Radius.circular(
-                                      isUser ? 24 : 4,
-                                    ),
-                                    bottomRight: Radius.circular(
-                                      isUser ? 4 : 24,
-                                    ),
+                                    bottomLeft: const Radius.circular(24),
+                                    // 🎯 الركنُ الحادّ يميناً للطرفين — عند صورة الطالب وعند الروبوت
+                                    // (أمرُ المالك ٠٩-٢٤): فالرسالةُ «تخرج» من صاحبها.
+                                    bottomRight: const Radius.circular(4),
                                   ),
                                   boxShadow: AppColors.bubbleShadow,
                                 ),
@@ -554,18 +548,12 @@ class ChatListView extends StatelessWidget {
               );
               controller.refresh();
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      nowSaved ? "⭐ حُفظت في المحفوظات" : "أُزيلت من المحفوظات",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: AppColors.textPrimary,
-                  ),
-                );
+              MasarNotice.toast(
+                context,
+                nowSaved ? "حُفظت في المحفوظات" : "أُزيلت من المحفوظات",
+                icon: PD.star,
+                kind: nowSaved ? NoticeKind.success : NoticeKind.info,
+              );
             },
       borderRadius: BorderRadius.circular(8),
       child: AnimatedContainer(
@@ -761,12 +749,6 @@ class _ChatWelcome extends StatelessWidget {
       ? "مساعد المعلم الذكي"
       : "مرحباً ${UserSession.I.name}! أنا مسار";
 
-  String get _tag {
-    final t = c.teacherTool;
-    if (t != null) return "${c.selectedSubject} · ${t.label}";
-    return "${c.selectedSubject} · $_mode";
-  }
-
   /// 📝 **ماذا يفعل الآن — بحسب الوضع أو الأداة.**
   String get _body {
     const open = "اضغط «إعدادات الجلسة» في الأعلى";
@@ -818,14 +800,21 @@ class _ChatWelcome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, collapsedCard + gapUnderCard, 24, 16),
+      padding: const EdgeInsets.fromLTRB(
+        24,
+        collapsedCard + gapUnderCard,
+        24,
+        16,
+      ),
       child: Center(
         child: SingleChildScrollView(
           physics: const NeverScrollableScrollPhysics(),
           child: ChatWelcomeHero(
             title: _title,
-            tag: _tag,
             body: _body,
+            // 🧕 شخصيةٌ كاملة كالمنح، بلا سطر «أحياء · شرح» (المالك ٢٠٢٦-٠٩-٢٧:
+            //    «شيل أحياء شرح… نفس المنح نفس كل شيء») — المادةُ والوضعُ في البطاقة.
+            character: c.isTeacher ? MasarCharacter.teach : MasarCharacter.study,
           ),
         ),
       ),

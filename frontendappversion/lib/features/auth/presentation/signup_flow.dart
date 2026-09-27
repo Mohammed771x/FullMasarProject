@@ -10,7 +10,7 @@ import '../../../core/auth/user_repository.dart';
 import '../../../core/session/role_home.dart';
 import '../../../core/session/user_session.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/masar_brand.dart';
+import '../../../core/widgets/masar_character.dart';
 import '../../../core/widgets/masar_icons.dart';
 import 'verify_email_screen.dart';
 import 'widgets/auth_kit.dart';
@@ -471,7 +471,8 @@ class _StepAccountState extends State<_StepAccount> {
         child: AuthBody(
           children: [
             const SizedBox(height: 14),
-            const AuthRobot(110),
+            // 🧕 «إنشاء حساب» في Figma: جهازٌ عليه «إضافة مستخدم» — رسمٌ 72×92.
+            const AuthRobot(MasarCharacter.signup, height: 92),
             const SizedBox(height: 10),
             AuthHeading(
               title: "إنشاء حساب جديد",
@@ -633,7 +634,8 @@ class _StepRoleState extends State<_StepRole> {
               child: Column(
                 children: [
                   const SizedBox(height: 11),
-                  const MasarRobot(size: 80, pose: MasarRobotPose.fly),
+                  // 🧕 «اختر دورك» في Figma: صورتا طالبٍ ومعلّم بين يديه.
+                  const AuthRobot(MasarCharacter.roles, height: 140),
                   const SizedBox(height: 4),
                   Text("مرحباً بك في مسار",
                       style: TextStyle(
@@ -1170,7 +1172,8 @@ class _StepConfirm extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                const MasarRobot(size: 130),
+                // 🧕 «هل تأكّد من البيانات» في Figma: «تمام» ولوحُ مهامّ.
+                const AuthRobot(MasarCharacter.ask, height: 160),
                 const SizedBox(height: 16),
                 AuthHeading(
                   title: "هل تأكّدت من كل البيانات؟",

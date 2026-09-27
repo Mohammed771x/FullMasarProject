@@ -70,7 +70,7 @@ async def quiz_generate(req: QuizRequest, request: Request):
     if auth_error is not None:
         return auth_error
 
-    if not v3_ratelimit.check(request, identity["uid"],
+    if not v3_ratelimit.check_user(identity["uid"],
                               v3_ratelimit.VOICE_LIMIT, v3_ratelimit.VOICE_WINDOW):
         return JSONResponse(status_code=429, content={"answer": v3_ratelimit.RATE_LIMIT_MESSAGE})
 
@@ -127,7 +127,7 @@ async def voice_clean(req: VoiceCleanRequest, request: Request):
     if auth_error is not None:
         return auth_error
 
-    if not v3_ratelimit.check(request, identity["uid"],
+    if not v3_ratelimit.check_user(identity["uid"],
                               v3_ratelimit.VOICE_LIMIT, v3_ratelimit.VOICE_WINDOW):
         return JSONResponse(status_code=429, content={"answer": v3_ratelimit.RATE_LIMIT_MESSAGE})
 
@@ -148,9 +148,9 @@ async def chat_title(req: TitleRequest, request: Request):
         return auth_error
 
     uid = identity["uid"]
-    if not (v3_ratelimit.check(request, uid, v3_ratelimit.TITLE_LIMIT,
+    if not (v3_ratelimit.check_user(uid, v3_ratelimit.TITLE_LIMIT,
                                v3_ratelimit.TITLE_WINDOW, scope="title")
-            and v3_ratelimit.check(request, uid, v3_ratelimit.TITLE_HOURLY,
+            and v3_ratelimit.check_user(uid, v3_ratelimit.TITLE_HOURLY,
                                    v3_ratelimit.TITLE_HOUR, scope="title_h")):
         return JSONResponse(status_code=429,
                             content={"answer": v3_ratelimit.RATE_LIMIT_MESSAGE})

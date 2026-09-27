@@ -78,19 +78,24 @@ class TeacherSettingsPanel extends StatelessWidget {
         ],
         if (c.awaitingTeacherConcept) ...[
           const SizedBox(height: 10),
-          _hint("💡 اكتب المفهوم أو المصطلح في رسالتك الأولى بالأسفل — "
-              "وبعدها ناقش التبسيط كمحادثةٍ عادية."),
+          _hint(
+            "💡 اكتب المفهوم أو المصطلح في رسالتك الأولى بالأسفل — "
+            "وبعدها ناقش التبسيط كمحادثةٍ عادية.",
+          ),
         ],
       ],
     );
   }
 
-  Widget _hint(String text) => Text(text,
-      style: TextStyle(
-          fontSize: 11.5,
-          height: 1.5,
-          fontWeight: FontWeight.w700,
-          color: AppColors.primary));
+  Widget _hint(String text) => Text(
+    text,
+    style: TextStyle(
+      fontSize: 11.5,
+      height: 1.5,
+      fontWeight: FontWeight.w700,
+      color: AppColors.primary,
+    ),
+  );
 
   // ───────────────── الحقول ─────────────────
 
@@ -100,26 +105,20 @@ class TeacherSettingsPanel extends StatelessWidget {
         Padding(
           padding: EdgeInsets.symmetric(vertical: 18),
           child: Center(
-              child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.4))),
+            child: SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.4),
+            ),
+          ),
         ),
       ];
     }
 
     return [
-      _label("المادة الدراسية:"),
-      const SizedBox(height: 7),
-      // 📚 **المادةُ في البطاقة كما في التصميم** — وهي القائمةُ الجانبية
-      //    نفسُها تُستدعى من موضعٍ ثانٍ: `setSubject` واحدةٌ للاثنين.
-      ModernDropdown(
-        hint: "اختر المادة",
-        value: c.subjects.contains(c.selectedSubject) ? c.selectedSubject : null,
-        items: c.subjects,
-        onChanged: (v) => v == null ? null : c.setSubject(v),
-      ),
-      const SizedBox(height: 12),
+      // 📚 **لا مادةَ هنا** — أمرُ المالك (٢٠٢٦-٠٩-٢٤): «ما في داعي تحط
+      //    المادة، خلاص هو يختارها في القائمة الجانبية… فقط الوحدة والدرس».
+      //    فالمادةُ تُختار من الدرج وحده، كقسم التعليم.
       ..._lessonFields(),
       ..._toolFields(),
     ];
@@ -144,12 +143,13 @@ class TeacherSettingsPanel extends StatelessWidget {
               Expanded(
                 child: Text(
                   "دروس «${c.selectedSubject}» لهذا الصف لم تُضف بعد.\n"
-                  "أدوات المعلم تُبنى من نصّ الدرس — اختر مادة أخرى.",
+                  "أدوات المعلم تُبنى من نصّ الدرس — اختر مادة أخرى من القائمة الجانبية.",
                   style: TextStyle(
-                      fontSize: 12,
-                      height: 1.6,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.savedInk),
+                    fontSize: 12,
+                    height: 1.6,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.savedInk,
+                  ),
                 ),
               ),
             ],
@@ -182,9 +182,10 @@ class TeacherSettingsPanel extends StatelessWidget {
         Text(
           "اختيار الدرس اختياري هنا — اسأل عنه أو عن التدريس عموماً.",
           style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primary,
+          ),
         ),
       ],
     ];
@@ -202,8 +203,11 @@ class TeacherSettingsPanel extends StatelessWidget {
           Row(
             children: [
               for (final d in kTeacherDifficulties)
-                _pill(d, c.teacherDifficulty == d,
-                    () => c.update(() => c.teacherDifficulty = d)),
+                _pill(
+                  d,
+                  c.teacherDifficulty == d,
+                  () => c.update(() => c.teacherDifficulty = d),
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -212,8 +216,11 @@ class TeacherSettingsPanel extends StatelessWidget {
           Row(
             children: [
               for (final n in kTeacherCounts)
-                _pill("$n", c.teacherCount == n,
-                    () => c.update(() => c.teacherCount = n)),
+                _pill(
+                  "$n",
+                  c.teacherCount == n,
+                  () => c.update(() => c.teacherCount = n),
+                ),
             ],
           ),
         ];
@@ -255,9 +262,10 @@ class TeacherSettingsPanel extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          color: ink),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: ink,
+                      ),
                     ),
                   ),
                 ],
@@ -267,12 +275,15 @@ class TeacherSettingsPanel extends StatelessWidget {
         ),
         if (!ready && reason.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(reason,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.rowHint)),
+          Text(
+            reason,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.rowHint,
+            ),
+          ),
         ],
       ],
     );
@@ -283,7 +294,7 @@ class TeacherSettingsPanel extends StatelessWidget {
     if (c.isLoading) return "⏳ انتظر انتهاء الرد الحالي أو أوقفه.";
     // ⚠️ «اختر الدرس» نصيحةٌ كاذبة حين لا دروس أصلاً — المطلوب تبديل المادة.
     if (c.v3LessonsUnits.isEmpty && !c.capsLoading) {
-      return "🚧 لا دروس لهذه المادة — اختر مادة أخرى.";
+      return "🚧 لا دروس لهذه المادة — اختر مادة أخرى من القائمة الجانبية.";
     }
     if (!c.teacherLessonReady) return "📖 اختر الوحدة ثم الدرس أولاً.";
     return "";
@@ -291,11 +302,14 @@ class TeacherSettingsPanel extends StatelessWidget {
 
   // ───────────────── عناصر صغيرة ─────────────────
 
-  Widget _label(String text) => Text(text,
-      style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-          color: AppColors.rowAction));
+  Widget _label(String text) => Text(
+    text,
+    style: TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w900,
+      color: AppColors.rowAction,
+    ),
+  );
 
   Widget _pill(String label, bool selected, VoidCallback onTap) {
     final p = AppColors.toolPalette(tool.slot);
@@ -311,11 +325,14 @@ class TeacherSettingsPanel extends StatelessWidget {
             child: SizedBox(
               height: 34,
               child: Center(
-                child: Text(label,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: selected ? Colors.white : AppColors.rowAction)),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: selected ? Colors.white : AppColors.rowAction,
+                  ),
+                ),
               ),
             ),
           ),

@@ -488,6 +488,8 @@ async def ask(req, clients: dict) -> dict:
                 raise
     elif is_generate or tool != "ask":
         raise TeacherError("📖 اختر الوحدة والدرس من إعدادات الجلسة أولاً.")
+    else:  # 🔒 بلا درسٍ لا يصل الموديلَ شيءٌ من المنهج (أمرُ المالك ٠٩-٢٤)
+        unit = ""
 
     question = (req.content or "").strip()[:MAX_QUESTION_CHARS]
     if is_generate:

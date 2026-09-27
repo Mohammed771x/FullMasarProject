@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../media/avatar_service.dart';
 import '../session/user_session.dart';
 import '../theme/app_colors.dart';
+import 'masar_notice.dart';
 
 class UserAvatar extends StatelessWidget {
   const UserAvatar({
@@ -59,11 +60,13 @@ class UserAvatar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     shape: BoxShape.circle,
-                    border:
-                        Border.all(color: AppColors.surfaceWhite, width: 2),
+                    border: Border.all(color: AppColors.surfaceWhite, width: 2),
                   ),
-                  child: Icon(Icons.camera_alt_rounded,
-                      size: radius * 0.42, color: Colors.white),
+                  child: Icon(
+                    Icons.camera_alt_rounded,
+                    size: radius * 0.42,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
@@ -90,22 +93,25 @@ class UserAvatar extends StatelessWidget {
   }
 
   Widget _fallback(UserSession s) => SizedBox(
-        width: radius * 2,
-        height: radius * 2,
-        child: Center(
-          child: s.isGuest
-              ? Icon(Icons.person_outline_rounded,
-                  size: radius * 1.08, color: AppColors.primary)
-              : Text(
-                  s.initial,
-                  style: TextStyle(
-                    fontSize: radius * 0.85,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primary,
-                  ),
-                ),
-        ),
-      );
+    width: radius * 2,
+    height: radius * 2,
+    child: Center(
+      child: s.isGuest
+          ? Icon(
+              Icons.person_outline_rounded,
+              size: radius * 1.08,
+              color: AppColors.primary,
+            )
+          : Text(
+              s.initial,
+              style: TextStyle(
+                fontSize: radius * 0.85,
+                fontWeight: FontWeight.w900,
+                color: AppColors.primary,
+              ),
+            ),
+    ),
+  );
 }
 
 // ══════════════════════════════════════════
@@ -114,7 +120,10 @@ class UserAvatar extends StatelessWidget {
 class AvatarSheet {
   /// يفتح الخيارات ويتولّى الرفع كاملاً — الشاشة المستدعية لا تعرف شيئاً
   /// عن base64 ولا عن الشبكة.
-  static Future<void> show(BuildContext context, {VoidCallback? onChanged}) async {
+  static Future<void> show(
+    BuildContext context, {
+    VoidCallback? onChanged,
+  }) async {
     final s = UserSession.I;
     if (s.isGuest) {
       _snack(context, "👤 أنشئ حساباً أولاً لتضع صورتك.");
@@ -142,11 +151,21 @@ class AvatarSheet {
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
-            _tile(ctx, Icons.photo_library_rounded, "اختر من المعرض", "gallery"),
+            _tile(
+              ctx,
+              Icons.photo_library_rounded,
+              "اختر من المعرض",
+              "gallery",
+            ),
             _tile(ctx, Icons.photo_camera_rounded, "التقط صورة", "camera"),
             if (s.photoUrl.isNotEmpty)
-              _tile(ctx, Icons.delete_outline_rounded, "احذف الصورة", "delete",
-                  danger: true),
+              _tile(
+                ctx,
+                Icons.delete_outline_rounded,
+                "احذف الصورة",
+                "delete",
+                danger: true,
+              ),
           ],
         ),
       ),
@@ -157,7 +176,10 @@ class AvatarSheet {
   }
 
   static Future<void> _apply(
-      BuildContext context, String choice, VoidCallback? onChanged) async {
+    BuildContext context,
+    String choice,
+    VoidCallback? onChanged,
+  ) async {
     try {
       if (choice == "delete") {
         await AvatarService.I.upload(null);
@@ -167,8 +189,10 @@ class AvatarSheet {
         return;
       }
 
-      final bytes = await AvatarService.I
-          .pickAndCrop(fromCamera: choice == "camera", context: context);
+      final bytes = await AvatarService.I.pickAndCrop(
+        fromCamera: choice == "camera",
+        context: context,
+      );
       if (bytes == null) return; // ألغى الطالب — ليس خطأً
 
       if (context.mounted) _snack(context, "⏳ جارٍ رفع الصورة…");
@@ -183,25 +207,25 @@ class AvatarSheet {
     }
   }
 
-  static Widget _tile(BuildContext ctx, IconData icon, String label, String value,
-      {bool danger = false}) {
+  static Widget _tile(
+    BuildContext ctx,
+    IconData icon,
+    String label,
+    String value, {
+    bool danger = false,
+  }) {
     final color = danger ? Colors.redAccent : AppColors.textPrimary;
     return ListTile(
       leading: Icon(icon, color: danger ? Colors.redAccent : AppColors.primary),
-      title: Text(label,
-          style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+      title: Text(
+        label,
+        style: TextStyle(fontWeight: FontWeight.bold, color: color),
+      ),
       onTap: () => Navigator.pop(ctx, value),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     );
   }
 
-  static void _snack(BuildContext context, String text) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.textPrimary,
-      ));
-  }
+  static void _snack(BuildContext context, String text) =>
+      MasarNotice.say(context, text);
 }

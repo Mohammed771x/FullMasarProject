@@ -1,0 +1,9 @@
+{"ref": "fills/24888eea2d0bf05eb7f3f83b4f2de01340dacbcc.png",
+ "ref_excl": [[0.25,0.35,0.52,0.62]],
+ "jobs": [
+  {"src": "fills/eb20cd57abdfac69eac0b8aca6e0f1c62da184fa.png", "dst": "out/robot_login.png",   "excl": [[0,0.24,0.46,0.70],[0.38,0.40,0.64,0.62]]},
+  {"src": "fills/0fbb4ebdacb5341985459aad307658d391677477.png",   "dst": "out/robot_signup.png",  "excl": [[0,0.27,0.43,0.67],[0.38,0.40,0.64,0.62]]},
+  {"src": "fills/795b47eba0f8157e092b92c17d0039b9afbbdee1.png",  "dst": "out/robot_roles.png",   "excl": [[0,0.10,0.33,0.49],[0.69,0.27,1,0.62],[0.38,0.40,0.64,0.62]]},
+  {"src": "fills/a0cc7787446bf66cbdecce3718a13ee31742e399.png",  "dst": "out/robot_forgot.png",  "excl": [[0.49,0.18,1,0.70],[0.30,0.40,0.52,0.62]]},
+  {"src": "fills/2d908c50dec0c02f263ad560dda9310443395483.png",  "dst": "out/robot_reset.png",   "excl": [[0.58,0,1,0.67],[0.30,0.40,0.58,0.62]]}
+ ]}

@@ -84,6 +84,7 @@ class ChatController extends ChangeNotifier {
   void _dropKeyboard() {
     if (inputFocus.hasFocus) inputFocus.unfocus();
   }
+
   final ScrollController scrollController = ScrollController();
   final TextEditingController questionCountController = TextEditingController(
     text: "10",
@@ -500,7 +501,9 @@ class ChatController extends ChangeNotifier {
     if (effectiveContentMode == "lessons") {
       if (selectedV3Lesson.isNotEmpty) return null;
       if (v3LessonsUnits.isEmpty) return "دروس هذه المادة قيد الإضافة";
-      return selectedV3Unit.isEmpty ? "اختر الوحدة ثم الدرس" : "اختر الدرس أولاً";
+      return selectedV3Unit.isEmpty
+          ? "اختر الوحدة ثم الدرس"
+          : "اختر الدرس أولاً";
     }
     // وضعُ الوحدات
     if (selectedUnit.isEmpty) {
@@ -1190,7 +1193,7 @@ class ChatController extends ChangeNotifier {
       return;
     }
     if (!canAttachMore) {
-      onVoiceNotice?.call("📷 الحد الأقصى $maxImages صور");
+      onVoiceNotice?.call("تستطيع إرفاق صورتين فقط في الرسالة الواحدة.");
       return;
     }
     try {
@@ -1494,8 +1497,7 @@ class ChatController extends ChangeNotifier {
   Future<void> setPageUnit(String unit) async {
     if (unit == selectedUnit) return;
     if (_requestInFlight && !await _cancelAndWaitForActiveRequest()) return;
-    if (conversationStarted &&
-        !await _allowContextChange(ContextChange.unit)) {
+    if (conversationStarted && !await _allowContextChange(ContextChange.unit)) {
       return;
     }
     selectedUnit = unit;
@@ -1855,8 +1857,10 @@ class ChatController extends ChangeNotifier {
     if (isTeacher) {
       // 👨‍🏫 الوضعُ عند المعلّم هو الأداة — نتيجةٌ من «واجب» وهو في «خطة»
       //    تنقله إلى أداتها، وإلا حُفظ ردُّه التالي بمفتاح أداةٍ وأُرسل بأخرى.
-      teacherTool = TeacherToolX.fromId(
-              conversation.mode.substring(kTeacherModePrefix.length)) ??
+      teacherTool =
+          TeacherToolX.fromId(
+            conversation.mode.substring(kTeacherModePrefix.length),
+          ) ??
           teacherTool;
       selectedMode = conversation.mode;
     } else if (conversation.subject == "رياضيات") {
@@ -1868,8 +1872,11 @@ class ChatController extends ChangeNotifier {
 
     // 3️⃣ أعد بناء قائمة المحادثات للنطاق الجديد ثم استعد المطلوبة.
     loadConversations();
-    loadConversation(conversation,
-        revealIndex: messageIndex, revealPosition: position);
+    loadConversation(
+      conversation,
+      revealIndex: messageIndex,
+      revealPosition: position,
+    );
 
     // 4️⃣ قوائم الوحدات/الدروس تتبع المادة — بلا هذا تبقى قوائم المادة السابقة.
     //    ⚠️ و**تُنتظَر** لا تُطلق: القرار في الخطوة ٥ يعتمد على نتيجتها.
@@ -1913,9 +1920,7 @@ class ChatController extends ChangeNotifier {
     _conversationPages
       ..clear()
       ..addAll(conversation.pages);
-    if (conversation.contentMode.isNotEmpty &&
-        usesContentModes &&
-        !isTeacher) {
+    if (conversation.contentMode.isNotEmpty && usesContentModes && !isTeacher) {
       final wanted = conversation.contentMode;
       final canUse =
           (wanted == "lessons" && (caps?.lessonsAvailable ?? false)) ||
@@ -1940,8 +1945,9 @@ class ChatController extends ChangeNotifier {
       final unitExists = units.any((u) => u.unit == conversation.unit);
       if (unitExists) selectedV3Unit = conversation.unit;
       final lessons = caps?.lessonsIn(selectedV3Unit) ?? const <String>[];
-      selectedV3Lesson =
-          lessons.contains(conversation.lesson) ? conversation.lesson : "";
+      selectedV3Lesson = lessons.contains(conversation.lesson)
+          ? conversation.lesson
+          : "";
     } else if (effectiveContentMode == "pages") {
       selectedPages.clear(); // صفحاتُ محادثةٍ سابقة لا تُرسل مع هذه
       if ((caps?.pagesUnits ?? const []).contains(conversation.unit)) {
@@ -1949,7 +1955,10 @@ class ChatController extends ChangeNotifier {
         selectedUnitName = conversation.unit;
         // 📄 وصفحاتُها معها — ما بقي منها في وحدتها ([ChatConversation.pages]).
         final ok = caps?.pagesIn(selectedUnit) ?? const <int>[];
-        final pages = [for (final p in conversation.pages) if (ok.contains(p)) p];
+        final pages = [
+          for (final p in conversation.pages)
+            if (ok.contains(p)) p,
+        ];
         if (pages.isNotEmpty) {
           inputType = "صفحة";
           selectedPages
@@ -2168,7 +2177,8 @@ class ChatController extends ChangeNotifier {
     if (title.isEmpty || title == 'محادثة جديدة') {
       // مؤقّتٌ حتى يصل اسمُ الموديل ([_nameOnce]).
       title = ConversationTitler.provisional(
-          (messages.first['text'] ?? '').toString());
+        (messages.first['text'] ?? '').toString(),
+      );
     }
     final chatMessages = messages
         .map(
@@ -2253,8 +2263,7 @@ class ChatController extends ChangeNotifier {
       );
     }
     if (title == null || _disposed) return;
-    final current =
-        ChatStorage.getOwnedConversation(conversation.id, ownerUid);
+    final current = ChatStorage.getOwnedConversation(conversation.id, ownerUid);
     if (current == null ||
         !ConversationTitler.applies(current.title, provisional)) {
       return;
@@ -2571,7 +2580,6 @@ class ChatController extends ChangeNotifier {
 
     final bool hasImage = hasAttachments;
 
-
     // 📄 وضعُ الصفحات: لا إرسال بلا اختيار — **ورسالةٌ تقول لماذا**.
     //    (طلب المالك: «إذا ما اخترت صفحات يقول له ما اخترت شي صفحات»)
     //
@@ -2734,7 +2742,9 @@ class ChatController extends ChangeNotifier {
 
     // 📄 **أولُ إرسالٍ بصفحاتٍ يثبّتها صفحاتٍ للمحادثة** — حدُّها من
     //    الآن: تُزال منها وتُعاد، ولا يُضاف إليها ([addPage]).
-    if (canPickPages && selectedPages.isNotEmpty && _conversationPages.isEmpty) {
+    if (canPickPages &&
+        selectedPages.isNotEmpty &&
+        _conversationPages.isEmpty) {
       _conversationPages.addAll(selectedPages.take(ChatConversation.maxPages));
     }
 
@@ -2845,7 +2855,9 @@ class ChatController extends ChangeNotifier {
                 "tool": teacherTool!.id,
                 "generate": teacherGenerate,
                 "subject": selectedSubject,
-                "unit_name": selectedV3Unit,
+                // 🔒 الوحدةُ لا تُرسل بلا درس — «إذا ما اختار شي ما يروح أي
+                //    شي» (المالك ٠٩-٢٤). والخادمُ يُسقطها كذلك.
+                "unit_name": selectedV3Lesson.isEmpty ? "" : selectedV3Unit,
                 "lesson_name": selectedV3Lesson,
                 "content": teacherGenerate ? "" : finalContentToSend,
                 "concept": conceptController.text.trim(),
@@ -3308,7 +3320,9 @@ class ChatController extends ChangeNotifier {
       if (currentConversationId != null && messages.isNotEmpty) {
         // ⚠️ `dispose` متزامنة فلا تُنتظر: الجزءُ الحرج (بناءُ الرسائل من
         //    `messages`) يقع متزامناً قبل أول `await`، والرفعُ يتبعه.
-        unawaited(saveCurrentConversation().then((_) => SyncService.I.flushNow()));
+        unawaited(
+          saveCurrentConversation().then((_) => SyncService.I.flushNow()),
+        );
       } else {
         SyncService.I.flushNow(); // لا تترك رسالةً معلّقة من قبلُ
       }

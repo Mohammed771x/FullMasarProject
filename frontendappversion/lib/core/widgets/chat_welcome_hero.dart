@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import 'masar_brand.dart';
+import 'masar_character.dart';
 
 // ==========================================
 // 🤖 ترحيبُ المحادثة الفارغة — روبوتٌ فوق الكلام مباشرةً
@@ -14,15 +15,26 @@ import 'masar_brand.dart';
 //    متناسق مع الكلام، فوق الكلام — في كل الأماكن. متحرك بس قرّبه». فكان
 //    بين الروبوت والعنوان فراغان: هالةٌ ١٩٠ حوله، وصندوقُ حركةٍ ١١٨٪ من
 //    عرضه — أُزيلا. ثم قال: «لا تحرّك الروبوت، خلّه ثابت مال المنح بالضبط».
+//    ثم (٢٠٢٦-٠٩-٢٧) بعد عمامة الهوية: «خلّيه يتحرّك كذا شويّة» ⇒ [_GentleFloat].
 //
-// 🔁 **واحدٌ للأقسام الثلاثة** (التعليم · المعلّم · المنح) — النصُّ وحده يختلف.
+// 🔁 **واحدٌ للأقسام الثلاثة** (التعليم · المعلّم · المنح) — النصُّ يختلف،
+//    والروبوتُ كما في Figma لكل قسم (قرار المالك ٢٠٢٦-٠٩-٢٧): التعليم الطائرُ
+//    [MasarRobotPose.fly]، والمنح [MasarCharacter.guide] (قبّعةُ التخرّج والكتب)،
+//    والمعلّم [MasarCharacter.teach] (اللوح والكتاب) — كلُّها بزيّ «هلا».
 class ChatWelcomeHero extends StatelessWidget {
   const ChatWelcomeHero({
     super.key,
     required this.title,
     required this.body,
     this.tag,
+    this.character,
   });
+
+  /// 🤖 شخصيةٌ كاملة (تطفو وترمش) بدل الروبوت الطائر — انظر رأس الملف.
+  final MasarCharacter? character;
+
+  /// 📏 ارتفاعُ الشخصية الكاملة — إطارُ Figma في «مساعد المنحة» ٢٨٢×٢٣٢.
+  static const double characterHeight = 200;
 
   final String title;
   final String body;
@@ -39,8 +51,19 @@ class ChatWelcomeHero extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 🧍 **ثابتٌ لا يتحرّك** — كتصميم المنح حرفاً (قرار المالك).
-        const MasarRobot(size: robotWidth, pose: MasarRobotPose.fly),
+        // 🫧 **يطفو بهدوء** (قرار المالك ٢٠٢٦-٠٩-٢٧: «خلّيه يتحرّك كذا شويّة»)
+        //    — إزاحةٌ رأسية ±3 فقط: لا هالة ولا تكبير، فلا يبتعد عن الكلام
+        //    ولا يتغيّر مكانُه في التخطيط (قرارُه ٠٩-٢٤ بالقرب باقٍ).
+        if (character case final c?)
+          SizedBox(
+            width: characterHeight * c.aspect / 0.9,
+            height: characterHeight / 0.9,
+            child: MasarCharacterView(character: c),
+          )
+        else
+          const _GentleFloat(
+            child: MasarRobot(size: robotWidth, pose: MasarRobotPose.fly),
+          ),
         const SizedBox(height: 14),
         Text(title,
             textAlign: TextAlign.center,
@@ -69,4 +92,49 @@ class ChatWelcomeHero extends StatelessWidget {
       ],
     );
   }
+}
+
+/// 🫧 طفوٌ رأسيٌّ خفيف (±3 كل ٣٫٦ ث) — تحويلٌ لا يمسّ التخطيط.
+/// ♿ «تقليل الحركة» ⇒ ساكن.
+class _GentleFloat extends StatefulWidget {
+  const _GentleFloat({required this.child});
+  final Widget child;
+
+  @override
+  State<_GentleFloat> createState() => _GentleFloatState();
+}
+
+class _GentleFloatState extends State<_GentleFloat>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1800),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _c.stop();
+      _c.value = 0.5;
+    } else if (!_c.isAnimating) {
+      _c.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _c,
+        builder: (context, child) => Transform.translate(
+          offset: Offset(0, 3 - 6 * Curves.easeInOut.transform(_c.value)),
+          child: child,
+        ),
+        child: widget.child,
+      );
 }

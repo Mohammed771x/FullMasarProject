@@ -13,6 +13,7 @@ import '../data/quiz_resume_store.dart';
 import 'quiz_controller.dart';
 import 'quiz_play_screen.dart';
 import 'widgets/quiz_ui.dart';
+import '../../../core/widgets/masar_notice.dart';
 
 // ==========================================
 // ⚙️ إعداد الاختبار — صف → مادة → وحدة → حتى 3 دروس → عدد الأسئلة
@@ -100,8 +101,11 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
     });
     _grade = widget.initialGrade ?? UserSession.I.grade;
     _track = Curriculum.normalizeTrack(
-        _grade, TrackLabel.fromKey(widget.initialTrack ?? UserSession.I.track));
-    _subject = widget.initialSubject ?? Curriculum.defaultSubject(_grade, _track);
+      _grade,
+      TrackLabel.fromKey(widget.initialTrack ?? UserSession.I.track),
+    );
+    _subject =
+        widget.initialSubject ?? Curriculum.defaultSubject(_grade, _track);
     _loadCaps();
   }
 
@@ -171,12 +175,7 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
     });
   }
 
-  void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(m, style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.warning800,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ));
+  void _snack(String m) => MasarNotice.say(context, m);
 
   Future<void> _start() async {
     final c = QuizController()
@@ -222,7 +221,11 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
         child: FadeInSlide(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
-                QuizMetrics.margin, 34, QuizMetrics.margin, 28),
+              QuizMetrics.margin,
+              34,
+              QuizMetrics.margin,
+              28,
+            ),
             children: [
               QuizHeader(
                 title: "اختبر نفسك",
@@ -248,7 +251,9 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
               if (_loading)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Center(child: CircularProgressIndicator(strokeWidth: 2.6)),
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2.6),
+                  ),
                 )
               else if (_loadFailed)
                 _failedState()
@@ -271,25 +276,29 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
   // ───────────────────────── 💬 الترحيب ─────────────────────────
 
   Widget _greeting() => QuizRobotBubble(
-        // 🔴 كان هنا نصٌّ واحد فيه `**…**` داخل `Text` عادي، فكان
-        //    الطالب يقرأ النجمتين كما هما على الشاشة (رُصد في المحاكي
-        //    2026-09-13). والنصُّ ثابتٌ من عندنا، فأصدقُ علاجٍ أن
-        //    يُكتب التوكيدُ توكيداً لا ترميزاً.
-        child: Text.rich(
-          TextSpan(children: const [
-            TextSpan(text: "اختر دروسك وسأجهّز لك أسئلة "),
-            TextSpan(
-                text: "من الدرس نفسه",
-                style: TextStyle(fontWeight: FontWeight.w900)),
-            TextSpan(text: " — سهلة ثم أصعب."),
-          ]),
-          style: TextStyle(
-              fontSize: 16,
-              height: 1.35,
-              fontWeight: FontWeight.w600,
-              color: AppColors.panelTitle),
-        ),
-      );
+    // 🔴 كان هنا نصٌّ واحد فيه `**…**` داخل `Text` عادي، فكان
+    //    الطالب يقرأ النجمتين كما هما على الشاشة (رُصد في المحاكي
+    //    2026-09-13). والنصُّ ثابتٌ من عندنا، فأصدقُ علاجٍ أن
+    //    يُكتب التوكيدُ توكيداً لا ترميزاً.
+    child: Text.rich(
+      TextSpan(
+        children: const [
+          TextSpan(text: "اختر دروسك وسأجهّز لك أسئلة "),
+          TextSpan(
+            text: "من الدرس نفسه",
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
+          TextSpan(text: " — سهلة ثم أصعب."),
+        ],
+      ),
+      style: TextStyle(
+        fontSize: 16,
+        height: 1.35,
+        fontWeight: FontWeight.w600,
+        color: AppColors.panelTitle,
+      ),
+    ),
+  );
 
   // ───────────────────── ⏸️ استئناف اختبار ─────────────────────
   //
@@ -322,9 +331,10 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                 child: Text(
                   "لديك اختبار لم يكتمل",
                   style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 13,
-                      color: AppColors.panelTitle),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    color: AppColors.panelTitle,
+                  ),
                 ),
               ),
             ],
@@ -334,10 +344,11 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
             "${snap.subject} · ${snap.unit.isEmpty ? 'دروس مختارة' : snap.unit}"
             " — باقٍ ${snap.remaining} من ${snap.questions.length} أسئلة",
             style: TextStyle(
-                fontSize: 11,
-                height: 1.6,
-                fontWeight: FontWeight.w600,
-                color: AppColors.chipInk),
+              fontSize: 11,
+              height: 1.6,
+              fontWeight: FontWeight.w600,
+              color: AppColors.chipInk,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -356,11 +367,14 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                   await QuizResumeStore.clear(UserSession.I.uid);
                   if (mounted) setState(() => _resumable = null);
                 },
-                child: Text("تجاهله",
-                    style: TextStyle(
-                        color: AppColors.chipInk,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800)),
+                child: Text(
+                  "تجاهله",
+                  style: TextStyle(
+                    color: AppColors.chipInk,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ],
           ),
@@ -400,17 +414,20 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
           const SizedBox(height: 10),
           for (var r = 0; r < rows.length; r++) ...[
             if (r > 0) const SizedBox(height: 9),
-            QuizChipRow(children: [
-              for (final s in rows[r])
-                QuizChip(
+            QuizChipRow(
+              children: [
+                for (final s in rows[r])
+                  QuizChip(
                     label: s,
                     selected: s == _subject,
-                    onTap: () => _setSubject(s)),
-              // 🧱 صفٌّ ناقصٌ يبقى بثلاث خاناتٍ كي لا تتمدّد الشريحة
-              //    الأخيرة فتختلف عن أخواتها — وهي حالةُ مادةٍ سابعة.
-              for (var f = rows[r].length; f < 3; f++)
-                const SizedBox.shrink(),
-            ]),
+                    onTap: () => _setSubject(s),
+                  ),
+                // 🧱 صفٌّ ناقصٌ يبقى بثلاث خاناتٍ كي لا تتمدّد الشريحة
+                //    الأخيرة فتختلف عن أخواتها — وهي حالةُ مادةٍ سابعة.
+                for (var f = rows[r].length; f < 3; f++)
+                  const SizedBox.shrink(),
+              ],
+            ),
           ],
         ],
       ),
@@ -432,62 +449,68 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
   //    جاءت هذه الدروس ولا أنّ ثمّة غيرَها. الظهورُ الثابت يُعلّم التسلسل.
 
   Widget _lessonsCard() => QuizCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            QuizCardLabel(
-              "٢. اختر الدروس (حتى $maxLessons دروس):",
-              trailing: _lessons.isEmpty
-                  ? null
-                  : QuizBadge("تم اختيار ${_lessons.length}"),
-            ),
-            const SizedBox(height: 10),
-            // ① فوق الاثنتين: ما اخترتَه — من كل الوحدات لا من المعروضة.
-            _selectedChips(),
-            // ② الوحدة.
-            _step("اختر الوحدة"),
-            const SizedBox(height: 6),
-            // 🆕 **منتقي الوحدة** — لا وجودَ له في تصميم المصمّم (رسم مادةً
-            //    ذاتَ وحدةٍ واحدة)، وبدونه لا يبلغ الطالبُ دروسَ بقيّة
-            //    الكتاب. بُني بلغته: نفسُ `ModernDropdown` في كل التطبيق.
-            ModernDropdown(
-              hint: "اختر الوحدة",
-              value: _units.contains(_unit) ? _unit : null,
-              items: _units,
-              // 🔁 تصفّحُ وحدةٍ أخرى لا يمسح ما اخترته — الاختيار تراكمي.
-              onChanged: (v) => setState(() => _unit = v ?? ""),
-            ),
-            const SizedBox(height: 12),
-            // ③ الدروس.
-            _step("اختر الدروس"),
-            const SizedBox(height: 6),
-            if (_unitLessons.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text("لا توجد دروس في هذه الوحدة بعد.",
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.chipInk)),
-              )
-            else
-              for (var i = 0; i < _unitLessons.length; i++) ...[
-                if (i > 0) const SizedBox(height: 7),
-                _lessonRow(_unitLessons[i]),
-              ],
-          ],
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        QuizCardLabel(
+          "٢. اختر الدروس (حتى $maxLessons دروس):",
+          trailing: _lessons.isEmpty
+              ? null
+              : QuizBadge("تم اختيار ${_lessons.length}"),
         ),
-      );
+        const SizedBox(height: 10),
+        // ① فوق الاثنتين: ما اخترتَه — من كل الوحدات لا من المعروضة.
+        _selectedChips(),
+        // ② الوحدة.
+        _step("اختر الوحدة"),
+        const SizedBox(height: 6),
+        // 🆕 **منتقي الوحدة** — لا وجودَ له في تصميم المصمّم (رسم مادةً
+        //    ذاتَ وحدةٍ واحدة)، وبدونه لا يبلغ الطالبُ دروسَ بقيّة
+        //    الكتاب. بُني بلغته: نفسُ `ModernDropdown` في كل التطبيق.
+        ModernDropdown(
+          hint: "اختر الوحدة",
+          value: _units.contains(_unit) ? _unit : null,
+          items: _units,
+          // 🔁 تصفّحُ وحدةٍ أخرى لا يمسح ما اخترته — الاختيار تراكمي.
+          onChanged: (v) => setState(() => _unit = v ?? ""),
+        ),
+        const SizedBox(height: 12),
+        // ③ الدروس.
+        _step("اختر الدروس"),
+        const SizedBox(height: 6),
+        if (_unitLessons.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Text(
+              "لا توجد دروس في هذه الوحدة بعد.",
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.chipInk,
+              ),
+            ),
+          )
+        else
+          for (var i = 0; i < _unitLessons.length; i++) ...[
+            if (i > 0) const SizedBox(height: 7),
+            _lessonRow(_unitLessons[i]),
+          ],
+      ],
+    ),
+  );
 
   /// عنوانُ خطوةٍ داخل البطاقة — «اختر الوحدة» ثم «اختر الدروس».
   Widget _step(String text) => Align(
-        alignment: Alignment.centerRight,
-        child: Text(text,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: AppColors.chipInk)),
-      );
+    alignment: Alignment.centerRight,
+    child: Text(
+      text,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        color: AppColors.chipInk,
+      ),
+    ),
+  );
 
   /// 🏷️ **الدروسُ المختارة — كلُّها** فوق منتقي الوحدة وقائمةِ الدروس،
   ///     وكلُّ شريحةٍ تحمل وحدتَها وزرَّ إزالة.
@@ -511,8 +534,7 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
               borderRadius: BorderRadius.circular(8),
               child: Container(
                 constraints: const BoxConstraints(minHeight: 28),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                 decoration: BoxDecoration(
                   color: AppColors.quizTint,
                   borderRadius: BorderRadius.circular(8),
@@ -523,17 +545,19 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                   children: [
                     Flexible(
                       child: Text(
-                          // وحدةُ الدرس تُذكر حين لا تكون الوحدةَ المعروضة
-                          // — فلا يبدو الدرسُ مفقوداً ولا مكرَّراً.
-                          (_lessonUnit[l] ?? "") == _unit
-                              ? l
-                              : "$l · ${_lessonUnit[l] ?? ''}",
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primary)),
+                        // وحدةُ الدرس تُذكر حين لا تكون الوحدةَ المعروضة
+                        // — فلا يبدو الدرسُ مفقوداً ولا مكرَّراً.
+                        (_lessonUnit[l] ?? "") == _unit
+                            ? l
+                            : "$l · ${_lessonUnit[l] ?? ''}",
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 6),
                     Icon(PI.x.bold, size: 11, color: AppColors.primary),
@@ -555,25 +579,28 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
       borderRadius: BorderRadius.circular(QuizMetrics.chipRadius),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        constraints:
-            const BoxConstraints(minHeight: QuizMetrics.rowHeight),
+        constraints: const BoxConstraints(minHeight: QuizMetrics.rowHeight),
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
         decoration: BoxDecoration(
           color: sel ? AppColors.quizTint : AppColors.quizChipFill,
           borderRadius: BorderRadius.circular(QuizMetrics.chipRadius),
           border: Border.all(
-              color: sel ? AppColors.primary : AppColors.rowBorder),
+            color: sel ? AppColors.primary : AppColors.rowBorder,
+          ),
         ),
         child: Row(
           children: [
             // ⚠️ RTL: النصُّ أوّلُ ابنٍ ⇒ يميناً، والمربّعُ آخرُه ⇒ يساراً.
             Expanded(
-              child: Text(lesson,
-                  style: TextStyle(
-                      fontSize: 11,
-                      height: 1.5,
-                      fontWeight: FontWeight.w700,
-                      color: sel ? AppColors.primary : AppColors.chipInk)),
+              child: Text(
+                lesson,
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.5,
+                  fontWeight: FontWeight.w700,
+                  color: sel ? AppColors.primary : AppColors.chipInk,
+                ),
+              ),
             ),
             const SizedBox(width: 10),
             Container(
@@ -584,11 +611,12 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                 color: sel ? AppColors.primary : AppColors.surfaceWhite,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                    color:
-                        sel ? AppColors.primary : AppColors.quizCheckBorder),
+                  color: sel ? AppColors.primary : AppColors.quizCheckBorder,
+                ),
               ),
-              child:
-                  sel ? Icon(PI.check.bold, size: 11, color: Colors.white) : null,
+              child: sel
+                  ? Icon(PI.check.bold, size: 11, color: Colors.white)
+                  : null,
             ),
           ],
         ),
@@ -599,90 +627,92 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
   // ───────────────────── ③ بطاقة عدد الأسئلة ─────────────────────
 
   Widget _countCard() => QuizCard(
-        // 📐 حشوتها 13 أفقياً و15 أسفل في التصدير — لا 16 كأختيها.
-        padding: const EdgeInsets.fromLTRB(13, 14, 13, 15),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    // 📐 حشوتها 13 أفقياً و15 أسفل في التصدير — لا 16 كأختيها.
+    padding: const EdgeInsets.fromLTRB(13, 14, 13, 15),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const QuizCardLabel("عدد الأسئلة:"),
+        const SizedBox(height: 10),
+        // ⚠️ RTL: أوّلُ ابنٍ هو الأيمن — و**٥ في اليمين** في التصميم.
+        QuizChipRow(
+          spacing: 7,
           children: [
-            const QuizCardLabel("عدد الأسئلة:"),
-            const SizedBox(height: 10),
-            // ⚠️ RTL: أوّلُ ابنٍ هو الأيمن — و**٥ في اليمين** في التصميم.
-            QuizChipRow(
-              spacing: 7,
-              children: [
-                for (final n in const [5, 10, 15])
-                  _CountChip(
-                    value: n,
-                    selected: n == _count,
-                    onTap: () => setState(() => _count = n),
-                  ),
-              ],
-            ),
+            for (final n in const [5, 10, 15])
+              _CountChip(
+                value: n,
+                selected: n == _count,
+                onTap: () => setState(() => _count = n),
+              ),
           ],
         ),
-      );
+      ],
+    ),
+  );
 
   // ───────────────────── ▶️ زرّ البدء ─────────────────────
 
   Widget _startButton() => QuizPrimaryButton(
-        label: _ready ? "ابدأ الاختبار الآن" : "اختر درساً واحداً على الأقل",
-        icon: _ready ? PI.sparkle : null,
-        enabled: _ready,
-        onTap: _start,
-      );
+    label: _ready ? "ابدأ الاختبار الآن" : "اختر درساً واحداً على الأقل",
+    icon: _ready ? PI.sparkle : null,
+    enabled: _ready,
+    onTap: _start,
+  );
 
   // ───────────────────── 🛟 حالتان لا شاشةَ بيضاء ─────────────────────
 
   /// تعذّر الوصول للخادم — نقولها كما هي مع زر إعادة محاولة.
   Widget _failedState() => QuizCard(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            MasarRobot(size: 62, pose: MasarRobotPose.fly),
-            const SizedBox(height: 12),
-            Text(
-              "📡 تعذّر جلب دروس «$_subject» من الخادم.\n"
-              "تأكد من اتصالك وحاول مجدداً — الدروس موجودة، والمشكلة في الاتصال.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 12,
-                  height: 1.8,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.chipInk),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: 170,
-              child: QuizPrimaryButton(
-                label: "حاول مجدداً",
-                icon: PI.arrowCounterClockwise,
-                height: 44,
-                onTap: _loadCaps,
-              ),
-            ),
-          ],
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      children: [
+        MasarRobot(size: 62, pose: MasarRobotPose.fly),
+        const SizedBox(height: 12),
+        Text(
+          "📡 تعذّر جلب دروس «$_subject» من الخادم.\n"
+          "تأكد من اتصالك وحاول مجدداً — الدروس موجودة، والمشكلة في الاتصال.",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            height: 1.8,
+            fontWeight: FontWeight.w600,
+            color: AppColors.chipInk,
+          ),
         ),
-      );
+        const SizedBox(height: 16),
+        SizedBox(
+          width: 170,
+          child: QuizPrimaryButton(
+            label: "حاول مجدداً",
+            icon: PI.arrowCounterClockwise,
+            height: 44,
+            onTap: _loadCaps,
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _emptyState() => QuizCard(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            MasarRobot(size: 62, pose: MasarRobotPose.fly),
-            const SizedBox(height: 12),
-            Text(
-              "📁 دروس «$_subject» لـ${Curriculum.gradeLabel(_grade)} لم تُضف بعد 🚧\n"
-              "الاختبارات تُبنى من الدروس — جرّب مادة أخرى.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 12,
-                  height: 1.8,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.chipInk),
-            ),
-          ],
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      children: [
+        MasarRobot(size: 62, pose: MasarRobotPose.fly),
+        const SizedBox(height: 12),
+        Text(
+          "📁 دروس «$_subject» لـ${Curriculum.gradeLabel(_grade)} لم تُضف بعد 🚧\n"
+          "الاختبارات تُبنى من الدروس — جرّب مادة أخرى.",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            height: 1.8,
+            fontWeight: FontWeight.w600,
+            color: AppColors.chipInk,
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 /// 🔢 شريحةُ العدد — رقمٌ وحده 11/w900، وارتفاعها 40 لا 37.
@@ -699,23 +729,27 @@ class _CountChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(QuizMetrics.chipRadius),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      height: QuizMetrics.rowHeight,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: selected ? AppColors.quizTint : AppColors.quizChipFill,
         borderRadius: BorderRadius.circular(QuizMetrics.chipRadius),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          height: QuizMetrics.rowHeight,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? AppColors.quizTint : AppColors.quizChipFill,
-            borderRadius: BorderRadius.circular(QuizMetrics.chipRadius),
-            border: Border.all(
-                color: selected ? AppColors.primary : AppColors.quizChipBorder),
-          ),
-          child: Text("$value",
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  color: selected ? AppColors.primary : AppColors.chipInk)),
+        border: Border.all(
+          color: selected ? AppColors.primary : AppColors.quizChipBorder,
         ),
-      );
+      ),
+      child: Text(
+        "$value",
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          color: selected ? AppColors.primary : AppColors.chipInk,
+        ),
+      ),
+    ),
+  );
 }

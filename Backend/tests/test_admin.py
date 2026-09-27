@@ -66,7 +66,7 @@ def db(monkeypatch):
 
 @pytest.fixture()
 def client(no_real_api_calls, monkeypatch):
-    rl._buckets.clear()
+    rl.reset()
     q.reset_memory()
     monkeypatch.setattr(adm, "ADMIN_KEY", "s3cret-key")
     monkeypatch.setattr(adm, "ADMIN_EMAILS", set())

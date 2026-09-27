@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/auth/auth_validators.dart';
 import '../../../core/session/user_session.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/masar_brand.dart';
+import '../../../core/widgets/masar_character.dart';
 import 'widgets/auth_kit.dart';
 
 // ==========================================
@@ -100,7 +100,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         background: AppColors.recoveryBg,
         children: [
           const SizedBox(height: 8),
-          const Center(child: MasarRobot(size: 137)),
+          // 🧕 قبل الإرسال: قفلٌ و«*****» (Figma «نسيت كلمة المرور»)؛ وبعده:
+          //    قفلٌ بسهمَي تجديد — الرابطُ في طريقه والتعيينُ جارٍ.
+          AuthRobot(
+            _sent ? MasarCharacter.reset : MasarCharacter.forgot,
+            height: 140,
+          ),
           const SizedBox(height: 16),
           AuthHeading(
             title: _sent ? "تفقّد بريدك 📨" : "نسيت كلمة المرور؟",

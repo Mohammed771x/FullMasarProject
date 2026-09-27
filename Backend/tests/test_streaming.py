@@ -19,7 +19,7 @@ from core import user_state as us
 
 @pytest.fixture()
 def client(no_real_api_calls):
-    rl._buckets.clear()
+    rl.reset()
     q.reset_memory()
     idem.reset()
     us.reset()

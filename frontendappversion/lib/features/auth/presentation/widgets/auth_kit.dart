@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/auth/password_strength.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/masar_brand.dart';
+import '../../../../core/widgets/masar_character.dart';
 import '../../../../core/widgets/phosphor.dart';
 
 // ==========================================
@@ -161,19 +161,31 @@ class AuthSlack extends StatelessWidget {
 ///    (ظهر في المحاكي: الروبوت عند 219 بدل 129.5، والأزرار مقطوعة.)
 ///
 /// فالارتفاعُ هنا **مصرَّحٌ به** من نسبة الملف، فلا يُسأل عن جوهريّه.
+///
+/// 🧕 **(٢٠٢٦-٠٩-٢٦) صار شخصيةً حيّة** ([MasarCharacterView]) بوضعيةٍ لكل
+///    شاشة. وهذه مبنيّةٌ على `LayoutBuilder` الذي **يرمي** إن سُئل عن مقاسه
+///    الجوهريّ — فالعرضُ **والارتفاع** كلاهما مصرَّحٌ به، فلا يصل السؤالُ إليه.
 class AuthRobot extends StatelessWidget {
-  const AuthRobot(this.width, {super.key});
+  const AuthRobot(this.character, {super.key, required this.height});
 
-  final double width;
+  /// وضعيةُ الشاشة من Figma — الزيُّ واحد (`design/characters/identity/`).
+  final MasarCharacter character;
 
-  /// نسبة `assets/brand/robot_fly.png` — 512×400.
-  static const double _ratio = 400 / 512;
+  /// ارتفاعُ **الرسم** بالنقاط كما في الإطار. يُضاف إليه عُشرٌ يتّسع فيه
+  /// الحوم فلا يُقصّ الروبوت ولا يدفع ما تحته وهو يطفو.
+  final double height;
 
   @override
+  // ⚠️ الارتفاعُ **في الخارج**: `Center` وحدها تتمدّد إلى أقصى القيد
+  //    (كانت تأخذ الشاشة كلّها 844 في اختبار الارتفاع الجوهريّ).
   Widget build(BuildContext context) => SizedBox(
-        height: width * _ratio,
+        height: height / 0.9,
         child: Center(
-            child: MasarRobot(size: width, pose: MasarRobotPose.fly)),
+          child: SizedBox(
+            width: height * character.aspect / 0.9,
+            child: MasarCharacterView(character: character),
+          ),
+        ),
       );
 }
 

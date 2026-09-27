@@ -50,6 +50,7 @@ class PI {
     fill: IconData(0xe06c, fontFamily: 'PhosphorFill'),
     bold: IconData(0xe06c, fontFamily: 'PhosphorBold'),
   );
+
   /// ↗️ **رابطٌ خارجي** — زرُّ «الموقع الرسمي» في رأس شاشة التفاصيل.
   static const arrowSquareOut = PIcon(
     regular: IconData(0xe07c, fontFamily: 'Phosphor'),
@@ -141,6 +142,7 @@ class PI {
     fill: IconData(0xe154, fontFamily: 'PhosphorFill'),
     bold: IconData(0xe154, fontFamily: 'PhosphorBold'),
   );
+
   /// 💬 **فقاعةٌ مربّعة** — أيقونةُ «محادثاتي» في رأس المساعد وفي بطاقات
   ///    الدرج. قِستُها من التصدير: فقاعةٌ بلا نقاطٍ وذيلُها أسفلَ اليسار.
   static const chat = PIcon(
@@ -395,6 +397,7 @@ class PI {
     fill: IconData(0xe3d4, fontFamily: 'PhosphorFill'),
     bold: IconData(0xe3d4, fontFamily: 'PhosphorBold'),
   );
+
   /// 🔢 نظيرُ [plus] في [CountStepper] — `0xe32a` من الحزمة نفسِها.
   static const minus = PIcon(
     regular: IconData(0xe32a, fontFamily: 'Phosphor'),
@@ -406,6 +409,7 @@ class PI {
     fill: IconData(0xe406, fontFamily: 'PhosphorFill'),
     bold: IconData(0xe406, fontFamily: 'PhosphorBold'),
   );
+
   /// 🛡️✓ **نوعُ التمويل** في شريط شاشة التفاصيل.
   static const shieldCheck = PIcon(
     regular: IconData(0xe40c, fontFamily: 'Phosphor'),
@@ -432,6 +436,7 @@ class PI {
     fill: IconData(0xe6a2, fontFamily: 'PhosphorFill'),
     bold: IconData(0xe6a2, fontFamily: 'PhosphorBold'),
   );
+
   /// 🗂️ **طبقات** — شارةُ كلِّ تخصّصٍ في «المجالات المتاحة».
   static const stack = PIcon(
     regular: IconData(0xe466, fontFamily: 'Phosphor'),
@@ -595,17 +600,20 @@ class PDuo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: size,
-        height: size,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(icon.secondary,
-                size: size, color: color.withValues(alpha: secondaryOpacity)),
-            Icon(icon.primary, size: size, color: color),
-          ],
+    width: size,
+    height: size,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        Icon(
+          icon.secondary,
+          size: size,
+          color: color.withValues(alpha: secondaryOpacity),
         ),
-      );
+        Icon(icon.primary, size: size, color: color),
+      ],
+    ),
+  );
 }
 
 /// رموزُ النمط الثنائي — يُضاف إليها ما يستعمله التصميم فقط.
@@ -695,6 +703,29 @@ class PD {
     primary: IconData(0xe62d, fontFamily: 'PhosphorDuotone'),
     secondary: IconData(0xe62c, fontFamily: 'PhosphorDuotone'),
   );
+
+  // 🔔 لرسالة وسط الشاشة ([MasarNotice]) — الباهتُ رمزُ الخطّ نفسِه
+  //    والأساسُ ما بعده (قِيس في cmap الخطّ: e184/e185 · e2ce/e2cf …).
+  static const checkCircle = PDIcon(
+    primary: IconData(0xe185, fontFamily: 'PhosphorDuotone'),
+    secondary: IconData(0xe184, fontFamily: 'PhosphorDuotone'),
+  );
+  static const info = PDIcon(
+    primary: IconData(0xe2cf, fontFamily: 'PhosphorDuotone'),
+    secondary: IconData(0xe2ce, fontFamily: 'PhosphorDuotone'),
+  );
+  static const star = PDIcon(
+    primary: IconData(0xe46b, fontFamily: 'PhosphorDuotone'),
+    secondary: IconData(0xe46a, fontFamily: 'PhosphorDuotone'),
+  );
+  static const images = PDIcon(
+    primary: IconData(0xe837, fontFamily: 'PhosphorDuotone'),
+    secondary: IconData(0xe836, fontFamily: 'PhosphorDuotone'),
+  );
+  static const wifiSlash = PDIcon(
+    primary: IconData(0xe4f3, fontFamily: 'PhosphorDuotone'),
+    secondary: IconData(0xe4f2, fontFamily: 'PhosphorDuotone'),
+  );
 }
 
 /// 📄✓ **«ورقةٌ عليها علامةُ صحّ»** — أيقونةُ «وزاري» و«اختبارات» في التصميم.
@@ -709,8 +740,12 @@ class PD {
 ///    عند 60% من ارتفاعه (تحت طيّة الزاوية لا فوقها). والعلامةُ **مرسومة**
 ///    لا مكتوبة — راجع [_CheckStroke] لِمَ لم يَصلُح رمزُ `check` نفسه.
 class PFileCheck extends StatelessWidget {
-  const PFileCheck(
-      {super.key, required this.size, required this.color, this.bold = false});
+  const PFileCheck({
+    super.key,
+    required this.size,
+    required this.color,
+    this.bold = false,
+  });
 
   final double size;
   final Color color;
@@ -723,18 +758,18 @@ class PFileCheck extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: size,
-        height: size,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(bold ? PI.file.bold : PI.file.regular,
-                size: size, color: color),
-            Positioned.fill(
-                child: CustomPaint(painter: _CheckStroke(color, size, _stroke))),
-          ],
+    width: size,
+    height: size,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        Icon(bold ? PI.file.bold : PI.file.regular, size: size, color: color),
+        Positioned.fill(
+          child: CustomPaint(painter: _CheckStroke(color, size, _stroke)),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 /// علامةُ الصحّ داخل الورقة — **مرسومةٌ لا مكتوبة**.
@@ -764,10 +799,8 @@ class _CheckStroke extends CustomPainter {
     final h = w * 128 / 184;
     final left = size.width / 2 - w / 2;
     final top = size.height * 0.60 - h / 2;
-    Offset m(Offset o) => Offset(
-          left + (o.dx - 40) / 184 * w,
-          top + (o.dy - 72) / 128 * h,
-        );
+    Offset m(Offset o) =>
+        Offset(left + (o.dx - 40) / 184 * w, top + (o.dy - 72) / 128 * h);
     canvas.drawPath(
       Path()
         ..moveTo(m(p0).dx, m(p0).dy)

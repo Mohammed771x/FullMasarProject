@@ -53,7 +53,7 @@ async def teacher_ask(req: TeacherAskRequest, request: Request):
     if auth_error is not None:
         return auth_error
 
-    if not v3_ratelimit.check(request, identity["uid"]):
+    if not v3_ratelimit.check_user(identity["uid"]):
         return JSONResponse(status_code=429,
                             content={"answer": v3_ratelimit.RATE_LIMIT_MESSAGE})
 

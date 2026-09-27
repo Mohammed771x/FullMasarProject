@@ -114,8 +114,12 @@ def test_nothing_but_the_index_changes_across_the_curriculum():
                         #    فقلبُ ترتيب الشحنة («-2» ⇐ «²⁻») وسقوطُ
                         #    فراغِ «SO4 2-» تغييرانِ في **الشكل** أُقرّا
                         #    ووُثّقا، أمّا زيادةُ محرفٍ أو ضياعُه فعطل.
+                        #    والمصدرُ نفسه قد يحمل أُسّاً صريحاً (التوزيع
+                        #    الإلكتروني «2s²» منذ تدقيق 2026-09) فيُطبَّع
+                        #    الطرفان بالجدول نفسه قبل المقارنة.
                         back = out.translate(BACK).replace(" ", "")
-                        assert (sorted(back) == sorted(line.replace(" ", ""))), (
+                        orig = line.translate(BACK).replace(" ", "")
+                        assert (sorted(back) == sorted(orig)), (
                             f"{line[:100]} ⇒ {out[:100]}")
                 elif isinstance(node, dict):
                     for value in node.values():
@@ -211,3 +215,15 @@ def test_the_compressed_charge_form():
     assert to_subscript("CO32-", "كيمياء") == "CO₃²⁻"
     assert (to_subscript("PbO2 + 4H+ + SO42- + 2e-", "كيمياء")
             == "PbO₂ + 4H⁺ + SO₄²⁻ + 2e⁻")
+
+
+def test_a_hyphen_before_arabic_is_not_a_charge():
+    """🔴 «N-إيثيل أمينو بروبان» اسمُ أمين — كانت تخرج «N⁻إيثيل».
+
+    الشرطةُ الملاصقة لحرفٍ عربيّ وصلٌ في الاسم لا شحنة (أسماء الأمينات
+    والأميدات كلُّها). كشفه تدقيقُ «اختبر نفسك» 2026-09-25.
+    """
+    assert to_subscript("N-إيثيل أمينو بروبان", "كيمياء") == "N-إيثيل أمينو بروبان"
+    assert to_subscript("CH3-CO-NH-حلقة بنزين", "كيمياء") == "CH₃-CO-NH-حلقة بنزين"
+    # ⚖️ والشحنةُ يليها فراغٌ ثم كلمة عربية تبقى شحنة.
+    assert to_subscript("Cl- في المحلول", "كيمياء") == "Cl⁻ في المحلول"

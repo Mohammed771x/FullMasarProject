@@ -6,8 +6,9 @@ import '../../../core/session/role_home.dart';
 
 import '../../../core/session/user_session.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/masar_brand.dart';
+import '../../../core/widgets/masar_character.dart';
 import 'widgets/auth_kit.dart';
+import '../../../core/widgets/masar_notice.dart';
 
 // ==========================================
 // 📧 شاشة تفعيل البريد
@@ -50,7 +51,10 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   @override
   void initState() {
     super.initState();
-    _poll = Timer.periodic(const Duration(seconds: 4), (_) => _check(silent: true));
+    _poll = Timer.periodic(
+      const Duration(seconds: 4),
+      (_) => _check(silent: true),
+    );
     _startCooldown(); // أول رسالة أُرسلت عند التسجيل
   }
 
@@ -86,11 +90,15 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 600),
           pageBuilder: (_, _, _) => RoleHome.screen(),
-          transitionsBuilder: (_, a, _, c) => FadeTransition(opacity: a, child: c),
+          transitionsBuilder: (_, a, _, c) =>
+              FadeTransition(opacity: a, child: c),
         ),
       );
     } else if (!silent) {
-      _snack("لم يُفعَّل بعد — افتح الرابط في بريدك ثم أعد المحاولة.", Colors.orange.shade700);
+      _snack(
+        "لم يُفعَّل بعد — افتح الرابط في بريدك ثم أعد المحاولة.",
+        Colors.orange.shade700,
+      );
     }
   }
 
@@ -108,12 +116,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     _snack("📨 أُرسلت رسالة جديدة إلى بريدك.", Colors.green.shade600);
   }
 
-  void _snack(String m, Color c) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(m, style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-        backgroundColor: c,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ));
+  // 🎨 اللونُ صار يُقرأ من النوع ([MasarNotice]) — والوسيطُ باقٍ للمواضع.
+  void _snack(String m, Color _) => MasarNotice.say(context, m);
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +126,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       showBack: false,
       children: [
         const SizedBox(height: 10),
-        const Center(child: MasarRobot(size: 120)),
+        // 🧕 🆕 لا روبوت في إطار المصمّم هنا، والتطبيقُ كان يعرض واحداً —
+        //    فصار بالهوية الموحّدة: شريطُ تنزيلٍ وساعةٌ رملية = «ننتظر التفعيل».
+        const AuthRobot(MasarCharacter.waiting, height: 120),
         const SizedBox(height: 16),
         AuthHeading(
           title: "التحقق من البريد الإلكتروني",
@@ -136,13 +142,16 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Flexible(
-              child: Text(email,
-                  textDirection: TextDirection.ltr,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.fieldLabel)),
+              child: Text(
+                email,
+                textDirection: TextDirection.ltr,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.fieldLabel,
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             GestureDetector(
@@ -153,11 +162,14 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 children: [
                   Icon(Icons.edit_outlined, size: 15, color: AppColors.primary),
                   const SizedBox(width: 4),
-                  Text("تعديل البريد",
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary)),
+                  Text(
+                    "تعديل البريد",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -175,21 +187,30 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
           ),
           child: Column(
             children: [
+              // ↔️ في الوسط كالسطرين تحته (طلب المالك ٢٠٢٦-٠٩-٢٦) — المؤشّرُ
+              //    والنصّ كتلةٌ واحدة متمركزة لا سطرٌ يبدأ من اليمين.
               Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColors.primary),
+                      strokeWidth: 2,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
-                    child: Text("في انتظار تفعيلك… نفتح لك التطبيق تلقائياً",
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary)),
+                  Flexible(
+                    child: Text(
+                      "في انتظار تفعيلك… نفتح لك التطبيق تلقائياً",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -199,10 +220,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 "لم تجد الرسالة؟ تحقّق من مجلد الرسائل غير المرغوبة (Spam).",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 11.5,
-                    height: 1.8,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary),
+                  fontSize: 11.5,
+                  height: 1.8,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -210,7 +232,10 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         const SizedBox(height: 22),
 
         AuthPrimaryButton(
-            label: "تحقّق الآن", onTap: () => _check(), busy: _busy),
+          label: "تحقّق الآن",
+          onTap: () => _check(),
+          busy: _busy,
+        ),
         const SizedBox(height: 8),
 
         Center(
@@ -221,20 +246,22 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   ? "إعادة إرسال الرمز خلال ${_fmt(_secondsLeft)}"
                   : "لم تصلك الرسالة؟ أعد الإرسال",
               style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: _secondsLeft > 0
-                      ? AppColors.textSecondary
-                      : AppColors.primary),
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: _secondsLeft > 0
+                    ? AppColors.textSecondary
+                    : AppColors.primary,
+              ),
             ),
           ),
         ),
         Center(
           child: TextButton(
             onPressed: _changeEmail,
-            child: Text("تسجيل الخروج / تغيير البريد",
-                style: TextStyle(
-                    fontSize: 12.5, color: AppColors.textSecondary)),
+            child: Text(
+              "تسجيل الخروج / تغيير البريد",
+              style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+            ),
           ),
         ),
       ],

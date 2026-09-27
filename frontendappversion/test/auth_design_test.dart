@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ye_student_tutor/core/theme/app_colors.dart';
 import 'package:ye_student_tutor/core/widgets/masar_brand.dart';
+import 'package:ye_student_tutor/core/widgets/masar_character.dart';
 import 'package:ye_student_tutor/core/widgets/phosphor.dart';
 import 'package:ye_student_tutor/features/auth/presentation/widgets/auth_kit.dart';
 
@@ -275,12 +276,19 @@ void main() {
       (tester) async {
     _figmaBoard(tester);
     await tester.pumpWidget(_host(const Scaffold(
-      body: SizedBox(width: 354, child: AuthRobot(132)),
+      body: SizedBox(
+          width: 354, child: AuthRobot(MasarCharacter.login, height: 122)),
     )));
     final h = tester.getSize(find.byType(AuthRobot)).height;
-    expect(h, closeTo(132 * 400 / 512, 0.01));
+    // الرسمُ 122 وعُشرٌ للحوم.
+    expect(h, closeTo(122 / 0.9, 0.01));
     // وهو ما تقرأه [AuthBody] حين توزّع الفائض.
     final box = tester.renderObject<RenderBox>(find.byType(AuthRobot));
     expect(box.getMaxIntrinsicHeight(354), closeTo(h, 0.01));
+    // 🧕 والشخصيةُ الحيّة مبنيّةٌ على `LayoutBuilder` الذي يرمي إن سُئل عن
+    //    عرضه الجوهريّ — فالعرضُ مصرَّحٌ به ولا يصل السؤالُ إليه.
+    expect(box.getMaxIntrinsicWidth(874), greaterThan(0));
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 7));
   });
 }

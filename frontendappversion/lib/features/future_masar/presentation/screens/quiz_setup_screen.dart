@@ -7,6 +7,7 @@ import '../../data/demo_data.dart';
 import '../widgets/demo_widgets.dart';
 import 'quiz_loading_screen.dart';
 import 'quiz_screen.dart';
+import '../../../../core/widgets/masar_notice.dart';
 
 // ==========================================
 // ⚙️ إعداد الاختبار — مادة + وحدة + حتى 3 دروس + عدد الأسئلة
@@ -49,12 +50,11 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
         _lessons.remove(l);
       } else {
         if (_lessons.length >= 3) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: const Text("يمكنك اختيار 3 دروس كحد أقصى", style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.orange.shade700,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ));
+          MasarNotice.info(
+            context,
+            "يمكنك اختيار ٣ دروس كحدٍّ أقصى.",
+            title: "وصلت الحدّ الأقصى",
+          );
           return;
         }
         _lessons.add(l);
@@ -63,10 +63,18 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
   }
 
   void _start() {
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => QuizLoadingScreen(
-      lines: const ["يقوم مسار بإنشاء اختبار مخصص لك...", "بناءً على المادة والدروس التي اخترتها ✍️"],
-      next: (_) => QuizScreen(subject: _subject, count: _count),
-    )));
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuizLoadingScreen(
+          lines: const [
+            "يقوم مسار بإنشاء اختبار مخصص لك...",
+            "بناءً على المادة والدروس التي اخترتها ✍️",
+          ],
+          next: (_) => QuizScreen(subject: _subject, count: _count),
+        ),
+      ),
+    );
   }
 
   @override
@@ -78,7 +86,10 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
           const GlowBackgroundStatic(),
           Column(
             children: [
-              const GlassBar(title: "إعداد الاختبار 📝", subtitle: "خصّص اختبارك بالتفصيل"),
+              const GlassBar(
+                title: "إعداد الاختبار 📝",
+                subtitle: "خصّص اختبارك بالتفصيل",
+              ),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
@@ -94,14 +105,30 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: demoSubjects.map((s) => _chip(s, s == _subject, () => _setSubject(s))).toList(),
+                      children: demoSubjects
+                          .map(
+                            (s) =>
+                                _chip(s, s == _subject, () => _setSubject(s)),
+                          )
+                          .toList(),
                     ),
                     const SizedBox(height: 20),
                     _label("2. اختر الوحدة"),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _units.map((u) => _chip(u, u == _unit, () => setState(() { _unit = u; _lessons.clear(); }))).toList(),
+                      children: _units
+                          .map(
+                            (u) => _chip(
+                              u,
+                              u == _unit,
+                              () => setState(() {
+                                _unit = u;
+                                _lessons.clear();
+                              }),
+                            ),
+                          )
+                          .toList(),
                     ),
                     const SizedBox(height: 20),
                     _label("3. اختر الدروس (حتى 3)"),
@@ -113,18 +140,49 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                           onTap: () => _toggleLesson(l),
                           borderRadius: BorderRadius.circular(16),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                             decoration: BoxDecoration(
-                              color: sel ? AppColors.primary.withValues(alpha: 0.08) : AppColors.surfaceWhite,
+                              color: sel
+                                  ? AppColors.primary.withValues(alpha: 0.08)
+                                  : AppColors.surfaceWhite,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: sel ? AppColors.primary : AppColors.textSecondary.withValues(alpha: 0.12), width: 1.5),
+                              border: Border.all(
+                                color: sel
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                width: 1.5,
+                              ),
                               boxShadow: AppColors.bubbleShadow,
                             ),
-                            child: Row(children: [
-                              Icon(sel ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded, color: sel ? AppColors.primary : AppColors.textSecondary, size: 22),
-                              const SizedBox(width: 12),
-                              Expanded(child: Text(l, style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontSize: 14))),
-                            ]),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  sel
+                                      ? Icons.check_box_rounded
+                                      : Icons.check_box_outline_blank_rounded,
+                                  color: sel
+                                      ? AppColors.primary
+                                      : AppColors.textSecondary,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    l,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -141,9 +199,28 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                               onTap: () => setState(() => _count = n),
                               borderRadius: BorderRadius.circular(14),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                decoration: BoxDecoration(color: sel ? AppColors.primary : AppColors.surfaceWhite, borderRadius: BorderRadius.circular(14), boxShadow: AppColors.bubbleShadow),
-                                child: Center(child: Text("$n", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: sel ? Colors.white : AppColors.textSecondary))),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: sel
+                                      ? AppColors.primary
+                                      : AppColors.surfaceWhite,
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: AppColors.bubbleShadow,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    "$n",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 16,
+                                      color: sel
+                                          ? Colors.white
+                                          : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -157,7 +234,10 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                 top: false,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(18, 4, 18, 14),
-                  child: GradientButton(label: "ابدأ الاختبار 🚀", onTap: _start),
+                  child: GradientButton(
+                    label: "ابدأ الاختبار 🚀",
+                    onTap: _start,
+                  ),
                 ),
               ),
             ],
@@ -168,9 +248,16 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
   }
 
   Widget _label(String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(t, style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
-      );
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Text(
+      t,
+      style: TextStyle(
+        fontSize: 14.5,
+        fontWeight: FontWeight.w900,
+        color: AppColors.textPrimary,
+      ),
+    ),
+  );
 
   Widget _chip(String label, bool sel, VoidCallback onTap) {
     return InkWell(
@@ -182,18 +269,29 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
         decoration: BoxDecoration(
           color: sel ? AppColors.primary : AppColors.surfaceWhite,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: sel ? Colors.transparent : AppColors.textSecondary.withValues(alpha: 0.12)),
+          border: Border.all(
+            color: sel
+                ? Colors.transparent
+                : AppColors.textSecondary.withValues(alpha: 0.12),
+          ),
           boxShadow: sel ? AppColors.bubbleShadow : [],
         ),
-        child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: sel ? Colors.white : AppColors.textSecondary)),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: sel ? Colors.white : AppColors.textSecondary,
+          ),
+        ),
       ),
     );
   }
+
   /// 🎏 وجهة النقر على بانر هذا القسم. البانر هنا داخليّ غالباً، فالوجهات
   /// الخارجة عن القسم تُترك للشاشة الرئيسية بدل فتح شاشات متداخلة بلا نهاية.
   void _onBannerAction(BuildContext context, String action, String value) {
     if (action == "url" || action == "none") return;
     Navigator.pop(context);
   }
-
 }

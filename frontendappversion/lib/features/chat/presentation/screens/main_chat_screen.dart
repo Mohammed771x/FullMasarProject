@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/config/curriculum.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/masar_dialog.dart';
+import '../../../../core/widgets/masar_notice.dart';
 import '../../../../core/widgets/phosphor.dart';
 import '../../../../core/widgets/screen_tip.dart';
 import '../../../../core/widgets/tap_to_dismiss_keyboard.dart';
@@ -92,55 +93,35 @@ class _MainChatScreenState extends State<MainChatScreen>
     _c.onConfirmNewConversation = _confirmNewConversation;
     _c.onVoiceNotice = (msg) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            msg,
-            style: const TextStyle(
-              fontFamily: 'Cairo',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          backgroundColor: Colors.orange.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      MasarNotice.info(context, msg, kind: NoticeKind.warning);
     };
     // 🎟️ انتهت الحصة: للزائر دعوة تسجيل بزر مباشر، وللطالب موعد التجديد.
     _c.onQuotaExceeded = (isGuest) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isGuest
-                ? "🎁 انتهت أسئلتك التجريبية — سجّل مجاناً وتابع."
-                : "🎟️ حدّك اليومي انتهى — يتجدّد بعد منتصف الليل.",
-            style: const TextStyle(
-              fontFamily: 'Cairo',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          backgroundColor: isGuest ? AppColors.primary : Colors.orange.shade700,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          action: isGuest
-              ? SnackBarAction(
-                  label: "سجّل الآن",
-                  textColor: Colors.white,
-                  onPressed: () => Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AuthScreen()),
-                    (r) => false,
-                  ),
-                )
-              : null,
-        ),
+      if (!isGuest) {
+        MasarNotice.info(
+          context,
+          "حدّك اليومي انتهى — يتجدّد بعد منتصف الليل.",
+          title: "انتهى حدّ اليوم",
+          kind: NoticeKind.warning,
+        );
+        return;
+      }
+      MasarNotice.info(
+        context,
+        "انتهت أسئلتك التجريبية — سجّل مجاناً وتابع.",
+        title: "سجّل وتابع",
+        icon: PD.graduationCap,
+        action: "سجّل الآن",
+        cancelLabel: "لاحقاً",
+        onAction: () async {
+          if (!mounted) return;
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const AuthScreen()),
+            (r) => false,
+          );
+        },
       );
     };
     _c.onFadeReplay = () {
@@ -211,68 +192,32 @@ class _MainChatScreenState extends State<MainChatScreen>
     super.dispose();
   }
 
-  // ========== آثار الواجهة (Snackbars) ==========
+  // ========== آثار الواجهة — رسالةُ وسط الشاشة ([MasarNotice]) ==========
   void _showDataErrorSnackBar(String message) {
     if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(PI.wifiSlash.regular, color: Colors.white, size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  message,
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.redAccent.shade400,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          duration: const Duration(seconds: 3),
-        ),
+      if (!mounted) return;
+      MasarNotice.info(
+        context,
+        message,
+        title: "تعذّر الاتصال",
+        kind: NoticeKind.error,
+        icon: PD.wifiSlash,
       );
     });
   }
 
   void _showStopConfirmation() {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "⏹️ تم إيقاف الإجابة",
-          style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.orange.shade700,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    MasarNotice.toast(context, "أُوقفت الإجابة", kind: NoticeKind.info);
   }
 
   void _showBusyWarning() {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "⏳ يرجى انتظار الرد الحالي أو إيقافه أولاً.",
-          style: TextStyle(fontFamily: 'Cairo'),
-        ),
-        backgroundColor: Colors.blue.shade600,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
+    MasarNotice.info(
+      context,
+      "انتظر الرد الحالي حتى يكتمل، أو أوقفه أولاً.",
+      title: "لحظة من فضلك",
     );
   }
 
@@ -280,24 +225,15 @@ class _MainChatScreenState extends State<MainChatScreen>
   ///    الإرسال فلا يحدث شيء ولا يعرف لماذا. (طلب المالك 2026-09-09)
   void _showPagesRequired() {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            "اختر الصفحات أولاً من إعدادات الجلسة 📄",
-            style: TextStyle(fontFamily: 'Cairo'),
-          ),
-          backgroundColor: Colors.orange.shade600,
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(
-            label: "افتح",
-            textColor: Colors.white,
-            onPressed: () => _c.update(() => _c.showSettingsPanel = true),
-          ),
-        ),
-      );
+    FocusScope.of(context).unfocus();
+    MasarNotice.info(
+      context,
+      "اختر الصفحات أولاً من «إعدادات الجلسة».",
+      title: "اختر الصفحات",
+      icon: PD.filePdf,
+      action: "افتح الإعدادات",
+      onAction: () async => _c.update(() => _c.showSettingsPanel = true),
+    );
   }
 
   /// 🚦 **ما ينقص قبل الإرسال** ([ChatController.sendBlocker]) — يُقال بعينه،
@@ -306,19 +242,12 @@ class _MainChatScreenState extends State<MainChatScreen>
     if (!mounted) return;
     FocusScope.of(context).unfocus();
     _c.setShowSettingsPanel(true);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            "$reason ☝️",
-            style: const TextStyle(fontFamily: 'Cairo'),
-          ),
-          backgroundColor: Colors.orange.shade600,
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    MasarNotice.info(
+      context,
+      reason,
+      title: "قبل أن تسأل",
+      icon: PD.fadersHorizontal,
+    );
   }
 
   /// 🔒 **«اخترتَ درساً جديداً — نفتح محادثةً جديدة؟»**
@@ -336,24 +265,24 @@ class _MainChatScreenState extends State<MainChatScreen>
     final pages = _c.conversationPages.join("، ");
     final (String title, String body) = switch (change) {
       ContextChange.lesson => (
-          "اخترتَ درساً جديداً",
-          lesson.isEmpty
-              ? "هذه المحادثة عن درسٍ آخر."
-              : "هذه المحادثة عن درس «$lesson».",
-        ),
+        "اخترتَ درساً جديداً",
+        lesson.isEmpty
+            ? "هذه المحادثة عن درسٍ آخر."
+            : "هذه المحادثة عن درس «$lesson».",
+      ),
       ContextChange.unit => (
-          "اخترتَ وحدةً جديدة",
-          "هذه المحادثة عن وحدة «${_c.selectedUnit}».",
-        ),
+        "اخترتَ وحدةً جديدة",
+        "هذه المحادثة عن وحدة «${_c.selectedUnit}».",
+      ),
       ContextChange.pages => (
-          "صفحةٌ من خارج هذه المحادثة",
-          "هذه المحادثة عن الصفحات $pages — تستطيع إزالةَ صفحةٍ منها "
-              "أو إعادتها، أمّا الصفحةُ الجديدة فمكانُها محادثةٌ جديدة.",
-        ),
+        "صفحةٌ من خارج هذه المحادثة",
+        "هذه المحادثة عن الصفحات $pages — تستطيع إزالةَ صفحةٍ منها "
+            "أو إعادتها، أمّا الصفحةُ الجديدة فمكانُها محادثةٌ جديدة.",
+      ),
       ContextChange.contentMode => (
-          "غيّرتَ مصدر المحتوى",
-          "هذه المحادثة بدأت على مصدرٍ آخر (دروس/صفحات).",
-        ),
+        "غيّرتَ مصدر المحتوى",
+        "هذه المحادثة بدأت على مصدرٍ آخر (دروس/صفحات).",
+      ),
     };
     var accepted = false;
     await showDialog<void>(
@@ -390,16 +319,11 @@ class _MainChatScreenState extends State<MainChatScreen>
       _showPagesRequired();
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "اكتب سؤالك أولاً ✍️",
-          style: TextStyle(fontFamily: 'Cairo'),
-        ),
-        backgroundColor: Colors.orange.shade600,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
+    MasarNotice.info(
+      context,
+      "اكتب سؤالك أولاً، أو أرفق صورة.",
+      title: "الرسالة فارغة",
+      icon: PD.notePencil,
     );
   }
 
@@ -442,14 +366,14 @@ class _MainChatScreenState extends State<MainChatScreen>
                     //    «ما في داعي تكون بيضاء — نفس التعليم ونفس المنح
                     //    بالأزرق المتموّج بالضبط»). كان أبيضَ كتصديره.
                     Positioned.fill(
-                        child: IgnorePointer(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: AppColors.chatBackdrop,
-                            ),
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: AppColors.chatBackdrop,
                           ),
                         ),
                       ),
+                    ),
                     Column(
                       children: [
                         ChatGlassAppBar(
@@ -566,7 +490,16 @@ class _MainChatScreenState extends State<MainChatScreen>
                         //
                         // 🚦 **ولا اقتراحاتٍ قبل اكتمال الاختيار**: شريحةٌ
                         //    تُرسل ولا درسَ مختار تُرفض ([ChatController.sendBlocker]).
-                        if (_c.messages.isEmpty && _c.selectionComplete)
+                        //
+                        // 📷 **ومع صورةٍ مرفقة تغيب** (أمرُ المالك ٢٠٢٦-٠٩-٢٤:
+                        //    «لما نرفع صورة الاقتراحات اللي فوق تروح… المنظر
+                        //    يتشوّه») — والصورةُ نفسُها سؤالٌ فلا حاجةَ لاقتراح.
+                        //    وشرائحُ الصفحات لا تُمسّ: هي في بطاقة الإعدادات.
+                        //    كمساعد المنح حرفياً ([ScholarshipChatScreen]).
+                        if (_c.messages.isEmpty &&
+                            _c.selectionComplete &&
+                            !_c.hasAttachments &&
+                            !_c.isRecording)
                           ModeSuggestions(controller: _c),
                         const SizedBox(height: 8),
                         ChatInputArea(

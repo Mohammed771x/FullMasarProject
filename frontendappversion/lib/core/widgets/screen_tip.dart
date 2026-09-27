@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/app_colors.dart';
-import 'robot_widget.dart';
+import 'masar_character.dart';
 
 // ==========================================
 // 💡 تلميح الشاشة — الروبوت يطلّ من الزاوية ويتكلّم
@@ -143,10 +143,12 @@ class _ScreenTipState extends State<ScreenTip> {
             duration: const Duration(milliseconds: 420),
             curve: Curves.easeOutBack,
             scale: _robotIn ? 1 : 0,
-            child: RobotWidget(
-              size: 56,
-              // يلوّح أولاً، فإذا انفتحت الفقاعة صار يتكلّم 🗣️
-              state: _bubbleIn ? RobotState.talk : RobotState.wave,
+            // 🧕 (٢٠٢٦-٠٩-٢٦) روبوتُ الهوية المعمَّم بدل المرسوم بالكود —
+            //    يطفو ويرمش وحده ([MasarCharacterView]).
+            child: const SizedBox(
+              width: 56,
+              height: 56,
+              child: MasarCharacterView(character: MasarCharacter.head),
             ),
           ),
         ),

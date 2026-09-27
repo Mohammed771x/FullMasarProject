@@ -18,6 +18,7 @@ import 'package:http/http.dart' as http;
 import 'package:ye_student_tutor/core/services/conversation_titler.dart';
 import 'package:ye_student_tutor/core/storage/chat_storage.dart';
 import 'package:ye_student_tutor/core/widgets/masar_brand.dart';
+import 'package:ye_student_tutor/core/widgets/masar_character.dart';
 import 'package:ye_student_tutor/features/chat/data/conversation_search.dart';
 import 'package:ye_student_tutor/features/chat/data/repositories/ask_stream.dart';
 import 'package:ye_student_tutor/features/chat/presentation/controllers/chat_controller.dart';
@@ -370,10 +371,14 @@ void main() {
         await pumpWelcome(tester, c);
         expect(find.textContaining(word), findsOneWidget);
         expect(find.textContaining("إعدادات الجلسة"), findsOneWidget);
-        expect(find.text("احياء · $mode"), findsOneWidget);
-        // 🧍 «لا تحرّك الروبوت» — صورةٌ ساكنة، لا نسخةَ متحرّكة.
+        // 🧕 (٢٠٢٦-٠٩-٢٧) «شيل أحياء شرح… نفس المنح» — شخصيةُ القسم وحدها.
+        expect(find.text("احياء · $mode"), findsNothing);
         expect(find.byType(MasarRobotAnimated), findsNothing);
-        expect(find.byType(MasarRobot), findsOneWidget);
+        expect(
+          find.byWidgetPredicate((w) =>
+              w is MasarCharacterView && w.character == MasarCharacter.study),
+          findsOneWidget,
+        );
       });
     }
 

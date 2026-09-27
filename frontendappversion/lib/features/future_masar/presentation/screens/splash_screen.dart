@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/config/app_constants.dart';
@@ -5,7 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/session/role_home.dart';
 
 import '../../../../app/bootstrap.dart';
-import '../../../../core/widgets/masar_brand.dart';
+import '../../../../core/widgets/masar_character.dart';
 import '../../../auth/presentation/verify_email_screen.dart';
 import 'auth_screen.dart';
 import 'onboarding_screen.dart';
@@ -16,6 +18,11 @@ import '../../../onboarding/presentation/force_update_screen.dart';
 // ==========================================
 // 🎨 **تصميم Figma** — «الشاشة الافتتاحية» (24:18598):
 //    صفحةٌ بيضاء · روبوت مسار في الوسط · رقم الإصدار أسفلها بلون `#006EBF`.
+//
+// 🧕 **الرأسُ المعمَّم (٢٠٢٦-٠٩-٢٦):** رأسُ المصمّم للبداية كانت عمامتُه
+//    **حمراء بنقشٍ آخر**، والمالك: «نفس العمامة بالضبط في كل مكان». فصار
+//    الرأسُ يُقصّ من شخصية «مرحباً» نفسِها ([MasarCharacter.head]). حيٌّ
+//    كشخصيات الترحيب: يدخل وينزل ويرمش ويحوم.
 //
 // ⛔ **ما حُذف ولماذا:**
 //    · `MasarBrand` (الشعار + «مسار» + الشعار النصي) — التصميم يكتفي بالروبوت.
@@ -29,16 +36,10 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c;
-
+class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1100))
-      ..repeat(reverse: true);
     _route();
   }
 
@@ -50,8 +51,9 @@ class _SplashScreenState extends State<SplashScreen>
 
     final Widget next = switch (entry) {
       // 📦 نسخةٌ لم تعد تتفاهم مع الخادم — شاشةٌ واحدة بلا تخطٍّ.
-      AppEntry.forceUpdate =>
-        ForceUpdateScreen(verdict: AppBootstrap.versionVerdict),
+      AppEntry.forceUpdate => ForceUpdateScreen(
+        verdict: AppBootstrap.versionVerdict,
+      ),
       AppEntry.onboarding => const OnboardingScreen(),
       AppEntry.auth => const AuthScreen(),
       AppEntry.verifyEmail => const VerifyEmailScreen(),
@@ -64,15 +66,10 @@ class _SplashScreenState extends State<SplashScreen>
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 650),
         pageBuilder: (_, _, _) => next,
-        transitionsBuilder: (_, a, _, c) => FadeTransition(opacity: a, child: c),
+        transitionsBuilder: (_, a, _, c) =>
+            FadeTransition(opacity: a, child: c),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
   }
 
   @override
@@ -84,13 +81,20 @@ class _SplashScreenState extends State<SplashScreen>
         body: SafeArea(
           child: Stack(
             children: [
+              // ✨ حركةُ الشخصية تُبقي الشاشة حيّة في الثانية والنصف التي
+              //    تسبق التوجيه — بديلُ حلقة التحميل المحذوفة.
+              // 📐 **مستقيمٌ في البداية وحدها** (طلب المالك ٢٠٢٦-٠٩-٢٦: «مقصوف،
+              //    خلّوه ستريت»): الرأسُ مقصوصٌ من «هلا» حيث يميل مع الوقفة
+              //    26.6° (مقيسةً من محور شاشة الوجه). فيُدار هنا بالقدر نفسه عكسياً
+              //    — والصورةُ نفسها لا تُمسّ لأن الإطلالة من خلف الجوّال تريدها مائلة.
               Center(
-                // ✨ نبضةٌ خفيفة تُبقي الشاشة حيّة في الثانية والنصف التي
-                //    تسبق التوجيه — بديلُ حلقة التحميل المحذوفة.
-                child: ScaleTransition(
-                  scale: Tween(begin: 0.94, end: 1.06).animate(
-                      CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
-                  child: const MasarRobot(size: 152),
+                child: Transform.rotate(
+                  angle: -26.6 * math.pi / 180,
+                  child: const SizedBox(
+                    width: 190,
+                    height: 180,
+                    child: MasarCharacterView(character: MasarCharacter.head),
+                  ),
                 ),
               ),
               Positioned(

@@ -220,16 +220,31 @@ void main() {
       expect(_sendEnabled(tester), isTrue);
     });
 
-    testWidgets('صورتان بلا نصّ ⇒ الزرّ حيّ وزرّ الكاميرا يختفي', (tester) async {
+    // 🎯 أمرُ المالك (٢٠٢٦-٠٩-٢٤): «بعد صورتين الزر ينروح — لا، خلّه يكون
+    //    موجود، بس لما يضغطه يقول له وصلت الحدّ الأقصى». كان يختفي فيُظنّ عطلاً.
+    testWidgets('صورتان بلا نصّ ⇒ الزرّ حيّ، والكاميرا باقيةٌ تقول «وصلت الحدّ»',
+        (tester) async {
       final c = _controller();
       c.attachedImages.addAll([_img("a"), _img("b")]);
       addTearDown(c.dispose);
       await _pumpInput(tester, c);
 
       expect(_sendEnabled(tester), isTrue);
-      expect(_cameraFinder, findsNothing,
-          reason: 'بلغ الحدّ الأقصى — فلا بابَ لثالثة');
       expect(find.byType(Image), findsNWidgets(2), reason: 'معاينتان');
+      expect(_cameraFinder, findsOneWidget, reason: 'الزرُّ لا يختفي');
+
+      await tester.tap(_cameraFinder);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('وصلت الحدّ الأقصى'), findsOneWidget);
+      expect(find.textContaining('صورتين فقط'), findsOneWidget);
+      expect(find.text('فهمت'), findsOneWidget);
+      // ولا ورقةَ اختيار مصدرٍ لثالثة
+      expect(find.text('التقاط صورة'), findsNothing);
+
+      await tester.tap(find.text('فهمت'));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('وصلت الحدّ الأقصى'), findsNothing);
+      expect(c.attachedImages, hasLength(2));
     });
 
     testWidgets('صورة + نصّ ⇒ الزرّ حيّ', (tester) async {

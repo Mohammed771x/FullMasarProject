@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/masar_markdown.dart';
 import '../data/saved_answer.dart';
 import '../data/saved_storage.dart';
+import '../../../core/widgets/masar_notice.dart';
 
 // ==========================================
 // ⭐ شاشة المحفوظات
@@ -31,15 +32,20 @@ class _SavedScreenState extends State<SavedScreen> {
   @override
   Widget build(BuildContext context) {
     final items = _items;
-    final total = SavedStorage.count(UserSession.I.uid, scope: UserSession.I.scope);
+    final total = SavedStorage.count(
+      UserSession.I.uid,
+      scope: UserSession.I.scope,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       appBar: AppBar(
         backgroundColor: AppColors.surfaceWhite,
         elevation: 0,
-        title: const Text("المحفوظات",
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+        title: const Text(
+          "المحفوظات",
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+        ),
         actions: [
           if (total > 0)
             IconButton(
@@ -52,9 +58,7 @@ class _SavedScreenState extends State<SavedScreen> {
       body: Column(
         children: [
           if (total > 0) _filters(),
-          Expanded(
-            child: items.isEmpty ? _empty(total) : _list(items),
-          ),
+          Expanded(child: items.isEmpty ? _empty(total) : _list(items)),
         ],
       ),
     );
@@ -88,7 +92,8 @@ class _SavedScreenState extends State<SavedScreen> {
               selectedColor: AppColors.primary,
               backgroundColor: AppColors.surfaceWhite,
               side: BorderSide(
-                  color: AppColors.primary.withValues(alpha: on ? 0 : 0.15)),
+                color: AppColors.primary.withValues(alpha: on ? 0 : 0.15),
+              ),
               showCheckmark: false,
             ),
           );
@@ -98,43 +103,46 @@ class _SavedScreenState extends State<SavedScreen> {
   }
 
   Widget _empty(int total) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.star_outline_rounded,
-                  size: 64, color: AppColors.primary.withValues(alpha: 0.3)),
-              const SizedBox(height: 16),
-              Text(
-                total == 0
-                    ? "لا محفوظات بعد"
-                    : "لا محفوظات في هذا القسم",
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "اضغط ⭐ أسفل أي إجابة لتحفظها هنا،\nوتبقى معك حتى لو حذفت المحادثة.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 13,
-                    height: 1.7,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.star_outline_rounded,
+            size: 64,
+            color: AppColors.primary.withValues(alpha: 0.3),
           ),
-        ),
-      );
+          const SizedBox(height: 16),
+          Text(
+            total == 0 ? "لا محفوظات بعد" : "لا محفوظات في هذا القسم",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "اضغط ⭐ أسفل أي إجابة لتحفظها هنا،\nوتبقى معك حتى لو حذفت المحادثة.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.7,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _list(List<SavedAnswer> items) => ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-        itemCount: items.length,
-        itemBuilder: (_, i) => _card(items[i]),
-      );
+    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+    itemCount: items.length,
+    itemBuilder: (_, i) => _card(items[i]),
+  );
 
   Widget _card(SavedAnswer a) {
     return Container(
@@ -154,20 +162,23 @@ class _SavedScreenState extends State<SavedScreen> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontSize: 14.5,
-                fontWeight: FontWeight.w800,
-                height: 1.5,
-                color: AppColors.textPrimary),
+              fontSize: 14.5,
+              fontWeight: FontWeight.w800,
+              height: 1.5,
+              color: AppColors.textPrimary,
+            ),
           ),
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 6),
-            child: Row(children: [
-              _tag(a.sectionLabel, AppColors.primary),
-              if (a.subject.isNotEmpty) ...[
-                const SizedBox(width: 6),
-                _tag(a.subject, AppColors.secondary),
+            child: Row(
+              children: [
+                _tag(a.sectionLabel, AppColors.primary),
+                if (a.subject.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  _tag(a.subject, AppColors.secondary),
+                ],
               ],
-            ]),
+            ),
           ),
           children: [
             Align(
@@ -175,17 +186,19 @@ class _SavedScreenState extends State<SavedScreen> {
               child: MasarMarkdown(data: a.text, selectable: true),
             ),
             const SizedBox(height: 10),
-            Row(children: [
-              _action(Icons.content_copy_rounded, "نسخ", () async {
-                await Clipboard.setData(ClipboardData(text: a.text));
-                if (mounted) _snack("📋 نُسخت");
-              }),
-              const SizedBox(width: 8),
-              _action(Icons.star_rounded, "إزالة", () async {
-                await SavedStorage.remove(a.id);
-                if (mounted) setState(() {});
-              }, danger: true),
-            ]),
+            Row(
+              children: [
+                _action(Icons.content_copy_rounded, "نسخ", () async {
+                  await Clipboard.setData(ClipboardData(text: a.text));
+                  if (mounted) _snack("📋 نُسخت");
+                }),
+                const SizedBox(width: 8),
+                _action(Icons.star_rounded, "إزالة", () async {
+                  await SavedStorage.remove(a.id);
+                  if (mounted) setState(() {});
+                }, danger: true),
+              ],
+            ),
           ],
         ),
       ),
@@ -193,18 +206,27 @@ class _SavedScreenState extends State<SavedScreen> {
   }
 
   Widget _tag(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.09),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: 10.5, fontWeight: FontWeight.bold, color: color)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.09),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontSize: 10.5,
+        fontWeight: FontWeight.bold,
+        color: color,
+      ),
+    ),
+  );
 
-  Widget _action(IconData icon, String label, VoidCallback onTap,
-      {bool danger = false}) {
+  Widget _action(
+    IconData icon,
+    String label,
+    VoidCallback onTap, {
+    bool danger = false,
+  }) {
     final color = danger ? Colors.redAccent : AppColors.textSecondary;
     return InkWell(
       onTap: onTap,
@@ -217,13 +239,21 @@ class _SavedScreenState extends State<SavedScreen> {
               : AppColors.softSurface,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(label,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
               style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.bold, color: color)),
-        ]),
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -232,19 +262,28 @@ class _SavedScreenState extends State<SavedScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("مسح كل المحفوظات؟",
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-        content: const Text("لا يمكن التراجع عن هذا.",
-            style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          "مسح كل المحفوظات؟",
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+        ),
+        content: const Text(
+          "لا يمكن التراجع عن هذا.",
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text("إلغاء")),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("إلغاء"),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("مسح",
-                style: TextStyle(
-                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "مسح",
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -252,17 +291,14 @@ class _SavedScreenState extends State<SavedScreen> {
     if (ok != true) return;
     // ⚠️ **الصف الحالي وحده**: الطالب يرى قائمة صفّه ويضغط «مسح الكل»، فمسحُ
     //    صفوفٍ أخرى لا يراها حذفٌ لم يطلبه ولا يستطيع التراجع عنه.
-    final n = await SavedStorage.clear(UserSession.I.uid, scope: UserSession.I.scope);
+    final n = await SavedStorage.clear(
+      UserSession.I.uid,
+      scope: UserSession.I.scope,
+    );
     if (!mounted) return;
     setState(() {});
     _snack("🗑️ مُسحت $n محفوظة");
   }
 
-  void _snack(String text) => ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(
-      content: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: AppColors.textPrimary,
-    ));
+  void _snack(String text) => MasarNotice.say(context, text);
 }

@@ -11,6 +11,7 @@ import '../../features/scholarships/presentation/scholarship_detail_screen.dart'
 import '../../features/scholarships/presentation/scholarships_screen.dart';
 import '../../features/teacher/presentation/teacher_home_screen.dart';
 import 'push_service.dart';
+import '../widgets/masar_notice.dart';
 
 // ==========================================
 // 🧭 core/notifications/push_router.dart — أين يذهب الطالب حين ينقر الإشعار
@@ -71,9 +72,12 @@ class PushRouter {
       final Scholarship? sch = await ScholarshipRepository().byId(id);
       // ⚠️ المنحة قد تكون حُذفت أو أُخفيت بعد إرسال الإشعار — نفتح القائمة
       //    بدل شاشة تفاصيل فارغة.
-      _push(nav, sch == null
-          ? const ScholarshipsScreen()
-          : ScholarshipDetailScreen(scholarship: sch));
+      _push(
+        nav,
+        sch == null
+            ? const ScholarshipsScreen()
+            : ScholarshipDetailScreen(scholarship: sch),
+      );
       return;
     }
 
@@ -96,7 +100,10 @@ class PushRouter {
         if (UserSession.I.isTeacher) {
           _push(nav, const TeacherHomeScreen(isHome: true));
         } else {
-          _say(nav, '👨‍🏫 مساعد المعلم لحسابات المعلمين — يمكنك التحويل من الإعدادات.');
+          _say(
+            nav,
+            '👨‍🏫 مساعد المعلم لحسابات المعلمين — يمكنك التحويل من الإعدادات.',
+          );
         }
       case AppSection.services:
         // قسمٌ لم يُوصَل بعد — نقولها بدل شاشةٍ فارغة.
@@ -110,7 +117,12 @@ class PushRouter {
   static bool _allowed(NavigatorState nav, String section) {
     final state = AccessRepository.I.of(section);
     if (state.usable) return true;
-    _say(nav, state.message.isNotEmpty ? state.message : '🔒 هذا القسم غير متاح حالياً.');
+    _say(
+      nav,
+      state.message.isNotEmpty
+          ? state.message
+          : '🔒 هذا القسم غير متاح حالياً.',
+    );
     return false;
   }
 
@@ -118,10 +130,6 @@ class PushRouter {
     nav.push(MaterialPageRoute(builder: (_) => page));
   }
 
-  static void _say(NavigatorState nav, String text) {
-    final ctx = nav.context;
-    ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
-      SnackBar(content: Text(text), behavior: SnackBarBehavior.floating),
-    );
-  }
+  static void _say(NavigatorState nav, String text) =>
+      MasarNotice.say(nav.context, text);
 }

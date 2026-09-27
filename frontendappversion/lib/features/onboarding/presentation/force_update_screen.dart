@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/version/version_gate.dart';
+import '../../../core/widgets/masar_notice.dart';
 
 // ==========================================
 // 📦 شاشة التحديث الإلزامي — آخر ما يراه إصدارٌ مكسور
@@ -23,9 +24,11 @@ class ForceUpdateScreen extends StatelessWidget {
     final url = verdict.storeUrl.trim();
     if (url.isEmpty) {
       // ⚠️ رابطٌ غائب من اللوحة ليس سبباً لزرٍّ ميت بلا تفسير.
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("حدّث «مسار» من المتجر الذي حمّلته منه 🙏"),
-      ));
+      MasarNotice.info(
+        context,
+        "حدّث «مسار» من المتجر الذي حمّلته منه.",
+        title: "التحديث",
+      );
       return;
     }
     final uri = Uri.tryParse(url);
@@ -53,8 +56,11 @@ class ForceUpdateScreen extends StatelessWidget {
                       color: AppColors.primary.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.system_update_rounded,
-                        size: 56, color: AppColors.primary),
+                    child: Icon(
+                      Icons.system_update_rounded,
+                      size: 56,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Text(

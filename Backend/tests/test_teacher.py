@@ -21,7 +21,7 @@ from core import quota as q
 
 @pytest.fixture()
 def client(no_real_api_calls):
-    rl._buckets.clear()
+    rl.reset()
     q.reset_memory()
     ta.reset_cache()
     return TestClient(api.app)
@@ -452,3 +452,41 @@ def test_admin_errors_reach_the_panel_in_arabic(client, monkeypatch):
                     headers={"X-Admin-Key": "k"})
     assert r.status_code == 400
     assert "زرّ توليد" in r.json()["error"]
+
+
+# ══════════════ 🔒 بلا درسٍ لا يذهب شيءٌ من المنهج ══════════════
+# 🎯 سؤالُ المالك (٢٠٢٦-٠٩-٢٤): «في اسأل المساعد لما نختار وحدة بس… هل
+#    الوحدة كلها تروح للمودل؟ إذا كان تروح هذا كارثة — إذا ما اختار شي ما
+#    يروح أي شي». فيُلتقط ما يصل الموديلَ حرفاً ويُفتَّش.
+
+def _captured_messages(monkeypatch, **over):
+    from models import TeacherAskRequest
+    seen = {}
+
+    async def fake_complete(client, *, model, messages, **kw):
+        seen["messages"] = messages
+        return "ok"
+
+    monkeypatch.setattr(ta.streaming, "complete", fake_complete)
+    req = TeacherAskRequest(**_body(**over))
+    asyncio.run(ta.ask(req, {"gemini": object(), "deepseek": object(),
+                             "openai": object()}))
+    return "\n".join(m["content"] for m in seen["messages"])
+
+
+def test_ask_with_unit_only_sends_nothing_from_the_curriculum(monkeypatch):
+    sent = _captured_messages(monkeypatch, tool="ask", generate=False,
+                              unit_name="الفيزياء الذرية", lesson_name="",
+                              content="كيف أشرح هذا للطلاب؟")
+    # لا اسمُ الوحدة ولا شيءٌ من نصّ دروسها
+    assert "الفيزياء الذرية" not in sent
+    assert "بوهر" not in sent
+    assert "نصّ_الدرس_من_الكتاب" not in sent
+    assert "لا يوجد نصّ درس مرفق" in sent
+
+
+def test_ask_with_a_lesson_sends_that_lesson_only(monkeypatch):
+    sent = _captured_messages(monkeypatch, tool="ask", generate=False,
+                              content="كيف أشرح هذا للطلاب؟")
+    assert "نظرية بوهر" in sent
+    assert "نصّ_الدرس_من_الكتاب" in sent

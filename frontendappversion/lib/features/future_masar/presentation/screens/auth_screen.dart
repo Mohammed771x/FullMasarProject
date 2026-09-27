@@ -11,6 +11,7 @@ import '../../../auth/presentation/forgot_password_screen.dart';
 import '../../../auth/presentation/signup_flow.dart';
 import '../../../auth/presentation/verify_email_screen.dart';
 import '../../../auth/presentation/widgets/auth_kit.dart';
+import '../../../../core/widgets/masar_character.dart';
 import 'onboarding_screen.dart';
 
 // ==========================================
@@ -24,7 +25,7 @@ import 'onboarding_screen.dart';
 //    | العنصر | الملف | هنا |
 //    |---|---|---|
 //    | زرّ الرجوع | 30 | حشوة `AuthScaffold` العليا |
-//    | الروبوت | 129.5 · عرض **132** | `AuthSlack(59.5)` ثم `MasarRobot(132)` |
+//    | الروبوت | 129.5 · عرض **132** | `AuthSlack(59.5)` ثم `AuthRobot(login)` — صار 96×122 بالشخصية المعمَّمة |
 //    | العنوان (حبر) | 249 | |
 //    | الوصف (حبر) | 281.5 | |
 //    | عنوان «البريد» (حبر) | 353.5 | `AuthSlack(51)` |
@@ -293,7 +294,9 @@ class _AuthScreenState extends State<AuthScreen> {
         //    فعلى الأجهزة الأطول يتمدّد الفائضُ فيهما كما كان تماماً،
         //    وعلى القصيرة تنكمشان بدل أن يُقطع آخرُ الشاشة.
         const AuthSlack(20),
-        const AuthRobot(132),
+        // 🧕 وضعيةُ «تسجيل دخول» في Figma: جوّالٌ بنموذج الدخول (~96×129 مقيساً
+        //    بدقّة ٢٫٦pt للبكسل). 112 لا 122: بها تسع الشاشةُ 874 بلا تمرير.
+        const AuthRobot(MasarCharacter.login, height: 112),
         const SizedBox(height: 4),
         AuthHeading(
           title: "تسجيل الدخول",

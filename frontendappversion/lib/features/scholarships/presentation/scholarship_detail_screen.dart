@@ -11,6 +11,7 @@ import '../data/models/scholarship.dart';
 import '../data/scholarship_repository.dart';
 import 'scholarship_chat_screen.dart';
 import 'widgets/scholarship_ui.dart';
+import '../../../core/widgets/masar_notice.dart';
 
 // ==========================================
 // 🏆 تفاصيل المنحة
@@ -35,7 +36,8 @@ class ScholarshipDetailScreen extends StatefulWidget {
   const ScholarshipDetailScreen({super.key, required this.scholarship});
 
   @override
-  State<ScholarshipDetailScreen> createState() => _ScholarshipDetailScreenState();
+  State<ScholarshipDetailScreen> createState() =>
+      _ScholarshipDetailScreenState();
 }
 
 class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
@@ -71,7 +73,8 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
     final s = scholarship;
     return [
       const _Tab("نبذة", _TabKind.about),
-      if (s.requirements.isNotEmpty) const _Tab("الشروط", _TabKind.requirements),
+      if (s.requirements.isNotEmpty)
+        const _Tab("الشروط", _TabKind.requirements),
       if (s.documents.isNotEmpty) const _Tab("الوثائق", _TabKind.documents),
       const _Tab("المواعيد", _TabKind.dates),
       if (s.howToApply.isNotEmpty) const _Tab("التقديم", _TabKind.apply),
@@ -111,7 +114,11 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
 
     final content = Padding(
       padding: EdgeInsets.fromLTRB(
-          SchMetrics.margin, top + 10, SchMetrics.margin, 18),
+        SchMetrics.margin,
+        top + 10,
+        SchMetrics.margin,
+        18,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -141,21 +148,29 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
           // 🚫 لا شعار هنا: الغلاف **هو** هوية المنحة داخل شاشتها، وشعارٌ
           //    فوقه يزاحمه ويقطع الصورة من نصفها. الشعار مكانه كرت القائمة
           //    — قبل الدخول — حيث لا غلاف يعرّف بالمنحة.
-          Text(s.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
+          Text(
+            s.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
           if (s.shortDesc.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(s.shortDesc,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 12,
-                    height: 1.5,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withValues(alpha: 0.92))),
+            Text(
+              s.shortDesc,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.92),
+              ),
+            ),
           ],
         ],
       ),
@@ -163,20 +178,26 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
 
     final decoration = BoxDecoration(
       gradient: LinearGradient(
-          colors: s.colors, begin: Alignment.topRight, end: Alignment.bottomLeft),
+        colors: s.colors,
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+      ),
       borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
+        bottomLeft: Radius.circular(24),
+        bottomRight: Radius.circular(24),
+      ),
     );
 
     // الأولوية للغلاف المرفوع من اللوحة، ثم رابط خارجي، ثم الرأس المتدرّج.
     final Widget? background = _cover != null
         ? Image.memory(_cover!, fit: BoxFit.cover)
         : (s.coverUrl.isNotEmpty
-            ? CachedNetworkImage(
-                imageUrl: s.coverUrl,
-                fit: BoxFit.cover,
-                errorWidget: (_, _, _) => const SizedBox.shrink())
-            : null);
+              ? CachedNetworkImage(
+                  imageUrl: s.coverUrl,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, _, _) => const SizedBox.shrink(),
+                )
+              : null);
 
     return Container(
       height: top + SchMetrics.heroHeight,
@@ -233,31 +254,35 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
     final deadline = switch (s.status) {
       SchStatus.closed => "انتهى التقديم",
       SchStatus.soon => "لم يُفتح بعد",
-      SchStatus.open => days == null
-          ? "بلا موعد إغلاق"
-          : days == 0
-              ? "آخر يوم للتقديم"
-              : "باقٍ $days يوماً",
+      SchStatus.open =>
+        days == null
+            ? "بلا موعد إغلاق"
+            : days == 0
+            ? "آخر يوم للتقديم"
+            : "باقٍ $days يوماً",
     };
     final tags = <Widget>[
       SchTag(
-          label: s.statusText,
-          icon: s.status == SchStatus.open ? PI.checkCircle : PI.clock,
-          fill: AppColors.schBlueFill,
-          ink: AppColors.schBlueInk,
-          center: true),
+        label: s.statusText,
+        icon: s.status == SchStatus.open ? PI.checkCircle : PI.clock,
+        fill: AppColors.schBlueFill,
+        ink: AppColors.schBlueInk,
+        center: true,
+      ),
       SchTag(
-          label: s.isFullyFunded ? "ممولة بالكامل" : "تمويل جزئي",
-          icon: PI.shieldCheck,
-          fill: AppColors.schGreenFill,
-          ink: AppColors.schGreenInk,
-          center: true),
+        label: s.isFullyFunded ? "ممولة بالكامل" : "تمويل جزئي",
+        icon: PI.shieldCheck,
+        fill: AppColors.schGreenFill,
+        ink: AppColors.schGreenInk,
+        center: true,
+      ),
       SchTag(
-          label: deadline,
-          icon: PI.clock,
-          fill: AppColors.schRedFill,
-          ink: AppColors.schRedInk,
-          center: true),
+        label: deadline,
+        icon: PI.clock,
+        fill: AppColors.schRedFill,
+        ink: AppColors.schRedInk,
+        center: true,
+      ),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: SchMetrics.margin),
@@ -305,13 +330,21 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
       case _TabKind.dates:
         return _datesTab(s);
       case _TabKind.apply:
-        return _listTab(s.howToApply, PI.listNumbers,
-            numbered: true, footer: s.website.isEmpty ? null : _siteCard(context, s));
+        return _listTab(
+          s.howToApply,
+          PI.listNumbers,
+          numbered: true,
+          footer: s.website.isEmpty ? null : _siteCard(context, s),
+        );
     }
   }
 
   static const _pagePad = EdgeInsets.fromLTRB(
-      SchMetrics.margin, 0, SchMetrics.margin, 20);
+    SchMetrics.margin,
+    0,
+    SchMetrics.margin,
+    20,
+  );
 
   Widget _aboutTab(Scholarship s) {
     // 📊 المعدّلُ المطلوب: من حقل اللوحة، وإلا فمن الشروط — وهو نفسُ
@@ -325,12 +358,15 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
         if (s.about.isNotEmpty) ...[
           const SchSectionTitle("نبذة عن المنحة"),
           SchTintCard(
-            child: Text(s.about,
-                style: TextStyle(
-                    fontSize: 13,
-                    height: 1.9,
-                    color: AppColors.schTintInk,
-                    fontWeight: FontWeight.w600)),
+            child: Text(
+              s.about,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.9,
+                color: AppColors.schTintInk,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           const SizedBox(height: 22),
         ],
@@ -342,7 +378,9 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _tintRow(
-                  PI.graduationCap, "المراحل: ${s.degreeLevels.join(" · ")}"),
+                PI.graduationCap,
+                "المراحل: ${s.degreeLevels.join(" · ")}",
+              ),
             ),
           if (s.country.isNotEmpty)
             Padding(
@@ -354,10 +392,12 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
         ],
         if (s.benefits.isNotEmpty) ...[
           const SchSectionTitle("ماذا تشمل؟"),
-          ...s.benefits.map((b) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _tintRow(PI.sparkle, stripBullet(b)),
-              )),
+          ...s.benefits.map(
+            (b) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _tintRow(PI.sparkle, stripBullet(b)),
+            ),
+          ),
           const SizedBox(height: 14),
         ],
         if (s.fields.isNotEmpty) ...[
@@ -369,7 +409,9 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
               spacing: 8,
               runSpacing: 8,
               alignment: WrapAlignment.center,
-              children: s.fields.map((f) => _fieldPill(stripBullet(f))).toList(),
+              children: s.fields
+                  .map((f) => _fieldPill(stripBullet(f)))
+                  .toList(),
             ),
           ),
         ],
@@ -398,23 +440,29 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
           if (number != null)
             SizedBox(
               width: 22,
-              child: Text(number,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.schBlueInk)),
+              child: Text(
+                number,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.schBlueInk,
+                ),
+              ),
             )
           else
             Icon(icon.regular, size: 20, color: AppColors.schBlueInk),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(text,
-                style: TextStyle(
-                    fontSize: 13,
-                    height: 1.6,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.schTintInk)),
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.6,
+                fontWeight: FontWeight.w600,
+                color: AppColors.schTintInk,
+              ),
+            ),
           ),
         ],
       ),
@@ -422,38 +470,50 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
   }
 
   Widget _fieldPill(String label) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.schTintInk),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(PI.stack.regular, size: 16, color: AppColors.schBlueInk),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(label,
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.schTintInk)),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    decoration: BoxDecoration(
+      color: AppColors.surfaceWhite,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: AppColors.schTintInk),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(PI.stack.regular, size: 16, color: AppColors.schBlueInk),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.schTintInk,
             ),
-          ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 
-  Widget _listTab(List<String> items, PIcon icon,
-      {bool numbered = false, Widget? footer}) {
+  Widget _listTab(
+    List<String> items,
+    PIcon icon, {
+    bool numbered = false,
+    Widget? footer,
+  }) {
     return ListView(
       padding: _pagePad,
       children: [
-        ...items.asMap().entries.map((e) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _tintRow(icon, stripBullet(e.value),
-                  number: numbered ? "${e.key + 1}" : null),
-            )),
+        ...items.asMap().entries.map(
+          (e) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _tintRow(
+              icon,
+              stripBullet(e.value),
+              number: numbered ? "${e.key + 1}" : null,
+            ),
+          ),
+        ),
         if (footer != null) ...[const SizedBox(height: 10), footer],
       ],
     );
@@ -465,11 +525,14 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
       padding: _pagePad,
       children: [
         if (s.openDate == null && s.closeDate == null)
-          _placeholder("لم تُعلن مواعيد هذه المنحة بعد — تابعنا، ننشرها فور صدورها.")
+          _placeholder(
+            "لم تُعلن مواعيد هذه المنحة بعد — تابعنا، ننشرها فور صدورها.",
+          )
         else ...[
           if (s.openDate != null)
             _dateCard("فتح التقديم", s.openDate!, AppColors.schGreenInk),
-          if (s.openDate != null && s.closeDate != null) const SizedBox(height: 10),
+          if (s.openDate != null && s.closeDate != null)
+            const SizedBox(height: 10),
           if (s.closeDate != null)
             _dateCard("إغلاق التقديم", s.closeDate!, AppColors.schRedInk),
           const SizedBox(height: 10),
@@ -478,8 +541,8 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
             days == null
                 ? "راقب المواعيد جيداً وجهّز ملفك مبكراً — التقديم المبكر يزيد فرصك."
                 : days <= 7
-                    ? "باقٍ $days أيام فقط! جهّز وثائقك اليوم لا غداً."
-                    : "باقٍ $days يوماً على الإغلاق — ابدأ بتجهيز الوثائق من الآن.",
+                ? "باقٍ $days أيام فقط! جهّز وثائقك اليوم لا غداً."
+                : "باقٍ $days يوماً على الإغلاق — ابدأ بتجهيز الوثائق من الآن.",
           ),
         ],
       ],
@@ -488,39 +551,53 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
 
   Widget _dateCard(String label, DateTime d, Color color) {
     return SchCard(
-      child: Row(children: [
-        Container(
+      child: Row(
+        children: [
+          Container(
             width: 44,
             height: 44,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14)),
-            child: Icon(PI.calendar.regular, size: 22, color: color)),
-        const SizedBox(width: 14),
-        Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.schMutedInk,
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: 3),
-          Text("${d.day} / ${d.month} / ${d.year}",
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.inputBarText)),
-        ])),
-      ]),
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(PI.calendar.regular, size: 22, color: color),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.schMutedInk,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  "${d.day} / ${d.month} / ${d.year}",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.inputBarText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _siteCard(BuildContext context, Scholarship s) => SchPrimaryButton(
-        label: "افتح الموقع الرسمي",
-        icon: PI.globe,
-        onTap: () => _openSite(context, s),
-      );
+    label: "افتح الموقع الرسمي",
+    icon: PI.globe,
+    onTap: () => _openSite(context, s),
+  );
 
   Widget _placeholder(String text) => SchEmptyState(icon: PI.clock, text: text);
 
@@ -531,7 +608,11 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-            SchMetrics.margin, 10, SchMetrics.margin, 12),
+          SchMetrics.margin,
+          10,
+          SchMetrics.margin,
+          12,
+        ),
         child: Row(
           children: [
             // ⚠️ RTL: أوّلُ ابنٍ هو الأيمن — وهناك الزرُّ المملوء في التصدير.
@@ -547,9 +628,11 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
                 gradient: AppColors.schCtaGradient,
                 onTap: () async {
                   await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => ScholarshipChatScreen(scholarship: s)));
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ScholarshipChatScreen(scholarship: s),
+                    ),
+                  );
                   // العودة من الشات قد تغيّر عدد المحادثات على الزر.
                   if (mounted) setState(() {});
                 },
@@ -576,16 +659,15 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
   Future<void> _openSite(BuildContext context, Scholarship s) async {
     final raw = s.website.trim();
     final uri = Uri.tryParse(raw.startsWith("http") ? raw : "https://$raw");
-    final ok = uri != null &&
+    final ok =
+        uri != null &&
         await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text("تعذّر فتح الرابط",
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.quizWrong,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ));
+      MasarNotice.info(
+        context,
+        "تعذّر فتح الرابط على هذا الجهاز.",
+        kind: NoticeKind.error,
+      );
     }
   }
 }

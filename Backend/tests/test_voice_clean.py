@@ -12,7 +12,7 @@ from fakes import FakeResp
 
 @pytest.fixture()
 def client(no_real_api_calls):
-    rl._buckets.clear()
+    rl.reset()
     return TestClient(api.app)
 
 

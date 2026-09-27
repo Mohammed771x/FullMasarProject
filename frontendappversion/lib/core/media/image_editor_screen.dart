@@ -8,6 +8,7 @@ import 'package:image_cropper/image_cropper.dart';
 
 import '../services/image_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/masar_notice.dart';
 
 // 📍 يعيش في `core/media` لأن **قسمين** يستعملانه: التعليم ومساعد المنح.
 // ==========================================
@@ -98,11 +99,13 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
     }
     setState(() => _busy = true);
     try {
-      final boundary = _canvasKey.currentContext!.findRenderObject()
-          as RenderRepaintBoundary;
+      final boundary =
+          _canvasKey.currentContext!.findRenderObject()
+              as RenderRepaintBoundary;
       final ui.Image rendered = await boundary.toImage(pixelRatio: 2.0);
-      final ByteData? bytes =
-          await rendered.toByteData(format: ui.ImageByteFormat.png);
+      final ByteData? bytes = await rendered.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
       if (bytes == null) throw Exception();
 
       final edited = await ImageService.I.saveEdited(
@@ -117,12 +120,7 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
 
   void _notify(String m) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(m, style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-      backgroundColor: Colors.orange.shade700,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
+    MasarNotice.say(context, m);
   }
 
   @override
@@ -133,8 +131,10 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text("تعديل الصورة",
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+        title: const Text(
+          "تعديل الصورة",
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
+        ),
         actions: [
           if (_strokes.isNotEmpty) ...[
             IconButton(
@@ -167,10 +167,14 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
                     Positioned.fill(
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onPanStart: (d) => setState(() =>
-                            _strokes.add(_Stroke([d.localPosition], _color, _width))),
-                        onPanUpdate: (d) => setState(() =>
-                            _strokes.last.points.add(d.localPosition)),
+                        onPanStart: (d) => setState(
+                          () => _strokes.add(
+                            _Stroke([d.localPosition], _color, _width),
+                          ),
+                        ),
+                        onPanUpdate: (d) => setState(
+                          () => _strokes.last.points.add(d.localPosition),
+                        ),
                         child: CustomPaint(
                           painter: _StrokePainter(_strokes),
                           size: Size.infinite,
@@ -198,24 +202,28 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
           children: [
             Row(
               children: [
-                ..._palette.map((c) => Padding(
-                      padding: const EdgeInsets.only(left: 10),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _color = c),
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: c,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _color == c ? Colors.white : Colors.transparent,
-                              width: 3,
-                            ),
+                ..._palette.map(
+                  (c) => Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _color = c),
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: c,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: _color == c
+                                ? Colors.white
+                                : Colors.transparent,
+                            width: 3,
                           ),
                         ),
                       ),
-                    )),
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: Slider(
                     value: _width,
@@ -236,7 +244,8 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 onPressed: _busy ? null : _confirm,
                 icon: _busy
@@ -244,11 +253,15 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2.2,
-                            valueColor: AlwaysStoppedAnimation(Colors.white)))
+                          strokeWidth: 2.2,
+                          valueColor: AlwaysStoppedAnimation(Colors.white),
+                        ),
+                      )
                     : const Icon(Icons.check_rounded),
-                label: const Text("تم",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                label: const Text(
+                  "تم",
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                ),
               ),
             ),
           ],

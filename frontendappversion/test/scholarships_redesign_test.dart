@@ -396,7 +396,7 @@ void main() {
       'AppColors.chatBackdrop',   // 🌈 الخلفية المموّجة
       'AppColors.bubbleGradient', // 💬 فقاعة الطالب
       'UserAvatar(radius: 15)',   // 👤 صورة الطالب يمينَ رسالته
-      'MasarRobot(size: 28)',     // 🤖 صورة المساعد يمينَ ردّه
+      'MasarRobotAvatar()',       // 🤖 صورة المساعد يمينَ ردّه (داخل دائرتها)
       '"مسار AI"',                 // 🏷️ اسمُ المتكلّم فوق الردّ
       'AppColors.surfaceWhite',   // ⬜ ردٌّ أبيضُ بحبرٍ أسود
       'AppColors.sendButton',     // 🚀 دائرةُ الإرسال 42

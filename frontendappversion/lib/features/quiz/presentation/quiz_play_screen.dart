@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/fade_in_slide.dart';
 import '../../../core/widgets/masar_brand.dart';
+import '../../../core/widgets/masar_character.dart';
 import '../../../core/widgets/masar_dialog.dart';
 import '../../../core/widgets/masar_markdown.dart';
 import '../../../core/widgets/phosphor.dart';
@@ -136,16 +137,23 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
 
   /// ⏳ **«جارٍ تجهيز أسئلتك»** — وهنا يتحرّك الروبوت.
   ///
-  /// 🎯 طلبُ المالك: «لما جاهز تجهيز أسئلتك، خلّي الروبوت يتحرّك». والحركةُ
-  ///    في [MasarRobotAnimated] فوق الصورة لا داخلها: تبديلُ الشخصية يبقى
-  ///    تبديلَ ملفٍّ كما هو العهد.
+  /// 🎯 طلبُ المالك: «لما جاهز تجهيز أسئلتك، خلّي الروبوت يتحرّك» — ثم
+  ///    (٢٠٢٦-٠٩-٢٧) «هي نفسها روبوت الانتظار حق البريد الإلكتروني».
   Widget _loading() => Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const MasarRobotAnimated(size: 118),
+              // ⏳ روبوتُ الانتظار المعتمد (قرار المالك ٢٠٢٦-٠٩-٢٧): نفسُ
+              //    روبوت «التحقق من البريد» — شريطُه يمتلئ ببطء ثم يرجع.
+              SizedBox(
+                width: 130 * MasarCharacter.waiting.aspect / 0.9,
+                height: 130 / 0.9,
+                child: const MasarCharacterView(
+                  character: MasarCharacter.waiting,
+                ),
+              ),
               const SizedBox(height: 14),
               Text("جارٍ تجهيز أسئلتك…",
                   style: TextStyle(

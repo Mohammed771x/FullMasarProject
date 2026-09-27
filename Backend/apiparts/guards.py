@@ -29,7 +29,7 @@ async def _teacher_guards(req, request: Request):
     if auth_error is not None:
         return None, auth_error
 
-    if not v3_ratelimit.check(request, identity["uid"]):
+    if not v3_ratelimit.check_user(identity["uid"]):
         return None, _json_response(
             {"answer": v3_ratelimit.RATE_LIMIT_MESSAGE}, 429)
 
@@ -69,7 +69,7 @@ async def _scholarship_guards(req, request: Request):
     if auth_error is not None:
         return None, None, auth_error, None
 
-    if not v3_ratelimit.check(request, identity["uid"],
+    if not v3_ratelimit.check_user(identity["uid"],
                               v3_ratelimit.VOICE_LIMIT, v3_ratelimit.VOICE_WINDOW):
         return None, None, _json_response(
             {"answer": v3_ratelimit.RATE_LIMIT_MESSAGE}, 429), None

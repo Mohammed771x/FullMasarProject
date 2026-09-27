@@ -154,8 +154,8 @@ app = FastAPI(title="YE - Pro Student Tutor v2", lifespan=lifespan)
 async def root():
     return {"status": "ok", "message": "Masar Server is alive and running!"}
 
-
-
+from core.body_limit import BodyLimitMiddleware  # 📦 سقف حجم الطلب قبل قراءته — داخل CORS
+app.add_middleware(BodyLimitMiddleware)
 # ══════════════════════════════════════════════════
 # 🌐 CORS — قائمةُ سماحٍ لا نجمة
 # ══════════════════════════════════════════════════
@@ -380,7 +380,8 @@ async def _authenticate(request, req=None):
             {"answer": "⛔ الرجاء تسجيل الدخول أولاً.", "session_active": False}, 401)
 
     try:
-        ident = v3_auth.verify(token)
+        # ⚡ `averify`: لا تنزيلَ للشهادات على حلقة الأحداث ([core/firebase_auth]).
+        ident = await v3_auth.averify(token)
     except v3_auth.AuthError as e:
         return None, _json_response({"answer": str(e), "session_active": False}, 401)
 
@@ -634,8 +635,8 @@ async def _ask_guards(req, request: Request):
     if auth_error is not None:
         return None, "", auth_error
 
-    # 🚦 المفتاح = IP الحقيقي (خلف البروكسي) + هوية المستخدم.
-    if not v3_ratelimit.check(request, identity["uid"]):
+    # 🚦 المفتاح = الهوية الموثَّقة وحدها — الـIP قابلٌ للتزوير ([core/ratelimit]).
+    if not v3_ratelimit.check_user(identity["uid"]):
         return None, "", _json_response(
             {"answer": v3_ratelimit.RATE_LIMIT_MESSAGE, "session_active": False}, 429)
 

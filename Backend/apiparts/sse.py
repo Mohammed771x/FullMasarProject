@@ -42,18 +42,33 @@ def _sse_stream(*, uid: str, request_id: str, sink, runner, image_text: str = ""
     async def _events():
         task = asyncio.create_task(_run())
         streamed_any = False
+        nxt = None
         try:
             # 1️⃣ الأجزاء أولاً بأول، مع نبضةٍ تمنع البروكسيات من قطع الصمت.
+            #
+            # 🔴 **علّة «يقف الشرح في منتصف الكلمة» (المالك 2026-09-24):** كان
+            #    الانتظار `wait_for(drain.__anext__(), 15)`، و`wait_for` **تُلغي**
+            #    ما تنتظره عند انقضاء المهلة — وإلغاءُ مولّدٍ غير متزامن في منتصف
+            #    `await` **يقتله**. فأول صمتٍ من الموديل فوق ١٥ ثانية (شرحٌ طويل ·
+            #    نموذجُ تفكير) كان يُنهي البثّ صامتاً: الموديل يُكمل الشرح كلَّه،
+            #    والطالب يحدّق في نصٍّ متجمّد حتى يصل الجوابُ كاملاً دفعةً واحدة.
+            # ✅ فالجزء التالي **مهمّةٌ واحدة تُنتظر عبر النبضات** لا تُلغى:
+            #    `asyncio.wait` تعود عند المهلة وتترك المهمّة حيّة.
             drain = sink.drain().__aiter__()
             while True:
-                try:
-                    piece = await asyncio.wait_for(
-                        drain.__anext__(), timeout=v3_stream.HEARTBEAT_SECONDS)
-                except StopAsyncIteration:
-                    break
-                except asyncio.TimeoutError:
+                if nxt is None:
+                    nxt = asyncio.ensure_future(drain.__anext__())
+                done, _ = await asyncio.wait(
+                    {nxt}, timeout=v3_stream.HEARTBEAT_SECONDS)
+                if not done:
                     yield v3_stream.HEARTBEAT
                     continue
+                try:
+                    piece = nxt.result()
+                except StopAsyncIteration:
+                    break
+                finally:
+                    nxt = None
                 streamed_any = True
                 yield v3_stream.delta_event(piece)
 
@@ -69,10 +84,14 @@ def _sse_stream(*, uid: str, request_id: str, sink, runner, image_text: str = ""
 
         except asyncio.CancelledError:
             # 🚪 الطالب أغلق الشاشة: نُلغي التوليد بدل أن يُكمل بلا قارئ.
+            if nxt is not None:
+                nxt.cancel()
             task.cancel()
             v3_idem.abandon(uid, request_id)
             raise
         except Exception as e:                       # noqa: BLE001
+            if nxt is not None:
+                nxt.cancel()
             print(f"🔥 خطأ أثناء البثّ: {e}")
             v3_idem.abandon(uid, request_id)
             # ⚠️ ما وصل الطالبَ يبقى معروضاً؛ نُخبره بالانقطاع ولا نمسحه.

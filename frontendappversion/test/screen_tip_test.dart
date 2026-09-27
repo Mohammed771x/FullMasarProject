@@ -1,9 +1,9 @@
 // تلميح الشاشة: يقفز الروبوت من الزاوية أولاً ثم تنفتح فقاعته.
-// ⚠️ لا تستعمل pumpAndSettle هنا: RobotWidget فيه أنيميشن دائم فلا يستقر أبداً.
+// ⚠️ لا تستعمل pumpAndSettle هنا: الشخصية فيها أنيميشن دائم فلا تستقر أبداً.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:ye_student_tutor/core/widgets/robot_widget.dart';
+import 'package:ye_student_tutor/core/widgets/masar_character.dart';
 import 'package:ye_student_tutor/core/widgets/screen_tip.dart';
 
 Future<void> _pumpTip(WidgetTester tester, {required bool anchorTop}) async {
@@ -32,11 +32,17 @@ void main() {
     // قبل انقضاء مهلة الظهور: لا شيء بعد
     await tester.pump(const Duration(milliseconds: 60));
     await tester.pump(const Duration(milliseconds: 200)); // منتصف قفزة الروبوت
-    expect(tester.widget<RobotWidget>(find.byType(RobotWidget)).state, RobotState.wave);
+    // الروبوتُ دخل والفقاعةُ لم تكبر بعد.
+    expect(find.byType(MasarCharacterView), findsOneWidget);
+    double bubbleScale() => tester
+        .widgetList<AnimatedScale>(find.byType(AnimatedScale))
+        .map((w) => w.scale)
+        .reduce((a, b) => a < b ? a : b);
+    expect(bubbleScale(), lessThan(1));
 
-    // بعد انفتاح الفقاعة: الروبوت يتكلّم
+    // ثم تنفتح الفقاعة.
     await tester.pump(const Duration(milliseconds: 600));
-    expect(tester.widget<RobotWidget>(find.byType(RobotWidget)).state, RobotState.talk);
+    expect(bubbleScale(), 1);
   });
 
   testWidgets('الافتراضي: الروبوت أسفل اليمين والفقاعة فوقه', (tester) async {
@@ -45,7 +51,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500)); // لا pumpAndSettle: الروبوت يتحرّك دائماً
 
     final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
-    final robot = tester.getRect(find.byType(RobotWidget));
+    final robot = tester.getRect(find.byType(MasarCharacterView));
     final bubble = tester.getRect(find.text("مساعد مسار"));
 
     expect(robot.center.dx, greaterThan(screen.width / 2)); // يمين
@@ -59,7 +65,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500)); // لا pumpAndSettle: الروبوت يتحرّك دائماً
 
     final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
-    final robot = tester.getRect(find.byType(RobotWidget));
+    final robot = tester.getRect(find.byType(MasarCharacterView));
     final bubble = tester.getRect(find.text("مساعد مسار"));
 
     expect(robot.center.dx, lessThan(screen.width / 2)); // يسار

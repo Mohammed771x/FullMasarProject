@@ -7,7 +7,7 @@ class FakeReq:
         self.client = type("C", (), {"host": ip})()
 
 def setup_function(_):
-    rl._buckets.clear()
+    rl.reset()
 
 def test_allows_under_limit():
     r = FakeReq()
@@ -58,7 +58,7 @@ def test_cheap_reads_do_not_consume_the_ask_budget():
     والأثر مضاعف: كل إرسالٍ ناجح يتبعه تحديثٌ للعدّاد — فكلما استعمل الطالب
     التطبيق اقترب من حظر نفسه.
     """
-    rl._buckets.clear()
+    rl.reset()
     req = FakeReq("1.2.3.4")
 
     # ٣٠ قراءةً رخيصة (ضمن حدّها ١٢٠)
@@ -71,7 +71,7 @@ def test_cheap_reads_do_not_consume_the_ask_budget():
 
 def test_ask_budget_is_still_enforced_within_its_own_bucket():
     """⚠️ الفصل يجب ألّا يُلغي الحدّ نفسه."""
-    rl._buckets.clear()
+    rl.reset()
     req = FakeReq("1.2.3.5")
     for _ in range(rl.ASK_LIMIT):
         assert rl.check(req, "uid-2")
@@ -80,7 +80,7 @@ def test_ask_budget_is_still_enforced_within_its_own_bucket():
 
 def test_identity_still_separates_students_behind_one_ip():
     """🏫 طلاب مدرسةٍ خلف بوابةٍ واحدة لا يحجب بعضهم بعضاً."""
-    rl._buckets.clear()
+    rl.reset()
     req = FakeReq("10.0.0.1")
     for _ in range(rl.ASK_LIMIT):
         rl.check(req, "student-a")

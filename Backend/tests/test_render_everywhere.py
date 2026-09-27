@@ -44,7 +44,7 @@ _MODES = ["شرح", "تلخيص", "سؤال"]
 
 @pytest.fixture()
 def client(no_real_api_calls):
-    rl._buckets.clear()
+    rl.reset()
     return TestClient(api.app)
 
 

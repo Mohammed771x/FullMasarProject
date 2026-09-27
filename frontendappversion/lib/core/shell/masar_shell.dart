@@ -8,6 +8,7 @@ import '../../features/future_masar/presentation/screens/home_tab.dart';
 import '../../features/quiz/presentation/quiz_setup_screen.dart';
 import '../../features/scholarships/presentation/scholarships_screen.dart';
 import 'masar_bottom_nav.dart';
+import '../widgets/masar_notice.dart';
 
 // ==========================================
 // 🏛️ هيكل التطبيق — الأقسام تحت شريطٍ واحد
@@ -60,8 +61,7 @@ class _MasarShellState extends State<MasarShell> {
   //    الرئيسية والاختبارات والمنح — فلا فائدةَ من إبطاء واحدةٍ دون أخرى.)
   String _scope = "";
 
-  String get _currentScope =>
-      "${UserSession.I.grade}|${UserSession.I.track}";
+  String get _currentScope => "${UserSession.I.grade}|${UserSession.I.track}";
 
   @override
   void initState() {
@@ -104,9 +104,9 @@ class _MasarShellState extends State<MasarShell> {
   };
 
   Set<MasarTab> get _locked => {
-        for (final e in _sectionOf.entries)
-          if (!AccessRepository.I.usable(e.value)) e.key,
-      };
+    for (final e in _sectionOf.entries)
+      if (!AccessRepository.I.usable(e.value)) e.key,
+  };
 
   void _onTap(MasarTab tab) {
     if (tab == _tab && tab != MasarTab.tutor) return;
@@ -115,9 +115,11 @@ class _MasarShellState extends State<MasarShell> {
     if (section != null) {
       final state = AccessRepository.I.of(section);
       if (!state.usable) {
-        _snack(state.message.isNotEmpty
-            ? state.message
-            : "🚧 ${_label(tab)} — غير متاح حالياً.");
+        _snack(
+          state.message.isNotEmpty
+              ? state.message
+              : "🚧 ${_label(tab)} — غير متاح حالياً.",
+        );
         return;
       }
     }
@@ -125,9 +127,10 @@ class _MasarShellState extends State<MasarShell> {
     // 🤖 «مسار» ليس تبويباً: يفتح المحادثة **ملء الشاشة** بلا شريط —
     //    هكذا في التصميم، وهي شاشةٌ تحتاج كل بكسل.
     if (tab == MasarTab.tutor) {
-      Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const MainChatScreen()))
-          .then((_) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MainChatScreen()),
+      ).then((_) {
         if (mounted) setState(() {}); // عدّاد المحادثات في الرئيسية
       });
       return;
@@ -146,18 +149,21 @@ class _MasarShellState extends State<MasarShell> {
   }
 
   String _label(MasarTab t) => switch (t) {
-        MasarTab.home => "الرئيسية",
-        MasarTab.quiz => "اختبر نفسك",
-        MasarTab.tutor => "قسم التعليم",
-        MasarTab.scholarships => "المنح",
-        MasarTab.services => "الخدمات",
-      };
+    MasarTab.home => "الرئيسية",
+    MasarTab.quiz => "اختبر نفسك",
+    MasarTab.tutor => "قسم التعليم",
+    MasarTab.scholarships => "المنح",
+    MasarTab.services => "الخدمات",
+  };
 
-  Widget _page(MasarTab tab) => _built.putIfAbsent(tab, () => switch (tab) {
-        MasarTab.quiz => const QuizSetupScreen(),
-        MasarTab.scholarships => const ScholarshipsScreen(),
-        _ => HomeTab(onOpenTab: _onTap),
-      });
+  Widget _page(MasarTab tab) => _built.putIfAbsent(
+    tab,
+    () => switch (tab) {
+      MasarTab.quiz => const QuizSetupScreen(),
+      MasarTab.scholarships => const ScholarshipsScreen(),
+      _ => HomeTab(onOpenTab: _onTap),
+    },
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -186,19 +192,15 @@ class _MasarShellState extends State<MasarShell> {
                   : const SizedBox.shrink(),
             ],
           ),
-          bottomNavigationBar:
-              MasarBottomNav(current: _tab, onTap: _onTap, lockedHint: _locked),
+          bottomNavigationBar: MasarBottomNav(
+            current: _tab,
+            onTap: _onTap,
+            lockedHint: _locked,
+          ),
         ),
       ),
     );
   }
 
-  void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(m,
-            style: const TextStyle(
-                fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.primaryFill,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ));
+  void _snack(String m) => MasarNotice.say(context, m);
 }

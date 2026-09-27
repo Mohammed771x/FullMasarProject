@@ -16,7 +16,7 @@ from core import user_state as us
 
 @pytest.fixture()
 def client(no_real_api_calls):
-    rl._buckets.clear()
+    rl.reset()
     q.reset_memory()
     idem.reset()
     us.reset()
@@ -226,7 +226,7 @@ def test_failed_request_releases_the_lock(no_real_api_calls, monkeypatch):
     """طلبٌ سقط باستثناء يُحرِّر حجزه — وإلا مُنعت الإعادة ثلاث دقائق."""
     idem.reset()
     q.reset_memory()
-    rl._buckets.clear()
+    rl.reset()
 
     async def boom(*a, **k):
         raise RuntimeError("انفجار في المعالج")

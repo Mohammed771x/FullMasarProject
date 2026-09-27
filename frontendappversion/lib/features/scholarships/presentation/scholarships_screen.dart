@@ -14,6 +14,7 @@ import '../data/scholarship_favorites.dart';
 import '../data/scholarship_repository.dart';
 import 'scholarship_detail_screen.dart';
 import 'widgets/scholarship_ui.dart';
+import '../../../core/widgets/masar_notice.dart';
 
 // ==========================================
 // 🎓 قائمة المنح — بيانات حقيقية من الخادم
@@ -105,13 +106,15 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
   List<Scholarship> get _visible {
     final favorites = ScholarshipFavorites.I.ids;
     final list = _all
-        .where((s) => s.matches(_query) && _filter.test(s, favoriteIds: favorites))
+        .where(
+          (s) => s.matches(_query) && _filter.test(s, favoriteIds: favorites),
+        )
         .toList();
     int rank(SchStatus s) => switch (s) {
-          SchStatus.open => 0,
-          SchStatus.soon => 1,
-          SchStatus.closed => 2,
-        };
+      SchStatus.open => 0,
+      SchStatus.soon => 1,
+      SchStatus.closed => 2,
+    };
     list.sort((a, b) {
       final byStatus = rank(a.status).compareTo(rank(b.status));
       if (byStatus != 0) return byStatus;
@@ -136,7 +139,8 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
             ),
             const ScreenTip(
               screenId: "scholarships",
-              text: "تصفّح المنح 🎓 افتح أي منحة لترى شروطها ومواعيدها — "
+              text:
+                  "تصفّح المنح 🎓 افتح أي منحة لترى شروطها ومواعيدها — "
                   "ثم اسأل مساعدها عن أي تفصيل.",
             ),
           ],
@@ -154,7 +158,11 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
     final body = _bodySlivers(list);
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(
-          SchMetrics.margin, 22, SchMetrics.margin, 28),
+        SchMetrics.margin,
+        22,
+        SchMetrics.margin,
+        28,
+      ),
       physics: const AlwaysScrollableScrollPhysics(),
       itemCount: body.length + 1,
       itemBuilder: (_, i) => i == 0 ? _headerBlock() : body[i - 1],
@@ -171,16 +179,19 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
     if (_error != null && _all.isEmpty) {
       return [
         SchEmptyState(
-            icon: PI.wifiSlash,
-            text: _error!,
-            onRetry: () => _load(force: true)),
+          icon: PI.wifiSlash,
+          text: _error!,
+          onRetry: () => _load(force: true),
+        ),
       ];
     }
     if (_all.isEmpty) {
       return [
         SchEmptyState(
           icon: PI.graduationCap,
-          text: _message ?? "لا منح متاحة حالياً 🎓\nنضيفها تباعاً — عد إلينا قريباً.",
+          text:
+              _message ??
+              "لا منح متاحة حالياً 🎓\nنضيفها تباعاً — عد إلينا قريباً.",
           onRetry: () => _load(force: true),
         ),
       ];
@@ -193,7 +204,8 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
         return const [
           SchEmptyState(
             icon: PI.bookmarkSimple,
-            text: "لم تتابع أي منحة بعد ⭐\nاضغط العلامة على أي منحة لتتابعها،\n"
+            text:
+                "لم تتابع أي منحة بعد ⭐\nاضغط العلامة على أي منحة لتتابعها،\n"
                 "وننبّهك قبل إغلاقها.",
           ),
         ];
@@ -311,8 +323,8 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
     final when = days == 0
         ? "تُغلق اليوم"
         : days == 1
-            ? "تُغلق غداً"
-            : "تُغلق بعد $days يوماً";
+        ? "تُغلق غداً"
+        : "تُغلق بعد $days يوماً";
 
     return SchUrgentBanner(
       title: first.name,
@@ -329,8 +341,10 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Center(
-        child: Text("📴 معروضة من نسخة محفوظة — اسحب للتحديث",
-            style: TextStyle(fontSize: 11.5, color: AppColors.schMutedInk)),
+        child: Text(
+          "📴 معروضة من نسخة محفوظة — اسحب للتحديث",
+          style: TextStyle(fontSize: 11.5, color: AppColors.schMutedInk),
+        ),
       ),
     );
   }
@@ -358,14 +372,16 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
             final added = await ScholarshipFavorites.I.toggle(s.id);
             if (!mounted) return;
             setState(() {});
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(SnackBar(
-                duration: const Duration(seconds: 2),
-                content: Text(added
-                    ? "⭐ تتابع «${s.name}» — سننبّهك قبل إغلاقها"
-                    : "أُزيلت «${s.name}» من المتابَعة"),
-              ));
+            MasarNotice.toast(
+              context,
+              // ↔️ اسمُ المنحة معزولٌ اتجاهياً (FSI…PDI): «المنحة التركية -
+              //    Türkiye Scholarships» كان يتبعثر بين السطرين في المحاكي.
+              added
+                  ? "تتابع «\u2068${s.name}\u2069» — سننبّهك قبل إغلاقها"
+                  : "أُزيلت «\u2068${s.name}\u2069» من المتابَعة",
+              icon: PD.star,
+              kind: added ? NoticeKind.success : NoticeKind.info,
+            );
           },
           child: Container(
             width: SchMetrics.bookmark,
@@ -374,7 +390,8 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                  color: on ? AppColors.schSaveFill : AppColors.quizCardBorder),
+                color: on ? AppColors.schSaveFill : AppColors.quizCardBorder,
+              ),
             ),
             child: Icon(
               PI.bookmarkSimple(active: on),
@@ -389,8 +406,12 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
 
   Widget _card(Scholarship s) {
     return SchCard(
-      onTap: () => Navigator.push(context,
-          MaterialPageRoute(builder: (_) => ScholarshipDetailScreen(scholarship: s))),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ScholarshipDetailScreen(scholarship: s),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -403,22 +424,28 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(s.name,
+                    Text(
+                      s.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.headingInk,
+                      ),
+                    ),
+                    if (s.country.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        s.country,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.headingInk)),
-                    if (s.country.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(s.country,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.chipInk)),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.chipInk,
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -434,10 +461,11 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  fontSize: 11,
-                  height: 1.7,
-                  color: AppColors.chipInk,
-                  fontWeight: FontWeight.w600),
+                fontSize: 11,
+                height: 1.7,
+                color: AppColors.chipInk,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
           const SizedBox(height: 12),
@@ -458,9 +486,11 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
                 icon: PI.arrowLeft,
                 height: SchMetrics.smallButtonHeight,
                 onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => ScholarshipDetailScreen(scholarship: s))),
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ScholarshipDetailScreen(scholarship: s),
+                  ),
+                ),
               ),
             ],
           ),
@@ -480,11 +510,12 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
     final deadline = switch (s.status) {
       SchStatus.closed => "مغلق حالياً",
       SchStatus.soon => "يفتح قريباً",
-      SchStatus.open => days == null
-          ? "التقديم مفتوح"
-          : days == 0
-              ? "آخر يوم!"
-              : "باقٍ $days يوماً",
+      SchStatus.open =>
+        days == null
+            ? "التقديم مفتوح"
+            : days == 0
+            ? "آخر يوم!"
+            : "باقٍ $days يوماً",
     };
     return [
       SchTag(
@@ -528,16 +559,18 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
           TextSpan(
             text: "المعدل المطلوب: ",
             style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: AppColors.schMutedInk),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.schMutedInk,
+            ),
           ),
           TextSpan(
             text: gpa ?? "غير محدّد",
             style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                color: AppColors.inputBarText),
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              color: AppColors.inputBarText,
+            ),
           ),
         ],
       ),
@@ -557,7 +590,9 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
         width: SchMetrics.flag,
         height: SchMetrics.flag,
         decoration: box,
-        child: Center(child: Text(s.badge, style: const TextStyle(fontSize: 18))),
+        child: Center(
+          child: Text(s.badge, style: const TextStyle(fontSize: 18)),
+        ),
       );
     }
     return Container(
@@ -583,7 +618,11 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
     if (action != "scholarship" || value.isEmpty) return;
     final match = _all.where((s) => s.id == value).toList();
     if (match.isEmpty || !mounted) return;
-    await Navigator.push(context,
-        MaterialPageRoute(builder: (_) => ScholarshipDetailScreen(scholarship: match.first)));
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ScholarshipDetailScreen(scholarship: match.first),
+      ),
+    );
   }
 }

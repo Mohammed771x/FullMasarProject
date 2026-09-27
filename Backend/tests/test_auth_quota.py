@@ -18,7 +18,7 @@ _REAL_VERIFY = fa.verify
 
 @pytest.fixture()
 def client(no_real_api_calls):
-    rl._buckets.clear()
+    rl.reset()
     q.reset_memory()
     return TestClient(api.app)
 

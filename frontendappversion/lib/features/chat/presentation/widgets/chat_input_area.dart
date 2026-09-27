@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/masar_notice.dart';
 import '../../../../core/widgets/phosphor.dart';
 import '../../../../core/services/image_service.dart';
 import '../controllers/chat_controller.dart';
@@ -46,19 +47,27 @@ class ChatInputArea extends StatelessWidget {
     // 🚦 **وقبل كل شيء: البوّابة** ([ChatController.sendBlocker]). نصٌّ مكتوبٌ
     //    بلا درسٍ مختار لا يُضيء الزرّ — الطلبُ محكومٌ بالرفض قبل أن يُرسل.
     final String? blocker = controller.sendBlocker;
-    final bool canSend = blocker == null &&
+    final bool canSend =
+        blocker == null &&
         (controller.inputController.text.trim().isNotEmpty ||
             controller.canSendWithoutText ||
             controller.hasAttachments) &&
         !controller.isBusy;
-    final bool isGenerating = controller.isBusy || (controller.messages.isNotEmpty && controller.messages.last["animating"] == true);
+    final bool isGenerating =
+        controller.isBusy ||
+        (controller.messages.isNotEmpty &&
+            controller.messages.last["animating"] == true);
 
     return Container(
       // ⌨️ **ملاصقٌ للكيبورد وقت الكتابة** (ملاحظة المالك): حشوةٌ سفليّةٌ
       //    24 تحت الحقل معناها شريطٌ يطفو بعيداً فوق الكيبورد ويأكل سطراً
       //    من المحادثة بلا فائدة. وهي 24 حين لا كيبورد (مساحةُ الإبهام).
-      padding: EdgeInsets.fromLTRB(16, keyboardOpen ? 6 : 12, 16,
-          keyboardOpen ? 6 : 24),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        keyboardOpen ? 6 : 12,
+        16,
+        keyboardOpen ? 6 : 24,
+      ),
       color: Colors.transparent,
       child: SafeArea(
         top: false,
@@ -86,7 +95,9 @@ class ChatInputArea extends StatelessWidget {
                   alignment: Alignment.centerRight,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: List.generate(controller.attachedImages.length, (i) {
+                    children: List.generate(controller.attachedImages.length, (
+                      i,
+                    ) {
                       final img = controller.attachedImages[i];
                       return Padding(
                         padding: const EdgeInsets.only(left: 10),
@@ -101,45 +112,68 @@ class ChatInputArea extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(14),
                                 child: Image.file(
                                   File(img.path),
-                                  width: 72, height: 72, fit: BoxFit.cover,
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.cover,
                                   errorBuilder: (_, _, _) => Container(
-                                    width: 72, height: 72, color: AppColors.softSurface,
-                                    child: Icon(PI.imageBroken.regular,
-                                        color: AppColors.textSecondary),
+                                    width: 72,
+                                    height: 72,
+                                    color: AppColors.softSurface,
+                                    child: Icon(
+                                      PI.imageBroken.regular,
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                             // شارة «عدّل»
                             Positioned(
-                              bottom: 0, right: 0, left: 0,
+                              bottom: 0,
+                              right: 0,
+                              left: 0,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.45),
                                   borderRadius: const BorderRadius.vertical(
-                                      bottom: Radius.circular(14)),
+                                    bottom: Radius.circular(14),
+                                  ),
                                 ),
-                                child: const Text("عدّل",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: Colors.white,
-                                        fontSize: 9.5, fontWeight: FontWeight.w900)),
+                                child: const Text(
+                                  "عدّل",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
                               ),
                             ),
                             Positioned(
-                              top: -6, left: -6,
+                              top: -6,
+                              left: -6,
                               child: InkWell(
                                 onTap: () => controller.removeAttachedImage(i),
                                 borderRadius: BorderRadius.circular(20),
                                 child: Container(
                                   padding: const EdgeInsets.all(3),
                                   decoration: BoxDecoration(
-                                    color: AppColors.error500, shape: BoxShape.circle,
+                                    color: AppColors.error500,
+                                    shape: BoxShape.circle,
                                     border: Border.all(
-                                        color: AppColors.surfaceWhite, width: 2),
+                                      color: AppColors.surfaceWhite,
+                                      width: 2,
+                                    ),
                                   ),
-                                  child: Icon(PI.x.bold,
-                                      color: Colors.white, size: 13),
+                                  child: Icon(
+                                    PI.x.bold,
+                                    color: Colors.white,
+                                    size: 13,
+                                  ),
                                 ),
                               ),
                             ),
@@ -180,8 +214,10 @@ class ChatInputArea extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // 📷 الكاميرا — تختفي عند بلوغ الحدّ الأقصى للمرفقات.
-                    if (!isGenerating && controller.canAttachMore)
+                    // 📷 الكاميرا — **تبقى** عند بلوغ الحدّ، ولمسُها يقول
+                    //    «وصلت الحدّ الأقصى» (أمرُ المالك ٢٠٢٦-٠٩-٢٤: كانت
+                    //    تختفي فيظنّ الطالبُ أن الزرَّ تعطّل).
+                    if (!isGenerating)
                       _RoundIcon(
                         icon: PI.camera.regular,
                         size: 36,
@@ -216,7 +252,8 @@ class ChatInputArea extends StatelessWidget {
                         // ⌨️ يبقى مفتوحاً أثناء البثّ: الطالب يُحضّر سؤاله
                         //    التالي وهو يقرأ. المنعُ على **الإرسال** وحده.
                         enabled:
-                            !controller.isLoading || controller.messages.isEmpty,
+                            !controller.isLoading ||
+                            controller.messages.isEmpty,
                         minLines: 1,
                         maxLines: 4,
                         onChanged: (_) => controller.refresh(),
@@ -228,9 +265,10 @@ class ChatInputArea extends StatelessWidget {
                         //    تكبير. والتلميحُ بالمقاس نفسِه كي لا يقفز
                         //    السطرُ حين يبدأ الطالبُ الكتابة.
                         style: TextStyle(
-                            fontSize: kInputFontSize,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.inputBarText),
+                          fontSize: kInputFontSize,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.inputBarText,
+                        ),
                         decoration: InputDecoration(
                           isDense: true,
                           // 🩹 **بلا تعبئة.** سمةُ التطبيق العامة
@@ -244,21 +282,24 @@ class ChatInputArea extends StatelessWidget {
                           hintText: controller.isCleaningVoice
                               ? "✨ جارٍ ترتيب النص..."
                               : (blocker != null
-                                  ? "$blocker ☝️"
-                                  : controller.awaitingTeacherConcept
-                                      // 💡 التبسيطُ: أولُ رسالةٍ هي المفهوم.
-                                      ? "اكتب المفهوم الذي تريد تبسيطه..."
-                                      : "اسأل مسار أو اكتب مسألتك هنا..."),
+                                    ? "$blocker ☝️"
+                                    : controller.awaitingTeacherConcept
+                                    // 💡 التبسيطُ: أولُ رسالةٍ هي المفهوم.
+                                    ? "اكتب المفهوم الذي تريد تبسيطه..."
+                                    : "اسأل مسار أو اكتب مسألتك هنا..."),
                           hintMaxLines: 1,
                           hintStyle: TextStyle(
-                              fontSize: kInputFontSize,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.inputBarIcon),
+                            fontSize: kInputFontSize,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.inputBarIcon,
+                          ),
                           // 📏 **9 لا 12**: السطرُ صار أطول (١٦×١٫٦ ≈ ٢٦)،
                           //    فتبقى مراكزُ الحقل والكاميرا ودائرة الإرسال
                           //    على خطٍّ واحد (٩ + ١٣ = ٢٢ ≈ نصفُ ٤٢ + هامش).
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: kInputVPad),
+                            horizontal: 10,
+                            vertical: kInputVPad,
+                          ),
                           // ⚠️ **الأربعةُ جميعاً.** `border` وحدها لا تكفي:
                           //    فلاتر تأخذ `enabledBorder` و`focusedBorder`
                           //    من سمة التطبيق حين لا تُذكر هنا — فبقي إطارٌ
@@ -284,9 +325,11 @@ class ChatInputArea extends StatelessWidget {
                                   width: 19,
                                   height: 19,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2.2,
-                                      valueColor: AlwaysStoppedAnimation(
-                                          AppColors.primary)),
+                                    strokeWidth: 2.2,
+                                    valueColor: AlwaysStoppedAnimation(
+                                      AppColors.primary,
+                                    ),
+                                  ),
                                 ),
                               ),
                             )
@@ -323,8 +366,9 @@ class ChatInputArea extends StatelessWidget {
                             //    «لا شيء لِيُرسَل» كما تخيّلها.
                             color: isGenerating
                                 ? AppColors.error500
-                                : AppColors.sendButton
-                                    .withValues(alpha: canSend ? 1 : 0.4),
+                                : AppColors.sendButton.withValues(
+                                    alpha: canSend ? 1 : 0.4,
+                                  ),
                             shape: BoxShape.circle,
                           ),
                           // ↔️ **يشير يساراً.** خطُّ Phosphor لا يُعكس مع
@@ -353,7 +397,11 @@ class ChatInputArea extends StatelessWidget {
   }
 
   /// يفتح محرّر الصورة (قص + رسم) ويستبدل المرفق بالنتيجة.
-  Future<void> _editImage(BuildContext context, int index, PickedImage img) async {
+  Future<void> _editImage(
+    BuildContext context,
+    int index,
+    PickedImage img,
+  ) async {
     final edited = await Navigator.push<PickedImage>(
       context,
       MaterialPageRoute(builder: (_) => ImageEditorScreen(image: img)),
@@ -376,18 +424,21 @@ class ChatInputArea extends StatelessWidget {
       context: context,
       backgroundColor: AppColors.surfaceWhite,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 8),
             Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: AppColors.softSurface,
-                    borderRadius: BorderRadius.circular(4))),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.softSurface,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
             const SizedBox(height: 14),
             _modeTile(
               ctx,
@@ -395,7 +446,8 @@ class ChatInputArea extends StatelessWidget {
               title: "عادي",
               subtitle: "إجاباتٌ سريعة — الأنسبُ للشرح والفهم",
               selected: !controller.thinking,
-              onTap: () => controller.thinking ? controller.toggleThinking() : null,
+              onTap: () =>
+                  controller.thinking ? controller.toggleThinking() : null,
             ),
             _modeTile(
               ctx,
@@ -403,7 +455,8 @@ class ChatInputArea extends StatelessWidget {
               title: "تفكير",
               subtitle: "يتمهّل ليحلّ المسائل المعقّدة — أدقُّ وأبطأُ قليلاً",
               selected: controller.thinking,
-              onTap: () => controller.thinking ? null : controller.toggleThinking(),
+              onTap: () =>
+                  controller.thinking ? null : controller.toggleThinking(),
             ),
             const SizedBox(height: 10),
           ],
@@ -412,21 +465,30 @@ class ChatInputArea extends StatelessWidget {
     );
   }
 
-  Widget _modeTile(BuildContext ctx,
-      {required IconData icon,
-      required String title,
-      required String subtitle,
-      required bool selected,
-      required VoidCallback onTap}) {
+  Widget _modeTile(
+    BuildContext ctx, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
     return ListTile(
-      leading: Icon(icon,
-          color: selected ? AppColors.primary : AppColors.inputBarIcon),
-      title: Text(title,
-          style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: selected ? AppColors.primary : AppColors.textPrimary)),
-      subtitle: Text(subtitle,
-          style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
+      leading: Icon(
+        icon,
+        color: selected ? AppColors.primary : AppColors.inputBarIcon,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: selected ? AppColors.primary : AppColors.textPrimary,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+      ),
       // ✅ علامةُ المختار — فالورقةُ تُقرأ بلمحة، ولا يُبدَّل وضعٌ بالخطأ
       trailing: selected
           ? Icon(PI.check.bold, size: 18, color: AppColors.primary)
@@ -439,24 +501,36 @@ class ChatInputArea extends StatelessWidget {
   }
 
   void _pickImage(BuildContext context) {
+    if (!controller.canAttachMore) {
+      MasarNotice.imageLimit(context, ChatController.maxImages);
+      return;
+    }
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surfaceWhite,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 8),
-            Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: AppColors.softSurface,
-                    borderRadius: BorderRadius.circular(4))),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.softSurface,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
             const SizedBox(height: 14),
             ListTile(
               leading: Icon(PI.camera.regular, color: AppColors.primary),
-              title: const Text("التقاط صورة",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              title: const Text(
+                "التقاط صورة",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 controller.attachImage(fromCamera: true);
@@ -464,8 +538,10 @@ class ChatInputArea extends StatelessWidget {
             ),
             ListTile(
               leading: Icon(PI.images.regular, color: AppColors.secondary),
-              title: const Text("اختيار من المعرض",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              title: const Text(
+                "اختيار من المعرض",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 controller.attachImage(fromCamera: false);
@@ -477,63 +553,76 @@ class ChatInputArea extends StatelessWidget {
       ),
     );
   }
+
   // ══════════════════════════════════════════════════
   // 📄 شريط الصفحات المختارة
   // ══════════════════════════════════════════════════
   Widget _selectedPagesBar(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.end,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.softSurface,
-                  borderRadius: BorderRadius.circular(14),
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Align(
+      alignment: Alignment.centerRight,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.end,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.softSurface,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(PI.bookOpen.regular, size: 15, color: AppColors.primary),
+                const SizedBox(width: 5),
+                Text(
+                  "الصفحات",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(PI.bookOpen.regular, size: 15, color: AppColors.primary),
-                  const SizedBox(width: 5),
-                  Text("الصفحات",
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textSecondary)),
-                ]),
-              ),
-              ...controller.selectedPages.map((p) => InputChip(
-                    label: Text("$p",
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.white)),
-                    backgroundColor: AppColors.primary,
-                    // ⚠️ الحذف بضغطةٍ واحدة على الشريحة نفسها: الطالب يرفعها
-                    //    وهو ينظر إليها، فلا يعود إلى الإعدادات ليلغي اختياراً.
-                    deleteIcon: Icon(PI.x.bold,
-                        size: 16, color: Colors.white),
-                    onDeleted: () => controller.removePage(p),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        side: BorderSide.none),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  )),
-            ],
+              ],
+            ),
           ),
-        ),
-      );
-
+          ...controller.selectedPages.map(
+            (p) => InputChip(
+              label: Text(
+                "$p",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              backgroundColor: AppColors.primary,
+              // ⚠️ الحذف بضغطةٍ واحدة على الشريحة نفسها: الطالب يرفعها
+              //    وهو ينظر إليها، فلا يعود إلى الإعدادات ليلغي اختياراً.
+              deleteIcon: Icon(PI.x.bold, size: 16, color: Colors.white),
+              onDeleted: () => controller.removePage(p),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide.none,
+              ),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// أيقونةٌ دائرية داخل شريط الكتابة — 36×36 كما في التصميم.
 class _RoundIcon extends StatelessWidget {
-  const _RoundIcon(
-      {required this.icon,
-      required this.size,
-      required this.color,
-      required this.onTap});
+  const _RoundIcon({
+    required this.icon,
+    required this.size,
+    required this.color,
+    required this.onTap,
+  });
 
   final IconData icon;
   final double size;
@@ -543,15 +632,15 @@ class _RoundIcon extends StatelessWidget {
   /// 📐 **الارتفاع [kInputSideBox] لا [size]** — انظر شرحَ الثابت.
   @override
   Widget build(BuildContext context) => Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: size,
-            height: kInputSideBox,
-            child: Icon(icon, size: 20, color: color),
-          ),
-        ),
-      );
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: SizedBox(
+        width: size,
+        height: kInputSideBox,
+        child: Icon(icon, size: 20, color: color),
+      ),
+    ),
+  );
 }

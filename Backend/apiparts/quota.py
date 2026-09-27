@@ -30,7 +30,7 @@ async def my_quota(request: Request):
     ident, denied = _identity_or_401(request)
     if denied is not None:
         return denied
-    if not v3_ratelimit.check(request, ident.get("uid", ""),
+    if not v3_ratelimit.check_user(ident.get("uid", ""),
                               v3_ratelimit.CONTENT_LIMIT, v3_ratelimit.CONTENT_WINDOW):
         return _json_response({"error": "⏳ محاولات كثيرة. انتظر قليلاً."}, 429)
     return _json_response(

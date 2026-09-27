@@ -70,6 +70,12 @@ enum MasarRobotPose {
   fly,
 }
 
+/// 🧕 **(٢٠٢٦-٠٩-٢٦) بعمامة الهوية** — الملفّان استُبدلا والحركاتُ كما هي:
+///    `robot_face` = رأسُ «هلا» مستقيماً (960×829) · `robot_fly` = **رسمُ المصمّم
+///    نفسُه** (الرأس والشاشة والدوّامة والبلّورات) وعمامةُ «هلا» وحدها مركّبةٌ
+///    على حافّة عمامته بتحويلٍ ثلاثيّ النقاط (936×960،
+///    `design/characters/tools/turban_swap.py`). المالك: «نفس تصميم فيجما
+///    بالضبط، اللهم العمامة». القديمان في `legacy_v1/brand/`.
 class MasarRobot extends StatelessWidget {
   const MasarRobot({super.key, this.size = 137, this.pose = MasarRobotPose.face});
 
@@ -89,6 +95,19 @@ class MasarRobot extends StatelessWidget {
         errorBuilder: (_, _, _) => Icon(Icons.smart_toy_rounded,
             size: size * 0.7, color: AppColors.primary),
       );
+}
+
+/// 💬 صورةُ الروبوت بجانب ردِّه في المحادثة — **الوجهُ وحده، بلا دائرة**.
+///
+/// 🔴 المالك (٢٠٢٦-٠٩-٢٧): بعد عمامة الهوية «صار الروبوت أكبر من الدائرة»، ثم لمّا
+///    صُغِّر داخلها: «صغُر… خلّيه بدون دائرة وراه، بس الوجه». فالعمامةُ هي الحافّة.
+class MasarRobotAvatar extends StatelessWidget {
+  const MasarRobotAvatar({super.key, this.size = 32});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => MasarRobot(size: size);
 }
 
 // ==========================================

@@ -20,8 +20,10 @@ import '../../../core/widgets/streaming_text.dart';
 import '../../../core/widgets/voice_recording_bar.dart';
 import '../../../core/widgets/typing_indicator.dart';
 import '../../../core/widgets/masar_brand.dart';
+import '../../../core/widgets/masar_character.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../../core/widgets/phosphor.dart';
+import '../../../core/widgets/masar_notice.dart';
 import 'widgets/scholarship_ui.dart';
 import '../data/models/scholarship.dart';
 import '../data/models/scholarship_chat.dart';
@@ -67,7 +69,7 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
   @override
   void dispose() {
     _c.removeListener(_onChange);
-    _c.flush();          // ارفع المؤجَّل قبل الخروج
+    _c.flush(); // ارفع المؤجَّل قبل الخروج
     _c.dispose();
     _input.dispose();
     _scroll.dispose();
@@ -115,8 +117,11 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
   void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
-        _scroll.animateTo(_scroll.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 280), curve: Curves.easeOut);
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOut,
+        );
       }
     });
   }
@@ -151,39 +156,39 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
             ),
           ),
           Column(
-        children: [
-          _appBar(context, s),
-          // ⌨️ نقرةٌ على المحادثة تُنزل الكيبورد — تجربةُ المحادثة واحدةٌ
-          //    في كل الأقسام ([TapToDismissKeyboard]).
-          Expanded(
-            child: TapToDismissKeyboard(
-              child: _c.isEmpty ? _intro(s) : _list(),
-            ),
-          ),
-          if (_c.notice != null) _noticeBar(_c.notice!),
-          // 🔴 **كانت تختفي بعد أول سؤال** — فيرى الطالبُ بابَ «الوثائق»
-          //    مرّةً واحدةً ثم لا يجد المواعيدَ ولا المزايا أبداً
-          //    (علّةُ المالك: «مش باين عندي»). وهي أجوبةٌ فوريّةٌ بلا
-          //    كلفة، فبقاؤها مكسبٌ لا مزاحمة.
-          if (!_c.hasAttachments && !_c.isRecording) _quickPrompts(s),
-          if (_c.hasAttachments && !_c.isRecording) _attachmentStrip(),
-          // 🎙️ **نفس شريط قسم التعليم حرفياً**: موجات · مؤقّت · حذف ·
-          //    إيقاف→نص · إرسال مباشر. تجربة واحدة في القسمين لا اثنتان.
-          if (_c.isRecording)
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-                child: VoiceRecordingBar(
-                  onDelete: () => _c.cancelVoiceRecording(),
-                  onStopToText: _voiceToText,
-                  onSend: _voiceAndSend,
+            children: [
+              _appBar(context, s),
+              // ⌨️ نقرةٌ على المحادثة تُنزل الكيبورد — تجربةُ المحادثة واحدةٌ
+              //    في كل الأقسام ([TapToDismissKeyboard]).
+              Expanded(
+                child: TapToDismissKeyboard(
+                  child: _c.isEmpty ? _intro(s) : _list(),
                 ),
               ),
-            )
-          else
-            _inputBar(),
-        ],
+              if (_c.notice != null) _noticeBar(_c.notice!),
+              // 🔴 **كانت تختفي بعد أول سؤال** — فيرى الطالبُ بابَ «الوثائق»
+              //    مرّةً واحدةً ثم لا يجد المواعيدَ ولا المزايا أبداً
+              //    (علّةُ المالك: «مش باين عندي»). وهي أجوبةٌ فوريّةٌ بلا
+              //    كلفة، فبقاؤها مكسبٌ لا مزاحمة.
+              if (!_c.hasAttachments && !_c.isRecording) _quickPrompts(s),
+              if (_c.hasAttachments && !_c.isRecording) _attachmentStrip(),
+              // 🎙️ **نفس شريط قسم التعليم حرفياً**: موجات · مؤقّت · حذف ·
+              //    إيقاف→نص · إرسال مباشر. تجربة واحدة في القسمين لا اثنتان.
+              if (_c.isRecording)
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+                    child: VoiceRecordingBar(
+                      onDelete: () => _c.cancelVoiceRecording(),
+                      onStopToText: _voiceToText,
+                      onSend: _voiceAndSend,
+                    ),
+                  ),
+                )
+              else
+                _inputBar(),
+            ],
           ),
         ],
       ),
@@ -201,8 +206,11 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
       // 🌈 شفّافٌ كي يمرّ تدرّجُ الخلفية تحته — كما في رأس قسم التعليم.
       color: Colors.transparent,
       padding: EdgeInsets.fromLTRB(
-          SchMetrics.margin, MediaQuery.of(context).padding.top + 10,
-          SchMetrics.margin, 12),
+        SchMetrics.margin,
+        MediaQuery.of(context).padding.top + 10,
+        SchMetrics.margin,
+        12,
+      ),
       child: Row(
         children: [
           // ⚠️ RTL: أوّلُ ابنٍ هو الأيمن — وهناك سهمُ الرجوع في التصدير.
@@ -219,13 +227,16 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("مساعد ${s.name}",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.headingInk)),
+                Text(
+                  "مساعد ${s.name}",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.headingInk,
+                  ),
+                ),
                 const SizedBox(height: 3),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -234,17 +245,22 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                          color: s.statusColor, shape: BoxShape.circle),
+                        color: s.statusColor,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 6),
                     Flexible(
-                      child: Text(_c.isSending ? "يكتب الآن..." : s.statusText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary)),
+                      child: Text(
+                        _c.isSending ? "يكتب الآن..." : s.statusText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -287,6 +303,7 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
       child: Center(
         child: SingleChildScrollView(
           child: ChatWelcomeHero(
+            character: MasarCharacter.guide,
             title: "أهلاً! أنا مساعد ${s.name}",
             body:
                 "اسألني عن الشروط، المواعيد، الوثائق المطلوبة، أو طريقة التقديم.\n"
@@ -302,7 +319,11 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
     return ListView.builder(
       controller: _scroll,
       padding: const EdgeInsets.fromLTRB(
-          SchMetrics.margin, 10, SchMetrics.margin, 10),
+        SchMetrics.margin,
+        10,
+        SchMetrics.margin,
+        10,
+      ),
       itemCount: msgs.length + (_c.isSending ? 1 : 0),
       itemBuilder: (_, i) {
         if (i >= msgs.length) {
@@ -317,8 +338,10 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
           );
         }
         // 🌊 الفقاعة الأخيرة وحدها هي التي تُبثّ — وما قبلها مكتملٌ ثابت.
-        final bubble = _bubble(msgs[i],
-            streaming: _c.isStreaming && i == msgs.length - 1 && !msgs[i].isUser);
+        final bubble = _bubble(
+          msgs[i],
+          streaming: _c.isStreaming && i == msgs.length - 1 && !msgs[i].isUser,
+        );
         final revealed = _revealed == i;
         return KeyedSubtree(
           key: revealed ? _revealKey : null,
@@ -369,15 +392,12 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
               );
               if (!mounted) return;
               setState(() {});
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(SnackBar(
-                  content: Text(
-                      nowSaved ? "⭐ حُفظت في المحفوظات" : "أُزيلت من المحفوظات",
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  behavior: SnackBarBehavior.floating,
-                  backgroundColor: AppColors.textPrimary,
-                ));
+              MasarNotice.toast(
+                context,
+                nowSaved ? "حُفظت في المحفوظات" : "أُزيلت من المحفوظات",
+                icon: PD.star,
+                kind: nowSaved ? NoticeKind.success : NoticeKind.info,
+              );
             },
       borderRadius: BorderRadius.circular(8),
       child: AnimatedContainer(
@@ -390,16 +410,20 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(saved ? PI.star.fill : PI.star.regular,
-                size: 15,
-                color: saved ? AppColors.savedInk : AppColors.textSecondary),
+            Icon(
+              saved ? PI.star.fill : PI.star.regular,
+              size: 15,
+              color: saved ? AppColors.savedInk : AppColors.textSecondary,
+            ),
             const SizedBox(width: 6),
-            Text(saved ? "محفوظة" : "حفظ",
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color:
-                        saved ? AppColors.savedInk : AppColors.textSecondary)),
+            Text(
+              saved ? "محفوظة" : "حفظ",
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: saved ? AppColors.savedInk : AppColors.textSecondary,
+              ),
+            ),
           ],
         ),
       ),
@@ -411,16 +435,20 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
     final inner = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(copied ? PI.check.bold : PI.copy.regular,
-            size: dense ? 13 : 14,
-            color: copied ? AppColors.copiedInk : AppColors.textSecondary),
+        Icon(
+          copied ? PI.check.bold : PI.copy.regular,
+          size: dense ? 13 : 14,
+          color: copied ? AppColors.copiedInk : AppColors.textSecondary,
+        ),
         SizedBox(width: dense ? 4 : 6),
-        Text(copied ? "تم النسخ" : "نسخ",
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color:
-                    copied ? AppColors.copiedInk : AppColors.textSecondary)),
+        Text(
+          copied ? "تم النسخ" : "نسخ",
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: copied ? AppColors.copiedInk : AppColors.textSecondary,
+          ),
+        ),
       ],
     );
     return InkWell(
@@ -429,7 +457,8 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
       child: dense
           ? Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: inner)
+              child: inner,
+            )
           : AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -466,14 +495,9 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
           // ⚠️ `Row` في RTL يضع **أوّلَ ابنٍ في اليمين** — فالصورتان
           //    تُكتبان قبل الفقاعة لا بعدها.
           if (!isUser)
-            Container(
-              margin: const EdgeInsets.only(left: 10, bottom: 8),
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                  color: AppColors.primaryTintSurface,
-                  shape: BoxShape.circle,
-                  boxShadow: AppColors.bubbleShadow),
-              child: const MasarRobot(size: 28),
+            const Padding(
+              padding: EdgeInsets.only(left: 10, bottom: 8),
+              child: MasarRobotAvatar(),
             ),
           if (isUser)
             const Padding(
@@ -484,8 +508,9 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               // ⚠️ التطبيق RTL: `start` = يمين الشاشة و`end` = يسارها.
-              crossAxisAlignment:
-                  isUser ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+              crossAxisAlignment: isUser
+                  ? CrossAxisAlignment.start
+                  : CrossAxisAlignment.end,
               children: [
                 // 📷 الصور **فوق** الفقاعة لا داخلها — كما في قسم التعليم.
                 if (m.hasImages)
@@ -499,15 +524,19 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                     child: Container(
                       margin: EdgeInsets.only(bottom: isUser ? 4 : 12),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 16),
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                       decoration: BoxDecoration(
                         gradient: isUser ? AppColors.bubbleGradient : null,
                         color: isUser ? null : AppColors.surfaceWhite,
                         borderRadius: BorderRadius.only(
                           topLeft: const Radius.circular(24),
                           topRight: const Radius.circular(24),
-                          bottomLeft: Radius.circular(isUser ? 24 : 4),
-                          bottomRight: Radius.circular(isUser ? 4 : 24),
+                          bottomLeft: const Radius.circular(24),
+                          // 🎯 الركنُ الحادّ يميناً للطرفين — عند صورة الطالب وعند الروبوت
+                          // (أمرُ المالك ٠٩-٢٤): فالرسالةُ «تخرج» من صاحبها.
+                          bottomRight: const Radius.circular(4),
                         ),
                         boxShadow: AppColors.bubbleShadow,
                       ),
@@ -518,19 +547,25 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                           if (!isUser)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 8),
-                              child: Text("مسار AI",
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold)),
+                              child: Text(
+                                "مسار AI",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           if (isUser)
-                            Text(m.text,
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: AppSettings.I.answerFontSize,
-                                    height: 1.6,
-                                    fontWeight: FontWeight.w500))
+                            Text(
+                              m.text,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: AppSettings.I.answerFontSize,
+                                height: 1.6,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            )
                           // 🚫 بلا رسّام رياضيات: المنح لا رياضيات فيها،
                           //    ورفعُ «رقم/رقم» إلى كسر يحوّل تاريخاً
                           //    (20/02/2026) إلى كسرٍ مرسوم على الشاشة.
@@ -605,33 +640,37 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
             // 🔍 الضغط يفتح العارض: تكبير · تقليب بين الصورتين · ملء الشاشة.
             onTap: file.existsSync()
                 ? () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => ImageViewerScreen(
-                              paths: paths, initialIndex: index)),
-                    )
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ImageViewerScreen(paths: paths, initialIndex: index),
+                    ),
+                  )
                 : null,
             child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: file.existsSync()
-                ? Image.file(file, width: 132, height: 132, fit: BoxFit.cover)
-                : Container(
-                    width: 132,
-                    height: 132,
-                    color: AppColors.softSurface,
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text("الصورة لم تعد متاحة",
+              borderRadius: BorderRadius.circular(12),
+              child: file.existsSync()
+                  ? Image.file(file, width: 132, height: 132, fit: BoxFit.cover)
+                  : Container(
+                      width: 132,
+                      height: 132,
+                      color: AppColors.softSurface,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(
+                            "الصورة لم تعد متاحة",
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textSecondary)),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-          ),
+            ),
           );
         }).toList(),
       ),
@@ -660,8 +699,12 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                   onTap: () => _editImage(i, img),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(File(img.path),
-                        width: 66, height: 66, fit: BoxFit.cover),
+                    child: Image.file(
+                      File(img.path),
+                      width: 66,
+                      height: 66,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 Positioned(
@@ -673,12 +716,18 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
-                          color: AppColors.textPrimary,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: AppColors.surfaceWhite, width: 1.5)),
-                      child: Icon(PI.x.regular,
-                          size: 13, color: AppColors.surfaceWhite),
+                        color: AppColors.textPrimary,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.surfaceWhite,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        PI.x.regular,
+                        size: 13,
+                        color: AppColors.surfaceWhite,
+                      ),
                     ),
                   ),
                 ),
@@ -736,38 +785,49 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
   /// اختيار مصدر الصورة — كاميرا أو معرض.
   Future<void> _pickImage() async {
     if (!_c.canAttachMore) {
-      _snack("📷 الحد الأقصى ${ScholarshipChatController.maxImages} صور");
+      MasarNotice.imageLimit(context, ScholarshipChatController.maxImages);
       return;
     }
     final fromCamera = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: AppColors.surfaceWhite,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 10),
             Container(
-                width: 38,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: AppColors.softSurface,
-                    borderRadius: BorderRadius.circular(3))),
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.softSurface,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
             const SizedBox(height: 8),
             ListTile(
               leading: Icon(PI.camera.regular, color: AppColors.primary),
-              title: Text("التقاط صورة",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              title: Text(
+                "التقاط صورة",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
               onTap: () => Navigator.pop(sheetContext, true),
             ),
             ListTile(
               leading: Icon(PI.images.regular, color: AppColors.secondary),
-              title: Text("من المعرض",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              title: Text(
+                "من المعرض",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
               onTap: () => Navigator.pop(sheetContext, false),
             ),
             const SizedBox(height: 8),
@@ -780,30 +840,32 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
     if (error != null && mounted) _snack(error);
   }
 
-  void _snack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
-      backgroundColor: AppColors.secondary,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
-  }
+  void _snack(String message) => MasarNotice.say(context, message);
 
   Widget _noticeBar(String text) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(SchMetrics.margin, 0, SchMetrics.margin, 8),
+      margin: const EdgeInsets.fromLTRB(
+        SchMetrics.margin,
+        0,
+        SchMetrics.margin,
+        8,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-          color: AppColors.schRedFill,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.schRedInk)),
-      child: Text(text,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.schRedInk)),
+        color: AppColors.schRedFill,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.schRedInk),
+      ),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: AppColors.schRedInk,
+        ),
+      ),
     );
   }
 
@@ -844,15 +906,17 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                      color: first
-                          ? AppColors.primary
-                          : AppColors.quizChipBorder),
+                    color: first ? AppColors.primary : AppColors.quizChipBorder,
+                  ),
                 ),
-                child: Text(d.label,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: first ? AppColors.primary : AppColors.chipInk)),
+                child: Text(
+                  d.label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: first ? AppColors.primary : AppColors.chipInk,
+                  ),
+                ),
               ),
             ),
           );
@@ -887,9 +951,9 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // 📷 الكاميرا — تختفي عند بلوغ الحدّ الأقصى للمرفقات،
-              //    كما في التعليم حرفياً.
-              if (!_c.isBusy && _c.canAttachMore)
+              // 📷 الكاميرا — **تبقى** عند بلوغ الحدّ، ولمسُها يقول «وصلت
+              //    الحدّ الأقصى» — كما في التعليم حرفياً.
+              if (!_c.isBusy)
                 _roundIcon(
                   icon: PI.camera,
                   size: 36,
@@ -914,9 +978,10 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                   },
                   // 🔠 مقاسُ الشريطين واحد ([kInputFontSize]) — ١٦ كتعليمٍ.
                   style: TextStyle(
-                      fontSize: kInputFontSize,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.inputBarText),
+                    fontSize: kInputFontSize,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.inputBarText,
+                  ),
                   decoration: InputDecoration(
                     isDense: true,
                     // ⚠️ **الأربعةُ جميعاً بعد `filled`.** سمةُ التطبيق
@@ -930,14 +995,17 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                     hintText: _c.isCleaningVoice
                         ? "✨ جارٍ ترتيب النص..."
                         : _c.hasAttachments
-                            ? "اكتب سؤالك عن الصورة (اختياري)..."
-                            : "اسأل عن المنحة...",
+                        ? "اكتب سؤالك عن الصورة (اختياري)..."
+                        : "اسأل عن المنحة...",
                     hintStyle: TextStyle(
-                        fontSize: kInputFontSize,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.inputBarIcon),
+                      fontSize: kInputFontSize,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.inputBarIcon,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: kInputVPad),
+                      horizontal: 10,
+                      vertical: kInputVPad,
+                    ),
                   ),
                 ),
               ),
@@ -946,15 +1014,17 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                 _c.isCleaningVoice
                     ? SizedBox(
                         width: 36,
-                        height: kInputSideBox,   // 📐 كالكاميرا تماماً
+                        height: kInputSideBox, // 📐 كالكاميرا تماماً
                         child: Center(
                           child: SizedBox(
                             width: 19,
                             height: 19,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2.2,
-                                valueColor:
-                                    AlwaysStoppedAnimation(AppColors.primary)),
+                              strokeWidth: 2.2,
+                              valueColor: AlwaysStoppedAnimation(
+                                AppColors.primary,
+                              ),
+                            ),
                           ),
                         ),
                       )
@@ -989,8 +1059,9 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                     decoration: BoxDecoration(
                       color: _c.isBusy
                           ? AppColors.error500
-                          : AppColors.sendButton
-                              .withValues(alpha: canSend ? 1 : 0.4),
+                          : AppColors.sendButton.withValues(
+                              alpha: canSend ? 1 : 0.4,
+                            ),
                       shape: BoxShape.circle,
                     ),
                     // ↔️ **يشير يساراً.** خطُّ Phosphor لا يُعكس مع الاتجاه،
@@ -998,11 +1069,12 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                     child: Transform.scale(
                       scaleX: _c.isBusy ? 1 : -1,
                       child: Icon(
-                          _c.isBusy
-                              ? PI.stopCircle.fill
-                              : PI.paperPlaneRight.fill,
-                          color: Colors.white,
-                          size: 21),
+                        _c.isBusy
+                            ? PI.stopCircle.fill
+                            : PI.paperPlaneRight.fill,
+                        color: Colors.white,
+                        size: 21,
+                      ),
                     ),
                   ),
                 ),
@@ -1025,19 +1097,18 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
     required VoidCallback? onTap,
     required Color color,
     double size = 36,
-  }) =>
-      Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: size,
-            height: kInputSideBox,
-            child: Icon(icon.regular, size: 20, color: color),
-          ),
-        ),
-      );
+  }) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: SizedBox(
+        width: size,
+        height: kInputSideBox,
+        child: Icon(icon.regular, size: 20, color: color),
+      ),
+    ),
+  );
 }
 
 /// يُستعمل من الدرج لعرض «زائر» بلا استيراد إضافي هناك.
