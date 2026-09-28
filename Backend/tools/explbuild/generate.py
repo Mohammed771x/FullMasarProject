@@ -95,24 +95,44 @@ def codes_hint(source: str) -> str:
             + "\n".join(f"• {c}" for c in codes[:40]))
 
 
+# 🧠 **وضعُ التفكير في البناء** (`--think`) — قِيس (2026-09-29) على «كان
+#    وأخواتها» (١٤٨٠٨ حرفاً مصدراً): بلا تفكيرٍ خرج **٤٠٠٠ رمزٍ بالضبط** —
+#    أي قُطع عند السقف، فسقط على «لم يُغطِّ التدريبات» و«بلا خاتمة» وهو لم
+#    يصل إليهما أصلاً؛ واخترع تقسيماً نحوياً خاطئاً. وبالتفكير اتّسع السقفُ
+#    ([curriculum.call_budget]) فاكتمل، واجتاز، ونقل الكتابَ حرفياً — بكلفة
+#    ٠٫٦٥ سنتٍ للدرس. والعربيُّ المشكولُ ثقيلُ الرموز، فالسقفُ يضيق عليه أولاً.
+THINK = False
+
+
 async def explain(subject, grade, track, unit, lesson_name, extra: str = "") -> str:
     req = AskRequest(subject=subject, grade=grade, track=track, mode="شرح",
                      input_type="برومت", content=ASK + extra, search_query=ASK,
                      content_mode="lessons", unit_name=unit,
-                     lesson_name=lesson_name, chat_history=[])
+                     lesson_name=lesson_name, chat_history=[], thinking=THINK)
     out = await api._dispatch_subject(req)
     return _tidy((out.get("answer") if isinstance(out, dict) else "") or "")
 
 
 def lessons_of(book):
+    """دروسُ الكتاب — **كما يفتحها التطبيق**، لا كما تُسرد في الملف.
+
+    ☢️ **ودرسان باسمٍ واحدٍ في وحدةٍ واحدة يُبنى أوّلُهما وحده** (2026-09-29):
+       عربي الأول فيه «التشبيه وأقسامه» مرّتين بنصّين يختلفان بثلاثة أحرف.
+       والتطبيقُ يفتح الدرسَ **بالاسم** ([content_store.find_lesson]) فيصل
+       الأوّلَ دائماً — ومفتاحُ المخزون «الوحدة › الدرس» واحدٌ لهما. فلو
+       بُنيا لكتب الثاني فوق الأوّل ببصمةٍ لا تطابق ما يُفتح، و**سقط الشرحُ
+       صامتاً**: مبنيٌّ ومخزونٌ ولا يُسلَّم أبداً.
+    """
     units = book.get("الوحدات") if isinstance(book, dict) else book
     for u in units or []:
         if not isinstance(u, dict):
             continue
         uname = (u.get("اسم_الوحدة") or "").strip()
+        seen = set()
         for l in u.get("الدروس") or []:
             name = (l.get("اسم_الدرس") or "").strip()
-            if name:
+            if name and name not in seen:
+                seen.add(name)
                 yield uname, name, l
 
 

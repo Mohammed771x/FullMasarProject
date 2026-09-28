@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown/markdown.dart' as md;
 
 import 'chem_equation.dart';
 import 'math_text.dart';
@@ -489,6 +490,8 @@ class MasarMarkdown extends StatelessWidget {
         styleSheet: _withHeadings(styleSheet, context),
         selectable: selectable,
         softLineBreak: true,
+        inlineSyntaxes: kMasarInlineSyntaxes,
+        builders: kMasarBuilders,
       );
     }
 
@@ -526,6 +529,8 @@ class MasarMarkdown extends StatelessWidget {
               styleSheet: _withHeadings(styleSheet, context),
               selectable: selectable,
               softLineBreak: true,
+              inlineSyntaxes: kMasarInlineSyntaxes,
+              builders: kMasarBuilders,
             ),
       ],
     );
@@ -912,6 +917,51 @@ bool isLatinCard(String question, List<String> options) =>
 ///    و`__` شرطتان لا ثلاث — فالفراغُ `____` يبقى فراغاً.
 final RegExp _emphasis = RegExp(r'(?<!\*)\*([^*\n]{2,}?)\*(?!\*)');
 final RegExp _underlined = RegExp(r'(?<!_)__([^_\n]{1,40}?)__(?!_)');
+
+/// ✏️ **«ما تحته خطّ» في فقاعة الشرح** — لا في أسئلة الاختبار وحدها.
+///
+/// 🔴 **ما أوجبه (2026-09-29):** دروسُ النحو في الأول والثاني تقول «أعرب ما
+/// تحته خط» — والكلماتُ المقصودة يؤشّرها الشرحُ بـ`__كلمة__`، وهو ترميزُ
+/// المشروع منذ ١٩/٩. لكنّ الفقاعة `MarkdownBody`، و`__كلمة__` في الماركداون
+/// المعياريّ **عريضٌ لا خطّ**: فيرى الطالبُ الكلمةَ مغمّقةً ولا يعرف أنها
+/// المقصودة بـ«تحته خط».
+///
+/// ⚖️ **ولماذا يصحّ سلبُ «العريض» هذا الترميز؟** لأنه لا يُستعمل له: مُسح
+/// كلُّ شرحٍ مخزون (١٠٠٠+) فوُجد **صفرُ** `__…__`، والعريضُ كلُّه `**…**`.
+/// والصياغاتُ المخصّصة تُجرَّب **قبل** الافتراضية في حزمة `markdown`
+/// (`inline_parser.dart`)، فتغلب «العريضَ» في هذا الترميز وحده.
+class UnderlineSyntax extends md.InlineSyntax {
+  UnderlineSyntax() : super(r'(?<!_)__([^_\n]{1,40}?)__(?!_)');
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    parser.addNode(md.Element.text('u', match[1]!));
+    return true;
+  }
+}
+
+class _UnderlineBuilder extends MarkdownElementBuilder {
+  @override
+  Widget? visitElementAfterWithContext(BuildContext context,
+      md.Element element, TextStyle? preferredStyle, TextStyle? parentStyle) {
+    // 🎨 **نفسُ هيئة أسئلة الاختبار** ([_underlineSpans]) — خطٌّ سميكٌ وثقل،
+    //    فالطالبُ يتعرّفه في الموضعين بلا تعلّمٍ ثانٍ.
+    final base = parentStyle ?? preferredStyle ?? const TextStyle();
+    return Text.rich(TextSpan(
+        text: element.textContent,
+        style: base.copyWith(
+            decoration: TextDecoration.underline,
+            decorationThickness: 2,
+            fontWeight: FontWeight.w800)));
+  }
+}
+
+/// مُدخلا الماركداون معاً — ليُمرَّرا إلى **كلّ** `MarkdownBody` هنا، فلا
+/// يُرسم الخطُّ في فرعٍ ويسقط في آخر.
+final List<md.InlineSyntax> kMasarInlineSyntaxes = [UnderlineSyntax()];
+final Map<String, MarkdownElementBuilder> kMasarBuilders = {
+  'u': _UnderlineBuilder(),
+};
 
 bool hasEmphasis(String text) =>
     _emphasis.hasMatch(text) || _underlined.hasMatch(text);

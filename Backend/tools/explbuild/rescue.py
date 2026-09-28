@@ -163,12 +163,17 @@ async def main():
                     help="أعد تهذيبَ المخزون الموجود بلا أيّ نداء")
     ap.add_argument("--jobs", type=int, default=1,
                     help="كم درساً يُبنى معاً (التوازي)")
+    ap.add_argument("--think", action="store_true",
+                    help="موديلٌ مفكّر يفكّر فعلاً — يتّسع سقفُه فلا يُقطع الشرح")
     ap.add_argument("--provider", default="")
     ap.add_argument("--model", default="")
     args = ap.parse_args()
 
     if args.codes_hint:
         globals()["HINT_CODES"] = True
+    if args.think:
+        import tools.explbuild.generate as _G
+        _G.THINK = True
 
     if args.salvage:
         await salvage_marker_only()

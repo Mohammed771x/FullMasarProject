@@ -101,6 +101,38 @@ def load_file(grade, track, subject: str) -> dict:
     return data
 
 
+# ══════════════════════════════════════════════════
+# 🤝 العلميُّ والأدبيُّ يتشاركان المخزون — والبصمةُ هي الحَكَم
+# ══════════════════════════════════════════════════
+#
+# ⚖️ **أمرُ المالك (2026-09-29):** «الإنجليزي العلمي الأدبي نفس كل شيء،
+#    حتى العربي… فخلّ نفس المخزون حقّهم، وإلا تلاقي مخزون للدرس نفسه».
+#    وقِيس: ملفّا المسارين في العربي والإنجليزي **متطابقان بايتاً ببايت**
+#    في الصفّين الثاني والثالث (الفرقُ الوحيدُ `.DS_Store` من ماك).
+#
+# 🔒 **والأمانُ من البصمة لا من الثقة**: لا يُسلَّم شرحُ المسار الشقيق إلا
+#    إن طابقت بصمتُه نصَّ **هذا** الدرس حرفاً بحرف. فلو افترق الكتابان
+#    يوماً — درسٌ عُدّل في الأدبي وحده — انقطعت المشاركةُ في ذلك الدرس
+#    وحده من تلقائها، وعاد إلى الموديل حيّاً. لا قائمةَ موادَّ تُصان، ولا
+#    شرحَ علميٍّ يُعرض على كتابٍ أدبيٍّ مختلف.
+_SIBLING_TRACK = {"علمي": "أدبي", "أدبي": "علمي"}
+
+
+def _matching_entry(grade, track, subject: str, unit: str, lesson: str,
+                    lesson_text: str) -> Optional[dict]:
+    """مُدخلٌ مخزونٌ تطابق بصمتُه نصَّ الدرس — من مساره، ثم من شقيقه."""
+    want = fingerprint(lesson_text)
+    key = key_of(unit, lesson)
+    track = (track or "عام").strip() or "عام"
+    for t in (track, _SIBLING_TRACK.get(track)):
+        if not t:
+            continue
+        entry = load_file(grade, t, subject).get(key)
+        if isinstance(entry, dict) and entry.get("hash") == want:
+            return entry
+    return None
+
+
 def entry_spec(grade, track, subject: str, unit: str, lesson: str,
                lesson_text: str) -> Optional[str]:
     """نسخةُ المواصفة التي كُتب بها الشرحُ المخزون — أو `None` إن لم يوجد.
@@ -108,22 +140,16 @@ def entry_spec(grade, track, subject: str, unit: str, lesson: str,
     ⚖️ يفرّق بين «مبنيٌّ» و«مبنيٌّ **بالمواصفة الحالية**» — وهو الفرق الذي
        يجعل إعادةَ البناء تستأنف من حيث وقفت بدل أن تبدأ من الصفر.
     """
-    entry = load_file(grade, track, subject).get(key_of(unit, lesson))
-    if not isinstance(entry, dict):
-        return None
-    if entry.get("hash") != fingerprint(lesson_text):
-        return None
-    return (entry.get("spec") or "")
+    entry = _matching_entry(grade, track, subject, unit, lesson, lesson_text)
+    return None if entry is None else (entry.get("spec") or "")
 
 
 def get(grade, track, subject: str, unit: str, lesson: str,
         lesson_text: str) -> Optional[str]:
     """الشرحُ المخزون لهذا الدرس **إن طابقت بصمةُ نصّه**، وإلا `None`."""
-    entry = load_file(grade, track, subject).get(key_of(unit, lesson))
-    if not isinstance(entry, dict):
-        return None
-    if entry.get("hash") != fingerprint(lesson_text):
-        return None                      # الدرسُ تغيّر ⇒ الشرحُ لاغٍ
+    entry = _matching_entry(grade, track, subject, unit, lesson, lesson_text)
+    if entry is None:
+        return None                      # لا شرحَ، أو الدرسُ تغيّر ⇒ لاغٍ
     answer = (entry.get("answer") or "").strip()
     return answer or None
 

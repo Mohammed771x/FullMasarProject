@@ -17,9 +17,19 @@ def client(no_real_api_calls):
     return TestClient(api.app)
 
 
+# 🎯 **مادّةٌ فارغةٌ في الصف الأول تُستخرج من البيانات لا تُكتب**:
+#    كانت «انجليزي» حتى ملأها المالك (2026-09-29).
+from conftest import find_empty_everything  # noqa: E402
+_EMPTY_G1 = find_empty_everything(1, "عام")
+# ⚖️ والتخطّي **لكلّ اختبارٍ يحتاجه** لا للوحدة كلِّها: فيها اختباراتٌ لا شأنَ
+#    لها بالفارغ («رياضيات الثاني محجوبة»، «مادّةٌ غيرُ مقرّرة») وتبقى تُقاس.
+needs_empty_g1 = pytest.mark.skipif(
+    _EMPTY_G1 is None, reason="كلُّ موادّ الأول صار لها محتوى — لا فارغَ يُختبر")
+
+
 def _ask_body(**over):
     body = {
-        "subject": "انجليزي", "mode": "شرح", "input_type": "برومت",
+        "subject": _EMPTY_G1 or "انجليزي", "mode": "شرح", "input_type": "برومت",
         "summary_level": 3, "content": "hello", "unit_name": "", "lesson_name": "",
         "chat_history": [], "grade": 1, "track": "عام",
     }
@@ -49,12 +59,14 @@ def test_exams_dir_flat_bank_is_grade3_only():
 
 
 # ══════════ قوائم المحتوى ══════════
+@needs_empty_g1
 def test_units_empty_for_grade1(client):
     assert client.get("/subjects/units", params={"subject": "انجليزي"}).json()  # الثالث العلمي فيه محتوى
     assert client.get("/subjects/units",
-                      params={"subject": "انجليزي", "grade": 1, "track": "عام"}).json() == []
+                      params={"subject": _EMPTY_G1, "grade": 1, "track": "عام"}).json() == []
 
 
+@needs_empty_g1
 def test_lessons_empty_for_grade1(client):
     units = client.get("/subjects/units", params={"subject": "انجليزي"}).json()
     assert client.get("/subjects/lessons",
@@ -86,12 +98,14 @@ def test_math_exam_years_grade_scoped(client):
 
 
 # ══════════ /ask ══════════
+@needs_empty_g1
 def test_ask_grade1_gets_pending_message_not_grade3_content(client):
     r = client.post("/ask", json=_ask_body())
     assert r.status_code == 200
     assert "لم يُضف بعد" in r.json()["answer"]
 
 
+@needs_empty_g1
 def test_ask_wazari_grade1_blocked(client):
     r = client.post("/ask", json=_ask_body(mode="وزاري"))
     assert "لم يُضف بعد" in r.json()["answer"]

@@ -70,8 +70,31 @@ def _find_empty(kind: str):
     getter = cs.get_lessons_book if kind == "lessons" else cs.get_pages_book
     for grade, track in ((1, "عام"), (2, "علمي"), (2, "أدبي"), (3, "علمي"), (3, "أدبي")):
         for subject in subjects_for(grade, track):
+            # 🧮 الرياضياتُ لا تمرّ بوضع الدروس أصلاً (لها معالجُها) — فرسالتُها
+            #    «لم يُضف بعد» لا «قيد الإضافة». ويوم ملأ المالكُ إنجليزيَّ
+            #    الأول (2026-09-29) صارت هي أوّلَ فارغ، فسقط الاختبارُ على
+            #    اختلاف رسالةٍ لا على عطل.
+            if subject == "رياضيات":
+                continue
             if getter(grade, track, subject) is None:
                 return grade, track, subject
+    return None
+
+
+def find_empty_everything(grade: int, track: str):
+    """مادّةٌ في هذا الصف **بلا دروسٍ ولا وحدات** — لا اسمٌ مكتوبٌ يشيخ.
+
+    🔴 كانت اختباراتُ عزل الصفوف تكتب «إنجليزي الأول» بالاسم مثالاً على
+       الفارغ، فسقطت يومَ أضاف المالكُ محتواه — بلا أيّ عطلٍ في الكود.
+    """
+    from core import content_store as cs
+    from core.curriculum import subjects_for
+    for subject in subjects_for(grade, track):
+        if subject == "رياضيات":
+            continue
+        if (cs.get_lessons_book(grade, track, subject) is None
+                and cs.get_pages_book(grade, track, subject) is None):
+            return subject
     return None
 
 
