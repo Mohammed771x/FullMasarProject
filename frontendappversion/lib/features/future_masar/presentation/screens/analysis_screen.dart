@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/config/curriculum.dart';
@@ -7,13 +9,15 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/fade_in_slide.dart';
 import '../../../../core/widgets/masar_brand.dart';
 import '../../../../core/widgets/phosphor.dart';
-import '../../../../core/widgets/screen_tip.dart';
+import '../../../../core/tour/masar_tour.dart';
+import '../../../../core/tour/tour_anchor.dart';
 import '../../../chat/presentation/screens/main_chat_screen.dart';
 import '../../../quiz/data/models/quiz_models.dart';
 import '../../../quiz/data/quiz_analytics.dart';
 import '../../../quiz/data/quiz_storage.dart';
 import '../../../quiz/presentation/quiz_setup_screen.dart';
 import '../../../quiz/presentation/widgets/quiz_ui.dart';
+import '../tours/analysis_tour.dart';
 import '../widgets/analysis_ui.dart';
 import '../widgets/review_quiz_sheet.dart';
 import '../widgets/student_profile_card.dart';
@@ -52,12 +56,52 @@ class AnalysisScreen extends StatefulWidget {
 }
 
 class _AnalysisScreenState extends State<AnalysisScreen> {
+  Timer? _tourTimer;
+
+  @override
+  void dispose() {
+    _tourTimer?.cancel();
+    super.dispose();
+  }
+
   List<QuizResult> _results = const [];
 
   @override
   void initState() {
     super.initState();
     _load();
+    _tour();
+  }
+
+  /// 🤖 جولةُ الشرح أوّلَ دخول — بعد أن تستقرّ البطاقاتُ الداخلةُ بانزلاق.
+  ///    ⏱️ مؤقّتٌ يُلغى مع الشاشة — `Future.delayed` يبقى معلّقاً بعد نزعها.
+  void _tour() {
+    _tourTimer?.cancel();
+    _tourTimer = Timer(const Duration(milliseconds: 900), _startTour);
+  }
+
+  Future<void> _startTour() async {
+    if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    // 🎭 طالبٌ بلا اختبارات ⇒ الشرحُ على **بياناتٍ توضيحية** في الذاكرة، ثم
+    //    تعود الشاشةُ فارغةً كما هي ([AnalysisTour.demoResults]).
+    final demo = _results.isEmpty && !await MasarTour.seen(AnalysisTour.id);
+    if (!mounted) return;
+    if (demo) {
+      final s = UserSession.I;
+      setState(() => _results = AnalysisTour.demoResults(
+            grade: s.grade,
+            track: s.track,
+            owner: widget.ownerUid ?? s.uid,
+          ));
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+    }
+    await MasarTour.maybeStart(
+      context,
+      id: AnalysisTour.id,
+      steps: AnalysisTour.steps(guest: UserSession.I.isGuest, demo: demo),
+    );
+    if (demo && mounted) _load();
   }
 
   void _load() {
@@ -74,6 +118,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   Future<void> _push(Widget screen) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
     if (mounted) _load();
+    // ↩️ عائدٌ من الإعدادات بعد «أعد جولة الشرح» ⇒ تبدأ هنا.
+    if (mounted) _tour();
   }
 
   @override
@@ -84,14 +130,18 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      // ⚠️ **`ScreenTip` يرجع `Positioned`** فمكانُه `Stack` مباشرةً لا داخل
-      //    عمودٍ — وإلا رمى فلاتر في كل بناءٍ ولم يظهر للطالب أبداً.
+      // 🤖 تلميحُ أوّل زيارة صار **جولةَ الشرح** ([AnalysisTour]).
       body: Stack(
         children: [
           SafeArea(
-            child: ListView(
+            // 📜 **عمودٌ لا `ListView`**: القائمةُ الكسولة لا تبني ما تحت
+            //    الشاشة، فلا تجد الجولةُ «تحليل المواد» ولا تمرّر إليه —
+            //    والصفحةُ قصيرةٌ (خمسةُ دروسٍ ومواد الصفّ) فلا كلفة.
+            child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(AnalysisMetrics.margin, 18,
                   AnalysisMetrics.margin, 28),
+              child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _header(),
                 const SizedBox(height: 16),
@@ -100,12 +150,30 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 const AnalysisSectionTitle("تحليل مستواي"),
                 const SizedBox(height: 12),
                 if (_results.isEmpty)
-                  FadeInSlide(delay: 0.05, child: _emptyAnalysis())
+                  FadeInSlide(
+                    delay: 0.05,
+                    child: TourAnchor(
+                      id: AnalysisTour.empty,
+                      child: _emptyAnalysis(),
+                    ),
+                  )
                 else ...[
-                  FadeInSlide(delay: 0.05, child: _summary()),
+                  FadeInSlide(
+                    delay: 0.05,
+                    child: TourAnchor(
+                      id: AnalysisTour.summary,
+                      child: _summary(),
+                    ),
+                  ),
                   if (points.length >= 2) ...[
                     const SizedBox(height: AnalysisMetrics.gap),
-                    FadeInSlide(delay: 0.08, child: _progress(points)),
+                    FadeInSlide(
+                      delay: 0.08,
+                      child: TourAnchor(
+                        id: AnalysisTour.progress,
+                        child: _progress(points),
+                      ),
+                    ),
                   ],
                   if (weak.isNotEmpty) ...[
                     const SizedBox(height: 22),
@@ -115,12 +183,24 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                           delay: 0.1 + e.key * 0.04,
                           child: Padding(
                             padding: const EdgeInsets.only(bottom: 11),
-                            child: _focusRow(e.value),
+                            // 📍 الجولةُ تشير إلى أوّل درسٍ وحده.
+                            child: e.key == 0
+                                ? TourAnchor(
+                                    id: AnalysisTour.focus,
+                                    child: _focusRow(e.value),
+                                  )
+                                : _focusRow(e.value),
                           ),
                         )),
                   ],
                   const SizedBox(height: 10),
-                  FadeInSlide(delay: 0.14, child: _reviewCard(subjects)),
+                  FadeInSlide(
+                    delay: 0.14,
+                    child: TourAnchor(
+                      id: AnalysisTour.review,
+                      child: _reviewCard(subjects),
+                    ),
+                  ),
                   const SizedBox(height: 22),
                   const AnalysisSectionTitle("تحليل المواد"),
                   const SizedBox(height: 12),
@@ -128,25 +208,28 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                         delay: 0.14 + e.key * 0.05,
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 11),
-                          child: AnalysisSubjectRow(
-                            subject: e.value.subject,
-                            percent: e.value.currentPercent,
-                            label: e.value.label,
-                            quizzes: e.value.quizzes,
-                            onTap: () => _push(SubjectAnalysisScreen(
-                                subject: e.value.subject,
-                                ownerUid: widget.ownerUid)),
+                          child: TourAnchor(
+                            // 📍 أوّلُ مادةٍ وحدها مرساةٌ (الباقي بلا اسم).
+                            id: e.key == 0
+                                ? AnalysisTour.subjects
+                                : '${AnalysisTour.subjects}.${e.key}',
+                            child: AnalysisSubjectRow(
+                              subject: e.value.subject,
+                              percent: e.value.currentPercent,
+                              label: e.value.label,
+                              quizzes: e.value.quizzes,
+                              onTap: () => _push(SubjectAnalysisScreen(
+                                  subject: e.value.subject,
+                                  ownerUid: widget.ownerUid)),
+                            ),
                           ),
                         ),
                       )),
                 ],
               ],
             ),
+            ),
           ),
-          const ScreenTip(
-              screenId: "analysis",
-              text:
-                  "تحليل مستواك 📊 يُبنى من نتائج اختباراتك — كل نقطة ضعف تفتح درسها مباشرةً."),
         ],
       ),
     );

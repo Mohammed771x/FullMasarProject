@@ -417,7 +417,11 @@ void main() {
       expect(c.sendBlocker, isNull);
       c.mathMode = "وزاري";
       expect(c.sendBlocker, contains("جلب الأسئلة"));
-      c.mathWazariQuestionsLoaded = true;
+      // 📝 الجاهزيّةُ من **أسئلةٍ في هذه المحادثة** لا من علَمِ زرٍّ ضُغط
+      //    (٢٠٢٦-٠٩-٢٧ — كان العلَمُ ينجو من «محادثة جديدة»).
+      c.messages = <Map<String, dynamic>>[
+        {"role": "ai", "text": "✅ وجدت 3 سؤالاً\n📌 السؤال 1:\nس"},
+      ];
       expect(c.sendBlocker, isNull);
     });
 

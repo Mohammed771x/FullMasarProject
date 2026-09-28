@@ -6,7 +6,6 @@ import '../../../banners/presentation/banner_carousel.dart';
 import '../../../../core/widgets/fade_in_slide.dart';
 import '../../data/demo_data.dart';
 import '../widgets/demo_widgets.dart';
-import '../../../../core/widgets/screen_tip.dart';
 import '../../../../core/widgets/masar_notice.dart';
 
 // ==========================================
@@ -101,11 +100,6 @@ class ServicesScreen extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-          const ScreenTip(
-            screenId: "services",
-            text:
-                "قسم الخدمات 🛠️ فريق مسار يساعدك في سيرتك الذاتية وخطاب الدافع وملف التقديم.",
           ),
         ],
       ),

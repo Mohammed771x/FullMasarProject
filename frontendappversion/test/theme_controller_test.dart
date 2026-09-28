@@ -29,10 +29,31 @@ void main() {
     expect(c.mode, AppThemeMode.dark);
   });
 
-  test('بلا تخزين سابق ⇒ يتبع النظام لا يفرض الفاتح', () async {
-    SharedPreferences.setMockInitialValues({});
+  test(
+    '☀️ بلا تخزين سابق ⇒ فاتح ولو كان الجهاز داكناً (قرار المالك)',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      c.setSystemBrightness(Brightness.dark);
+      await c.load();
+      expect(c.mode, AppThemeMode.light);
+      expect(isDarkModeNotifier.value, isFalse);
+      c.setSystemBrightness(Brightness.light);
+    },
+  );
+
+  test('المفتاح القديم false ⇒ فاتح لا «حسب النظام»', () async {
+    SharedPreferences.setMockInitialValues({'isDarkMode': false});
+    await c.load();
+    expect(c.mode, AppThemeMode.light);
+  });
+
+  test('من اختار «حسب النظام» صراحةً يبقى عليه', () async {
+    SharedPreferences.setMockInitialValues({'theme_mode': 'system'});
+    c.setSystemBrightness(Brightness.dark);
     await c.load();
     expect(c.mode, AppThemeMode.system);
+    expect(isDarkModeNotifier.value, isTrue);
+    c.setSystemBrightness(Brightness.light);
   });
 
   test('«حسب النظام» يتبدّل مع إضاءة الجهاز', () async {

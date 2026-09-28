@@ -62,7 +62,7 @@ void main() {
         'SubjectAnalysisScreen',           // ➡️ الدخولُ لمادة
         'MainChatScreen',                  // 🔁 الحلقةُ الذهبية
         'QuizSetupScreen',                 // 🧠 بدءُ اختبار
-        'ScreenTip',                       // 💡 تلميحُ الشاشة
+        'MasarTour.maybeStart',            // 🤖 جولةُ الشرح (حلّت محلَّ التلميح)
         'Navigator.maybePop',              // ⬅️ الرجوع
       ]) {
         expect(s.contains(call), isTrue, reason: 'سقط من الشاشة العامة: $call');

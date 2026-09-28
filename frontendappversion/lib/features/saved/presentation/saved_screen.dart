@@ -89,7 +89,7 @@ class _SavedScreenState extends State<SavedScreen> {
                 fontSize: 12.5,
                 color: on ? Colors.white : AppColors.textSecondary,
               ),
-              selectedColor: AppColors.primary,
+              selectedColor: AppColors.primaryFill,
               backgroundColor: AppColors.surfaceWhite,
               side: BorderSide(
                 color: AppColors.primary.withValues(alpha: on ? 0 : 0.15),

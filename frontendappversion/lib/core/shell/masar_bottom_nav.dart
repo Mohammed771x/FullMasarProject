@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/phosphor.dart';
 
 import '../theme/app_colors.dart';
+import '../tour/tour_anchor.dart';
 import '../widgets/masar_brand.dart';
 
 // ==========================================
@@ -39,6 +40,9 @@ class MasarBottomNav extends StatelessWidget {
 
   static const double barHeight = 77;
 
+  /// 📍 مرساةُ جولة الشرح لكل زرّ ([TourAnchor]).
+  static String anchorOf(MasarTab tab) => 'nav.${tab.name}';
+
   /// كم يعلو زرُّ «مسار» فوق حافّة الشريط (من التصميم: 767 ← 751).
   static const double tutorLift = 16;
 
@@ -71,6 +75,7 @@ class MasarBottomNav extends StatelessWidget {
                 //    التي بنى بها الملفَ (أسماء العقد: `CloudCheck`،
                 //    `AirplaneInFlight`، `House`…). والنشط `fill`
                 //    والخامل `regular` كما في التصميم.
+                // 📍 كلُّ زرٍّ مرساةٌ لجولة الشرح ([anchorOf]).
                 _item(MasarTab.home, PI.house, "الرئيسية"),
                 _item(MasarTab.quiz, PI.listChecks, "اختبر نفسك"),
                 // فراغٌ محجوزٌ لزرّ «مسار» الطافي — لا يُبنى هنا كي يعلو
@@ -97,7 +102,7 @@ class MasarBottomNav extends StatelessWidget {
     final active = current == tab;
     final locked = lockedHint?.contains(tab) ?? false;
     return Expanded(
-      child: InkWell(
+      child: TourAnchor(id: anchorOf(tab), child: InkWell(
         onTap: () => onTap(tab),
         borderRadius: BorderRadius.circular(20),
         child: Container(
@@ -143,7 +148,7 @@ class MasarBottomNav extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 
@@ -151,7 +156,7 @@ class MasarBottomNav extends StatelessWidget {
   Widget _tutorButton() => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Material(
+          TourAnchor(id: anchorOf(MasarTab.tutor), child: Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: () => onTap(MasarTab.tutor),
@@ -180,7 +185,7 @@ class MasarBottomNav extends StatelessWidget {
                 child: const MasarRobot(size: _tutorRobot),
               ),
             ),
-          ),
+          )),
           const SizedBox(height: 4),
           Text("مسار",
               style: TextStyle(

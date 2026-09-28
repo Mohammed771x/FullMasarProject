@@ -34,6 +34,13 @@ class MasarShell extends StatefulWidget {
   ///    التحليل إليه لا إلى الرئيسية. يمرّ بـ`_onTap` فحارسُ الأقسام يسري.
   static final ValueNotifier<MasarTab?> tabRequest = ValueNotifier(null);
 
+  /// 👁️ **التبويبُ الظاهر الآن** — تسمعه شاشاتٌ مقيمة في `IndexedStack`.
+  ///
+  /// 🔴 التبويبُ يُبنى مرّةً ويبقى حيّاً، فما يُفحص في `initState` لا يُفحص
+  ///    ثانيةً. جولةُ الشرح كانت لا تظهر بعد «أعد جولة الشرح» (بلاغ المالك
+  ///    ٢٠٢٦-٠٩-٢٧: «دخلت اختبر نفسك ما طلع لي») — فالشاشةُ تسأل حين تظهر.
+  static final ValueNotifier<MasarTab> shown = ValueNotifier(MasarTab.home);
+
   @override
   State<MasarShell> createState() => _MasarShellState();
 }
@@ -67,6 +74,7 @@ class _MasarShellState extends State<MasarShell> {
   void initState() {
     super.initState();
     _scope = _currentScope;
+    MasarShell.shown.value = _tab;
     UserSession.I.addListener(_onSessionChanged);
     MasarShell.tabRequest.addListener(_onTabRequest);
   }
@@ -146,6 +154,7 @@ class _MasarShellState extends State<MasarShell> {
     //    بيضاء فارغة** عند أول ضغطة على التبويب (وقع فعلاً في المحاكي).
     _page(tab);
     setState(() => _tab = tab);
+    MasarShell.shown.value = tab;
   }
 
   String _label(MasarTab t) => switch (t) {

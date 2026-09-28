@@ -7,7 +7,7 @@
 """
 from .render_rules import arabic_digits_rules, fraction_rules, organic_structure_rules, reaction_equation_rules, render_rules
 from .rules import ANSWER_SHAPE_RULES, CONTINUITY_RULES, CONVERSATION_RULES, FOLLOWUP_RULES
-from .lens import source_rules, subject_lens, teaching_core
+from .lens import calc_check_rules, source_rules, subject_lens, teaching_core
 
 
 def qa_core(subject: str) -> str:
@@ -98,6 +98,8 @@ def system_prompt_strict_explain(subject: str):
         + CONTINUITY_RULES
         + ANSWER_SHAPE_RULES
         + subject_lens(subject)
+        # 🧮 «يشيك على الحسابات» — لموادّ الحساب وحدها ([calc_check_rules]).
+        + calc_check_rules(subject)
         + organic_structure_rules(subject)
         + reaction_equation_rules(subject)
         + arabic_digits_rules(subject)
@@ -127,6 +129,8 @@ def system_prompt_strict_summary(subject: str, level: int):
 كما هو. ونفّذ **آخر طلبٍ وحده**، فالرسائلُ السابقة سياقٌ لا قائمةُ مهامّ.
 """
         + subject_lens(subject)
+        # 🧮 «يشيك على الحسابات» — لموادّ الحساب وحدها ([calc_check_rules]).
+        + calc_check_rules(subject)
         + organic_structure_rules(subject)
         + reaction_equation_rules(subject)
         + arabic_digits_rules(subject)

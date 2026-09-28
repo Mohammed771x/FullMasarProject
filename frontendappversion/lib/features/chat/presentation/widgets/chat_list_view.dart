@@ -25,6 +25,8 @@ import '../../../teacher/data/teacher_tool.dart';
 import '../controllers/stick_to_bottom.dart';
 import '../../../../core/widgets/phosphor.dart';
 import '../../../../core/widgets/masar_notice.dart';
+import '../../../../core/tour/tour_anchor.dart';
+import '../../../future_masar/presentation/tours/education_tour.dart';
 
 // ==========================================
 // 💬 قائمة فقاعات المحادثة
@@ -220,7 +222,10 @@ class ChatListView extends StatelessWidget {
                                     paths: List<String>.from(msg["images"]),
                                   ),
                                 ),
-                              Container(
+                              _tourMark(
+                                isLast && !isUser,
+                                EducationTour.reply,
+                                Container(
                                 key: const ValueKey("bubble"),
                                 margin: EdgeInsets.only(
                                   bottom: isUser ? 4 : 12,
@@ -482,17 +487,23 @@ class ChatListView extends StatelessWidget {
                                     // 👇 زر النسخ للذكاء الاصطناعي 👇
                                     if (!isUser) ...[
                                       const SizedBox(height: 12),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          _copyButton(msg, dense: false),
-                                          const SizedBox(width: 8),
-                                          _saveButton(context, msg),
-                                        ],
+                                      _tourMark(
+                                        isLast,
+                                        EducationTour.actions,
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            _copyButton(msg, dense: false),
+                                            const SizedBox(width: 8),
+                                            _saveButton(context, msg),
+                                          ],
+                                        ),
                                       ),
                                     ],
                                   ],
                                 ),
+                              ),
+
                               ),
 
                               // 👇 زر النسخ للطالب 👇
@@ -513,7 +524,11 @@ class ChatListView extends StatelessWidget {
                   if (showFollowUps)
                     Padding(
                       padding: const EdgeInsets.only(right: 44),
-                      child: followUpsBuilder!(followUps),
+                      child: _tourMark(
+                        true,
+                        EducationTour.followUps,
+                        followUpsBuilder!(followUps),
+                      ),
                     ),
                 ],
               ),
@@ -523,6 +538,14 @@ class ChatListView extends StatelessWidget {
       },
     );
   }
+
+  /// 🤖 مرساةُ جولة الشرح — اسمُها لآخر ردٍّ وحده ([EducationTour]).
+  ///
+  /// ⚠️ **الغلافُ في كل رسالة، والاسمُ وحده يتغيّر**: لو لُفّ الأخيرُ وحده
+  ///    لتغيّرت شجرتُه حين يأتي بعده ردّ — فتُبنى فقاعتُه من جديد ويضيع ما
+  ///    فيها من حالة (الطابعة، التحديد).
+  static Widget _tourMark(bool on, String id, Widget child) =>
+      TourAnchor(id: on ? id : '$id.old', child: child);
 
   /// ⭐ حفظ الإجابة.
   ///

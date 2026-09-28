@@ -218,7 +218,7 @@ class _DemoChatState extends State<DemoChat> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.primaryFill,
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.pop(ctx),

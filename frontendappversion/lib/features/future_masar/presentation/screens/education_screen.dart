@@ -5,7 +5,6 @@ import '../../data/demo_data.dart';
 import '../../data/demo_state.dart';
 import '../widgets/demo_chat.dart';
 import '../widgets/demo_widgets.dart';
-import '../../../../core/widgets/screen_tip.dart';
 
 // ==========================================
 // 🎓 قسم التعليم = واجهة المدرّس (صف + مادة + وضع + شات ذكي)
@@ -73,7 +72,7 @@ class _EducationScreenState extends State<EducationScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
-                              color: sel ? AppColors.primary : AppColors.surfaceWhite,
+                              color: sel ? AppColors.primaryFill : AppColors.surfaceWhite,
                               borderRadius: BorderRadius.circular(14),
                               boxShadow: sel ? AppColors.bubbleShadow : [],
                               border: Border.all(color: sel ? Colors.transparent : AppColors.textSecondary.withValues(alpha: 0.1)),
@@ -100,7 +99,7 @@ class _EducationScreenState extends State<EducationScreen> {
                       child: ChoiceChip(
                         label: Text(s),
                         selected: sel,
-                        selectedColor: AppColors.primary,
+                        selectedColor: AppColors.primaryFill,
                         showCheckmark: false,
                         labelStyle: TextStyle(color: sel ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 13),
                         backgroundColor: AppColors.surfaceWhite,
@@ -153,7 +152,6 @@ class _EducationScreenState extends State<EducationScreen> {
               ),
             ],
           ),
-          const ScreenTip(screenId: "education", text: "هنا قسم التعليم 📚 اختر المادة والوضع من الإعدادات، ثم اكتب سؤالك أو اطلب شرح درس."),
         ],
       ),
     );

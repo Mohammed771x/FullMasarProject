@@ -183,7 +183,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
           decoration: BoxDecoration(
             color: AppColors.primaryTintSurface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.primary200),
+            border: Border.all(color: AppColors.primaryMuted),
           ),
           child: Column(
             children: [

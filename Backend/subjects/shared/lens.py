@@ -6,7 +6,7 @@
     والنصُّ هنا **منقولٌ حرفاً بحرف** من الملف الأصل بلا تغيير سطر.
 """
 from .render_rules import arabic_digits_rules, fraction_rules, organic_structure_rules, reaction_equation_rules
-from .rules import ANSWER_SHAPE_RULES, CONTINUITY_RULES, CONVERSATION_RULES, FOLLOWUP_RULES
+from .rules import ANSWER_SHAPE_RULES, CALC_CHECK_RULES, CONTINUITY_RULES, CONVERSATION_RULES, FOLLOWUP_RULES
 
 
 # ══════════════════════════════════════════════════
@@ -117,6 +117,23 @@ def subject_lens(subject: str) -> str:
     return f"\n🔬 عدسةُ المادة — هكذا تُشرح مادّة «{subject.strip()}» تحديداً:\n{body}\n"
 
 
+# 🧮 **الموادُّ التي فيها حسابٌ يُصحَّح أو يُخطَّأ** — نفسُ قائمة
+#    `tools/teaching_addendum._CALC_CRAFT`: الأربعُ التي يخدمها ديب سيك
+#    (رياضيات · فيزياء · كيمياء · منطق) ومعها مادّتا الحساب على جيميناي.
+CALC_SUBJECTS = frozenset({
+    "رياضيات", "فيزياء", "كيمياء", "منطق", "علم الاقتصاد", "مبادئ علم الخرائط",
+})
+
+
+def calc_check_rules(subject: str) -> str:
+    """🧮 قاعدةُ المراجعة الحسابية — لموادّ الحساب وحدها ([CALC_CHECK_RULES]).
+
+    ⚖️ ولا تُلحق بالسرديّة: «أعِد حسابَ كل ناتج» في التاريخ ضجيجٌ يُطيل
+       البرومبتَ ولا يحرس شيئاً.
+    """
+    return CALC_CHECK_RULES if (subject or "").strip() in CALC_SUBJECTS else ""
+
+
 def teaching_core(subject: str) -> str:
     """🎓 **العمودُ الفقري لكل برومبتٍ يخاطب طالباً** — في كل وضعٍ وكل مادة.
 
@@ -131,6 +148,7 @@ def teaching_core(subject: str) -> str:
         + CONTINUITY_RULES
         + ANSWER_SHAPE_RULES
         + subject_lens(subject)
+        + calc_check_rules(subject)
     )
 
 

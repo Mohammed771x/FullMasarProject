@@ -44,6 +44,16 @@ enum MasarCharacter {
     Rect.fromLTRB(214, 191, 540, 392),
     Offset(0.414, 0.99),
     bubble: Offset(0.16, 0.13),
+    // 🗣️ الفمُ الناطق (جولةُ الشرح): رقعةٌ مُسح منها قوسُ الابتسامة
+    //    (`robot_hello_mouth.png`، ملءُ «كونز» من حوافّ الشاشة) ويُرسم فوقها
+    //    فمٌ يُفتح ويُغلق. القوسُ مقيسٌ على الصورة بتطابقٍ بصريّ.
+    mouth: MouthSpec(
+      Rect.fromLTRB(324, 294, 410, 352),
+      Offset(343, 311),
+      Offset(357, 346),
+      Offset(393, 329),
+      12,
+    ),
   ),
 
   /// علامةُ «تمام» ولوحُ مهامٍّ مؤشَّر — للشرح والتلخيص والتدريب.
@@ -144,6 +154,7 @@ enum MasarCharacter {
     this.ground, {
     this.bubble,
     this.progress,
+    this.mouth,
   });
   final String _name;
 
@@ -164,8 +175,12 @@ enum MasarCharacter {
   /// مجرى شريط تحميلٍ مرسومٍ في الصورة (فارغاً) — يملؤه التطبيق حيّاً.
   final ProgressTrack? progress;
 
+  /// 🗣️ فمٌ يتحرّك حين [MasarCharacterView.talking] — للوضعيات التي رُسمت لها رقعتُه.
+  final MouthSpec? mouth;
+
   String get asset => 'assets/characters/$_name.png';
   String get blinkAsset => 'assets/characters/${_name}_blink.png';
+  String get mouthAsset => 'assets/characters/${_name}_mouth.png';
   double get aspect => pixels.width / pixels.height;
 }
 
@@ -175,6 +190,18 @@ enum MasarCharacter {
 ///    يمتلئ، وإذا كمل يرجع لورا» — فمُسحت التعبئةُ المرسومة من الصورة
 ///    (`design/characters/tools/calm_waiting.py`، ومعها الساعةُ الرملية)
 ///    وصار يملؤها [MasarCharacterView] بتدرّجها الأصليّ نفسِه.
+/// 🗣️ الفم الناطق — [patch] رقعةٌ بلا ابتسامة (بكسلات الصورة) تُغطّي القوسَ
+/// الأصلي، وفوقها يُرسم القوسُ منحنىً تربيعيّاً ([start]·[control]·[end])
+/// بسماكة [stroke]، ينفتح إلى فمٍ ممتلئٍ على قدر الكلام.
+class MouthSpec {
+  const MouthSpec(this.patch, this.start, this.control, this.end, this.stroke);
+  final Rect patch;
+  final Offset start;
+  final Offset control;
+  final Offset end;
+  final double stroke;
+}
+
 class ProgressTrack {
   const ProgressTrack(this.start, this.end, this.radius);
   final Offset start;
@@ -206,6 +233,7 @@ class MasarCharacterView extends StatefulWidget {
     required this.character,
     this.active = true,
     this.say,
+    this.talking = false,
   });
 
   final MasarCharacter character;
@@ -215,6 +243,9 @@ class MasarCharacterView extends StatefulWidget {
 
   /// الصفحة الظاهرة الآن — انتقالُها إلى `true` يُطلق حركة الدخول.
   final bool active;
+
+  /// 🗣️ يتكلّم الآن — فمُه يُفتح ويُغلق (إن كانت لوضعيته [MasarCharacter.mouth]).
+  final bool talking;
 
   @override
   State<MasarCharacterView> createState() => _MasarCharacterViewState();
@@ -228,6 +259,8 @@ class _MasarCharacterViewState extends State<MasarCharacterView>
   late final AnimationController _hop; // قفزة اللمس
   late final AnimationController _say; // انبثاق الفقاعة
   late final AnimationController _fill; // شريط التحميل: يمتلئ ثم يرجع
+  late final AnimationController _talk; // دورة الكلام (مقاطع)
+  late final AnimationController _talkOn; // ظهور الفم الناطق واختفاؤه
 
   final _rng = math.Random();
   Timer? _blinkTimer;
@@ -263,6 +296,28 @@ class _MasarCharacterViewState extends State<MasarCharacterView>
       vsync: this,
       duration: const Duration(milliseconds: 8000),
     );
+    // 🗣️ دورةٌ طويلة تُقرأ منها مقاطعُ غيرُ منتظمة (مجموعُ جيبين) — فمٌ
+    //    يُفتح بإيقاعٍ ثابت يبدو آلةً لا كلاماً.
+    _talk = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    );
+    _talkOn = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 140),
+    );
+  }
+
+  void _syncTalking() {
+    final on = widget.talking && !_still && widget.character.mouth != null;
+    if (on) {
+      if (!_talk.isAnimating) _talk.repeat();
+      _talkOn.forward();
+    } else {
+      _talkOn.reverse().whenComplete(() {
+        if (mounted && !widget.talking) _talk.stop();
+      });
+    }
   }
 
   @override
@@ -281,12 +336,17 @@ class _MasarCharacterViewState extends State<MasarCharacterView>
       if (widget.active && _enter.value == 0) _playEntrance();
       _scheduleBlink();
     }
+    _syncTalking();
   }
 
   @override
   void didUpdateWidget(MasarCharacterView old) {
     super.didUpdateWidget(old);
     if (widget.active && !old.active && !_still) _playEntrance();
+    if (widget.talking != old.talking ||
+        widget.character != old.character) {
+      _syncTalking();
+    }
   }
 
   void _playEntrance() {
@@ -338,6 +398,8 @@ class _MasarCharacterViewState extends State<MasarCharacterView>
     _hop.dispose();
     _say.dispose();
     _fill.dispose();
+    _talk.dispose();
+    _talkOn.dispose();
     super.dispose();
   }
 
@@ -402,6 +464,8 @@ class _MasarCharacterViewState extends State<MasarCharacterView>
           height: h,
           blink: _blink,
           fill: _fill,
+          talk: _talk,
+          talkOn: _talkOn,
         );
 
         if (_still) {
@@ -539,6 +603,8 @@ class _Figure extends StatelessWidget {
     required this.height,
     required this.blink,
     required this.fill,
+    required this.talk,
+    required this.talkOn,
   });
 
   final MasarCharacter character;
@@ -546,6 +612,8 @@ class _Figure extends StatelessWidget {
   final double height;
   final Animation<double> blink;
   final Animation<double> fill;
+  final Animation<double> talk;
+  final Animation<double> talkOn;
 
   @override
   Widget build(BuildContext context) {
@@ -595,6 +663,39 @@ class _Figure extends StatelessWidget {
               ),
             ),
           ),
+          // 🗣️ الفمُ الناطق — فوق رقعة الرمش كي لا تُعيد رمشةٌ أثناء الكلام
+          //    الابتسامةَ الساكنة فوقه.
+          if (c.mouth case final m?)
+            Positioned(
+              left: m.patch.left * k,
+              top: m.patch.top * k,
+              width: m.patch.width * k,
+              height: m.patch.height * k,
+              // لا يُبنى إلا وهو يتكلّم — صامتاً هو الصورةُ الأصلية وحدها.
+              child: AnimatedBuilder(
+                animation: talkOn,
+                builder: (context, child) => talkOn.value == 0
+                    ? const SizedBox.shrink()
+                    : Opacity(opacity: talkOn.value, child: child),
+                child: IgnorePointer(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        c.mouthAsset,
+                        fit: BoxFit.fill,
+                        filterQuality: FilterQuality.medium,
+                        gaplessPlayback: true,
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
+                      CustomPaint(
+                        painter: _MouthPainter(spec: m, scale: k, anim: talk),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           // ⏳ شريطُ التحميل الحيّ — فوق المجرى الفارغ المرسوم في الصورة.
           if (c.progress case final t?)
             Positioned.fill(
@@ -777,4 +878,68 @@ class _BubblePainter extends CustomPainter {
   @override
   bool shouldRepaint(_BubblePainter old) =>
       old.fill != fill || old.stroke != stroke || old.tail != tail;
+}
+
+/// 🗣️ يرسم الفمَ الناطق داخل رقعته: قوسُ الابتسامة نفسُه حين يُغلق، وحين
+/// يُفتح ينزل قاعُه ويستوي سقفُه فيصير فماً ممتلئاً بلون الـLED وتوهّجِه.
+class _MouthPainter extends CustomPainter {
+  _MouthPainter({required this.spec, required this.scale, required this.anim})
+    : super(repaint: anim);
+
+  final MouthSpec spec;
+  final double scale;
+  final Animation<double> anim;
+
+  /// انفتاحُ الفم 0..1 — مقاطعُ غيرُ منتظمة من جيبين، مع لحظاتِ إغلاقٍ قصيرة.
+  static double openness(double t) {
+    final a = math.sin(t * 2 * math.pi * 7);
+    final b = math.sin(t * 2 * math.pi * 11 + 1.3);
+    final v = 0.62 * a + 0.38 * b;
+    // مُزاحٌ للأعلى: مفتوحٌ أغلبَ الوقت، ويُغلق لحظاتٍ بين المقاطع.
+    return ((v + 0.35) / 1.35).clamp(0.0, 1.0);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final o = openness(anim.value);
+    Offset p(Offset q) => (q - spec.patch.topLeft) * scale;
+    final a = p(spec.start);
+    final b = p(spec.end);
+    final c = p(spec.control);
+    final mid = Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
+    // السقفُ يستوي نحو الوتر، والقاعُ ينزل — على قدر الانفتاح.
+    final top = Offset.lerp(c, mid, 0.85 * o)!;
+    final bottom = c + Offset(0, 16 * scale * o);
+    final path = Path()
+      ..moveTo(a.dx, a.dy)
+      ..quadraticBezierTo(bottom.dx, bottom.dy, b.dx, b.dy)
+      ..quadraticBezierTo(top.dx, top.dy, a.dx, a.dy)
+      ..close();
+    final w = spec.stroke * scale;
+    const core = Color(0xFF5CE1FF);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xFF1C7BFF).withValues(alpha: 0.75)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w * 1.9
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.7),
+    );
+    canvas.drawPath(path, Paint()..color = core);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = core
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _MouthPainter old) =>
+      old.spec != spec || old.scale != scale;
 }

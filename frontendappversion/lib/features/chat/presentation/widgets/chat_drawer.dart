@@ -19,6 +19,9 @@ import '../../../future_masar/presentation/screens/settings_screen.dart';
 import '../../../saved/presentation/saved_screen.dart';
 import '../../../../core/notifications/notifications_repository.dart';
 import '../../../../core/widgets/user_avatar.dart';
+import '../../../../core/tour/tour_anchor.dart';
+import '../../../future_masar/presentation/tours/education_tour.dart';
+import '../../../future_masar/presentation/tours/teacher_tour.dart';
 
 // ==========================================
 // 📂 القائمة الجانبية
@@ -107,19 +110,29 @@ class _ChatDrawerState extends State<ChatDrawer> {
                 const SizedBox(height: 8),
                 _header(),
                 const SizedBox(height: 8),
-                _newChatButton(context),
+                TourAnchor(
+                  id: EducationTour.newChat,
+                  child: _newChatButton(context),
+                ),
                 const SizedBox(height: 8),
-                _resourcesRow(context),
+                TourAnchor(
+                  id: EducationTour.resources,
+                  child: _resourcesRow(context),
+                ),
                 const SizedBox(height: 8),
                 // 🔎 **البحث ثابتٌ في الأعلى** لا داخل القائمة.
                 //
                 // 🔴 **علّة رآها المالك:** كان أسفل القائمة، فيلزم تمريرٌ
                 //    طويل للوصول إليه — ثم يفتح الكيبورد **فيغطّيه هو
                 //    ونتائجه**، فيكتب الطالب في حقلٍ لا يراه.
-                _searchField(),
+                TourAnchor(id: EducationTour.search, child: _searchField()),
                 const SizedBox(height: 10),
+                // 🤖 **لا `ListView` كسول**: جولةُ الشرح تمرّ على أوّل محادثةٍ
+                //    تحت المواد، وقائمةُ المعلّم طويلة (حساب · محفوظات · صفوف
+                //    · موادّ) فلا تُبنى تلك المحادثةُ فلا تُشرح. والعناصرُ
+                //    عشراتٌ لا آلاف — فبناؤها كلِّها لا يُكلّف.
                 Expanded(
-                  child: ListView(
+                  child: SingleChildScrollView(
                     padding: EdgeInsets.only(
                       // ⌨️ ارتفاع الكيبورد حشوةً سفلية: بدونه تبقى آخر
                       //    نتيجتين خلفه ولا سبيل للوصول إليهما.
@@ -130,6 +143,8 @@ class _ChatDrawerState extends State<ChatDrawer> {
                     //    الصف فوق النتائج، فيكتب الطالبُ ولا يرى ما وجد إلا
                     //    بتمرير. والآن: حرفٌ واحد ⇒ النتائجُ وحدها، ومسحُ
                     //    النصّ ⇒ القائمةُ كما كانت.
+                    child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: _searching
                         ? [
                             ..._searchResults(context),
@@ -154,7 +169,23 @@ class _ChatDrawerState extends State<ChatDrawer> {
                             if (c.isTeacher) ..._gradeSwitcher(),
                             _label("اختر المادة الدراسية"),
                             const SizedBox(height: 8),
-                            ..._subjectRows(context),
+                            // 🤖 الجولةُ تفتح على أوّل مادّتين: فتحةٌ بطول
+                            //    القائمة كلِّها لا تترك للروبوت مكاناً.
+                            ...() {
+                              final rows = _subjectRows(context);
+                              final head = rows.take(4).toList();
+                              return [
+                                TourAnchor(
+                                  id: EducationTour.subjects,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: head,
+                                  ),
+                                ),
+                                ...rows.skip(4),
+                              ];
+                            }(),
                             const SizedBox(height: 16),
                             _label("المحادثات"),
                             const SizedBox(height: 8),
@@ -163,6 +194,7 @@ class _ChatDrawerState extends State<ChatDrawer> {
                             ..._conversationRows(context),
                             const SizedBox(height: 24),
                           ],
+                    ),
                   ),
                 ),
               ],
@@ -223,11 +255,14 @@ class _ChatDrawerState extends State<ChatDrawer> {
         //    نفسُه، فلا شاشةَ تحته يُرجَع إليها — وزرٌّ يقفل التطبيق
         //    بلا قصدٍ أسوأُ من لا زرّ.
         if (!widget.isHome)
-          _HomeButton(
-            onTap: () {
-              Navigator.pop(context); // القائمة
-              Navigator.pop(context); // شاشة المحادثة
-            },
+          TourAnchor(
+            id: EducationTour.home,
+            child: _HomeButton(
+              onTap: () {
+                Navigator.pop(context); // القائمة
+                Navigator.pop(context); // شاشة المحادثة
+              },
+            ),
           ),
       ],
     ),
@@ -560,7 +595,13 @@ class _ChatDrawerState extends State<ChatDrawer> {
     }
     return [
       for (final conv in items) ...[
-        _OutlineRow(
+        // 🤖 أوّلُ محادثةٍ وحدها مرساةُ الجولة — والغلافُ في كلٍّ كي لا
+        //    تتبدّل شجرةُ الصفّ حين يتغيّر ترتيبُه.
+        TourAnchor(
+          id: identical(conv, items.first)
+              ? EducationTour.chats
+              : '${EducationTour.chats}.more',
+          child: _OutlineRow(
           height: 64,
           selected: c.currentConversationId == conv.id,
           onTap: () {
@@ -615,22 +656,23 @@ class _ChatDrawerState extends State<ChatDrawer> {
               // ✏️ 🗑️ زرّان 27×27 — تعديلُ الاسم وحذفُ المحادثة.
               _MiniAction(
                 icon: PI.pencilSimple.regular,
-                fill: AppColors.secondary100,
-                border: AppColors.secondary200,
-                ink: AppColors.secondary700,
+                fill: AppColors.editActionFill,
+                border: AppColors.editActionBorder,
+                ink: AppColors.editActionInk,
                 onTap: () => ChatDialogs.showRename(context, c, conv),
               ),
               const SizedBox(width: 6),
               _MiniAction(
                 icon: PI.trash.regular,
-                fill: AppColors.error100,
-                border: AppColors.error200,
-                ink: AppColors.error500,
+                fill: AppColors.deleteActionFill,
+                border: AppColors.deleteActionBorder,
+                ink: AppColors.deleteActionInk,
                 onTap: () =>
                     ChatDialogs.showDeleteConfirmation(context, c, conv.id),
               ),
             ],
           ),
+        ),
         ),
         const SizedBox(height: 8),
       ],
@@ -641,7 +683,9 @@ class _ChatDrawerState extends State<ChatDrawer> {
   List<Widget> _teacherEntries(BuildContext context) {
     final s = UserSession.I;
     return [
-      _OutlineRow(
+      TourAnchor(
+        id: TeacherTour.account,
+        child: _OutlineRow(
         height: 52,
         onTap: () => _go(context, const SettingsScreen()),
         child: Row(
@@ -681,8 +725,11 @@ class _ChatDrawerState extends State<ChatDrawer> {
           ],
         ),
       ),
+      ),
       const SizedBox(height: 8),
-      _OutlineRow(
+      TourAnchor(
+        id: TeacherTour.saved,
+        child: _OutlineRow(
         height: 46,
         onTap: () => _go(context, const SavedScreen()),
         child: Row(
@@ -707,10 +754,13 @@ class _ChatDrawerState extends State<ChatDrawer> {
           ],
         ),
       ),
+      ),
       const SizedBox(height: 8),
       ListenableBuilder(
         listenable: NotificationsRepository.I,
-        builder: (_, _) => _OutlineRow(
+        builder: (_, _) => TourAnchor(
+          id: TeacherTour.notifications,
+          child: _OutlineRow(
           height: 46,
           onTap: () => _go(context, const NotificationsScreen()),
           child: Row(
@@ -745,6 +795,7 @@ class _ChatDrawerState extends State<ChatDrawer> {
             ],
           ),
         ),
+        ),
       ),
       const SizedBox(height: 8),
       // 🎏 بانرُ قسم المعلم — كان في شاشة البوابة، ولا يرسم شيئاً حين لا بانر.
@@ -768,6 +819,11 @@ class _ChatDrawerState extends State<ChatDrawer> {
 
   // ─────────────── مبدّلُ الصفّ (41 · r14) ───────────────
   List<Widget> _gradeSwitcher() => [
+    TourAnchor(
+      id: TeacherTour.grades,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
     _label("الصف الدراسي"),
     const SizedBox(height: 8),
     Row(
@@ -786,6 +842,9 @@ class _ChatDrawerState extends State<ChatDrawer> {
           if (g != 3) const SizedBox(width: 12),
         ],
       ],
+    ),
+        ],
+      ),
     ),
     const SizedBox(height: 16),
   ];

@@ -114,7 +114,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceWhite,
-        selectedColor: AppColors.primary,
+        selectedColor: AppColors.primaryFill,
         side: BorderSide(color: AppColors.border),
         labelStyle: TextStyle(color: AppColors.textSecondary),
       ),

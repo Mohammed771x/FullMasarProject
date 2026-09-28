@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -31,6 +32,9 @@ import '../../../core/session/user_session.dart';
 import 'controllers/scholarship_chat_controller.dart';
 import 'widgets/scholarship_chat_drawer.dart';
 import '../../../../core/widgets/input_bar_metrics.dart';
+import '../../../core/tour/masar_tour.dart';
+import '../../../core/tour/tour_anchor.dart';
+import '../../future_masar/presentation/tours/scholarships_tour.dart';
 
 // ==========================================
 // 💬 شات مساعد المنحة — بسجلّ محادثات جانبي
@@ -64,10 +68,25 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
     super.initState();
     _c = ScholarshipChatController(scholarship: widget.scholarship)..start();
     _c.addListener(_onChange);
+    _tourTimer = Timer(const Duration(milliseconds: 800), _startTour);
+  }
+
+  // 🤖 جولةٌ قصيرة أوّلَ فتحٍ لمساعد المنح ([ScholarshipsTour.chatSteps]).
+  Timer? _tourTimer;
+
+  Future<void> _startTour() async {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    FocusScope.of(context).unfocus();
+    await MasarTour.maybeStart(
+      context,
+      id: ScholarshipsTour.chatId,
+      steps: ScholarshipsTour.chatSteps(),
+    );
   }
 
   @override
   void dispose() {
+    _tourTimer?.cancel();
     _c.removeListener(_onChange);
     _c.flush(); // ارفع المؤجَّل قبل الخروج
     _c.dispose();
@@ -170,7 +189,11 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
               //    مرّةً واحدةً ثم لا يجد المواعيدَ ولا المزايا أبداً
               //    (علّةُ المالك: «مش باين عندي»). وهي أجوبةٌ فوريّةٌ بلا
               //    كلفة، فبقاؤها مكسبٌ لا مزاحمة.
-              if (!_c.hasAttachments && !_c.isRecording) _quickPrompts(s),
+              if (!_c.hasAttachments && !_c.isRecording)
+                TourAnchor(
+                  id: ScholarshipsTour.prompts,
+                  child: _quickPrompts(s),
+                ),
               if (_c.hasAttachments && !_c.isRecording) _attachmentStrip(),
               // 🎙️ **نفس شريط قسم التعليم حرفياً**: موجات · مؤقّت · حذف ·
               //    إيقاف→نص · إرسال مباشر. تجربة واحدة في القسمين لا اثنتان.
@@ -187,7 +210,7 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
                   ),
                 )
               else
-                _inputBar(),
+                TourAnchor(id: ScholarshipsTour.input, child: _inputBar()),
             ],
           ),
         ],
@@ -268,21 +291,27 @@ class _ScholarshipChatScreenState extends State<ScholarshipChatScreen> {
             ),
           ),
           const SizedBox(width: 10),
-          SchSquareButton(
-            icon: PI.plus,
-            tooltip: "محادثة جديدة",
-            onTap: () {
-              _c.newChat();
-              _input.clear();
-            },
+          TourAnchor(
+            id: ScholarshipsTour.newChat,
+            child: SchSquareButton(
+              icon: PI.plus,
+              tooltip: "محادثة جديدة",
+              onTap: () {
+                _c.newChat();
+                _input.clear();
+              },
+            ),
           ),
           const SizedBox(width: 8),
           // 📂 السجلّ — بشارة العدد كي يعرف الطالب أن له محادثات سابقة.
-          SchSquareButton(
-            icon: PI.chat,
-            tooltip: "محادثاتي",
-            badge: count > 0 ? "$count" : null,
-            onTap: () => _scaffold.currentState?.openDrawer(),
+          TourAnchor(
+            id: ScholarshipsTour.history,
+            child: SchSquareButton(
+              icon: PI.chat,
+              tooltip: "محادثاتي",
+              badge: count > 0 ? "$count" : null,
+              onTap: () => _scaffold.currentState?.openDrawer(),
+            ),
           ),
         ],
       ),

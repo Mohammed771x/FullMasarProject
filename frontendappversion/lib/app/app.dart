@@ -24,9 +24,11 @@ class MasarApp extends StatelessWidget {
           navigatorKey: masarNavigatorKey,
           title: 'منصة مسار',
           builder: (context, child) => _SystemBrightnessBridge(
-            child: Directionality(
-              textDirection: TextDirection.rtl,
-              child: child!,
+            child: _RebuildOnThemeChange(
+              child: Directionality(
+                textDirection: TextDirection.rtl,
+                child: child!,
+              ),
             ),
           ),
           theme: AppTheme.build(isDark: isDark),
@@ -53,4 +55,54 @@ class _SystemBrightnessBridge extends StatelessWidget {
     );
     return child;
   }
+}
+
+/// 🌗 **تبديلُ الوضع يُعيد بناءَ الشجرة كلِّها — مرّةً واحدة، بلا فقد حالة.**
+///
+/// 🔴 **ما رُئي في المحاكي (٢٠٢٦-٠٩-٢٧):** اختيارُ «داكن» من الإعدادات
+///    أظلم جسمَ الشاشة وأبقى رأسَها أبيض — وأيقوناتُ شريط الحالة صارت
+///    بيضاء فوق أبيض فاختفت الساعةُ والبطارية.
+///
+/// ⚙️ **السبب:** [AppColors] تقرأ متغيّراً عامّاً لا `InheritedWidget`،
+///    والرأسُ `const GlassBar(...)`. وفلاتر لا يعيد بناءَ عنصرٍ **ثابتٍ
+///    بعينه** حين يُبنى أبوه — فيبقى بألوانه القديمة. و[ThemeScope] لا
+///    ينفع هنا: يعيد بناءَ أبيه، والابنُ الثابتُ يُتخطّى. والعلّةُ عامّةٌ
+///    في كل ودجت `const` يقرأ [AppColors] — لا في الإعدادات وحدها.
+///
+/// ✅ فحين يتبدّل الوضع يُعلَّم كلُّ عنصرٍ «يحتاج بناءً» — الآليةُ نفسُها
+///    التي يستعملها Hot Reload. **الحالةُ باقية** (المكدّسُ والمحادثاتُ
+///    والحقول) لأن العناصر لا تُهدم، والكلفةُ بناءٌ واحدٌ عند كل تبديل.
+class _RebuildOnThemeChange extends StatefulWidget {
+  const _RebuildOnThemeChange({required this.child});
+  final Widget child;
+
+  @override
+  State<_RebuildOnThemeChange> createState() => _RebuildOnThemeChangeState();
+}
+
+class _RebuildOnThemeChangeState extends State<_RebuildOnThemeChange> {
+  @override
+  void initState() {
+    super.initState();
+    isDarkModeNotifier.addListener(_rebuildAll);
+  }
+
+  @override
+  void dispose() {
+    isDarkModeNotifier.removeListener(_rebuildAll);
+    super.dispose();
+  }
+
+  void _rebuildAll() {
+    if (!mounted) return;
+    void mark(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(mark);
+    }
+
+    (context as Element).visitChildren(mark);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

@@ -267,7 +267,7 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: sel ? AppColors.primary : AppColors.surfaceWhite,
+          color: sel ? AppColors.primaryFill : AppColors.surfaceWhite,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: sel

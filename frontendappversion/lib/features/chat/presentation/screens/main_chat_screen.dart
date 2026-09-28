@@ -7,8 +7,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/masar_dialog.dart';
 import '../../../../core/widgets/masar_notice.dart';
 import '../../../../core/widgets/phosphor.dart';
-import '../../../../core/widgets/screen_tip.dart';
 import '../../../../core/widgets/tap_to_dismiss_keyboard.dart';
+import '../../../../core/session/user_session.dart';
+import '../../../../core/tour/masar_tour.dart';
+import '../../../../core/tour/tour_anchor.dart';
+import '../../../future_masar/presentation/tours/education_tour.dart';
+import '../../../future_masar/presentation/tours/teacher_tour.dart';
 import '../../../future_masar/presentation/screens/auth_screen.dart';
 import '../../../instructions/presentation/instructions_dialog.dart';
 import '../controllers/chat_controller.dart';
@@ -148,6 +152,7 @@ class _MainChatScreenState extends State<MainChatScreen>
     if (widget.showDrawerHelp) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _showInstructions());
     }
+    _tour();
   }
 
   /// 🧰 **لمسةُ شريحة أداةٍ في «إعدادات الجلسة».**
@@ -173,7 +178,12 @@ class _MainChatScreenState extends State<MainChatScreen>
     //    فقراءةُ `widget` كانت ستعرض دليلَ أداةٍ غادرها المعلّم.
     final tool = _c.teacherTool;
     if (tool != null) {
-      InstructionsDialog.showTeacher(context, tool.id, forceShow: force);
+      InstructionsDialog.showTeacher(
+        context,
+        tool.id,
+        forceShow: force,
+        onTour: () => _startTour(force: true),
+      ).then((_) => _tour());
       return;
     }
     InstructionsDialog.showIfNeeded(
@@ -182,11 +192,128 @@ class _MainChatScreenState extends State<MainChatScreen>
       grade: _c.grade,
       track: _c.track.key,
       forceShow: force,
+      onTour: () => _startTour(force: true),
+    ).then((_) => _tour());
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🤖 جولةُ الشرح — أوّلَ دخولٍ لقسم التعليم ([EducationTour])
+  // ══════════════════════════════════════════════════
+  // ⏱️ **بعد الدليل لا فوقه**: دليلُ المادة يُفتح أوّلَ مرّةٍ أيضاً، فالجولةُ
+  //    تنتظر حتى تكون الشاشةُ هي الظاهرة ([ModalRoute.isCurrent]) — وتُعاد
+  //    المحاولةُ عند إغلاق الدليل. و`Timer` يُلغى في `dispose` لا
+  //    `Future.delayed` ([masar-testing-traps]).
+  Timer? _tourTimer;
+
+  void _tour() {
+    _tourTimer?.cancel();
+    _tourTimer = Timer(const Duration(milliseconds: 900), _startTour);
+  }
+
+  Future<void> _startTour({bool force = false}) async {
+    if (!mounted) return;
+    // 👨‍🏫 الشاشةُ واحدةٌ للقسمين، والجولةُ لكلٍّ منهما ([TeacherTour]).
+    final teacher = _c.isTeacher;
+    final tourId = teacher ? TeacherTour.id : EducationTour.id;
+    if (!force && (ModalRoute.of(context)?.isCurrent != true)) return;
+    if (!force && await MasarTour.seen(tourId)) return;
+    if (!mounted) return;
+    FocusScope.of(context).unfocus();
+
+    // 🎭 ما يُعرض للتوضيح يُحفظ مرجعُه — ويُمحى بعد الجولة **إن بقي هو هو**
+    //    (لو حمّل المتحكّمُ محادثةً حقيقيةً أثناءها فلا تُمسّ).
+    final panelWasOpen = _c.showSettingsPanel;
+    final demoReply = _c.messages.isEmpty;
+    final demoChats = _c.conversations.isEmpty;
+    List<Map<String, dynamic>>? shownMessages;
+    List<dynamic>? shownChats;
+    Future<void> settle(int ms) =>
+        Future<void>.delayed(Duration(milliseconds: ms));
+
+    Future<void> openPanel() async {
+      _c.tourDemo = true;
+      _c.setShowSettingsPanel(true);
+      await settle(320);
+    }
+
+    // 💬 البطاقةُ تُطوى كي لا تغطّي الردّ — فهي تطفو فوق المحادثة.
+    Future<void> showReply() async {
+      _c.setShowSettingsPanel(false);
+      if (_c.messages.isEmpty) {
+        _c.messages = shownMessages = teacher
+            ? TeacherTour.demoMessages(_c.selectedSubject)
+            : EducationTour.demoMessages(_c.selectedSubject);
+        _c.refresh();
+      }
+      await settle(520);
+    }
+
+    Future<void> openDrawer() async {
+      if (_c.conversations.isEmpty) {
+        final demo = EducationTour.demoConversations(
+          subject: _c.selectedSubject,
+          mode: _c.selectedMode,
+          grade: _c.grade,
+          track: _c.track.key,
+          teacher: teacher,
+        );
+        _c.conversations = demo;
+        shownChats = demo;
+        _c.refresh();
+      }
+      _scaffoldKey.currentState?.openDrawer();
+      await settle(420);
+    }
+
+    Future<void> closeDrawer() async {
+      _scaffoldKey.currentState?.closeDrawer();
+      await settle(320);
+    }
+
+    await MasarTour.maybeStart(
+      context,
+      id: tourId,
+      force: force,
+      steps: teacher
+          ? TeacherTour.steps(
+              guest: UserSession.I.isGuest,
+              demoLesson: _c.v3LessonsUnits.isEmpty && !_c.capsLoading,
+              demoReply: demoReply,
+              demoChats: demoChats,
+              openPanel: openPanel,
+              showReply: showReply,
+              openDrawer: openDrawer,
+              closeDrawer: closeDrawer,
+            )
+          : EducationTour.steps(
+              guest: UserSession.I.isGuest,
+              wazari: _c.grade == 3,
+              demoLesson: _c.lessonPickerEmpty,
+              demoReply: demoReply,
+              demoChats: demoChats,
+              openPanel: openPanel,
+              showReply: showReply,
+              openDrawer: openDrawer,
+              closeDrawer: closeDrawer,
+            ),
     );
+    if (!mounted) return;
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      _scaffoldKey.currentState?.closeDrawer();
+    }
+    if (shownMessages != null && identical(_c.messages, shownMessages)) {
+      _c.messages = <Map<String, dynamic>>[];
+    }
+    if (shownChats != null && identical(_c.conversations, shownChats)) {
+      _c.conversations = [];
+    }
+    _c.tourDemo = false;
+    _c.setShowSettingsPanel(panelWasOpen);
   }
 
   @override
   void dispose() {
+    _tourTimer?.cancel();
     _fadeController.dispose();
     _c.dispose();
     super.dispose();
@@ -431,11 +558,15 @@ class _MainChatScreenState extends State<MainChatScreen>
                                       // ⌨️ تُطوى لكيبورد **المحادثة** وحده
                                       //    ([ChatController.inputFocus]) —
                                       //    لا لكيبوردِ حقلٍ في البطاقة نفسِها.
-                                      SessionSettingsPanel(
-                                        controller: _c,
-                                        keyboardOpen:
-                                            keyboardOpen && _c.chatInputFocused,
-                                        onTeacherTool: _onToolTap,
+                                      TourAnchor(
+                                        id: EducationTour.panel,
+                                        child: SessionSettingsPanel(
+                                          controller: _c,
+                                          keyboardOpen:
+                                              keyboardOpen &&
+                                              _c.chatInputFocused,
+                                          onTeacherTool: _onToolTap,
+                                        ),
                                       ),
                                       // 📖 **زرُّ الطلب المخزون** — «اشرح
                                       //    لي» أو «لخّص لي». وهو في المتحكّم
@@ -500,7 +631,10 @@ class _MainChatScreenState extends State<MainChatScreen>
                             _c.selectionComplete &&
                             !_c.hasAttachments &&
                             !_c.isRecording)
-                          ModeSuggestions(controller: _c),
+                          TourAnchor(
+                            id: EducationTour.suggest,
+                            child: ModeSuggestions(controller: _c),
+                          ),
                         const SizedBox(height: 8),
                         ChatInputArea(
                           controller: _c,
@@ -508,16 +642,6 @@ class _MainChatScreenState extends State<MainChatScreen>
                           keyboardOpen: keyboardOpen,
                         ),
                       ],
-                    ),
-                    // 💡 تلميح أول زيارة (يظهر مرة واحدة ويختفي تلقائياً)
-                    ScreenTip(
-                      screenId: _c.isTeacher ? "teacher_chat" : "chat",
-                      text: _c.isTeacher
-                          ? "من «إعدادات الجلسة» في الأعلى اختر الأداة، ثم المادة والوحدة والدرس — ثم ولّد أو اكتب، وناقش النتيجة بعدها."
-                          : "اختر المادة من القائمة ☰، وحدّد الوضع والدرس من «إعدادات الجلسة» في الأعلى، ثم اكتب سؤالك.",
-                      autoHideAfter: const Duration(seconds: 11),
-                      anchorTop: true,
-                      topOffset: 100,
                     ),
                   ],
                 ),
@@ -548,7 +672,7 @@ class _MainChatScreenState extends State<MainChatScreen>
             icon: Icon(PI.arrowLeft.bold, size: 18),
             label: Text("أكمل"),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.primaryFill,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -770,7 +894,7 @@ class _ScrollToBottomButton extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: BoxDecoration(
-            color: streaming ? AppColors.primary : AppColors.surfaceWhite,
+            color: streaming ? AppColors.primaryFill : AppColors.surfaceWhite,
             borderRadius: BorderRadius.circular(24),
             boxShadow: AppColors.softShadow,
             border: Border.all(

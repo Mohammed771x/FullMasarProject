@@ -107,10 +107,9 @@ void main() {
       expect(find.text('50%'), findsOneWidget); // 10 من 20
       expect(find.text('فيزياء'), findsWidgets); // أفضل مادة + بطاقتها
 
-      // بطاقات المواد أسفل القائمة — `ListView` لا يبني ما هو خارج الشاشة
-      await t.scrollUntilVisible(find.text('كيمياء'), 220,
-          scrollable: find.byType(Scrollable).first);
-      expect(find.text('كيمياء'), findsOneWidget);
+      // بطاقات المواد أسفل الصفحة — مبنيّةٌ كلُّها (عمودٌ لا `ListView`
+      // كسول، لتجدها جولةُ الشرح): «كيمياء» أضعفُ مادةٍ وبطاقتُها معاً.
+      expect(find.text('كيمياء'), findsNWidgets(2));
     });
 
     testWidgets('👤 لا يخلط نتائج حسابين', (t) async {
@@ -161,7 +160,7 @@ void main() {
       //    المنفذَ فعلاً.
       await bring(t, find.text('اختبار مراجعة'));
       await t.tap(find.text('اختبار مراجعة'));
-      // ⚠️ لا `pumpAndSettle`: `ScreenTip` يحمل مؤقّتات حيّة فلا تسكن الشاشة أبداً
+      // ⚠️ لا `pumpAndSettle`: الروبوتُ يطفو بلا توقّف فلا تسكن الشاشة أبداً
       await t.pump();
       await t.pump(const Duration(milliseconds: 400));
 

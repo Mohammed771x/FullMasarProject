@@ -6,6 +6,8 @@ import '../../../../core/widgets/phosphor.dart';
 import '../../../chat/presentation/controllers/chat_controller.dart';
 import '../../data/teacher_tool.dart';
 import 'teacher_tool_bar.dart';
+import '../../../../core/tour/tour_anchor.dart';
+import '../../../future_masar/presentation/tours/teacher_tour.dart';
 
 // ==========================================
 // ⚙️ بطاقةُ إعدادات أداة المعلم
@@ -69,12 +71,21 @@ class TeacherSettingsPanel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TeacherToolChips(selected: tool, onTap: onToolTap),
+        TourAnchor(
+          id: TeacherTour.tools,
+          child: TeacherToolChips(selected: tool, onTap: onToolTap),
+        ),
         const SizedBox(height: 14),
-        ..._fields(),
+        TourAnchor(
+          id: TeacherTour.lesson,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: _fields(),
+          ),
+        ),
         if (tool.hasGenerateButton) ...[
           const SizedBox(height: 12),
-          _generateButton(p),
+          TourAnchor(id: TeacherTour.generate, child: _generateButton(p)),
         ],
         if (c.awaitingTeacherConcept) ...[
           const SizedBox(height: 10),
@@ -126,6 +137,35 @@ class TeacherSettingsPanel extends StatelessWidget {
 
   List<Widget> _lessonFields() {
     final units = c.v3LessonsUnits;
+    // 🎭 **مثالُ جولة الشرح** ([ChatController.tourDemo]): مادةٌ بلا دروس تُعرض
+    //    أثناء الجولة بوحدةٍ ودرسٍ «(مثال)» لا يُلمسان — مكانَ لافتة «لم تُضف».
+    if (units.isEmpty && c.tourDemo) {
+      const unit = "الوحدة الأولى (مثال)", lesson = "الدرس الأول (مثال)";
+      return [
+        _label("الوحدة:"),
+        const SizedBox(height: 7),
+        IgnorePointer(
+          child: ModernDropdown(
+            hint: "اختر الوحدة",
+            value: unit,
+            items: const [unit],
+            onChanged: (_) {},
+          ),
+        ),
+        const SizedBox(height: 12),
+        _label(tool.lessonFieldLabel),
+        const SizedBox(height: 7),
+        IgnorePointer(
+          child: ModernDropdown(
+            hint: "اختر الدرس",
+            value: lesson,
+            items: const [lesson],
+            onChanged: (_) {},
+            leading: PD.notebook,
+          ),
+        ),
+      ];
+    }
     if (units.isEmpty) {
       // ⚠️ رسالة صريحة لا سقوطٌ صامت على محتوى الوحدات.
       return [

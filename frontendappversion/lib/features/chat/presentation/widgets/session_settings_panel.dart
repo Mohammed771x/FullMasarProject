@@ -11,6 +11,8 @@ import '../controllers/chat_controller.dart';
 import 'page_picker.dart';
 import '../../../teacher/data/teacher_tool.dart';
 import '../../../teacher/presentation/widgets/teacher_settings_panel.dart';
+import '../../../../core/tour/tour_anchor.dart';
+import '../../../future_masar/presentation/tours/education_tour.dart';
 
 // ==========================================
 // ⚙️ لوحة إعدادات الجلسة (المنبثقة) وكل عناصر الاختيار
@@ -165,7 +167,8 @@ class SessionSettingsPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _modeSelector(context),
+          if (c.selectedSubject != "رياضيات")
+            TourAnchor(id: EducationTour.modes, child: _modeSelector(context)),
           // 📊 **مستوى التلخيص تحت الشرائح مباشرةً** (ملاحظة المالك):
           //    كان آخرَ عنصرٍ في اللوحة فلا يُرى إلا بتمرير. ومن اختار
           //    «تلخيص» فأوّلُ ما يريد ضبطه هو مستواه.
@@ -173,7 +176,7 @@ class SessionSettingsPanel extends StatelessWidget {
             _summarySlider(),
           if (c.selectedSubject == "رياضيات") ...[
             const SizedBox(height: 16),
-            _mathBranchSelector(),
+            TourAnchor(id: EducationTour.math, child: _mathBranchSelector()),
             if (c.mathMode == "وزاري" && c.selectedMathBranch.isNotEmpty)
               _mathExamSelector(),
             if (c.mathLessons.isNotEmpty && c.mathMode != "وزاري") ...[
@@ -187,20 +190,29 @@ class SessionSettingsPanel extends StatelessWidget {
               ),
             ],
             if (c.selectedMathBranch.isNotEmpty) const SizedBox(height: 12),
-            _mathModeSelector(context),
+            TourAnchor(
+              id: EducationTour.modes,
+              child: _mathModeSelector(context),
+            ),
           ],
           // 🆕 مصدر المحتوى (وضع الدروس / وضع الوحدات) — لكل المواد عدا الرياضيات والوزاري
           if (c.usesContentModes) ...[
             const SizedBox(height: 16),
-            _contentModeSelector(),
+            TourAnchor(id: EducationTour.source, child: _contentModeSelector()),
           ],
           // وضع الدروس: وحدة ← درس (من /content/capabilities)
           if (c.usesContentModes && c.contentMode == "lessons")
-            _lessonsModeArea(),
+            TourAnchor(
+              id: EducationTour.lesson,
+              child: _tourExample ?? _lessonsModeArea(),
+            ),
           // وضع الوحدات/الصفحات: الواجهة القديمة نفسها + الوزاري كما هو
           if (c.selectedSubject != "رياضيات" &&
               (!c.usesContentModes || c.contentMode == "pages"))
-            _unitFilterArea(),
+            TourAnchor(
+              id: EducationTour.lesson,
+              child: _tourExample ?? _unitFilterArea(),
+            ),
 
           if (c.selectedSubject != "رياضيات" &&
               c.selectedMode != "سؤال" &&
@@ -213,7 +225,10 @@ class SessionSettingsPanel extends StatelessWidget {
           // 🔒 **لا يُنقل من هنا** (قرار المالك ٢٠٢٦-٠٩-٢٠): جرّبتُ نقلَه
           //    إلى ورقةٍ سفليّة توفيراً للمساحة، فقال: «الصفحات بنظامها
           //    الأول، خلّوه زي ما كان أول». فرُدَّ كما كان.
-          if (c.canPickPages) ...[const SizedBox(height: 16), PagePicker(c)],
+          if (c.canPickPages) ...[
+            const SizedBox(height: 16),
+            TourAnchor(id: EducationTour.pages, child: PagePicker(c)),
+          ],
         ],
       ),
     );
@@ -319,7 +334,6 @@ class SessionSettingsPanel extends StatelessWidget {
     }
     c.switchContext(() {
       c.selectedMode = m;
-      c.mathWazariQuestionsLoaded = false;
       if (m == "وزاري") {
         c.selectedExamYear = "";
         c.loadAvailableYears();
@@ -341,6 +355,34 @@ class SessionSettingsPanel extends StatelessWidget {
       ),
     ),
   );
+
+  /// 🎭 **مثالُ جولة الشرح** مكانَ منتقٍ فارغ ([ChatController.tourDemo]) —
+  ///    وحدةٌ ودرسٌ توضيحيان عليهما «(مثال)»، لا يُلمسان.
+  Widget? get _tourExample {
+    if (!c.tourDemo || !c.lessonPickerEmpty) return null;
+    const unit = "الوحدة الأولى (مثال)", lesson = "الدرس الأول (مثال)";
+    return IgnorePointer(
+      child: Column(
+        children: [
+          const SizedBox(height: 14),
+          ModernDropdown(
+            hint: "اختر الوحدة",
+            value: unit,
+            items: const [unit],
+            onChanged: (_) {},
+          ),
+          const SizedBox(height: 12),
+          ModernDropdown(
+            hint: "اختر الدرس",
+            value: lesson,
+            items: const [lesson],
+            onChanged: (_) {},
+            leading: PD.notebook,
+          ),
+        ],
+      ),
+    );
+  }
 
   // ===== محدّد نوع الإدخال (صفحة/برومت) =====
   Widget _inputTypeSelector() {
@@ -378,7 +420,7 @@ class SessionSettingsPanel extends StatelessWidget {
           (b) => ChoiceChip(
             label: Text(b),
             selected: c.selectedMathBranch == b,
-            selectedColor: AppColors.primary,
+            selectedColor: AppColors.primaryFill,
             showCheckmark: false,
             labelStyle: TextStyle(
               color: c.selectedMathBranch == b
@@ -397,7 +439,6 @@ class SessionSettingsPanel extends StatelessWidget {
               c.mathMode = "شرح";
               c.selectedLesson = "";
               c.loadMathLessons(b);
-              c.mathWazariQuestionsLoaded = false;
             }),
           ),
         )
@@ -423,7 +464,7 @@ class SessionSettingsPanel extends StatelessWidget {
             label: Text(mode),
             // 🧠 «اختبارات» بابٌ لا وضعُ محادثة، فلا تُضيء أبداً كمختارة.
             selected: mode != Curriculum.quizMode && c.mathMode == mode,
-            selectedColor: AppColors.secondary,
+            selectedColor: AppColors.secondaryFill,
             showCheckmark: false,
             labelStyle: TextStyle(
               color: (mode != Curriculum.quizMode && c.mathMode == mode)
@@ -450,7 +491,6 @@ class SessionSettingsPanel extends StatelessWidget {
                 c.mathMode = mode;
                 c.selectedMode = mode;
                 c.inputType = "برومت";
-                c.mathWazariQuestionsLoaded = false;
                 if (mode == "وزاري" && c.selectedMathBranch.isNotEmpty) {
                   c.loadMathExamYears(c.selectedMathBranch);
                 }
@@ -499,10 +539,8 @@ class SessionSettingsPanel extends StatelessWidget {
                   ? null
                   : c.selectedMathExamYear,
               items: c.mathExamYears,
-              onChanged: (v) => c.update(() {
-                c.selectedMathExamYear = v!;
-                c.loadMathExamLessons(c.selectedMathBranch, v);
-              }),
+              // 🔒 عبر المتحكّم: محادثةٌ جلبت أسئلتَها تسأل «محادثة جديدة؟».
+              onChanged: (v) => c.pickMathExamYear(v!),
             ),
           const SizedBox(height: 12),
           if (c.mathExamLessons.isNotEmpty)
@@ -512,7 +550,7 @@ class SessionSettingsPanel extends StatelessWidget {
                   ? null
                   : c.selectedMathExamLesson,
               items: c.mathExamLessons,
-              onChanged: (v) => c.update(() => c.selectedMathExamLesson = v!),
+              onChanged: (v) => c.pickMathExamLesson(v!),
               leading: PD.notebook,
             ),
           if (c.selectedMathExamLesson.isNotEmpty) ...[
@@ -553,7 +591,7 @@ class SessionSettingsPanel extends StatelessWidget {
               height: 50,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.primaryFill,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
@@ -567,8 +605,7 @@ class SessionSettingsPanel extends StatelessWidget {
                             int.tryParse(c.questionCountController.text) ?? 10;
                         final content =
                             "${c.selectedMathExamYear}|${c.selectedMathExamLesson}|$count";
-                        c.selectedLesson = c.selectedMathExamLesson;
-                        c.update(() => c.mathWazariQuestionsLoaded = true);
+                        // 📌 السنةُ والدرسُ يُثبَّتان مع المحادثة داخل الإرسال.
                         c.processRequest(customText: content);
                       },
                 icon: Icon(PI.downloadSimple.bold, size: 20),
@@ -1020,7 +1057,7 @@ class SessionSettingsPanel extends StatelessWidget {
               height: 50,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.primaryFill,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),

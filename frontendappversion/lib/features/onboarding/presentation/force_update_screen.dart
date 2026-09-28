@@ -92,7 +92,7 @@ class ForceUpdateScreen extends StatelessWidget {
                       icon: const Icon(Icons.download_rounded),
                       label: const Text("حدّث الآن"),
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: AppColors.primaryFill,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),

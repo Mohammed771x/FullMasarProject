@@ -126,7 +126,6 @@ void main() {
       // 💡 التلميح مجدولٌ بمؤقّت، ورئيسية المعلم لا «تستقرّ» أبداً —
       //    فنعلّمه «عُرض» وندفع إطاراتٍ معدودة بدل `pumpAndSettle`.
       SharedPreferences.setMockInitialValues({
-        'screen_tip_shown_teacher_chat': true,
         // 💡 ودليلُ الأداة يُعرض مرّةً عند أول فتح — نعلّمه «عُرض».
         'teacher_instruction_shown_ask': true,
       });

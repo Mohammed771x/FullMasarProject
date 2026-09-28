@@ -509,7 +509,7 @@ Widget _quizBody(double u) {
     margin: EdgeInsets.only(bottom: u * 0.5),
     padding: EdgeInsets.symmetric(horizontal: u * 0.5),
     decoration: BoxDecoration(
-      color: right ? AppColors.success100 : AppColors.surfaceWhite,
+      color: right ? AppColors.schGreenFill : AppColors.surfaceWhite,
       borderRadius: BorderRadius.circular(u * 0.6),
       border: Border.all(
         color: right ? AppColors.success500 : AppColors.border,

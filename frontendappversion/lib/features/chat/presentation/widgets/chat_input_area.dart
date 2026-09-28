@@ -10,6 +10,8 @@ import '../controllers/chat_controller.dart';
 import '../../../../core/media/image_editor_screen.dart';
 import '../../../../core/widgets/voice_recording_bar.dart';
 import '../../../../core/widgets/input_bar_metrics.dart';
+import '../../../../core/tour/tour_anchor.dart';
+import '../../../future_masar/presentation/tours/education_tour.dart';
 
 // ==========================================
 // ⌨️ خانة الكتابة وأزرار الإرسال/الإيقاف
@@ -202,192 +204,210 @@ class ChatInputArea extends StatelessWidget {
                 onSend: () => controller.stopVoiceAndSend(),
               )
             else
-              Container(
-                constraints: const BoxConstraints(minHeight: 56),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceWhite,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.inputBarBorder),
-                  boxShadow: AppColors.bubbleShadow,
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 7),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // 📷 الكاميرا — **تبقى** عند بلوغ الحدّ، ولمسُها يقول
-                    //    «وصلت الحدّ الأقصى» (أمرُ المالك ٢٠٢٦-٠٩-٢٤: كانت
-                    //    تختفي فيظنّ الطالبُ أن الزرَّ تعطّل).
-                    if (!isGenerating)
-                      _RoundIcon(
-                        icon: PI.camera.regular,
-                        size: 36,
-                        color: controller.attachedImages.isNotEmpty
-                            ? AppColors.primary
-                            : AppColors.inputBarIcon,
-                        onTap: () => _pickImage(context),
-                      )
-                    else
-                      const SizedBox(width: 36),
-                    // 🧠 **وضعُ التفكير — أيقونةٌ لا شريحةٌ مكتوبة.**
-                    //    جُرّبت شريحةً باسمها فأكلت ٨٠ نقطةً من عرض الكتابة،
-                    //    وحكمُ المالك: «ما عجبنا مكانه… طول طول». فصارت
-                    //    بحجم الكاميرا نفسِه (٣٦)، والشرحُ يظهر عند الضغط
-                    //    لا يزاحم الحقلَ دائماً. ويختفي في موادّ جيميناي:
-                    //    «التفكير يظهر بس في الشاتس اللي فيها DPC».
-                    if (!isGenerating && controller.thinkingAvailable)
-                      _RoundIcon(
-                        icon: PI.brain(active: controller.thinking),
-                        size: 36,
-                        color: controller.thinking
-                            ? AppColors.primary
-                            : AppColors.inputBarIcon,
-                        onTap: () => _pickThinking(context),
-                      ),
-                    Expanded(
-                      child: TextField(
-                        controller: controller.inputController,
-                        // ⌨️ تركيزُه وحده يطوي بطاقةَ الإعدادات، ونقرةٌ على
-                        //    المحادثة تُسقطه ([ChatController.inputFocus]).
-                        focusNode: controller.inputFocus,
-                        // ⌨️ يبقى مفتوحاً أثناء البثّ: الطالب يُحضّر سؤاله
-                        //    التالي وهو يقرأ. المنعُ على **الإرسال** وحده.
-                        enabled:
-                            !controller.isLoading ||
-                            controller.messages.isEmpty,
-                        minLines: 1,
-                        maxLines: 4,
-                        onChanged: (_) => controller.refresh(),
-                        // 🔠 **16 لا 12.5** (ملاحظة المالك ٢٠٢٦-٠٩-٢٣: «الكتابة
-                        //    في مربع الإرسال صغيرة جداً — خلّها زي ChatGPT
-                        //    وClaude»). ١٦ مقاسُ حقول الكتابة فيهما، وهو
-                        //    أيضاً **الحدُّ الذي لا يُكبّر iOS الصفحةَ دونه**
-                        //    عند التركيز في الويب — فالقراءةُ مريحةٌ بلا
-                        //    تكبير. والتلميحُ بالمقاس نفسِه كي لا يقفز
-                        //    السطرُ حين يبدأ الطالبُ الكتابة.
-                        style: TextStyle(
-                          fontSize: kInputFontSize,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.inputBarText,
+              TourAnchor(
+                id: EducationTour.bar,
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 56),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceWhite,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.inputBarBorder),
+                    boxShadow: AppColors.bubbleShadow,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 7,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // 📷 الكاميرا — **تبقى** عند بلوغ الحدّ، ولمسُها يقول
+                      //    «وصلت الحدّ الأقصى» (أمرُ المالك ٢٠٢٦-٠٩-٢٤: كانت
+                      //    تختفي فيظنّ الطالبُ أن الزرَّ تعطّل).
+                      if (!isGenerating)
+                        TourAnchor(
+                          id: EducationTour.camera,
+                          child: _RoundIcon(
+                            icon: PI.camera.regular,
+                            size: 36,
+                            color: controller.attachedImages.isNotEmpty
+                                ? AppColors.primary
+                                : AppColors.inputBarIcon,
+                            onTap: () => _pickImage(context),
+                          ),
+                        )
+                      else
+                        const SizedBox(width: 36),
+                      // 🧠 **وضعُ التفكير — أيقونةٌ لا شريحةٌ مكتوبة.**
+                      //    جُرّبت شريحةً باسمها فأكلت ٨٠ نقطةً من عرض الكتابة،
+                      //    وحكمُ المالك: «ما عجبنا مكانه… طول طول». فصارت
+                      //    بحجم الكاميرا نفسِه (٣٦)، والشرحُ يظهر عند الضغط
+                      //    لا يزاحم الحقلَ دائماً. ويختفي في موادّ جيميناي:
+                      //    «التفكير يظهر بس في الشاتس اللي فيها DPC».
+                      if (!isGenerating && controller.thinkingAvailable)
+                        TourAnchor(
+                          id: EducationTour.thinking,
+                          child: _RoundIcon(
+                            icon: PI.brain(active: controller.thinking),
+                            size: 36,
+                            color: controller.thinking
+                                ? AppColors.primary
+                                : AppColors.inputBarIcon,
+                            onTap: () => _pickThinking(context),
+                          ),
                         ),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          // 🩹 **بلا تعبئة.** سمةُ التطبيق العامة
-                          //    (`inputDecorationTheme`) تملأ كلَّ حقلٍ بلونٍ
-                          //    رمادي، فظهر لوحٌ داخل الشريط الأبيض. وفي
-                          //    التصميم الشريطُ **أبيضُ متّصل** من المايك إلى
-                          //    الكاميرا — قِستُ بكسلاته: 255 بلا انقطاع.
-                          filled: false,
-                          // 🚦 **التلميحُ يقول ما ينقص** قبل أن يُضغط شيء:
-                          //    «اختر الدرس أولاً» أوضحُ من زرٍّ باهتٍ صامت.
-                          hintText: controller.isCleaningVoice
-                              ? "✨ جارٍ ترتيب النص..."
-                              : (blocker != null
-                                    ? "$blocker ☝️"
-                                    : controller.awaitingTeacherConcept
-                                    // 💡 التبسيطُ: أولُ رسالةٍ هي المفهوم.
-                                    ? "اكتب المفهوم الذي تريد تبسيطه..."
-                                    : "اسأل مسار أو اكتب مسألتك هنا..."),
-                          hintMaxLines: 1,
-                          hintStyle: TextStyle(
+                      Expanded(
+                        child: TextField(
+                          controller: controller.inputController,
+                          // ⌨️ تركيزُه وحده يطوي بطاقةَ الإعدادات، ونقرةٌ على
+                          //    المحادثة تُسقطه ([ChatController.inputFocus]).
+                          focusNode: controller.inputFocus,
+                          // ⌨️ يبقى مفتوحاً أثناء البثّ: الطالب يُحضّر سؤاله
+                          //    التالي وهو يقرأ. المنعُ على **الإرسال** وحده.
+                          enabled:
+                              !controller.isLoading ||
+                              controller.messages.isEmpty,
+                          minLines: 1,
+                          maxLines: 4,
+                          onChanged: (_) => controller.refresh(),
+                          // 🔠 **16 لا 12.5** (ملاحظة المالك ٢٠٢٦-٠٩-٢٣: «الكتابة
+                          //    في مربع الإرسال صغيرة جداً — خلّها زي ChatGPT
+                          //    وClaude»). ١٦ مقاسُ حقول الكتابة فيهما، وهو
+                          //    أيضاً **الحدُّ الذي لا يُكبّر iOS الصفحةَ دونه**
+                          //    عند التركيز في الويب — فالقراءةُ مريحةٌ بلا
+                          //    تكبير. والتلميحُ بالمقاس نفسِه كي لا يقفز
+                          //    السطرُ حين يبدأ الطالبُ الكتابة.
+                          style: TextStyle(
                             fontSize: kInputFontSize,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.inputBarIcon,
+                            color: AppColors.inputBarText,
                           ),
-                          // 📏 **9 لا 12**: السطرُ صار أطول (١٦×١٫٦ ≈ ٢٦)،
-                          //    فتبقى مراكزُ الحقل والكاميرا ودائرة الإرسال
-                          //    على خطٍّ واحد (٩ + ١٣ = ٢٢ ≈ نصفُ ٤٢ + هامش).
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: kInputVPad,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            // 🩹 **بلا تعبئة.** سمةُ التطبيق العامة
+                            //    (`inputDecorationTheme`) تملأ كلَّ حقلٍ بلونٍ
+                            //    رمادي، فظهر لوحٌ داخل الشريط الأبيض. وفي
+                            //    التصميم الشريطُ **أبيضُ متّصل** من المايك إلى
+                            //    الكاميرا — قِستُ بكسلاته: 255 بلا انقطاع.
+                            filled: false,
+                            // 🚦 **التلميحُ يقول ما ينقص** قبل أن يُضغط شيء:
+                            //    «اختر الدرس أولاً» أوضحُ من زرٍّ باهتٍ صامت.
+                            hintText: controller.isCleaningVoice
+                                ? "✨ جارٍ ترتيب النص..."
+                                : (blocker != null
+                                      ? "$blocker ☝️"
+                                      : controller.awaitingTeacherConcept
+                                      // 💡 التبسيطُ: أولُ رسالةٍ هي المفهوم.
+                                      ? "اكتب المفهوم الذي تريد تبسيطه..."
+                                      : "اسأل مسار أو اكتب مسألتك هنا..."),
+                            hintMaxLines: 1,
+                            hintStyle: TextStyle(
+                              fontSize: kInputFontSize,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.inputBarIcon,
+                            ),
+                            // 📏 **9 لا 12**: السطرُ صار أطول (١٦×١٫٦ ≈ ٢٦)،
+                            //    فتبقى مراكزُ الحقل والكاميرا ودائرة الإرسال
+                            //    على خطٍّ واحد (٩ + ١٣ = ٢٢ ≈ نصفُ ٤٢ + هامش).
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: kInputVPad,
+                            ),
+                            // ⚠️ **الأربعةُ جميعاً.** `border` وحدها لا تكفي:
+                            //    فلاتر تأخذ `enabledBorder` و`focusedBorder`
+                            //    من سمة التطبيق حين لا تُذكر هنا — فبقي إطارٌ
+                            //    رماديٌّ مستديرٌ حول الحقل داخل الشريط الأبيض.
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
                           ),
-                          // ⚠️ **الأربعةُ جميعاً.** `border` وحدها لا تكفي:
-                          //    فلاتر تأخذ `enabledBorder` و`focusedBorder`
-                          //    من سمة التطبيق حين لا تُذكر هنا — فبقي إطارٌ
-                          //    رماديٌّ مستديرٌ حول الحقل داخل الشريط الأبيض.
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          disabledBorder: InputBorder.none,
+                          onSubmitted: (_) {
+                            if (canSend) controller.processRequest();
+                          },
                         ),
-                        onSubmitted: (_) {
-                          if (canSend) controller.processRequest();
-                        },
                       ),
-                    ),
-                    // 🎤 المايك
-                    if (!isGenerating)
-                      controller.isCleaningVoice
-                          ? SizedBox(
-                              width: 36,
-                              height: kInputSideBox,
-                              child: Center(
-                                child: SizedBox(
-                                  width: 19,
-                                  height: 19,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.2,
-                                    valueColor: AlwaysStoppedAnimation(
-                                      AppColors.primary,
+                      // 🎤 المايك
+                      if (!isGenerating)
+                        controller.isCleaningVoice
+                            ? SizedBox(
+                                width: 36,
+                                height: kInputSideBox,
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 19,
+                                    height: 19,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      valueColor: AlwaysStoppedAnimation(
+                                        AppColors.primary,
+                                      ),
                                     ),
                                   ),
                                 ),
+                              )
+                            : TourAnchor(
+                                id: EducationTour.mic,
+                                child: _RoundIcon(
+                                  icon: PI.microphone.regular,
+                                  size: 36,
+                                  color: AppColors.inputBarIcon,
+                                  onTap: () => controller.startVoiceRecording(),
+                                ),
                               ),
-                            )
-                          : _RoundIcon(
-                              icon: PI.microphone.regular,
-                              size: 36,
-                              color: AppColors.inputBarIcon,
-                              onTap: () => controller.startVoiceRecording(),
-                            ),
-                    const SizedBox(width: 2),
-                    // 🚀 الإرسال — دائرةٌ 42 ممتلئة. وتصير حمراء للإيقاف.
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          if (isGenerating) {
-                            controller.stopCurrentRequest();
-                          } else if (canSend) {
-                            controller.processRequest();
-                          } else {
-                            onEmptyWarning();
-                          }
-                        },
-                        customBorder: const CircleBorder(),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            // 🎨 **المعطّل = 40% من لون الإرسال لا رماديّ.**
-                            //    قِستُ بكسلة التصميم `#A1BEFE` فكانت حاصلَ
-                            //    `#155DFC` بشفافية 0.4 فوق الأبيض بالضبط —
-                            //    والمصمّم رسم الشريطَ فارغاً، فهذه حالةُ
-                            //    «لا شيء لِيُرسَل» كما تخيّلها.
-                            color: isGenerating
-                                ? AppColors.error500
-                                : AppColors.sendButton.withValues(
-                                    alpha: canSend ? 1 : 0.4,
-                                  ),
-                            shape: BoxShape.circle,
-                          ),
-                          // ↔️ **يشير يساراً.** خطُّ Phosphor لا يُعكس مع
-                          //    الاتجاه (ثوابتُه بلا `matchTextDirection`)،
-                          //    والطائرةُ في التصميم تطير نحو يسار الشاشة.
-                          child: Transform.scale(
-                            scaleX: isGenerating ? 1 : -1,
-                            child: Icon(
-                              isGenerating
-                                  ? PI.stopCircle.fill
-                                  : PI.paperPlaneRight.fill,
-                              color: Colors.white,
-                              size: 21,
+                      const SizedBox(width: 2),
+                      // 🚀 الإرسال — دائرةٌ 42 ممتلئة. وتصير حمراء للإيقاف.
+                      TourAnchor(
+                        id: EducationTour.send,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              if (isGenerating) {
+                                controller.stopCurrentRequest();
+                              } else if (canSend) {
+                                controller.processRequest();
+                              } else {
+                                onEmptyWarning();
+                              }
+                            },
+                            customBorder: const CircleBorder(),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                // 🎨 **المعطّل = 40% من لون الإرسال لا رماديّ.**
+                                //    قِستُ بكسلة التصميم `#A1BEFE` فكانت حاصلَ
+                                //    `#155DFC` بشفافية 0.4 فوق الأبيض بالضبط —
+                                //    والمصمّم رسم الشريطَ فارغاً، فهذه حالةُ
+                                //    «لا شيء لِيُرسَل» كما تخيّلها.
+                                color: isGenerating
+                                    ? AppColors.error500
+                                    : AppColors.sendButton.withValues(
+                                        alpha: canSend ? 1 : 0.4,
+                                      ),
+                                shape: BoxShape.circle,
+                              ),
+                              // ↔️ **يشير يساراً.** خطُّ Phosphor لا يُعكس مع
+                              //    الاتجاه (ثوابتُه بلا `matchTextDirection`)،
+                              //    والطائرةُ في التصميم تطير نحو يسار الشاشة.
+                              child: Transform.scale(
+                                scaleX: isGenerating ? 1 : -1,
+                                child: Icon(
+                                  isGenerating
+                                      ? PI.stopCircle.fill
+                                      : PI.paperPlaneRight.fill,
+                                  color: Colors.white,
+                                  size: 21,
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
           ],
@@ -597,7 +617,7 @@ class ChatInputArea extends StatelessWidget {
                   color: Colors.white,
                 ),
               ),
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.primaryFill,
               // ⚠️ الحذف بضغطةٍ واحدة على الشريحة نفسها: الطالب يرفعها
               //    وهو ينظر إليها، فلا يعود إلى الإعدادات ليلغي اختياراً.
               deleteIcon: Icon(PI.x.bold, size: 16, color: Colors.white),

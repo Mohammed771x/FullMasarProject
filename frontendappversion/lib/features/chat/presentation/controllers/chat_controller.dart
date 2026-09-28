@@ -22,6 +22,7 @@ import '../../data/models/ask_response.dart';
 import '../../data/models/chat_suggestion.dart';
 import '../../data/models/chat_model.dart';
 import '../../data/edu_session.dart';
+import '../../data/wazari_context.dart';
 import '../../data/models/subject_capabilities.dart';
 import '../../data/repositories/ask_stream.dart';
 import '../../data/repositories/chat_repository.dart';
@@ -246,6 +247,22 @@ class ChatController extends ChangeNotifier {
   List<String> mathExamLessons = [];
   String selectedMathExamYear = "";
   String selectedMathExamLesson = "";
+
+  // 📝 **سنةُ الوزاري ودرسُه مثبّتان مع المحادثة** — لا مع القائمتين.
+  //
+  // 🎯 «ما يقدر الطالب بعد ما يجيب الأسئلة حق الدرس ما يقدر يغيّر الدرس…
+  //    لو رجع بعدين على المحادثة يوجد نفس الدرس» (المالك ٢٠٢٦-٠٩-٢٧).
+  //    القائمتان اختيارُ الشاشة؛ وهذان ما جُلب فعلاً **في هذه المحادثة** —
+  //    بهما تُرسل كلُّ متابعة، ويُحفظان معها ويعودان ([wazari_context]).
+  String _wazariYear = "";
+  String _wazariLesson = "";
+
+  /// سنةُ/درسُ وزاري هذه المحادثة (للعرض والاختبار) — فارغان قبل أول جلب.
+  String get wazariYear => _wazariYear;
+  String get wazariLesson => _wazariLesson;
+
+  /// كم سؤالاً وزارياً عُرض في هذه المحادثة — يُقرأ من رسائلها نفسِها.
+  int get mathWazariShown => wazariShownIn(messages);
   String selectedLesson = "";
   List<String> availableUnits = [];
   // 📚 فارغةٌ حتى تصل قائمةُ الوحدات — «الكل» لم تعد خياراً
@@ -474,7 +491,11 @@ class ChatController extends ChangeNotifier {
     if (selectedSubject == "رياضيات") {
       if (selectedMathBranch.isEmpty) return "اختر فرع الرياضيات أولاً";
       if (mathMode == "وزاري") {
-        return mathWazariQuestionsLoaded ? null : "اختر ثم اضغط «جلب الأسئلة»";
+        // ⚖️ **يُسأل عن المحادثة لا عن زرٍّ ضُغط**: كان علَماً يُضاء عند
+        //    الضغط ولا يُطفأ مع «محادثة جديدة» — فيكتب الطالبُ في محادثةٍ
+        //    فارغة ويُردّ «يرجى جلب الأسئلة» من الخادم. الآن: أسئلةٌ في هذه
+        //    المحادثة أو لا كتابة.
+        return mathWazariShown > 0 ? null : "اختر ثم اضغط «جلب الأسئلة»";
       }
       if (selectedLesson.isEmpty) return "اختر الدرس أولاً";
       return null;
@@ -714,6 +735,33 @@ class ChatController extends ChangeNotifier {
     return true;
   }
 
+  /// 📝 محادثةُ وزاري جلبت أسئلتَها ⇒ سنتُها ودرسُها مقفلان ([_wazariYear]).
+  bool get _wazariLocked => conversationStarted && _wazariLesson.isNotEmpty;
+
+  /// 🔒 سنةُ وزاري الرياضيات — سنةٌ أخرى في محادثةٍ جلبت أسئلتَها ⇒ السؤال.
+  /// ⚠️ الشرطُ **قبل** الـawait ([_allowContextChange]): بلا قفلٍ يُسند فوراً.
+  Future<void> pickMathExamYear(String year) async {
+    if (_wazariLocked &&
+        year != _wazariYear &&
+        !await _allowContextChange(ContextChange.lesson)) {
+      return;
+    }
+    selectedMathExamYear = year;
+    _safeNotify();
+    await loadMathExamLessons(selectedMathBranch, year);
+  }
+
+  /// 🔒 درسُ وزاري الرياضيات — «ما يقدر يغيّر الدرس» في محادثةٍ جلبت أسئلتَه.
+  Future<void> pickMathExamLesson(String lesson) async {
+    if (_wazariLocked &&
+        lesson != _wazariLesson &&
+        !await _allowContextChange(ContextChange.lesson)) {
+      return;
+    }
+    selectedMathExamLesson = lesson;
+    _safeNotify();
+  }
+
   /// ➕ صفحةٌ **من خارج** صفحات المحادثة ⇒ السؤال، ثم محادثةٌ جديدة
   ///    بما اختاره الآن مع الصفحة الجديدة.
   Future<void> _addPageInNewConversation(int page) async {
@@ -752,7 +800,6 @@ class ChatController extends ChangeNotifier {
 
   /// جاري جلب سنوات الوزاري — تميّز «لم تصل بعد» عن «لا يوجد بنك لهذا الصف».
   bool yearsLoading = false;
-  bool mathWazariQuestionsLoaded = false;
   List<Map<String, dynamic>> messages = [];
   List<String> availableYears = [];
 
@@ -809,6 +856,22 @@ class ChatController extends ChangeNotifier {
   ///    «لما ندخل أول مرة لا تخلّي إعدادات الجلسة مفتوحة… يطلع له الروبوت
   ///    بشكلٍ جميل، وهو يضغط على إعدادات الجلسة». وسيُضاف دليلٌ يشير إليها.
   bool showSettingsPanel = false;
+
+  /// 🎭 **جولةُ الشرح جارية بأمثلتها** ([EducationTour]): منتقي الوحدة والدرس
+  ///    الفارغ («قيد الإضافة» — كثيرٌ منه في الصفّين الأول والثاني) يُعرض
+  ///    بمثالٍ توضيحيّ، كي يعرف الطالبُ من أين سيختار حين يصل المحتوى.
+  ///    عرضٌ فقط — لا يمسّ اختياراً ولا يُرسل شيئاً.
+  bool tourDemo = false;
+
+  /// هل منتقي الوحدة/الدرس فارغٌ الآن (لا محتوى لهذه المادة في هذا الوضع)؟
+  bool get lessonPickerEmpty {
+    if (selectedSubject == "رياضيات" || selectedMode == "وزاري") return false;
+    if (capsLoading) return false;
+    if (usesContentModes && contentMode == "lessons") {
+      return v3LessonsUnits.isEmpty;
+    }
+    return availableUnits.isEmpty;
+  }
 
   // ===== التهيئة =====
   /// [openSubject] و[openLesson] وأخواتها: فتحٌ موجَّه من خارج الشات —
@@ -1813,6 +1876,8 @@ class ChatController extends ChangeNotifier {
     sessionActive = false;
     conceptController.clear(); // 💡 مفهومُ التبسيط يخصّ محادثتَه
     _conversationPages.clear(); // 📄 وصفحاتُها كذلك
+    _wazariYear = ""; // 📝 وسنةُ وزاريها ودرسُه
+    _wazariLesson = "";
     // 🃏 **البطاقةُ تبقى كما هي** — لا تُفتح ولا تُطوى هنا: محادثةٌ جديدة
     //    من الدرج تُري الروبوتَ وترحيبَه (قرار المالك ٢٠٢٦-٠٩-٢٤)، ومحادثةٌ
     //    جديدة من اختيار درسٍ آخر تُبقي البطاقةَ مفتوحةً حيث كان يختار.
@@ -1932,6 +1997,31 @@ class ChatController extends ChangeNotifier {
       // 📐 الرياضياتُ شجرتُها من `/math/lessons` لا من القدرات، وقد لا تكون
       //    وصلت بعد. فنُعيد الدرس كما هو ونترك التحقّق لقائمته حين تصل.
       if (conversation.lesson.isNotEmpty) selectedLesson = conversation.lesson;
+      // 📝 **ووزاريُّها يعود بسنته ودرسه** — لا يرث ما على الشاشة.
+      final wazari = conversation.mode == "وزاري";
+      _wazariYear = wazari ? conversation.unit : "";
+      _wazariLesson = wazari ? conversation.lesson : "";
+      // 🕰️ محادثةٌ حُفظت قبل حفظ السنة ⇒ من فقاعة جلبها نفسِها.
+      if (wazari && _wazariYear.isEmpty) {
+        final fetched = wazariFetchIn(messages);
+        if (fetched != null) {
+          _wazariYear = fetched.$1;
+          if (_wazariLesson.isEmpty) _wazariLesson = fetched.$2;
+        }
+      }
+      if (wazari && _wazariLesson.isNotEmpty) {
+        selectedMathExamYear = _wazariYear;
+        selectedMathExamLesson = _wazariLesson;
+        if (selectedMathBranch.isNotEmpty) {
+          unawaited(
+            loadMathExamYears(
+              selectedMathBranch,
+              keepYear: _wazariYear,
+              keepLesson: _wazariLesson,
+            ),
+          );
+        }
+      }
       return;
     }
 
@@ -2158,6 +2248,9 @@ class ChatController extends ChangeNotifier {
 
   Future<void> saveCurrentConversation() async {
     if (currentConversationId == null || messages.isEmpty) return;
+    // 🎭 **ردُّ جولة الشرح التوضيحيّ لا يُحفظ أبداً** ([EducationTour.demoMessages])
+    //    — حارسٌ أخير لو أُغلقت الشاشةُ والجولةُ فوقها.
+    if (messages.any((m) => m["tourDemo"] == true)) return;
     // ✏️ **العنوانُ يُشتقّ مرّةً، ولا يُكتب فوق اسمٍ اختاره الطالب.**
     //
     // 🔴 كان يُشتقّ من `messages.first` في **كل** حفظ — والرسالةُ الأولى
@@ -2212,9 +2305,13 @@ class ChatController extends ChangeNotifier {
       contentMode: effectiveContentMode ?? "",
       // 👨‍🏫 **والمعلّمُ شجرتُه شجرةُ الدروس** ([_usesLessonTree]) — كان
       //    يُحفظ له `selectedUnit` (وحدةُ الصفحات، فارغةٌ عنده أبداً).
-      unit: _usesLessonTree ? selectedV3Unit : selectedUnit,
+      // 📝 **ووزاريُّ الرياضيات «وحدتُه» سنتُه** — الفرعُ في `branch` والدرسُ
+      //    في `lesson`، والحقلُ فارغٌ للرياضيات أصلاً فلا ترحيلَ ولا تعارض.
+      unit: (!isTeacher && selectedSubject == "رياضيات" && mathMode == "وزاري")
+          ? _wazariYear
+          : (_usesLessonTree ? selectedV3Unit : selectedUnit),
       lesson: (!isTeacher && selectedSubject == "رياضيات")
-          ? selectedLesson
+          ? (mathMode == "وزاري" ? _wazariLesson : selectedLesson)
           : selectedV3Lesson,
       pages: List<int>.of(_conversationPages),
     );
@@ -2353,16 +2450,26 @@ class ChatController extends ChangeNotifier {
     }
   }
 
-  Future<void> loadMathExamYears(String branch) async {
+  /// [keepYear]/[keepLesson]: اختيارُ محادثةٍ مستعادة يبقى إن كان في القائمة
+  /// — وإلا مُسح، فالقائمةُ المنسدلة لا تُعطى قيمةً ليست من عناصرها.
+  Future<void> loadMathExamYears(
+    String branch, {
+    String keepYear = "",
+    String keepLesson = "",
+  }) async {
     final token = _scopeToken;
     try {
       final list = await _content.getMathExamYears(branch, grade, track.key);
       if (_scopeExpired(token)) return;
       mathExamYears = list;
-      selectedMathExamYear = "";
+      final keep = keepYear.isNotEmpty && list.contains(keepYear);
+      selectedMathExamYear = keep ? keepYear : "";
       mathExamLessons = [];
       selectedMathExamLesson = "";
       _safeNotify();
+      if (keep) {
+        await loadMathExamLessons(branch, keepYear, keepLesson: keepLesson);
+      }
     } on ServerException {
       onShowDataError?.call("تعذر جلب سنوات الرياضيات.");
     } catch (e) {
@@ -2370,7 +2477,11 @@ class ChatController extends ChangeNotifier {
     }
   }
 
-  Future<void> loadMathExamLessons(String branch, String year) async {
+  Future<void> loadMathExamLessons(
+    String branch,
+    String year, {
+    String keepLesson = "",
+  }) async {
     final token = _scopeToken;
     try {
       final list = await _content.getMathExamLessons(
@@ -2381,7 +2492,8 @@ class ChatController extends ChangeNotifier {
       );
       if (_scopeExpired(token)) return;
       mathExamLessons = list;
-      selectedMathExamLesson = "";
+      selectedMathExamLesson =
+          keepLesson.isNotEmpty && list.contains(keepLesson) ? keepLesson : "";
       _safeNotify();
     } on ServerException {
       onShowDataError?.call("تعذر جلب الدروس الوزارية.");
@@ -2724,6 +2836,11 @@ class ChatController extends ChangeNotifier {
     } else if (selectedSubject == "رياضيات" && mathMode == "وزاري") {
       final parts = text.split('|');
       if (parts.length >= 2) {
+        // 📌 **الجلبُ يثبّت سنةَ المحادثة ودرسَها** — بعد كل الحرّاس، فطلبٌ
+        //    رُفض (مشغول) لا يثبّت ما لم يُجلب.
+        _wazariYear = parts[0].trim();
+        _wazariLesson = parts[1].trim();
+        selectedLesson = _wazariLesson;
         messages.add({
           "role": "user",
           "text": "جلب أسئلة وزاري: ${parts[1]} (${parts[0]})",
@@ -2832,7 +2949,9 @@ class ChatController extends ChangeNotifier {
       if (cMode == "lessons") {
         finalLessonName = selectedV3Lesson;
       } else if (selectedSubject == "رياضيات") {
-        finalLessonName = selectedLesson;
+        finalLessonName = mathMode == "وزاري" && _wazariLesson.isNotEmpty
+            ? _wazariLesson
+            : selectedLesson;
       }
 
       if (selectedSubject != "رياضيات" &&
@@ -2888,6 +3007,12 @@ class ChatController extends ChangeNotifier {
                 //    صفحاتٍ بقيت من وضعٍ سابق مع درسٍ لا علاقة له بها.
                 if (canPickPages && selectedPages.isNotEmpty)
                   "selected_pages": selectedPages,
+                // 📝 **سياقُ وزاري الرياضيات من المحادثة** — بها يُعيد الخادمُ
+                //    بناءَ ما عُرض فيها لا ما عُرض في آخر محادثةٍ للطالب.
+                if (selectedSubject == "رياضيات" && mathMode == "وزاري") ...{
+                  "exam_year": _wazariYear,
+                  "exam_shown": mathWazariShown,
+                },
               },
               imagesBase64: sendingImages.map((e) => e.base64Data).toList(),
             );

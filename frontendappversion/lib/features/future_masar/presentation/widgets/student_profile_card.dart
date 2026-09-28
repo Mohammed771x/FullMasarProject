@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/config/curriculum.dart';
 import '../../../../core/session/user_session.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/tour/tour_anchor.dart';
 import '../../../../core/widgets/phosphor.dart';
 import '../../../../core/widgets/user_avatar.dart';
+import '../tours/analysis_tour.dart';
 import 'analysis_ui.dart';
 
 // ==========================================
@@ -79,10 +81,13 @@ class StudentProfileCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // 👤 الصورة — وهي أيضاً بابُ تغييرها لمن ليس زائراً.
-                  UserAvatar(
-                    radius: 37.5,
-                    editable: !s.isGuest,
-                    onChanged: onAvatarChanged,
+                  TourAnchor(
+                    id: AnalysisTour.avatar,
+                    child: UserAvatar(
+                      radius: 37.5,
+                      editable: !s.isGuest,
+                      onChanged: onAvatarChanged,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Text(s.name,
@@ -101,15 +106,30 @@ class StudentProfileCard extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           color: AppColors.analysisProfileButtonInk)),
                   const SizedBox(height: 12),
-                  _bar(ratio),
-                  const SizedBox(height: 8),
-                  Text("مادة درستها $studied / $total",
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.analysisProfileInk)),
+                  // 📍 الشريطُ ونصُّه معاً مرساةٌ واحدة لجولة الشرح.
+                  TourAnchor(
+                    id: AnalysisTour.studied,
+                    child: Column(
+                      children: [
+                        _bar(ratio),
+                        const SizedBox(height: 8),
+                        // ↔️ الرقمان في عزلٍ يساريّ (\u2066…\u2069): بدونه يقلب الاتجاهُ
+                        //    العربيُّ ما حول «/» فيُقرأ «6 / 2» بدل «2 / 6».
+                        Text("مادة درستها \u2066$studied / $total\u2069",
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.analysisProfileInk)),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 12),
-                  Center(child: _detailsButton()),
+                  Center(
+                    child: TourAnchor(
+                      id: AnalysisTour.details,
+                      child: _detailsButton(),
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -28,7 +28,12 @@ void main() {
           //    (`_GuideBody` في `instructions_dialog`)، فالتوكيدُ فيه
           //    يُرسم توكيداً. والقاعدةُ «لا `**` في `Text` عاديّ» قائمةٌ
           //    على ما يُرسم لا على ما يُكتب.
-          file.path.contains('features/instructions/data/')) {
+          file.path.contains('features/instructions/data/') ||
+          // 🎭 ردُّ جولة الشرح التوضيحيّ رسالةُ مساعدٍ تُرسم في فقاعة
+          //    المحادثة بـ`MasarMarkdown` كأيّ ردٍّ حقيقيّ
+          //    (`EducationTour.demoMessages`).
+          file.path.endsWith('tours/education_tour.dart') ||
+          file.path.endsWith('tours/teacher_tour.dart')) {
         continue;
       }
       final lines = file.readAsLinesSync();

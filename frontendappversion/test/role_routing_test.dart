@@ -24,7 +24,6 @@ void main() {
     //    («A Timer is still pending»). نعلّمه «عُرض» فيخرج مبكراً — نحن
     //    نختبر الترويسة لا التلميح.
     SharedPreferences.setMockInitialValues({
-      'screen_tip_shown_teacher_chat': true,
       // 💡 دليلُ الأداة يُعرض عند أول فتح — نعلّمه «عُرض» فلا يحجب الشاشة.
       'teacher_instruction_shown_ask': true,
       'teacher_instruction_shown_plan': true,

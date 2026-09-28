@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/storage/prefs_keys.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/masar_brand.dart';
 import '../../../core/widgets/masar_dialog.dart';
 import '../../../core/widgets/masar_markdown.dart';
 import '../../../core/widgets/phosphor.dart';
@@ -48,6 +49,7 @@ class InstructionsDialog {
     required int grade,
     required String track,
     bool forceShow = false,
+    VoidCallback? onTour,
   }) async {
     // 🎓 **الدليلُ يُركَّب لهذه المادة وهذا الصف** — فلا يَعِد طالبَ الأول
     //    بوضعٍ لا يجده، ولا تبقى مادةٌ بلا دليل ([AppInstructions]).
@@ -77,6 +79,7 @@ class InstructionsDialog {
       // 🎓 والصفُّ يُمرَّر: بطاقةُ «وضع الوزاري» للثالث وحده ([_GuideBody]).
       grade: grade,
       onUnderstood: () => prefs.setBool(storageKey, true),
+      onTour: onTour,
     );
   }
 
@@ -88,7 +91,7 @@ class InstructionsDialog {
   ///   ② **لا رسالة «قيد الإعداد» هنا**: الأدوات أربعٌ معروفة ولكلٍّ نصُّها،
   ///      فغيابُ النصّ عطلٌ برمجي لا حالةُ محتوى ناقص.
   static Future<void> showTeacher(BuildContext context, String tool,
-      {bool forceShow = false}) async {
+      {bool forceShow = false, VoidCallback? onTour}) async {
     final data = AppInstructions.teacher[tool];
     if (data == null) return;
 
@@ -103,6 +106,7 @@ class InstructionsDialog {
       videoUrl: data["video_url"]!,
       teacher: true,
       onUnderstood: () => prefs.setBool(key, true),
+      onTour: onTour,
     );
   }
 
@@ -115,6 +119,7 @@ class InstructionsDialog {
     required Future<void> Function() onUnderstood,
     bool teacher = false,
     int grade = 3,
+    VoidCallback? onTour,
   }) async {
     final String instructionText = text;
 
@@ -134,7 +139,15 @@ class InstructionsDialog {
               text: instructionText,
               videoUrl: videoUrl,
               teacher: teacher,
-              grade: grade),
+              grade: grade,
+              onTour: onTour == null
+                  ? null
+                  : () {
+                      // 🤖 يُغلق الدليل (ويُعدّ «فُهم») ثم تبدأ الجولة.
+                      onUnderstood();
+                      Navigator.of(context).pop();
+                      onTour();
+                    }),
         ),
       ),
     );
@@ -168,9 +181,14 @@ class _GuideBody extends StatefulWidget {
     required this.videoUrl,
     this.teacher = false,
     this.grade = 3,
+    this.onTour,
   });
 
   final String text;
+
+  /// 🤖 «شرح الواجهة الرئيسية» — يُغلق الدليل ويبدأ جولةَ روبوت «مسار» على
+  ///    الشاشة ([EducationTour]). `null` ⇒ لا جولةَ لهذا القسم بعد فلا زرّ.
+  final VoidCallback? onTour;
   final String videoUrl;
 
   /// 🎓 صفُّ الطالب — تُبنى عليه قائمةُ البطاقات كما تُبنى عليه شرائحُ
@@ -228,6 +246,42 @@ class _GuideBodyState extends State<_GuideBody> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // 🤖 **«شرح الواجهة الرئيسية»** — في رأس الدليل كما أضافه المصمّم:
+        //    الجولةُ تظهر مرّةً أوّلَ دخول، وهذا طريقُ إعادتها من مكانها.
+        if (widget.onTour != null) ...[
+          MasarDialogRow(
+            height: 56,
+            highlighted: true,
+            onTap: widget.onTour,
+            child: Row(
+              children: [
+                const MasarRobotAvatar(size: 34),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text("شرح الواجهة الرئيسية",
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.primary)),
+                      Text("جولةٌ مع مسار على كل جزءٍ في الشاشة",
+                          style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.cardHint)),
+                    ],
+                  ),
+                ),
+                Icon(PI.caretLeft.bold,
+                    size: 15, color: AppColors.primary),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         for (int i = 0; i < modes.length; i++) ...[
           _GuideCard(
             index: i,

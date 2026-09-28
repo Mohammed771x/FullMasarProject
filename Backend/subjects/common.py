@@ -108,14 +108,20 @@ from .shared.render_rules import (  # noqa: F401
 # ── قواعدُ الجواب المشتركة ──
 from .shared.rules import (  # noqa: F401
     ANSWER_SHAPE_RULES, CONVERSATION_RULES, FOLLOWUP_RULES,
-    CONTINUITY_RULES,
+    CONTINUITY_RULES, CALC_CHECK_RULES,
 )
 
 # ── عدسةُ المادة ──
 from .shared.lens import (  # noqa: F401
     _SUBJECT_LENS, subject_lens, teaching_core, render_rules_once,
     turn_note, _ARABIC_INDIC, _replies_label, SUPPORT_EXAMPLE_RULES,
-    source_rules,
+    source_rules, CALC_SUBJECTS, calc_check_rules,
+)
+
+# ── سياقُ وزاري الرياضيات (لكل محادثة) ──
+from .shared.math_exam_context import (  # noqa: F401
+    EXAM_CONTEXT_CAP, conversation_exam, exam_questions_context,
+    exam_followup_prompt, EXAM_TURN_REMINDER,
 )
 
 # ── برومبتاتُ النظام ──

@@ -385,6 +385,20 @@ class AppColors {
   static Color get errorTint =>
       _dark ? error500.withValues(alpha: 0.16) : error100;
 
+  // ✏️ 🗑️ **زرّا صفّ المحادثة في الدرج** — تعديلُ الاسم والحذف.
+  // 🔴 كانا بـ`secondary100`/`error100` الثابتين — لوحان فاتحان يبهران في
+  //    الدرج الداكن (رُئي في المحاكي ٢٠٢٦-٠٩-٢٧). فالتعبئةُ شفّافةٌ في
+  //    الداكن كـ[errorTint]، والحبرُ يُفتح ليبقى مقروءاً على السواد.
+  static Color get editActionFill =>
+      _dark ? secondary500.withValues(alpha: 0.18) : secondary100;
+  static Color get editActionBorder =>
+      _dark ? secondary500.withValues(alpha: 0.40) : secondary200;
+  static Color get editActionInk => _dark ? secondary : secondary700;
+  static Color get deleteActionFill => errorTint;
+  static Color get deleteActionBorder =>
+      _dark ? error500.withValues(alpha: 0.40) : error200;
+  static Color get deleteActionInk => _dark ? const Color(0xFFFF8A8A) : error500;
+
   /// «مرحباً 👋» — `#6C7A71`.
   static Color get greetInk => _dark ? n500 : const Color(0xFF6C7A71);
 
@@ -588,8 +602,18 @@ class AppColors {
         ];
 
   /// حبرُ مثلّث التشغيل داخل مربّع كل بطاقة.
-  static List<Color> get guideAccents =>
-      const [primary500, warning600, success600, secondary500, slate700];
+  // 🔴 كانت ثابتةً للوضعين: في الداكن صار `slate700` فوق بلاطةٍ `#39414E`
+  //    — رماديٌّ على رماديّ، فاختفت أيقونةُ «الوزاري» من الدليل كلّها
+  //    (رُئي في المحاكي ٢٠٢٦-٠٩-٢٧). فالداكنُ يأخذ درجاتٍ مفتوحة.
+  static List<Color> get guideAccents => _dark
+      ? const [
+          Color(0xFF4DB3FF),
+          warning500,
+          success500,
+          Color(0xFFA9B8F0),
+          Color(0xFFB6BEC9),
+        ]
+      : const [primary500, warning600, success600, secondary500, slate700];
 
   /// ⭐ **لونُ «محفوظ»** — نجمةُ الحفظ فوق الردّ.
   ///

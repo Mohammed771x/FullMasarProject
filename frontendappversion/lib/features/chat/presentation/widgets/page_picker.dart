@@ -140,7 +140,7 @@ class _PagePickerState extends State<PagePicker> {
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       child: Material(
-        color: picked ? AppColors.primary : AppColors.softSurface,
+        color: picked ? AppColors.primaryFill : AppColors.softSurface,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),

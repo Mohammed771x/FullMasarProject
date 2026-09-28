@@ -103,7 +103,7 @@ class _AptitudeScreenState extends State<AptitudeScreen> {
                                   Container(
                                     width: 22,
                                     height: 22,
-                                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: sel ? AppColors.secondary : AppColors.textSecondary.withValues(alpha: 0.3), width: 2), color: sel ? AppColors.secondary : Colors.transparent),
+                                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: sel ? AppColors.secondary : AppColors.textSecondary.withValues(alpha: 0.3), width: 2), color: sel ? AppColors.secondaryFill : Colors.transparent),
                                     child: sel ? const Icon(Icons.check_rounded, size: 15, color: Colors.white) : null,
                                   ),
                                   const SizedBox(width: 14),

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/tour/masar_tour.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../../../chat/presentation/widgets/chat_dialogs.dart';
 import '../../../../core/auth/user_repository.dart';
@@ -13,7 +14,6 @@ import '../../../../core/session/user_session.dart';
 import '../../../../core/settings/app_settings.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/storage/chat_storage.dart';
-import '../../../../core/widgets/screen_tip.dart';
 import '../../data/demo_state.dart';
 import '../widgets/demo_widgets.dart';
 import '../../../banners/data/banner_repository.dart';
@@ -304,17 +304,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       () => _confirmDelete(),
                     ),
 
+                    _sectionTitle("المساعدة"),
+                    // 🤖 جولةُ الشرح مع الروبوت — تبدأ فورَ العودة إلى الرئيسية.
                     _actionTile(
-                      Icons.lightbulb_outline_rounded,
-                      "أعد عرض تلميحات الشاشات",
+                      Icons.smart_toy_outlined,
+                      "أعد جولة الشرح مع مسار",
                       AppColors.textPrimary,
                       () async {
-                        await ScreenTip.resetAll(_tipScreens);
-                        if (context.mounted) _snack("💡 ستظهر التلميحات مجدداً عند فتح الشاشات");
+                        await MasarTour.reset(MasarTour.allIds);
+                        if (context.mounted) Navigator.of(context).pop();
                       },
                     ),
-
-                    _sectionTitle("المساعدة"),
                     _actionTile(
                       Icons.chat_rounded,
                       "تواصل مع الدعم (واتساب)",
@@ -383,18 +383,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// شاشات التلميحات — قائمة واحدة تُستعمل في إعادة العرض وفي حذف الحساب،
-  /// فلا تُنسى شاشةٌ في أحدهما.
-  static const List<String> _tipScreens = [
-    "home",
-    "chat",
-    "education",
-    "scholarships",
-    "quiz",
-    "services",
-    "analysis",
-  ];
-
   // ══════════════ بطاقات ══════════════
 
   /// 🌗 ثلاث حالات لا مفتاح: «حسب النظام» هو ما يتوقّعه مستخدم الهاتف اليوم،
@@ -424,7 +412,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: selected ? AppColors.primary : Colors.transparent,
+                    color: selected ? AppColors.primaryFill : Colors.transparent,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -631,7 +619,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.primaryFill,
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.pop(ctx, true),
@@ -934,7 +922,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await QuizStorage.clearForOwner(uid);
               await SavedStorage.clear(uid);
               await AppSettings.I.resetAll();
-              await ScreenTip.resetAll(_tipScreens);
               DemoState.I.signOut();
               if (!mounted) return;
               Navigator.pushAndRemoveUntil(

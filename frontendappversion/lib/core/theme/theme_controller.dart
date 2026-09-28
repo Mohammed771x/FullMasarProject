@@ -3,8 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_colors.dart';
 
-/// ثلاث حالات لا اثنتان: «اتبع النظام» هو ما يتوقّعه مستخدم الهاتف اليوم،
-/// وغيابه يجبره على تبديل التطبيق يدوياً كلما تبدّل جهازه ليلاً.
+/// ثلاث حالات لا اثنتان: «اتبع النظام» خيارٌ متاحٌ لمن يريده.
+/// ☀️ **قرار المالك (٢٠٢٦-٠٩-٢٧):** الافتراضيُّ **فاتح** لا «حسب النظام» —
+///    جهازٌ داكن لا يجعل التطبيق داكناً في أول تشغيل؛ الطالبُ يغيّره بنفسه.
 enum AppThemeMode { system, light, dark }
 
 // ==========================================
@@ -19,7 +20,9 @@ class ThemeController extends ChangeNotifier {
 
   static const _kMode = 'theme_mode';
 
-  AppThemeMode _mode = AppThemeMode.system;
+  static const defaultMode = AppThemeMode.light;
+
+  AppThemeMode _mode = defaultMode;
   Brightness _systemBrightness = Brightness.light;
 
   AppThemeMode get mode => _mode;
@@ -44,9 +47,8 @@ class ThemeController extends ChangeNotifier {
       'dark' => AppThemeMode.dark,
       'system' => AppThemeMode.system,
       // 🕰️ ترحيل المفتاح القديم (bool) — من فعّل الوضع سابقاً لا يفقده.
-      _ => (p.getBool('isDarkMode') ?? false)
-          ? AppThemeMode.dark
-          : AppThemeMode.system,
+      //    ومن لم يختر شيئاً قطّ ⇒ الفاتح، ولو كان جهازه داكناً.
+      _ => (p.getBool('isDarkMode') ?? false) ? AppThemeMode.dark : defaultMode,
     };
     _apply();
   }

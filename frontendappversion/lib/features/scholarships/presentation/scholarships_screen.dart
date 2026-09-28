@@ -8,13 +8,17 @@ import '../../../core/widgets/phosphor.dart';
 import '../../banners/data/banner_model.dart';
 import '../../banners/presentation/banner_carousel.dart';
 import '../../../core/widgets/fade_in_slide.dart';
-import '../../../core/widgets/screen_tip.dart';
 import '../data/models/scholarship.dart';
 import '../data/scholarship_favorites.dart';
 import '../data/scholarship_repository.dart';
 import 'scholarship_detail_screen.dart';
 import 'widgets/scholarship_ui.dart';
 import '../../../core/widgets/masar_notice.dart';
+import '../../../core/shell/masar_bottom_nav.dart';
+import '../../../core/shell/masar_shell.dart';
+import '../../../core/tour/masar_tour.dart';
+import '../../../core/tour/tour_anchor.dart';
+import '../../future_masar/presentation/tours/scholarships_tour.dart';
 
 // ==========================================
 // 🎓 قائمة المنح — بيانات حقيقية من الخادم
@@ -60,10 +64,42 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
       if (mounted) setState(() {});
     });
     _load();
+    _tour();
+    MasarShell.shown.addListener(_onTabShown);
+  }
+
+  // 🤖 جولةُ الشرح — أوّلَ زيارة، وكلما ظهر التبويبُ بعد «أعد الجولة»
+  //    ([MasarShell.shown]). حلّت محلَّ `ScreenTip "scholarships"`.
+  Timer? _tourTimer;
+
+  void _onTabShown() {
+    if (MasarShell.shown.value == MasarTab.scholarships) _tour();
+  }
+
+  void _tour() {
+    _tourTimer?.cancel();
+    _tourTimer = Timer(const Duration(milliseconds: 900), _startTour);
+  }
+
+  Future<void> _startTour() async {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    if (!TickerMode.valuesOf(context).enabled) return;
+    // ⏳ الكروتُ تصل من الخادم — ننتظرها قليلاً كي تُشرح أوّلُها.
+    for (var i = 0; i < 20 && mounted && _loading; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+    }
+    if (!mounted) return;
+    await MasarTour.maybeStart(
+      context,
+      id: ScholarshipsTour.listId,
+      steps: ScholarshipsTour.listSteps(),
+    );
   }
 
   @override
   void dispose() {
+    MasarShell.shown.removeListener(_onTabShown);
+    _tourTimer?.cancel();
     _search.dispose();
     super.dispose();
   }
@@ -136,12 +172,6 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
             RefreshIndicator(
               onRefresh: () => _load(force: true),
               child: _scroller(),
-            ),
-            const ScreenTip(
-              screenId: "scholarships",
-              text:
-                  "تصفّح المنح 🎓 افتح أي منحة لترى شروطها ومواعيدها — "
-                  "ثم اسأل مساعدها عن أي تفصيل.",
             ),
           ],
         ),
@@ -224,7 +254,12 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
           delay: 0.04 * i,
           child: Padding(
             padding: const EdgeInsets.only(bottom: SchMetrics.gap),
-            child: _card(list[i]),
+            child: i == 0
+                ? TourAnchor(
+                    id: ScholarshipsTour.card,
+                    child: _card(list[i], first: true),
+                  )
+                : _card(list[i]),
           ),
         ),
       _footer(),
@@ -274,7 +309,9 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
           height: SchMetrics.bannerHeight,
         ),
         const SizedBox(height: 18),
-        SchSearchField(
+        TourAnchor(
+          id: ScholarshipsTour.search,
+          child: SchSearchField(
           controller: _search,
           hint: "ابحث عن منحة، دولة، أو تخصص...",
           showClear: _query.isNotEmpty,
@@ -284,8 +321,9 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
             setState(() => _query = "");
           },
         ),
+        ),
         const SizedBox(height: 16),
-        _filterChips(),
+        TourAnchor(id: ScholarshipsTour.filters, child: _filterChips()),
         const SizedBox(height: 18),
       ],
     );
@@ -404,7 +442,7 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
     );
   }
 
-  Widget _card(Scholarship s) {
+  Widget _card(Scholarship s, {bool first = false}) {
     return SchCard(
       onTap: () => Navigator.push(
         context,
@@ -451,7 +489,12 @@ class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              _favoriteButton(s),
+              first
+                  ? TourAnchor(
+                      id: ScholarshipsTour.follow,
+                      child: _favoriteButton(s),
+                    )
+                  : _favoriteButton(s),
             ],
           ),
           if (s.shortDesc.isNotEmpty) ...[

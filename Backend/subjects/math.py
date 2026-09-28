@@ -25,12 +25,15 @@ from .common import (
     FOLLOWUP_RULES, CONVERSATION_RULES, CONTINUITY_RULES, subject_lens,
     ANSWER_SHAPE_RULES,
     SUPPORT_EXAMPLE_RULES,
+    CALC_CHECK_RULES,
     subject_book_path, load_json_safe, extract_all_texts_and_metas,
     enhanced_qa_search, faiss_search, filter_and_rank_exams,
     collect_exam_questions_by_years, normalize_text_match,
     normalize_lesson_name, get_math_exam_years, get_math_exam_lessons,
     get_math_exam_questions, load_math_lesson,format_arabic_math,
     clamp_count,
+    conversation_exam, exam_questions_context, exam_followup_prompt,
+    EXAM_TURN_REMINDER,
 )
 from config import BASE_SUBJECTS_DIR, QA_TOP_K, EXAMS_BATCH_SIZE, HISTORY_LAST_N
 from models import AskRequest
@@ -208,6 +211,8 @@ def system_prompt_math_explain():
         #    وقواعدُ التنسيق الخاصّة بالرياضيات تأتي بعدها فتعلو عليها.
         + ANSWER_SHAPE_RULES
         + subject_lens("رياضيات")
+        # 🧮 «يشيك على الحسابات» (المالك ٢٠٢٦-٠٩-٢٧) — المصدرُ الواحد.
+        + CALC_CHECK_RULES
         + "القواعد:\n"
         "1) الشرح يكون بنفس أسلوب الملخص.\n"
         "2) تأكد من صحة القوانين وبعدها اشرح.\n"
@@ -290,7 +295,8 @@ async def explain_math_lesson(lesson: dict, groq_client, deepseek_client, sink=N
         
     # 3. اصطياد أي خطأ برمجي آخر
     except Exception as e:
-        return f"⚠️ عذراً، حدث خطأ أثناء تجهيز الشرح: {str(e)}"
+        print(f"❌ explain_math_lesson: {type(e).__name__}: {e}")  # 🔐 للسجلّ لا للطالب
+        return "⚠️ عذراً، حدث خطأ أثناء تجهيز الشرح. حاول مرة ثانية."
 
 # =====================
 # الدوال الرئيسية
@@ -521,7 +527,8 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
         
         
         except Exception as e:
-            return {"answer": f"خطأ: {str(e)}", "session_active": False}
+            print(f"❌ math explain: {type(e).__name__}: {e}")  # 🔐 للسجلّ لا للطالب
+            return {"answer": "⚠️ تعذّر الشرح الآن. حاول مرة ثانية.", "session_active": False}
     
     # ============================================
     # ✅ الحالة 3: درس جديد → اشرح من الصفر
@@ -586,6 +593,8 @@ async def handle_math_question(req: AskRequest, sessions: Dict, deepseek_client)
         #    وقواعدُ التنسيق الخاصّة بالرياضيات تأتي بعدها فتعلو عليها.
         + ANSWER_SHAPE_RULES
         + subject_lens("رياضيات")
+        # 🧮 «يشيك على الحسابات» (المالك ٢٠٢٦-٠٩-٢٧) — المصدرُ الواحد.
+        + CALC_CHECK_RULES
             + "📖 التعامل مع الأسئلة:\n"
              "- اشرح الدرس أو السؤال كما لو كنت تشرحه للطلاب في الفصل.\n"
             "- استخدم طريقة تعليمية مبسطة وواضحة.\n"
@@ -640,7 +649,8 @@ async def handle_math_question(req: AskRequest, sessions: Dict, deepseek_client)
         return {"answer": "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية.", "session_active": False}
         
     except Exception as e:
-        return {"answer": f"عذراً، حدث خطأ: {str(e)}", "session_active": False}
+        print(f"❌ math question: {type(e).__name__}: {e}")  # 🔐 للسجلّ لا للطالب
+        return {"answer": "⚠️ تعذّر الردّ الآن. حاول مرة ثانية.", "session_active": False}
 
 
 async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, groq_client):
@@ -669,19 +679,21 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
     # 2️⃣ كمل (متابعة)
     # =====================
     if user_text in ["كمل", "نعم", "متابعة"]:
-        sess = sessions.get(user_id)
-        if sess and sess.get("mode") == "وزاري":
-            year = sess.get("year")
-            lesson = sess.get("lesson")
-            shown_count = sess.get("shown_count", 0)
+        ctx = conversation_exam(req, sessions)
+        if ctx:
+            year = ctx["year"]
+            lesson = ctx["lesson"]
+            branch = ctx["branch"] or branch
+            shown_count = ctx["shown"]
             
             result = get_math_exam_questions(branch, year, lesson, shown_count + 10)
             new_questions = result["questions"][shown_count:]
             
             # ✅ إذا ما فيه أسئلة إضافية
             if not new_questions:
-                sess["has_more"] = False
-                sessions[user_id] = sess
+                sess = sessions.get(user_id)
+                if sess:
+                    sess["has_more"] = False
                 return {
                     "answer": "✅ انتهت جميع الأسئلة.",
                     "session_active": False
@@ -699,12 +711,10 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
                 
                 text += "━━━━━━━━━━━━━━━\n"
             
-            if len(new_questions) < result.get("remaining", 0):
+            if result.get("has_more"):
                 text += f"\n💡 تبقى {result['remaining']} سؤال. اكتب 'كمل' للمزيد."
             
-            # حفظ الأسئلة الجديدة
-            all_displayed = sess.get("displayed_questions", []) + new_questions
-            
+            # 🗂️ الجلسةُ تُحدَّث للعميل القديم وحده — الجديدُ يحمل سياقَه معه.
             sessions[user_id] = {
                 "subject": "رياضيات",
                 "mode": "وزاري",
@@ -712,11 +722,11 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
                 "year": year,
                 "lesson": lesson,
                 "shown_count": shown_count + len(new_questions),
-                "displayed_questions": all_displayed,
+                "displayed_questions": list(ctx["questions"]) + new_questions,
                 "pending_exams": [],
                 "has_more": result.get("has_more", False)  # 🔥 التعديل: حفظ حالة الأزرار
             }
-            _session_timestamps[user_id] = time.time()  # ← أضف هذا
+            _session_timestamps[user_id] = time.time()
             
             return {"answer": text, "session_active": result.get("has_more", False)}
         else:
@@ -779,56 +789,22 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
     # =====================
     # 4️⃣ 🔥 سؤال عن الأسئلة الوزارية المعروضة 🔥
     # =====================
-    sess = sessions.get(user_id)
+    ctx = conversation_exam(req, sessions)
     
-    if sess and sess.get("mode") == "وزاري":
-        displayed_questions = sess.get("displayed_questions", [])
-        branch_current = sess.get("branch")
-        year_current = sess.get("year")
-        lesson_current = sess.get("lesson")
+    if ctx:
+        displayed_questions = ctx["questions"]
+        branch_current = ctx["branch"] or branch
+        year_current = ctx["year"]
+        lesson_current = ctx["lesson"]
+        has_more = ctx["has_more"]
         
-        if not displayed_questions:
-            return {
-                "answer": "⚠️ لا توجد أسئلة معروضة.",
-                "session_active": False
-            }
-        
-        # ✅ تحميل الدرس للسياق
+        # ✅ تحميل الدرس للسياق — الدرسُ الذي خرجت منه هذه الأسئلة نفسُه.
         lesson_data = load_math_lesson(branch_current, lesson_current)
         lesson_text = format_lesson_safely(lesson_data) if lesson_data else ""
         
-        # ✅ بناء نص الأسئلة المعروضة
-        questions_context = f"📚 الأسئلة الوزارية المعروضة (سنة {year_current}, درس: {lesson_current}):\n\n"
-        for i, q in enumerate(displayed_questions, 1):
-            q_text = q.get('نص_السؤال', '').replace('\n', '\n  ')
-            sol_text = q.get('الحل', '').replace('\n', '\n  ')
-            
-            questions_context += f"📌 السؤال {i}:\n{q_text}\n\n"
-            if sol_text:
-                questions_context += f"💡 الحل:\n{sol_text}\n\n"
-            questions_context += "━━━━━━━━━━━━━━━\n\n"
-        
-        # ✅ برومبت خاص بالإجابة على الأسئلة الوزارية
-        system_prompt = (
-           "أنت مدرس رياضيات محترف.\n"
-                "المطلوب: الإجابة على سؤال الطالب بناءً على الأسئلة الوزارية المعروضة.\n\n"
-                "📌 السياق المهم:\n"
-                "- الطالب يسأل عن أسئلة وزارية معروضة أمامه\n"
-                "- قد يسأل: 'وضح السؤال 3'، 'كيف حلينا الثاني'، 'ما فهمت قيمة س'\n"
-                "- أنت تفهم سؤاله وتجيب بناءً على الأسئلة المعروضة\n\n"
-                "القواعد:\n"
-            "- استخدم العربية الفصحى فقط.\n"
-            "- يمنع استخدام الإنجليزية أو أي لغة أخرى.\n\n"
-            "يمنع استخدام اي رموز غير عربية .\n\n"
-            "- استخدم فقط: (جا، جتا، ظا) و (س، ص)\n\n"
-            "- لا تستخدم \\text\n"
-            + MARKUP_RULES +
-            "✏️ مثال للكتابة الصحيحة:\nص = ٢س² + ١\n\n"
-                "- اشرح الحل خطوة بخطوة\n"
-                "- اذكر القوانين المستخدمة\n"
-                "- إذا ذكر رقم سؤال، ارجع للسؤال المطابق من القائمة المعروضة\n"
-                "- إذا كان سؤالاً عاماً، استخدم الأسئلة المعروضة للتوضيح\n"
-        )
+        # ✅ الأسئلةُ بأرقامها كما رآها، وبرومبتُها بالعمود الفقري والمراجعة.
+        questions_context = exam_questions_context(ctx)
+        system_prompt = exam_followup_prompt(MARKUP_RULES)
         
         try:
             # ✅ بناء الرسائل
@@ -840,7 +816,7 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
                 "content": f"هذه الأسئلة الوزارية المعروضة أمامك:\n\n{questions_context}"
             })
             
-            # ✅ إضافة التاريخ (إن وجد)
+            # ✅ إضافة التاريخ (آخر HISTORY_LAST_N رسائل كالمعتاد)
             if req.chat_history:
                 valid_history = [msg for msg in req.chat_history 
                                 if msg.get('role') in ['user', 'assistant']]
@@ -851,7 +827,8 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
                 "role": "user",
                 "content": (
                     f"بيانات الدرس (للمرجعية):\n{lesson_text}\n\n"
-                    f"سؤال الطالب: {user_text}"
+                    f"سؤال الطالب: {user_text}\n\n"
+                    f"({EXAM_TURN_REMINDER})"
                 )
             })
             
@@ -883,17 +860,20 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
             
             return {
                 "answer": clean_answer,
-                "session_active": sess.get("has_more", False)  # 🔥 التعديل الجوهري: الاعتماد على الجلسة وليس True
+                "session_active": has_more
             }
         except asyncio.TimeoutError:
             return {
                 "answer": "⚠️ عذراً، خوادم الذكاء الاصطناعي مشغولة حالياً بسبب الضغط. حاول مرة ثانية.",
-                "session_active": sess.get("has_more", False)  # 🔥 لضمان بقاء الأزرار مخفية في حال التأخير
+                "session_active": has_more
             }
         except Exception as e:
+            # 🔐 نصُّ الاستثناء للسجلّ لا للطالب — كان يُعرض له كما هو
+            #    (أسماءُ ملفاتٍ ومفاتيحُ مزوّدٍ في رسائل الخطأ أحياناً).
+            print(f"❌ math exams follow-up: {type(e).__name__}: {e}")
             return {
-                "answer": f"❌ خطأ: {str(e)}",
-                "session_active": sess.get("has_more", False)  # 🔥 لضمان بقاء الأزرار مخفية في حال الخطأ
+                "answer": "⚠️ تعذّر الردّ الآن. حاول مرة ثانية.",
+                "session_active": has_more
             }
     
     # =====================

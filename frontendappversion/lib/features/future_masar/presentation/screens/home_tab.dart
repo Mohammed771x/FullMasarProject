@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/phosphor.dart';
 
@@ -9,7 +11,8 @@ import '../../../../core/shell/masar_bottom_nav.dart';
 import '../../../../core/storage/chat_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/masar_brand.dart';
-import '../../../../core/widgets/screen_tip.dart';
+import '../../../../core/tour/masar_tour.dart';
+import '../../../../core/tour/tour_anchor.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../../../banners/data/banner_model.dart';
 import '../../../banners/presentation/banner_carousel.dart';
@@ -24,6 +27,7 @@ import '../../../scholarships/data/models/scholarship.dart';
 import '../../../scholarships/data/scholarship_repository.dart';
 import '../../../scholarships/presentation/scholarship_detail_screen.dart';
 import '../widgets/analysis_ui.dart';
+import '../tours/home_tour.dart';
 import '../widgets/weak_spot_sheet.dart';
 import 'analysis_screen.dart';
 import 'notifications_screen.dart';
@@ -45,7 +49,7 @@ import '../../../../core/widgets/masar_notice.dart';
 //
 // ✅ **ما أُبقي رغم غيابه عن التصميم** (عقد التسليم):
 //    · «أكمل من حيث توقفت» — تظهر حين تكون ثمّة محادثةٌ سابقة.
-//    · تلميحُ أول زيارة (`ScreenTip`).
+//    · جولةُ الشرح أوّلَ زيارة ([HomeTour]) — كانت تلميحاً (`ScreenTip`، حُذف ٢٠٢٦-٠٩-٢٨).
 //    · حارسُ الأقسام على بطاقتَي التعليم والتحليل.
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key, required this.onOpenTab});
@@ -58,9 +62,42 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
+  Timer? _tourTimer;
+
+  @override
+  void dispose() {
+    _tourTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _tour();
+  }
+
+  /// 🤖 جولةُ الشرح — أوّلَ مرّةٍ يدخل فيها الطالب، أو بعد «أعد عرض الشرح».
+  ///    تنتظر لحظةً حتى تستقرّ الشاشة (البانرات والشارات تُرسم بعد أوّل إطار).
+  ///    ⏱️ مؤقّتٌ يُلغى مع الشاشة — `Future.delayed` يبقى معلّقاً بعد نزعها.
+  void _tour() {
+    _tourTimer?.cancel();
+    _tourTimer = Timer(const Duration(milliseconds: 700), _startTour);
+  }
+
+  Future<void> _startTour() async {
+    if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    await MasarTour.maybeStart(
+      context,
+      id: HomeTour.id,
+      steps: HomeTour.steps(UserSession.I.name),
+    );
+  }
+
   void _go(Widget page) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => page));
     if (mounted) setState(() {});
+    // ↩️ عائدٌ من الإعدادات بعد «أعد عرض الشرح» ⇒ تبدأ الجولة الآن.
+    if (mounted) _tour();
   }
 
   bool _visible(String s) => AccessRepository.I.visible(s);
@@ -169,39 +206,46 @@ class _HomeTabState extends State<HomeTab> {
                 children: [
                   _header(),
                   const SizedBox(height: 8),
-                  _stats(),
+                  TourAnchor(id: HomeTour.stats, child: _stats()),
                   const SizedBox(height: 8),
                   if (_visible(AppSection.education)) ...[
-                    _EduCard(onTap: () => widget.onOpenTab(MasarTab.tutor)),
-                    const SizedBox(height: 8),
-                  ],
-                  BannerCarousel(
-                    section: BannerSection.home,
-                    onAction: _onBannerAction,
-                    pinned: _pinnedBanners(),
-                  ),
-                  const SizedBox(height: 8),
-                  if (_visible(AppSection.analysis)) ...[
-                    _AnalysisCard(
-                      onTap: () => _guard(
-                        AppSection.analysis,
-                        "تحليل مستواي",
-                        () => _go(const AnalysisScreen()),
+                    TourAnchor(
+                      id: HomeTour.education,
+                      child: _EduCard(
+                        onTap: () => widget.onOpenTab(MasarTab.tutor),
                       ),
                     ),
                     const SizedBox(height: 8),
                   ],
-                  _weakSpots(),
+                  TourAnchor(
+                    id: HomeTour.banners,
+                    child: BannerCarousel(
+                      section: BannerSection.home,
+                      onAction: _onBannerAction,
+                      pinned: _pinnedBanners(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (_visible(AppSection.analysis)) ...[
+                    TourAnchor(
+                      id: HomeTour.analysis,
+                      child: _AnalysisCard(
+                        onTap: () => _guard(
+                          AppSection.analysis,
+                          "تحليل مستواي",
+                          () => _go(const AnalysisScreen()),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  TourAnchor(id: HomeTour.focus, child: _weakSpots()),
                   _continueCard(),
                 ],
               ),
             ),
-            // 💡 تلميح أول زيارة — يظهر مرة واحدة ويختفي تلقائياً.
-            const ScreenTip(
-              screenId: "home",
-              text:
-                  "أهلاً بك في مسار 👋 ابدأ من بطاقة «قسم التعليم»، وتنقّل بين الأقسام من الشريط السفلي.",
-            ),
+            // 🤖 تلميحُ أول زيارة صار **جولةَ الشرح** ([HomeTour]) — الروبوتُ
+            //    يمرّ على كل مكانٍ في الشاشة بدل سطرٍ واحدٍ في الزاوية.
           ],
         ),
       ),
@@ -226,14 +270,17 @@ class _HomeTabState extends State<HomeTab> {
           //    فالنقرُ صار يفتح «معلومات الطالب» (وفيها تحليلُ مستواه).
           //    وبابُ **تغيير الصورة** لم يضع: انتقل إلى الصورة نفسِها
           //    داخل بطاقة تلك الشاشة، حيث هي أكبرُ وأوضح.
-          InkWell(
-            onTap: () => _guard(
-              AppSection.analysis,
-              "معلومات الطالب",
-              () => _go(const AnalysisScreen()),
+          TourAnchor(
+            id: HomeTour.avatar,
+            child: InkWell(
+              onTap: () => _guard(
+                AppSection.analysis,
+                "معلومات الطالب",
+                () => _go(const AnalysisScreen()),
+              ),
+              customBorder: const CircleBorder(),
+              child: const UserAvatar(radius: 26),
             ),
-            customBorder: const CircleBorder(),
-            child: const UserAvatar(radius: 26),
           ),
           const SizedBox(width: 12),
           Column(
@@ -275,14 +322,23 @@ class _HomeTabState extends State<HomeTab> {
           const Spacer(),
           ListenableBuilder(
             listenable: NotificationsRepository.I,
-            builder: (_, _) => _circleBtn(
-              PI.bell.regular,
-              () => _go(const NotificationsScreen()),
-              badgeCount: NotificationsRepository.I.unreadCount,
+            builder: (_, _) => TourAnchor(
+              id: HomeTour.bell,
+              child: _circleBtn(
+                PI.bell.regular,
+                () => _go(const NotificationsScreen()),
+                badgeCount: NotificationsRepository.I.unreadCount,
+              ),
             ),
           ),
           const SizedBox(width: 8),
-          _circleBtn(PI.gear.regular, () => _go(const SettingsScreen())),
+          TourAnchor(
+            id: HomeTour.settings,
+            child: _circleBtn(
+              PI.gear.regular,
+              () => _go(const SettingsScreen()),
+            ),
+          ),
         ],
       ),
     );
@@ -657,7 +713,10 @@ class _HomeTabState extends State<HomeTab> {
     final last = all.first;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
-      child: InkWell(
+      // 📍 المرساةُ على البطاقة لا على حشوتها — وإلا فُتح فوقها شريطٌ فارغ.
+      child: TourAnchor(
+        id: HomeTour.resume,
+        child: InkWell(
         onTap: () {
           EduSession.I.rememberConversation(last, UserSession.I.uid);
           widget.onOpenTab(MasarTab.tutor);
@@ -714,6 +773,7 @@ class _HomeTabState extends State<HomeTab> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

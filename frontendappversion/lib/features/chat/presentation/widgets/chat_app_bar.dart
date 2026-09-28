@@ -4,6 +4,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/phosphor.dart';
 import '../../../../core/widgets/quota_badge.dart';
 import '../controllers/chat_controller.dart';
+import '../../../../core/tour/tour_anchor.dart';
+import '../../../future_masar/presentation/tours/education_tour.dart';
 
 // ==========================================
 // 🪟 شريط قسم التعليم
@@ -46,7 +48,10 @@ class ChatGlassAppBar extends StatelessWidget {
         child: Row(
           children: [
             // 📐 ترتيب RTL: القائمة أولاً (يمين) والمصباح أخيراً (يسار).
-            _SquareButton(icon: PD.textAlignJustify, onTap: onMenu),
+            TourAnchor(
+                id: EducationTour.menu,
+                child:
+                    _SquareButton(icon: PD.textAlignJustify, onTap: onMenu)),
             const Spacer(),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -63,11 +68,16 @@ class ChatGlassAppBar extends StatelessWidget {
                 ),
                 // 🎟️ شارة الحصة — صغيرةٌ تحت العنوان.
                 const SizedBox(height: 2),
-                const QuotaBadge(compact: true),
+                const TourAnchor(
+                    id: EducationTour.quota,
+                    child: QuotaBadge(compact: true)),
               ],
             ),
             const Spacer(),
-            _SquareButton(icon: PD.lightbulbFilament, onTap: onHelp),
+            TourAnchor(
+                id: EducationTour.help,
+                child:
+                    _SquareButton(icon: PD.lightbulbFilament, onTap: onHelp)),
           ],
         ),
       ),

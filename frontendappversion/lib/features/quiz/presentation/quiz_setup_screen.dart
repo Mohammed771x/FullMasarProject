@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/config/curriculum.dart';
@@ -14,6 +16,11 @@ import 'quiz_controller.dart';
 import 'quiz_play_screen.dart';
 import 'widgets/quiz_ui.dart';
 import '../../../core/widgets/masar_notice.dart';
+import '../../../core/tour/masar_tour.dart';
+import '../../../core/tour/tour_anchor.dart';
+import '../../../core/shell/masar_bottom_nav.dart';
+import '../../../core/shell/masar_shell.dart';
+import '../../future_masar/presentation/tours/quiz_tour.dart';
 
 // ==========================================
 // ⚙️ إعداد الاختبار — صف → مادة → وحدة → حتى 3 دروس → عدد الأسئلة
@@ -107,6 +114,86 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
     _subject =
         widget.initialSubject ?? Curriculum.defaultSubject(_grade, _track);
     _loadCaps();
+    _tour();
+    MasarShell.shown.addListener(_onTabShown);
+  }
+
+  void _onTabShown() {
+    if (MasarShell.shown.value == MasarTab.quiz) _tour();
+  }
+
+  void _tour() {
+    _tourTimer?.cancel();
+    _tourTimer = Timer(const Duration(milliseconds: 900), _startTour);
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🤖 جولةُ الشرح — أوّلَ زيارة ([QuizTour])
+  // ══════════════════════════════════════════════════
+  // ⏱️ `Timer` يُلغى في `dispose` لا `Future.delayed` ([masar-testing-traps]).
+  Timer? _tourTimer;
+
+  @override
+  void dispose() {
+    MasarShell.shown.removeListener(_onTabShown);
+    _tourTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _startTour() async {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    // 🗂️ مقيمةٌ في القشرة ⇒ لا تُعرض جولتُها وتبويبٌ آخرُ هو الظاهر.
+    if (!TickerMode.valuesOf(context).enabled) return;
+    if (await MasarTour.seen(QuizTour.id)) return;
+    // ⏳ الدروسُ لم تصل بعد ⇒ ننتظرها قليلاً: قرارُ «مثال أم حقيقة» يُبنى عليها.
+    for (var i = 0; i < 20 && mounted && _loading; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+    }
+    if (!mounted) return;
+
+    // 🎭 مادةٌ بلا دروس ⇒ مثالٌ في الذاكرة يُعاد بعد الجولة كما كان.
+    final demo = _caps?.quizAvailable != true;
+    final saved = (
+      caps: _caps,
+      unit: _unit,
+      lessons: {..._lessons},
+      lessonUnit: {..._lessonUnit},
+      failed: _loadFailed,
+    );
+    final demoCaps = QuizTour.demoCaps(_subject);
+    if (demo) {
+      setState(() {
+        _caps = demoCaps;
+        _unit = QuizTour.demoUnit;
+        _loadFailed = false;
+        _lessons
+          ..clear()
+          ..add(QuizTour.demoLessons.first);
+        _lessonUnit
+          ..clear()
+          ..[QuizTour.demoLessons.first] = QuizTour.demoUnit;
+      });
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+    }
+    await MasarTour.maybeStart(
+      context,
+      id: QuizTour.id,
+      steps: QuizTour.steps(demo: demo),
+    );
+    // 🛟 وصلت دروسٌ حقيقيةٌ أثناء الجولة ⇒ هي الحقيقة، فلا يُعاد القديم فوقها.
+    if (!demo || !mounted || !identical(_caps, demoCaps)) return;
+    setState(() {
+      _caps = saved.caps;
+      _unit = saved.unit;
+      _loadFailed = saved.failed;
+      _lessons
+        ..clear()
+        ..addAll(saved.lessons);
+      _lessonUnit
+        ..clear()
+        ..addAll(saved.lessonUnit);
+    });
   }
 
   Future<void> _loadCaps() async {
@@ -219,54 +306,62 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
       body: SafeArea(
         bottom: false,
         child: FadeInSlide(
-          child: ListView(
+          // 🤖 **لا `ListView` كسول**: الجولةُ تمرّ على زرّ البدء في ذيل
+          //    الصفحة، و`ListView` لا يبني ما تحت الشاشة فلا تجده.
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(
               QuizMetrics.margin,
               34,
               QuizMetrics.margin,
               28,
             ),
-            children: [
-              QuizHeader(
-                title: "اختبر نفسك",
-                onBack: canBack ? () => Navigator.pop(context) : null,
-              ),
-              const SizedBox(height: 18),
-              _greeting(),
-              // ⏸️ أعلى الشاشة مباشرةً: أوّلُ ما يُفعل قبل إعدادِ اختبارٍ جديد.
-              if (_resumable != null) ...[
-                const SizedBox(height: QuizMetrics.gap),
-                _resumeCard(_resumable!),
-              ],
-              // ⛔ **لا صفَّ ولا مسار هنا** (قرار المالك 2026-09-09):
-              //    الطالب حدّدهما في إعداداته مرّةً واحدة، وإعادةُ سؤاله
-              //    في كل شاشة تُقحم قراراً محسوماً — بل وتُغري بتغييره
-              //    فيمتحن نفسه في منهجٍ ليس منهجه.
-              //
-              // ⭐ فتظهر **مواد صفّه مباشرةً**. وهي نفس القاعدة التي طُبّقت
-              //    على القائمة الجانبية في قسم التعليم.
-              const SizedBox(height: QuizMetrics.gap),
-              _subjectCard(),
-              const SizedBox(height: QuizMetrics.gap),
-              if (_loading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Center(
-                    child: CircularProgressIndicator(strokeWidth: 2.6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                QuizHeader(
+                  title: "اختبر نفسك",
+                  onBack: canBack ? () => Navigator.pop(context) : null,
+                ),
+                const SizedBox(height: 18),
+                _greeting(),
+                // ⏸️ أعلى الشاشة مباشرةً: أوّلُ ما يُفعل قبل إعدادِ اختبارٍ جديد.
+                if (_resumable != null) ...[
+                  const SizedBox(height: QuizMetrics.gap),
+                  TourAnchor(
+                    id: QuizTour.resume,
+                    child: _resumeCard(_resumable!),
                   ),
-                )
-              else if (_loadFailed)
-                _failedState()
-              else if (_caps?.quizAvailable != true)
-                _emptyState()
-              else ...[
-                _lessonsCard(),
+                ],
+                // ⛔ **لا صفَّ ولا مسار هنا** (قرار المالك 2026-09-09):
+                //    الطالب حدّدهما في إعداداته مرّةً واحدة، وإعادةُ سؤاله
+                //    في كل شاشة تُقحم قراراً محسوماً — بل وتُغري بتغييره
+                //    فيمتحن نفسه في منهجٍ ليس منهجه.
+                //
+                // ⭐ فتظهر **مواد صفّه مباشرةً**. وهي نفس القاعدة التي طُبّقت
+                //    على القائمة الجانبية في قسم التعليم.
                 const SizedBox(height: QuizMetrics.gap),
-                _countCard(),
+                TourAnchor(id: QuizTour.subjects, child: _subjectCard()),
                 const SizedBox(height: QuizMetrics.gap),
-                _startButton(),
+                if (_loading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Center(
+                      child: CircularProgressIndicator(strokeWidth: 2.6),
+                    ),
+                  )
+                else if (_loadFailed)
+                  _failedState()
+                else if (_caps?.quizAvailable != true)
+                  _emptyState()
+                else ...[
+                  TourAnchor(id: QuizTour.lessons, child: _lessonsCard()),
+                  const SizedBox(height: QuizMetrics.gap),
+                  TourAnchor(id: QuizTour.count, child: _countCard()),
+                  const SizedBox(height: QuizMetrics.gap),
+                  TourAnchor(id: QuizTour.start, child: _startButton()),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -608,7 +703,7 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
               height: 16,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: sel ? AppColors.primary : AppColors.surfaceWhite,
+                color: sel ? AppColors.primaryFill : AppColors.surfaceWhite,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: sel ? AppColors.primary : AppColors.quizCheckBorder,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -12,6 +13,9 @@ import '../data/scholarship_repository.dart';
 import 'scholarship_chat_screen.dart';
 import 'widgets/scholarship_ui.dart';
 import '../../../core/widgets/masar_notice.dart';
+import '../../../core/tour/masar_tour.dart';
+import '../../../core/tour/tour_anchor.dart';
+import '../../future_masar/presentation/tours/scholarships_tour.dart';
 
 // ==========================================
 // 🏆 تفاصيل المنحة
@@ -55,6 +59,25 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
     //    يبقى **سقوطاً آمناً** لأغلفة رُفعت قبل تفعيل Storage (تعيش في
     //    Firestore بلا رابط) — فلا تفقد منحةٌ قديمة صورتها.
     if (scholarship.hasCover && scholarship.coverUrl.isEmpty) _loadCover();
+    _tourTimer = Timer(const Duration(milliseconds: 700), _startTour);
+  }
+
+  // 🤖 جولةٌ قصيرة أوّلَ منحةٍ تُفتح ([ScholarshipsTour.detailSteps]).
+  Timer? _tourTimer;
+
+  Future<void> _startTour() async {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    await MasarTour.maybeStart(
+      context,
+      id: ScholarshipsTour.detailId,
+      steps: ScholarshipsTour.detailSteps(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _tourTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadCover() async {
@@ -92,9 +115,9 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
         children: [
           _header(context, s),
           const SizedBox(height: 14),
-          _summaryStrip(s),
+          TourAnchor(id: ScholarshipsTour.summary, child: _summaryStrip(s)),
           const SizedBox(height: 16),
-          _tabBar(tabs, index),
+          TourAnchor(id: ScholarshipsTour.tabs, child: _tabBar(tabs, index)),
           const SizedBox(height: 18),
           Expanded(child: _tabBody(context, s, tabs[index].kind)),
           _bottomBar(context, s),
@@ -618,7 +641,9 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
             // ⚠️ RTL: أوّلُ ابنٍ هو الأيمن — وهناك الزرُّ المملوء في التصدير.
             Expanded(
               flex: 3,
-              child: SchPrimaryButton(
+              child: TourAnchor(
+                id: ScholarshipsTour.ask,
+                child: SchPrimaryButton(
                 // 🔒 **النصُّ ثابتٌ كما في التصدير** (أمرُ المالك
                 //    2026-09-21): «اسأل مساعد المنحة» — لا «المساعد (٤
                 //    محادثة)». وعددُ المحادثات لم يضع: شارتُه على زرّ
@@ -637,16 +662,20 @@ class _ScholarshipDetailScreenState extends State<ScholarshipDetailScreen> {
                   if (mounted) setState(() {});
                 },
               ),
+              ),
             ),
             if (s.website.isNotEmpty) ...[
               const SizedBox(width: 10),
               Expanded(
                 flex: 2,
-                child: SchGhostButton(
-                  label: "الموقع الرسمي",
-                  icon: PI.globe,
-                  outlined: true,
-                  onTap: () => _openSite(context, s),
+                child: TourAnchor(
+                  id: ScholarshipsTour.site,
+                  child: SchGhostButton(
+                    label: "الموقع الرسمي",
+                    icon: PI.globe,
+                    outlined: true,
+                    onTap: () => _openSite(context, s),
+                  ),
                 ),
               ),
             ],

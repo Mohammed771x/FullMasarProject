@@ -53,7 +53,7 @@ void main() {
         'SchFilter.values',                // 🧮 الفلاتر الستة
         'onChanged',                       // 🔎 البحث
         'ScholarshipDetailScreen',         // ➡️ الدخول للتفاصيل
-        'ScreenTip',                       // 💡 تلميح الشاشة
+        'MasarTour',                       // 🤖 جولةُ الشرح
         '_onBannerAction',                 // 🎏 نقر البانر
         'معروضة من نسخة محفوظة',            // 📴 شارة الكاش
       ]) {
@@ -408,50 +408,19 @@ void main() {
   });
 
   // ══════════════════════════════════════════════════
-  // ⑩ `ScreenTip` يرجع `Positioned` — فمكانُه `Stack`
+  // ⑩ لا تلميحاتِ شاشة — جولةُ الروبوت وحدها
   // ══════════════════════════════════════════════════
   //
-  // 🔴 **رُصد في سجلّ `flutter run` أثناء فحص الاستثناءات:** كان في
-  //    `home_tab` آخرَ أبناء عمودٍ داخل التمرير، فيرمي فلاتر
-  //    «Incorrect use of ParentDataWidget» في كل بناء ولا يظهر التلميحُ
-  //    للطالب أبداً. والعلّةُ **لا تُسقط `analyze`** ولا أيَّ اختبارٍ قائم.
-  test('⑩ كلُّ `ScreenTip` ابنٌ مباشرٌ لـ`Stack`', () {
-    /// يرجع اسمَ المُنشئ الذي يحتضن الموضع [at] مباشرةً — بمشيٍ عكسيٍّ
-    /// على الأقواس المتوازنة، لا بـ«أقربِ كلمةٍ قبله» (تلك تُخطئ حين
-    /// يجاور `ScreenTip` عموداً داخل الكومة).
-    String enclosing(String src, int at) {
-      var depth = 0;
-      for (var i = at - 1; i >= 0; i--) {
-        final ch = src[i];
-        if (ch == ')' || ch == ']' || ch == '}') depth++;
-        if (ch == '(' || ch == '[' || ch == '{') {
-          if (depth == 0) {
-            final head = src.substring(0, i);
-            final m = RegExp(r'([A-Za-z_][A-Za-z0-9_]*)\s*$').firstMatch(head);
-            // `children: [` و`child:` ليسا مُنشئاً — نواصل الصعود.
-            final name = m?.group(1) ?? "";
-            if (name.isEmpty || name == "children" || name == "child") {
-              return enclosing(src, i);
-            }
-            return name;
-          }
-          depth--;
-        }
-      }
-      return "";
-    }
-
+  // 🗑️ أمرُ المالك ٢٠٢٦-٠٩-٢٨: الروبوتُ الذي يطلّ من الزاوية بسطرٍ عامّ
+  //    («هنا أنت داخل المنح…») حُذف، فالجولةُ ([MasarTour]) تشرح كلَّ شاشةٍ
+  //    بعناصرها. تلميحان معاً يتسابقان على الشاشة الأولى.
+  test('⑩ لا `ScreenTip` في أيّ شاشة', () {
     for (final f in Directory('lib')
         .listSync(recursive: true)
         .whereType<File>()
         .where((f) => f.path.endsWith('.dart'))) {
-      if (f.path.endsWith('screen_tip.dart')) continue;
-      final src = f.readAsStringSync();
-      for (final m in RegExp(r'\bScreenTip\(').allMatches(src)) {
-        expect(enclosing(src, m.start), 'Stack',
-            reason: '${f.path}: `ScreenTip` يرجع `Positioned`، فمكانُه '
-                '`Stack` مباشرةً — وإلا رمى فلاتر عند كل بناء');
-      }
+      expect(RegExp(r'\bScreenTip\(').hasMatch(f.readAsStringSync()), isFalse,
+          reason: '${f.path}: عاد تلميحُ الشاشة — الجولةُ وحدها تشرح');
     }
   });
 
