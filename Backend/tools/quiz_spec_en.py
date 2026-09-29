@@ -115,7 +115,7 @@ def fresh_clause(count: int, source: str = "") -> str:
      (a sentence, a word list or a word pair from the list below).
    • **Every other question uses a NEW sentence or NEW words** that test
      the SAME rule — written by you in correct, natural English at the
-     level of a Yemeni Grade 12 (3rd secondary, scientific) student:
+     level of a Yemeni secondary-school student at this lesson's grade:
      school life, family, health, science, the environment, technology,
      travel, jobs, sport, Yemen and the Arab world.
    • **Never use the same word group, word pair or sentence twice**, and

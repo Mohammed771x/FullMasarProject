@@ -38,7 +38,7 @@ def route(subject: str):
        DPC في الحالات اللي شيء كبير»، وهذا أكبرُها: بنكُ مادّةٍ كامل.
     """
     if (subject in CALC_SUBJECTS or subject in SCI_SUBJECTS
-            or quiz_spec.is_english(subject)):
+            or quiz_spec.is_english(subject) or subject == "عربي"):
         from subjects.math import MATH_MODEL
         return "deepseek", MATH_MODEL
     return "openai", OPENAI_MODEL

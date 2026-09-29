@@ -65,8 +65,13 @@ def tidy_question(item, lesson_name: str, subject: str):
     #    لهبط كلُّ صعبٍ في الإنجليزية إلى «متوسط» فسقط البنكُ بعيب
     #    «مستوى صعب شبه غائب» — وهو عيبٌ في المقياس لا في السؤال.
     applied_en = quiz_spec.is_english(subject) and _is_drill(q)
+    # 🇸🇦 **وتمرينُ العربي كذلك** (قِيس 2026-09-29): «إعرابُ الجملة في محلّ
+    #    نصب» على شاهدٍ بين «» صعبٌ حقيقيّ، فكان يُخفَّض فيسقط كلُّ بنكٍ
+    #    عربيٍّ بعيب «صعب شبه غائب (0 من 27)».
+    from tools.quiz_spec_ar import is_arabic_drill
+    applied_ar = (subject or "").strip() == "عربي" and is_arabic_drill(q)
     if level == "صعب" and not (APPLIED.search(q) or _NUMBER.search(q)
-                               or applied_en):
+                               or applied_en or applied_ar):
         level = "متوسط"
 
     try:

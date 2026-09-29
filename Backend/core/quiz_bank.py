@@ -107,6 +107,28 @@ def entry(grade, track, subject: str, unit: str, lesson: str) -> Optional[dict]:
     return item if isinstance(item, dict) else None
 
 
+# 🔁 **العلميُّ والأدبيُّ كتابٌ واحدٌ في العربي والإنجليزي** (طلب المالك
+#    2026-09-29: «خل نفس المخزون حقهم نفس كل شيء»). فالأدبيُّ يقرأ بنكَ
+#    العلميّ — **ما دامت بصمةُ الدرس واحدة**، فإن افترق الكتابان يوماً لم
+#    يُقرأ بنكٌ لدرسٍ غير درسه. نظيرُ [lesson_cache._matching_entry].
+#    قِيس قبله: الثالث علمي ٢٨ بنكاً والأدبي صفر، فيُولَّد اختبارُه حيّاً.
+_SIBLING_TRACK = {"علمي": "أدبي", "أدبي": "علمي"}
+
+
+def _matching_entry(grade, track, subject: str, unit: str, lesson: str,
+                    lesson_text: str) -> Optional[dict]:
+    """مدخلُ الدرس المطابقُ لبصمته — من مساره، ثم من المسار الشقيق."""
+    want = fingerprint(lesson_text)
+    track = (track or "عام").strip() or "عام"
+    for t in (track, _SIBLING_TRACK.get(track)):
+        if not t:
+            continue
+        item = entry(grade, t, subject, unit, lesson)
+        if item is not None and item.get("hash") == want:
+            return item
+    return None
+
+
 def entry_spec(grade, track, subject: str, unit: str, lesson: str,
                lesson_text: str) -> Optional[str]:
     """نسخةُ المواصفة التي بُني بها البنك — إن طابقت بصمةُ الدرس.
@@ -115,17 +137,15 @@ def entry_spec(grade, track, subject: str, unit: str, lesson: str,
        نغيّر طريقةَ وضع الأسئلة، فلولا هذا الحقل لتخطّى `--skip-existing`
        كلَّ بنكٍ قديمٍ ولم يُعَد بناءُ شيء ([lesson_cache.entry_spec]).
     """
-    item = entry(grade, track, subject, unit, lesson)
-    if item is None or item.get("hash") != fingerprint(lesson_text):
-        return None
-    return item.get("spec") or ""
+    item = _matching_entry(grade, track, subject, unit, lesson, lesson_text)
+    return None if item is None else (item.get("spec") or "")
 
 
 def stored_for(grade, track, subject: str, unit: str, lesson: str,
                lesson_text: str) -> Optional[list]:
     """أسئلةُ الدرس المخزونة **إن طابقت بصمةُ نصّه**، وإلا `None`."""
-    item = entry(grade, track, subject, unit, lesson)
-    if item is None or item.get("hash") != fingerprint(lesson_text):
+    item = _matching_entry(grade, track, subject, unit, lesson, lesson_text)
+    if item is None:
         return None                            # الدرسُ تغيّر ⇒ البنكُ لاغٍ
     questions = item.get("questions")
     if not isinstance(questions, list) or not questions:

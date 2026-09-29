@@ -348,6 +348,10 @@ def user_prompt(lesson: str, lesson_text: str, count: int,
     # 🇬🇧 وعدسةُ الإنجليزية — تمرينٌ لا تعريف (طلبُ المالك 2026-09-17).
     tail += (english_clause(count, lesson, lesson_text)
              if is_english(subject) else "")
+    # 🇸🇦 وعدسةُ العربي — إعرابٌ على جملة، وبلاغةٌ على شاهد، وعروضٌ على بيت.
+    if (subject or "").strip() == "عربي":
+        from tools.quiz_spec_ar import arabic_clause
+        tail += arabic_clause(count, lesson, lesson_text)
     # 🧮 وعدسةُ الحساب — للرياضيات والمنطق.
     tail += CALC_CLAUSE if is_calc(subject) else ""
     return USER.format(lesson=lesson, lesson_text=lesson_text, count=count,

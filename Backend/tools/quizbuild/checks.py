@@ -151,6 +151,9 @@ def check_batch(questions: list, want: int, subject: str,
         from .english import english_defects, english_fresh_defects
         bad += english_defects(questions, lesson)
         bad += english_fresh_defects(questions, source)
+    elif (subject or "").strip() == "عربي":
+        from tools.quiz_spec_ar import arabic_defects
+        bad += arabic_defects(questions)
     return bad + _shape_defects(questions, want, strict=True, lesson=lesson)
 
 
