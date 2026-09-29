@@ -1,4 +1,5 @@
 from .fractions import to_frac
+from .fraction_subjects import uses_fractions
 from .arabic_digits import for_subject as _arabic_digits
 from .chem import (
     for_subject as _chem_for_subject,
@@ -80,7 +81,7 @@ def serialize_lesson(lesson: dict, unit_name: str = "", subject=None) -> str:
     #    الشرح المخزون وفي المحادثة. قِيس (2026-09-29): ٥ دروسٍ من ١٠٧، ولا
     #    كسرَ رياضياً واحداً في المادة كلّها.
     body = to_text(lesson, subject=subject)
-    text = header + (body if subject == "انجليزي" else to_frac(body))
+    text = header + (to_frac(body) if uses_fractions(subject) else body)
     # ٠١٢ وأرقامُ الكتاب عربية في مادّتها — **قبل أن يراها الموديل**، فهو
     #     مأمورٌ بالنقل حرفياً فينقلها عربيةً وحدَه. نفس ما تفعله
     #     `format_lesson_safely` في الرياضيات ([core/arabic_digits.py]).

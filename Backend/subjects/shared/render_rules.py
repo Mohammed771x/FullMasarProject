@@ -22,6 +22,7 @@ import re
 # 🔒 **الكيمياء وحدها.** مصدرٌ واحد للنطاق مع `core/chem.py` — فما يُرمَّز
 #    في نصّ الكتاب هو نفسه ما تُطلب كتابته في الرد، ولا تتفرّق الكلمة.
 from core.chem import ORGANIC_SUBJECTS as _ORGANIC_SUBJECTS
+from core.fraction_subjects import uses_fractions
 from core.chem import REACTION_SUBJECTS as _REACTION_SUBJECTS
 from core.nuclide import NUCLIDE_SUBJECTS as _NUCLIDE_SUBJECTS
 
@@ -36,6 +37,10 @@ def fraction_rules(subject: str = "") -> str:
        (شكوى المالك 2026-09-13: «التعديلات مو في الشرح بس — في التلخيص
         والسؤال والوزاري كذلك».)
     """
+    # 🖌️ مادةٌ بلا رسّام كسور (تاريخ، جغرافيا، عربي…) لا تُؤمر بـ`\\frac`:
+    #    «/» فيها تاريخٌ أو «أو» أو جدول — انظر `FRACTION_SUBJECTS`.
+    if not uses_fractions(subject):
+        return ""
     return (
         "🧮 قاعدة الكسور (إلزامية ولا استثناء لها):\n"
         "كل كسر — أي «س على ص» — يُكتب حصراً بالصيغة \\frac{البسط}{المقام}.\n"

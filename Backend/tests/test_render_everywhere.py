@@ -68,9 +68,14 @@ def _built_prompt(builder, subject, mode):
                                      pages_mode._system_prompt],
                          ids=["دروس", "وحدات"])
 def test_fraction_rule_reaches_every_subject_and_mode(subject, mode, builder):
-    """🧮 الكسرُ يُرسم في الأوضاع الثلاثة لكل مادة — لا في الشرح وحده."""
+    """🧮 الكسرُ يُرسم في الأوضاع الثلاثة لكل مادةٍ **لها رسّام كسور** — ولا
+    يُؤمر به ما لا رسّام له (طلب المالك 2026-09-29: «التاريخ بلا رسام»)."""
+    from core.fraction_subjects import FRACTION_SUBJECTS
     prompt = _built_prompt(builder, subject, mode)
-    assert r"\frac" in prompt, f"{subject} · {mode}: بلا قاعدة كسور"
+    if subject in FRACTION_SUBJECTS:
+        assert r"\frac" in prompt, f"{subject} · {mode}: بلا قاعدة كسور"
+    else:
+        assert "قاعدة الكسور" not in prompt, f"{subject} · {mode}: أُمر بكسورٍ بلا رسّام"
 
 
 @pytest.mark.parametrize("subject", ["رياضيات", "فيزياء", "منطق"])
