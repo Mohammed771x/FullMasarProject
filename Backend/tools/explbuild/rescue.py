@@ -71,6 +71,12 @@ async def rescan_all() -> None:
                 keep[key] = e
                 continue
             unit, name, lesson = hit
+            # 🛡️ **ولا يُرقّى محجوزٌ فوق مقبولٍ قائم** (قِيس 2026-09-29):
+            #    أُعيد بناءُ درسٍ فنجح وبقيت نسختُه القديمةُ في المحجوز،
+            #    فلمّا تغيّر المقياسُ رقّاها الإنقاذُ فوق الناجحة وأسقطها.
+            if key in LC.load_file(int(grade), track, subject):
+                keep[key] = e
+                continue
             source = serialize_lesson(lesson, unit, subject=subject)
             bad = verify(subject, lesson, source, e.get("answer") or "", name)
             if bad:

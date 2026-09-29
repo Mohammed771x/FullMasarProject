@@ -6,7 +6,7 @@
 """
 from __future__ import annotations
 from .boot import TA, re
-from .consts import (ARABIC_DIGIT_SUBJECTS, AR_WORD, BAD_OPENER, BRIDGE, DRAW, EXERCISE_LESSON, LATIN, RAW_LATEX, WESTERN_DIGITS)
+from .consts import (ARABIC_DIGIT_SUBJECTS, AR_WORD, BAD_OPENER, BRIDGE, DRAW, EXERCISE_LESSON, LATIN, RAW_LATEX, FOREIGN_SCRIPT, UNDERLINE_LIST, UNDERLINE_MARK, WESTERN_DIGITS)
 
 
 # ══════════════════════════════════════════════════
@@ -232,11 +232,24 @@ def verify(subject: str, lesson: dict, source: str, answer: str,
     #    مُوجزة، وحلُّها **بخطواته كلِّها** أطولُ من مصدره بطبعه — لا إسهاباً
     #    بل استيفاءً لما نطلبه نحن. قِيس (2026-09-16): سقطت ١٢ من ١٨ في
     #    الرياضيات بـ«مُسهِب» وهي بين ٥٣٠٠ و٦٦٠٠ حرفاً، وأكثرُها حلولٌ.
+    # 🔤 **والعربيُّ يُطلب منه إعرابٌ تامّ** لكلّ كلمةٍ تحتها خط (⑬ في
+    #    `_ARABIC_CRAFT`) — والإعرابُ أطولُ من الكلمة المُعرَبة بطبعه. قِيس
+    #    (2026-09-29): سقط ٢٩ من ٧٩ درساً بـ«مُسهِب» وأكثرُها بين ١٪ و١٠٪
+    #    فوق السقف، وقراءتُها شرحٌ وافٍ لا حشو. فمداه أوسعُ قليلاً.
     ceiling = (max(7000, int(len(source) * 1.8)) if subject in TA.CALC_SUBJECTS
+               else max(5000, int(len(source) * 1.3)) if subject == "عربي"
                else max(5000, len(source)))
     if len(body) > ceiling:
         bad.append(f"مُسهِبٌ ({len(body)} حرفاً، والسقف {ceiling}) — "
                    "اشرح ما يحتاج شرحاً وانقل ما لا يحتاجه")
+
+    # ⎁ **وما تحته خطٌّ في الكتاب يُرسم خطّاً** (طلبُ المالك 2026-09-29:
+    #    «تأكد برضو من ناحية الخطوط تحت الكلمات»). يُشترط حيث قائمةُ الدرس
+    #    **مؤكَّدة**؛ فقائمةٌ عليها `[؟]` شكَّ فيها الناسخُ، وتركُها بلا خطٍّ
+    #    هو المطلوب لا العيب.
+    if subject == "عربي" and UNDERLINE_LIST.search(source) \
+            and not UNDERLINE_MARK.search(body):
+        bad.append("بلا `__خط__` تحت كلماتٍ يخطّها الكتاب — نُقلت بلا علامتها")
 
     # ① ترميزُ الرسم: كلُّ ترميزٍ في المصدر يجب أن يظهر في الشرح
     #
@@ -376,6 +389,16 @@ def verify(subject: str, lesson: dict, source: str, answer: str,
     # ⑥ الأرقام العربية حيث تلزم
     if subject in ARABIC_DIGIT_SUBJECTS and len(WESTERN_DIGITS.findall(body)) > 3:
         bad.append("أرقامٌ لاتينية في مادةٍ أرقامُها عربية")
+
+    # 🈲 حرفٌ من خطٍّ ثالث وسط الشرح = تسرّبٌ من الموديل لا محتوى
+    stray = FOREIGN_SCRIPT.findall(body)
+    if stray:
+        bad.append(f"حروفٌ من لغةٍ ثالثة ({''.join(stray[:6])}) — تسرّبٌ من الموديل")
+
+    # 📝 وملاحظةُ الناسخ `[؟ …]` للمراجِع لا للطالب — قِيس (2026-09-29):
+    #    ظهرت ٣٠ مرّةً في شرح العربي («[؟ الخط رفيع في صورة المصحف]»).
+    if "[؟" in body:
+        bad.append("ملاحظةُ الناسخ «[؟ …]» ظاهرةٌ للطالب — قل «راجِعه في كتابك»")
 
     # ⑦ إنجليزيةٌ زائدة في مادةٍ عربية
     #

@@ -75,7 +75,12 @@ def serialize_lesson(lesson: dict, unit_name: str = "", subject=None) -> str:
     # 🧮 الكسور تُرمَّز `\\frac` قبل حقن الدرس في البرومبت — فحين ينقل الموديل
     #    القانون حرفياً (كما يأمره البرومبت) ينقله مرسوماً لا بشرطة.
     # ⚗️ ومعها الصيغ البنائية — نفس المبدأ: الكتاب يُصلَح قبل الموديل.
-    text = header + to_frac(to_text(lesson, subject=subject))
+    # 🔤 **إلا في الإنجليزي**: «/» فيه تعني «أو» (I love ... / I enjoy ...،
+    #    Must I ...? / Do I have to ...?) — فخرجت `\\frac{أحب جداً}{I}` في
+    #    الشرح المخزون وفي المحادثة. قِيس (2026-09-29): ٥ دروسٍ من ١٠٧، ولا
+    #    كسرَ رياضياً واحداً في المادة كلّها.
+    body = to_text(lesson, subject=subject)
+    text = header + (body if subject == "انجليزي" else to_frac(body))
     # ٠١٢ وأرقامُ الكتاب عربية في مادّتها — **قبل أن يراها الموديل**، فهو
     #     مأمورٌ بالنقل حرفياً فينقلها عربيةً وحدَه. نفس ما تفعله
     #     `format_lesson_safely` في الرياضيات ([core/arabic_digits.py]).

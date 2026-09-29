@@ -37,7 +37,7 @@ from tools.explbuild.boot import (  # noqa: F401,E402
 from tools.explbuild.consts import (  # noqa: F401,E402
     BUILD_MAX_TOKENS, BUILD_MODEL, HINT_CODES, ASK, _ARG, DRAW, RAW_LATEX,
     AR_WORD, LATIN, ARABIC_DIGIT_SUBJECTS, BAD_OPENER, EXERCISE_LESSON,
-    WESTERN_DIGITS, BRIDGE,
+    WESTERN_DIGITS, BRIDGE, FOREIGN_SCRIPT, UNDERLINE_LIST, UNDERLINE_MARK,
 )
 
 # ── الفحص — ما لا يجتازه لا يُخزَّن ──
@@ -52,7 +52,7 @@ from tools.explbuild.verify import (  # noqa: F401,E402
 from tools.explbuild.generate import (  # noqa: F401,E402
     _install_build_prompt, _RULE_LINE, _BOLD_ONLY_LINE, _LEAKED_LABEL,
     _LABEL_ONLY, _tidy, codes_hint, explain, lessons_of, _one,
-    build_subject, _reroute_math, REJECTED_DIR, _rej_file, quarantine,
+    build_subject, _reroute_math, REJECTED_DIR, _rej_file, quarantine, THINK,
 )
 
 # ── الإنقاذُ وإعادةُ المسح وسطرُ الأوامر ──
