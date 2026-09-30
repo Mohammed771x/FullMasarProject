@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from subjects.shared.exams import safe_segment
 from api import (  # noqa: E402
-    JSONResponse, Request, _is_legacy_content_scope, app,
+    JSONResponse, Request, app,
     get_math_exam_lessons, get_math_exam_years, load_json_safe, os,
     subject_book_path, v3_capabilities, v3_curriculum, v3_index_store,
     v3_ratelimit, v3_warmup,
@@ -34,9 +34,10 @@ async def get_subject_units(subject: str, grade: int = 3, track: str = "علمي
     if not v3_curriculum.is_valid_subject(g, t, subject):
         return units
 
-    # 📐 الرياضيات (حالة خاصة لأن وحداتها ثابتة)
-    if subject == "رياضيات":
-        return ["تفاضل", "تكامل", "جبر", "هندسة", "احتمالات"]
+    # 📐 رياضيات الثالث: فروعُها مجلّداتُ صفّها ومسارها (العلمي غيرُ الأدبي)
+    if v3_curriculum.uses_math_branches(subject, g, t):
+        from core.content_store import get_lessons_book, lessons_units
+        return lessons_units(get_lessons_book(g, t, subject))
 
     # تحميل كتاب هذا الصف/المسار تحديداً
     book = load_json_safe(subject_book_path(subject, g, t))
@@ -75,8 +76,8 @@ async def get_subject_lessons(subject: str, unit: str, grade: int = 3, track: st
     متوافقة تماماً مع كافة هياكل JSON
     """
     
-    # 1. استثناء الرياضيات (لأن لها Endpoint خاص بها /math/lessons)
-    if subject == "رياضيات":
+    # 1. استثناء رياضيات الثالث (لأن لها Endpoint خاص بها /math/lessons)
+    if v3_curriculum.uses_math_branches(subject, grade, track):
         return []
 
     g, t = v3_curriculum.normalize_grade_track(grade, track)
@@ -139,7 +140,7 @@ async def get_exam_years(subject: str, grade: int = 3, track: str = "علمي"):
     
     years = []
     for f in os.listdir(exams_dir):
-        if f.lower().endswith(".json"):
+        if f.lower().endswith(".json") and not f.startswith(("_", ".")):
             year = os.path.splitext(f)[0].strip()
             if year and year not in years:
                 years.append(year)
@@ -169,7 +170,8 @@ async def get_exam_sections(subject: str, year: str, grade: int = 3, track: str 
     files_to_read = []
     if year == "الكل":
         # إذا اختار "الكل"، نقرأ كل ملفات الـ JSON لنجمع كل الصيغ
-        files_to_read = [f for f in os.listdir(exams_dir) if f.endswith(".json")]
+        files_to_read = [f for f in os.listdir(exams_dir)
+                         if f.endswith(".json") and not f.startswith(("_", "."))]
     else:
         # إذا اختار سنة معينة، نقرأ ملفها فقط
         # 🛡️ والسنةُ من الطلب تُركَّب في مسار — مقطعٌ واحدٌ لا يخرج منه.
@@ -250,11 +252,12 @@ async def get_math_exam_years_api(branch: str, grade: int = 3, track: str = "ع�
     🎯 جلب السنوات الوزارية للرياضيات
     
     مثال: /math/exams/years?branch=تفاضل
-    ⚠️ بنك وزاري الرياضيات كله للثالث العلمي — غيره يرجع فارغاً.
+    ⚠️ الوزاري للثالث وحده — وبنكُ كل مسارٍ مجلّدُه ([math_exam_branch_dir]).
     """
-    if not _is_legacy_content_scope(grade, track):
+    g, t = v3_curriculum.normalize_grade_track(grade, track)
+    if not v3_curriculum.uses_math_branches("رياضيات", g, t):
         return []
-    return get_math_exam_years(branch)
+    return get_math_exam_years(branch, g, t)
 
 
 @app.get("/math/exams/lessons")
@@ -264,9 +267,10 @@ async def get_math_exam_lessons_api(branch: str, year: str, grade: int = 3, trac
     
     مثال: /math/exams/lessons?branch=تفاضل&year=2023
     """
-    if not _is_legacy_content_scope(grade, track):
+    g, t = v3_curriculum.normalize_grade_track(grade, track)
+    if not v3_curriculum.uses_math_branches("رياضيات", g, t):
         return []
-    return get_math_exam_lessons(branch, year)
+    return get_math_exam_lessons(branch, year, g, t)
 
 
 # =====================

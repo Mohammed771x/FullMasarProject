@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/bilingual_label.dart';
 import '../../../core/access/access_repository.dart';
 import '../../../core/shell/masar_bottom_nav.dart';
 import '../../../core/shell/masar_shell.dart';
@@ -277,8 +278,8 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                       // 🖌️ بالرسّام لا بنصٍّ خام: الموضوع قد يكون صيغةً
                       //    («\frac{ن}{ر}») — و[MathOrText] تعود نصّاً
                       //    عادياً حين لا ترميزَ فيه، فلا كلفةَ لها.
-                      child: MathOrText(e.key,
-                          maxLines: 2,
+                      child: MathOrText(bilingualLabel(e.key),
+                          maxLines: 3,
                           style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,

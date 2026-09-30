@@ -49,6 +49,19 @@ def subjects_for(grade, track):
     return list(SUBJECTS_BY_GRADE_TRACK.get((grade, track), []))
 
 
+# 📐 **فروعُ الرياضيات للثالث وحده** (قرار المالك 2026-09-30): الثالث — علميّاً
+#    وأدبيّاً — فرعٌ ← درسٌ ← شرح/سؤال/وزاري بمعالجه الخاص [subjects/math.py]،
+#    وفروعُه **مجلّداتُ** `lessons_mode/` لا قائمةٌ مكتوبة (العلمي: تفاضل·تكامل·…،
+#    الأدبي: مبدأ العد·الإحصاء·التكامل). والأول والثاني كالفيزياء تماماً: وضعُ
+#    دروسٍ ووضعُ وحدات من الطبقة العامة، ولا فروع.
+MATH_BRANCHES_GRADE = 3
+
+
+def uses_math_branches(subject, grade, track=None) -> bool:
+    grade, _ = normalize_grade_track(grade, track)
+    return (subject or "").strip() == "رياضيات" and grade == MATH_BRANCHES_GRADE
+
+
 # ── توجيه الموديلات (نفس توزيع الكود الحالي حرفياً + افتراضي للمواد الجديدة) ──
 # client_key يُحوَّل إلى عميل فعلي في api.py
 MODEL_ROUTING = {

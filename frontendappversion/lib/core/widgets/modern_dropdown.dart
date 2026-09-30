@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/bilingual_label.dart';
 import '../theme/app_colors.dart';
 import 'phosphor.dart';
 
@@ -45,7 +46,7 @@ class ModernDropdown extends StatelessWidget {
             const SizedBox(width: 8),
           ],
           Expanded(
-            child: Text(text,
+            child: Text(bilingualInline(text),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 // 🖋️ **w800 لا w600** — نصُّ القائمة في التصدير أغمقُ
@@ -82,8 +83,9 @@ class ModernDropdown extends StatelessWidget {
           items: items
               .map((e) => DropdownMenuItem(
                     value: e,
-                    child: Text(e,
-                        maxLines: 1,
+                    // 🇬🇧 اسمٌ بلغتين ⇒ سطران — [bilingualLabel].
+                    child: Text(bilingualLabel(e),
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             fontSize: 12,

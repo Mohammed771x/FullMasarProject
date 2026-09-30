@@ -157,6 +157,7 @@ async def admin_settings_get(request: Request):
             "effective": {
                 "quota_ask": v3_quota.limit_for(False),
                 "quota_guest": v3_quota.limit_for(True),
+                "quota_images": v3_quota.image_limit(),
             },
             "ranges": {k: list(v) for k, v in v3_scholarships.SETTINGS_FIELDS.items()},
             "text_fields": dict(v3_scholarships.SETTINGS_TEXT_FIELDS),

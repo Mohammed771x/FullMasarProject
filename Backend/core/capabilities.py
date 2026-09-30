@@ -5,11 +5,10 @@
 # أضف lessons.json → يظهر وضع الدروس تلقائياً. أضف pages.json → وضع الوحدات.
 
 from config import MAX_PAGES_EXPLAIN_SUMMARY
-from .curriculum import subject_supports_thinking
+from .curriculum import subject_supports_thinking, uses_math_branches
 from .content_store import (
     get_lessons_book, get_pages_book,
     lessons_units, lessons_in_unit, pages_units,
-    MATH_SUBJECT,
 )
 
 
@@ -59,8 +58,10 @@ def describe(grade, track, subject) -> dict:
     """وصف كامل لقدرات مادة: الأوضاع المتاحة + شجرة الوحدات/الدروس.
     استدعاء واحد يعطي الواجهة كل ما تحتاجه — بدل أربع رحلات شبكة."""
     lessons_book = get_lessons_book(grade, track, subject)
-    # الرياضيات: وضع الدروس فقط (قرار المالك)
-    pages_book = None if subject == MATH_SUBJECT else get_pages_book(grade, track, subject)
+    # الرياضيات بفروعها (الثالث): وضع الدروس فقط (قرار المالك). والأول والثاني
+    # كالفيزياء — وضعُ الوحدات يظهر متى وُجد ملفُّه.
+    pages_book = (None if uses_math_branches(subject, grade, track)
+                  else get_pages_book(grade, track, subject))
 
     p_units = pages_units(pages_book) if pages_book is not None else []
 

@@ -19,6 +19,7 @@ import '../controllers/chat_controller.dart';
 import '../widgets/chat_app_bar.dart';
 import '../widgets/chat_drawer.dart';
 import '../widgets/chat_input_area.dart';
+import '../../../../core/math_keyboard/math_keyboard.dart';
 import '../widgets/chat_list_view.dart';
 import '../widgets/session_settings_panel.dart';
 import '../widgets/mode_suggestions.dart';
@@ -386,7 +387,7 @@ class _MainChatScreenState extends State<MainChatScreen>
   Future<bool> _confirmNewConversation(ContextChange change) async {
     if (!mounted) return false;
     FocusScope.of(context).unfocus();
-    final lesson = _c.selectedSubject == "رياضيات" && !_c.isTeacher
+    final lesson = _c.isMathBranches && !_c.isTeacher
         ? _c.selectedLesson
         : _c.selectedV3Lesson;
     final pages = _c.conversationPages.join("، ");
@@ -471,8 +472,11 @@ class _MainChatScreenState extends State<MainChatScreen>
           //    عن جسمه، فمن قرأها من داخله وجدها صفراً أبداً.
           builder: (context) => Builder(
             builder: (context) {
+              // 🧮 كيبوردُ الرياضيات كيبوردٌ كذلك — لا `viewInsets` له لأنه
+              //    ودجتٌ في الشاشة لا نافذةٌ من النظام.
+              final bool mathKeyboard = _c.mathKeyboardOpen;
               final bool keyboardOpen =
-                  MediaQuery.viewInsetsOf(context).bottom > 0;
+                  MediaQuery.viewInsetsOf(context).bottom > 0 || mathKeyboard;
               return Scaffold(
                 key: _scaffoldKey,
                 backgroundColor: AppColors.bgLight,
@@ -636,11 +640,23 @@ class _MainChatScreenState extends State<MainChatScreen>
                             child: ModeSuggestions(controller: _c),
                           ),
                         const SizedBox(height: 8),
-                        ChatInputArea(
-                          controller: _c,
-                          onEmptyWarning: _showEmptyWarning,
-                          keyboardOpen: keyboardOpen,
+                        // ⌨️ فوق كيبورد الرياضيات لا حشوةَ لشريط المنزل:
+                        //    الكيبوردُ تحته هو من يحجزها.
+                        MediaQuery.removePadding(
+                          context: context,
+                          removeBottom: mathKeyboard,
+                          child: ChatInputArea(
+                            controller: _c,
+                            onEmptyWarning: _showEmptyWarning,
+                            keyboardOpen: keyboardOpen,
+                          ),
                         ),
+                        if (mathKeyboard)
+                          MathKeyboard(
+                            editor: _c.mathEditor,
+                            onChanged: _c.refresh,
+                            onSystemKeyboard: () => _c.setMathKeyboard(false),
+                          ),
                       ],
                     ),
                   ],

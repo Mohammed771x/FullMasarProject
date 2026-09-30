@@ -140,10 +140,11 @@ async def _one(i, total, grade, track, subject, unit, name, lesson, model,
                dry, retries, skip_existing, sem):
     """درسٌ واحد: توليدٌ ⇐ فحصٌ ⇐ إعادةٌ بتوجيهٍ ⇐ تخزين."""
     source = serialize_lesson(lesson, unit, subject=subject)
-    if subject == "رياضيات":
+    if subject == "رياضيات" and grade == 3:
         # ⚖️ مصدرُ بصمةٍ واحدٌ مع المعالج، وإلا أخطأ الكاشُ دائماً.
+        #    (فروعُ الرياضيات للثالث وحده — الأول والثاني من المُسلسِل.)
         from subjects.common import load_math_lesson
-        _m = load_math_lesson(unit, name)
+        _m = load_math_lesson(unit, name, grade, track)
         if _m is None:
             print(f"  ⏭️  [{i}/{total}] {name[:44]} — لم يجده معالجُ الرياضيات")
             return None

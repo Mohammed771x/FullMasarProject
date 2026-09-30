@@ -84,11 +84,17 @@ void main() {
           ["شرح", "سؤال", "وزاري", "اختبارات"]);
     });
 
-    test('الأول والثاني: الاختبارات تحلّ محلّ الوزاري', () {
+    // 📐 قرار المالك ٢٠٢٦-٠٩-٣٠: الأولُ والثاني «زي الفيزياء والكيمياء» —
+    //    وضعُ دروسٍ ووضعُ وحدات، ومعهما التلخيص، ولا فروع.
+    test('الأول والثاني: كالفيزياء — تلخيصٌ، والاختبارات مكان الوزاري', () {
       for (final g in [1, 2]) {
         expect(Curriculum.modesFor("رياضيات", grade: g),
-            ["شرح", "سؤال", "اختبارات"], reason: "صف $g");
+            Curriculum.modesFor("فيزياء", grade: g), reason: "صف $g");
+        expect(Curriculum.modesFor("رياضيات", grade: g),
+            ["شرح", "تلخيص", "سؤال", "اختبارات"], reason: "صف $g");
+        expect(Curriculum.usesMathBranches("رياضيات", grade: g), isFalse);
       }
+      expect(Curriculum.usesMathBranches("رياضيات", grade: 3), isTrue);
     });
   });
 

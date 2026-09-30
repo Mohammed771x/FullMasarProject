@@ -22,7 +22,7 @@ import pytest
 
 from subjects.common import LESSONS_DIR, load_json_safe, mode_dir
 from subjects.math import format_lesson_safely
-from core.latex_guard import audit
+from core.latex_guard import KEPT, audit
 
 _GRADES = [(1, "عام"), (2, "علمي"), (2, "أدبي"), (3, "علمي"), (3, "أدبي")]
 
@@ -66,10 +66,12 @@ def test_the_sweep_actually_covers_the_curriculum():
 @pytest.mark.parametrize("name,data", _LESSONS, ids=[n for n, _ in _LESSONS])
 def test_no_english_reaches_the_student(name, data):
     """⭐ **قرار المالك:** «ما أبغى ولا واحد بالمية يطلع كلام إنجليزي»."""
-    # ⚠️ ترميزُ الرسّام ليس «لاتينياً شارداً»: `\\frac` و`\\fact` أسماءُ
-    #    أوامرٍ يرسمها التطبيق ولا يراها الطالب — راجع [core/latex_guard.KEPT].
-    body = re.sub(r"\\(frac|sqrt|chem|ring|fact)", "",
-                  format_lesson_safely(data))
+    # ⚠️ ترميزُ الرسّام ليس «لاتينياً شارداً»: `\\frac` و`\\sub` أسماءُ
+    #    أوامرٍ يرسمها التطبيق ولا يراها الطالب — **من [core/latex_guard.KEPT]
+    #    نفسِها**: كانت قائمةً منسوخة هنا بخمسةٍ من أحد عشر، فلمّا دخلت دروسُ
+    #    الثالث الأدبي بـ`\\sub` و`\\perm` عدّها المسحُ إنجليزياً.
+    kept = "|".join(sorted(k.lstrip("\\") for k in KEPT))
+    body = re.sub(rf"\\({kept})", "", format_lesson_safely(data))
     stray = [w for w in re.findall(r"[A-Za-z]+", body)
              if w.lower() not in _BOOK_TERMS]
     assert not stray, f"لاتينيّ شارد: {stray[:8]}"

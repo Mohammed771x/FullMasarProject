@@ -76,8 +76,11 @@ class _TapToDismissKeyboardState extends State<TapToDismissKeyboard> {
     final ctx = focus?.context;
     if (focus == null || ctx == null) return;
     // لا نُسقط تركيزَ ما ليس حقلَ كتابة (زرٌّ مُركَّزٌ بلوحة مفاتيحٍ خارجية).
+    // ⌨️ وحقلُ الرياضيات المرسوم ليس `EditableText` — لكنه يحمل تركيزَ
+    //    حقل المحادثة نفسَه، فكيبوردُه ينزل بالنقرة ككيبورد الجوال.
     final isTextField = ctx.widget is EditableText ||
-        ctx.findAncestorWidgetOfExactType<EditableText>() != null;
+        ctx.findAncestorWidgetOfExactType<EditableText>() != null ||
+        focus.debugLabel == 'chat-input';
     if (isTextField) focus.unfocus();
   }
 

@@ -410,7 +410,7 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
         
         # إذا درس جديد → اشرح الدرس
         sessions.pop(user_id, None)
-        lesson = load_math_lesson(branch, lesson_name)
+        lesson = load_math_lesson(branch, lesson_name, req.grade, req.track)
         if not lesson: 
             return {"answer": f"❌ لم أجد درس '{lesson_name}'."}
 
@@ -466,7 +466,7 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
             and sess_lesson_name == norm_lesson_name):
         recovered = _last_assistant_text(req.chat_history)
         if recovered:
-            _doc = load_math_lesson(branch, lesson_name)
+            _doc = load_math_lesson(branch, lesson_name, req.grade, req.track)
             if _doc:
                 sess = {"subject": "رياضيات", "mode": "math_explain",
                         "lesson": _doc, "lesson_name": lesson_name,
@@ -534,7 +534,7 @@ async def handle_math_explain(req: AskRequest, sessions: Dict, deepseek_client, 
     # ✅ الحالة 3: درس جديد → اشرح من الصفر
     # ============================================
     sessions.pop(user_id, None)
-    lesson = load_math_lesson(branch, lesson_name)
+    lesson = load_math_lesson(branch, lesson_name, req.grade, req.track)
     if not lesson: 
         return {"answer": f"❌ لم أجد درس '{lesson_name}'."}
     
@@ -562,7 +562,7 @@ async def handle_math_question(req: AskRequest, sessions: Dict, deepseek_client)
     if not lesson_name:
         return {"answer": "⚠️ اختر الدرس أولاً."}
     
-    lesson = load_math_lesson(branch, lesson_name)
+    lesson = load_math_lesson(branch, lesson_name, req.grade, req.track)
     if not lesson:
         return {"answer": f"⚠️ لم أجد ملف الدرس: {lesson_name}"}
     
@@ -686,7 +686,7 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
             branch = ctx["branch"] or branch
             shown_count = ctx["shown"]
             
-            result = get_math_exam_questions(branch, year, lesson, shown_count + 10)
+            result = get_math_exam_questions(branch, year, lesson, shown_count + 10, req.grade, req.track)
             new_questions = result["questions"][shown_count:]
             
             # ✅ إذا ما فيه أسئلة إضافية
@@ -745,7 +745,7 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
         lesson = parts[1].strip()
         count = clamp_count(parts[2], 10)  # 📏 بين ١ و٢٠ دائماً
         
-        result = get_math_exam_questions(branch, year, lesson, count)
+        result = get_math_exam_questions(branch, year, lesson, count, req.grade, req.track)
         
         if not result["questions"]:
             return {"answer": f"❌ لم أجد أسئلة في '{lesson}' لسنة {year}"}
@@ -799,7 +799,7 @@ async def handle_math_exams(req: AskRequest, sessions: Dict, deepseek_client, gr
         has_more = ctx["has_more"]
         
         # ✅ تحميل الدرس للسياق — الدرسُ الذي خرجت منه هذه الأسئلة نفسُه.
-        lesson_data = load_math_lesson(branch_current, lesson_current)
+        lesson_data = load_math_lesson(branch_current, lesson_current, req.grade, req.track)
         lesson_text = format_lesson_safely(lesson_data) if lesson_data else ""
         
         # ✅ الأسئلةُ بأرقامها كما رآها، وبرومبتُها بالعمود الفقري والمراجعة.

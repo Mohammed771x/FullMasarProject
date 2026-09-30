@@ -81,7 +81,8 @@ void main() {
 
     test('وكلُّ وضعٍ مرسومٍ على الشاشة له فقرةٌ في الدليل', () {
       for (final (s, g, t) in _everySubject()) {
-        if (s == "رياضيات") continue; // لها تدفّقُها الخاص (فرع ← درس ← وضع)
+        // رياضياتُ الثالث لها تدفّقُها الخاص (فرع ← درس ← وضع)
+        if (Curriculum.usesMathBranches(s, grade: g)) continue;
         final text = AppInstructions.forSubject(s, grade: g, track: t)["text"]!;
         for (final mode in Curriculum.modesFor(s, grade: g)) {
           // عناوينُ الفقرات معرّفةٌ بالألف واللام: «وضع الشرح» لا «وضع شرح».
@@ -91,12 +92,21 @@ void main() {
       }
     });
 
-    test('والرياضياتُ بلا تلخيصٍ في الدليل كما هي بلا تلخيصٍ في الشاشة', () {
-      for (var g = 1; g <= 3; g++) {
+    test('ورياضياتُ الثالث بفروعها وبلا تلخيص — والأولُ والثاني كالفيزياء', () {
+      for (final t in [Track.scientific, Track.literary]) {
+        final text = AppInstructions.forSubject("رياضيات", grade: 3, track: t)["text"]!;
+        expect(text, isNot(contains("وضع التلخيص")), reason: "ثالث $t");
+        expect(text, contains("الفرع"), reason: "ثالث $t");
+        expect(text, contains("وضع الوزاري"), reason: "ثالث $t");
+      }
+      // الأدبي فروعُه غيرُ فروع العلمي
+      expect(AppInstructions.forSubject("رياضيات", grade: 3, track: Track.literary)["text"],
+          allOf(contains("مبدأ العد"), isNot(contains("هندسة"))));
+      for (var g = 1; g <= 2; g++) {
         final text = AppInstructions.forSubject("رياضيات", grade: g, track: Track.scientific)["text"]!;
-        expect(text, isNot(contains("وضع التلخيص")), reason: "صف $g");
-        expect(text, contains("الفرع"), reason: "صف $g");
-        expect(text.contains("وضع الوزاري"), g == 3, reason: "صف $g");
+        expect(text, contains("وضع التلخيص"), reason: "صف $g");
+        expect(text, isNot(contains("الفرع")), reason: "صف $g");
+        expect(text, isNot(contains("وضع الوزاري")), reason: "صف $g");
       }
     });
 

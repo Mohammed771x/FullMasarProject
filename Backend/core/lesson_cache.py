@@ -331,9 +331,11 @@ def stored_for(grade, track, subject: str, unit: str, lesson: str) -> Optional[s
     if not subject or not lesson:
         return None
     try:
-        if subject == "رياضيات":
+        # 📐 فروعُ الرياضيات للثالث وحده؛ والأول والثاني كبقية المواد.
+        from .curriculum import uses_math_branches
+        if uses_math_branches(subject, grade, track):
             from subjects.math import load_math_lesson      # استيرادٌ كسول: دائرة
-            doc = load_math_lesson((unit or "").strip(), lesson)
+            doc = load_math_lesson((unit or "").strip(), lesson, grade, track)
             if not doc:
                 return None
             return get(grade, track, subject, unit, lesson, math_source(doc))

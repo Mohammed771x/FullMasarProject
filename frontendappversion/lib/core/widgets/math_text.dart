@@ -29,6 +29,12 @@ const List<String> kMathTokens = [
   r'\fact', r'\perm', r'\comb', r'\sup', r'\sub', r'\ovl', r'\nuc',
 ];
 
+/// ⌨️ **علامتا محرّر الرياضيات** — محرفان من المنطقة الخاصة (لا يكتبهما
+/// أحدٌ ولا يرسلهما خادم): المؤشرُ الوامض، والخانةُ الفارغة المنقّطة.
+/// يدسّهما [MathEditor.display] في نصّ العرض وحده، ولا يُرسلان أبداً.
+const String kCaretMark = '\uE000';
+const String kSlotMark = '\uE001';
+
 /// هل في النصّ ترميزٌ يرسمه [MathText]؟
 bool hasMathMarkup(String text) {
   for (final token in kMathTokens) {
@@ -126,6 +132,19 @@ class ChemNode extends MathNode {
 class RingNode extends MathNode {
   final String source;
   const RingNode(this.source);
+}
+
+/// ⬇️ رمزٌ حدودُه **تحته وفوقه** لا بجانبه: «نها» وتحتها «س←٠»، و«∫»
+/// وحدّاه أسفلَه وأعلاه — كما يطبعهما الكتاب.
+///
+/// ⚖️ لا ترميزَ جديداً لها: تُستنتج من `نها\sub{…}` و`∫\sub{…}\sup{…}`
+///    (راجع [_stackLimits]) — فهي صيغةُ برومبت الصور وكيبورد الرياضيات
+///    معاً، والموديلُ يفهمها بلا شرح.
+class StackNode extends MathNode {
+  final String symbol;
+  final List<MathNode> below;
+  final List<MathNode> above;
+  const StackNode(this.symbol, this.below, this.above);
 }
 
 /// أُسّ (مرفوع) أو دليل (منخفض).
@@ -421,7 +440,6 @@ class MathText extends StatelessWidget {
     //    وداخل الكلمة الواحدة يبقى تشكيل العربية طبيعياً تماماً.
     final lines = _splitLines(MathParser.parse(source));
 
-    final rtl = direction == TextDirection.rtl;
     // 🔤 **اتجاهُ السطر يسري على صناديقه**: بسطُ الكسر ومقامُه وجسمُ
     //    الأُسّ كانت تُرصّ RTL **دائماً**، فمعادلةٌ لاتينية تُقرأ من
     //    اليسار يخرج مقامُها «٣ R_H» مقلوباً. فصار الاتجاه واحداً من
@@ -430,8 +448,12 @@ class MathText extends StatelessWidget {
       textDirection: direction,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment:
-            rtl ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        // ➡️ **`start` لا `end`** (المالك ٢٠٢٦-٠٩-٣٠: «المعادلة طلعت على
+        //    اليسار — خلها تطلع على اليمين وتمتد لليسار»). الـ`Column` تحت
+        //    `Directionality` عربيّة، فـ`start` هو اليمين و`end` هو اليسار:
+        //    كان كلُّ سطرٍ رياضيٍّ قصير يلتصق باليسار متى أُعطي عرضاً كاملاً
+        //    (فقاعةُ الطالب). ولا يُحتاج فرعٌ للاتجاه: `start` يتبعه وحده.
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (final line in _decorate(lines, base))
             line.nodes.isEmpty
@@ -679,6 +701,7 @@ List<_Atom> _build(List<MathNode> nodes, TextStyle style, Color rule,
     {bool latinSign = false,
     bool nested = false,
     TextDirection line = TextDirection.rtl}) {
+  nodes = _stackLimits(nodes);
   final out = <_Atom>[];
   final space = (style.fontSize ?? 17) * 0.26;
   // 🔗 العقدةُ السابقة — يلزمها الأُسُّ ليعرف اتجاهَ أساسه ([_dirOfBase]).
@@ -701,6 +724,29 @@ List<_Atom> _build(List<MathNode> nodes, TextStyle style, Color rule,
         // ⭐ و«-٢» سطراً وحدَه تبقى إشارتُه يساره كما أقرّ المالك 2026-09-11.
         final alone = !nested && _loneNegative.hasMatch(text.trim());
         for (final token in _tokenize(text)) {
+          if (token.contains(kCaretMark) || token.contains(kSlotMark)) {
+            // ⌨️ علامةُ المحرّر ذرّةٌ مستقلّة في موضعها المنطقيّ نفسه — فيقع
+            //    المؤشرُ حيث سيقع الحرفُ التالي، يميناً أو يساراً كما يلزم.
+            for (final part in _splitMarks(token)) {
+              if (part == kCaretMark) {
+                out.add(_Atom(_EditorCaret(style: style), _Dir.neutral));
+              } else if (part == kSlotMark) {
+                out.add(_Atom(_EditorSlot(style: style), _Dir.neutral));
+              } else {
+                for (final run in _bidiRuns(part,
+                    alone: alone, latinSign: latinSign)) {
+                  out.add(_Atom(
+                    Text(run.text,
+                        style: style,
+                        textDirection:
+                            run.arabic ? line : TextDirection.ltr),
+                    _dirOf(run.text),
+                  ));
+                }
+              }
+            }
+            continue;
+          }
           if (token == ' ') {
             out.add(_Atom(SizedBox(width: space), _Dir.space));
           } else {
@@ -730,36 +776,36 @@ List<_Atom> _build(List<MathNode> nodes, TextStyle style, Color rule,
 
       case FracNode(:final numerator, :final denominator):
         out.add(_Atom(
-          _Fraction(
+          _fitLine(nested, _Fraction(
             numerator: _atoms(numerator, _shrink(style), rule,
                 latinSign: latinSign, nested: true, line: line),
             denominator: _atoms(denominator, _shrink(style), rule,
                 latinSign: latinSign, nested: true, line: line),
             rule: rule,
-          ),
+          )),
           _Dir.neutral,
         ));
 
       case FactNode(:final body):
         out.add(_Atom(
-          _Factorial(
+          _fitLine(nested, _Factorial(
               body: _atoms(body, style, rule,
                   latinSign: latinSign, nested: true, line: line),
               style: style,
-              rule: rule),
+              rule: rule)),
           _Dir.neutral,
         ));
 
       case CountNode(:final letter, :final n, :final r):
         out.add(_Atom(
-          _Counting(
+          _fitLine(nested, _Counting(
             letter: letter,
             n: _atoms(n, _shrink(style), rule,
                 latinSign: latinSign, nested: true, line: line),
             r: _atoms(r, _shrink(style), rule,
                 latinSign: latinSign, nested: true, line: line),
             style: style,
-          ),
+          )),
           _Dir.neutral,
         ));
 
@@ -771,14 +817,14 @@ List<_Atom> _build(List<MathNode> nodes, TextStyle style, Color rule,
             : null;
         final under = inner?.body ?? body;
         out.add(_Atom(
-          _Overline(
+          _fitLine(nested, _Overline(
             body: _atoms(under, style, rule,
                 latinSign: latinSign, nested: true, line: line),
             lines: lines + (inner?.lines ?? 0),
             ink: _inkTop(under),
             style: style,
             rule: rule,
-          ),
+          )),
           _Dir.neutral,
         ));
 
@@ -789,13 +835,13 @@ List<_Atom> _build(List<MathNode> nodes, TextStyle style, Color rule,
 
       case SqrtNode(:final body, :final index):
         out.add(_Atom(
-          _Sqrt(
+          _fitLine(nested, _Sqrt(
             body: _atoms(body, style, rule,
                 latinSign: latinSign, nested: true, line: line),
             index: index,
             style: style,
             rule: rule,
-          ),
+          )),
           _Dir.neutral,
         ));
 
@@ -815,6 +861,40 @@ List<_Atom> _build(List<MathNode> nodes, TextStyle style, Color rule,
         // ⚖️ والعريضُ ليس صندوقاً بل تشكيلُ خطٍّ — فيورّث حالتَه كما هي.
         out.addAll(_build(body, style.copyWith(fontWeight: FontWeight.w800), rule,
             latinSign: latinSign, nested: nested, line: line));
+
+      case StackNode(:final symbol, :final below, :final above):
+        final integral = symbol == '∫';
+        final small = _script(style);
+        Widget part(List<MathNode> n) => Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: _atoms(n, small, rule,
+                  latinSign: latinSign, nested: true, line: line),
+            );
+        final lower = part(below);
+        // ⚖️ «نها» بلا حدٍّ أعلى — فيُحجز مكانُ الأسفل فوقها **شفافاً**
+        //    كي يبقى الرمزُ نفسُه على سطر الكتابة لا يرتفع عنه.
+        final upper = above.isNotEmpty
+            ? part(above)
+            : (integral
+                ? const SizedBox.shrink()
+                : Opacity(opacity: 0, child: part(below)));
+        out.add(_Atom(
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              upper,
+              Text(
+                symbol,
+                style: integral
+                    ? style.copyWith(
+                        fontSize: (style.fontSize ?? 17) * 1.45, height: 1.0)
+                    : style.copyWith(height: 1.15),
+              ),
+              lower,
+            ],
+          ),
+          _Dir.neutral,
+        ));
 
       case ScriptNode(:final body, :final superscript):
         final script = Transform.translate(
@@ -863,6 +943,132 @@ List<_Atom> _build(List<MathNode> nodes, TextStyle style, Color rule,
   return out;
 }
 
+
+/// يفصل علامتَي المحرّر عمّا حولهما: «٢\uE000س» ⇐ «٢» · مؤشر · «س».
+List<String> _splitMarks(String token) {
+  final out = <String>[];
+  final buf = StringBuffer();
+  for (final ch in token.split('')) {
+    if (ch == kCaretMark || ch == kSlotMark) {
+      if (buf.isNotEmpty) {
+        out.add(buf.toString());
+        buf.clear();
+      }
+      out.add(ch);
+    } else {
+      buf.write(ch);
+    }
+  }
+  if (buf.isNotEmpty) out.add(buf.toString());
+  return out;
+}
+
+/// ⬇️ يحوّل «نها» + دليلاً، و«∫» + دليلاً/أُسّاً، إلى [StackNode].
+///
+/// ⚖️ **الرمزُ ملاصقٌ لدليله** — «نها\sub{…}» لا «نها \sub{…}»: الفراغُ
+///    يعني أن الدليل ليس له (كما في [ScriptNode] نفسها).
+List<MathNode> _stackLimits(List<MathNode> nodes) {
+  if (!nodes.any((n) => n is TextNode &&
+      (n.text.endsWith('نها') || n.text.endsWith('∫')))) {
+    return nodes;
+  }
+  final out = <MathNode>[];
+  for (var i = 0; i < nodes.length; i++) {
+    final n = nodes[i];
+    final next = i + 1 < nodes.length ? nodes[i + 1] : null;
+    if (n is TextNode && next is ScriptNode) {
+      // «منها» تنتهي بـ«نها» وليست نهاية — فالحرفُ قبلها ليس عربياً.
+      final t = n.text;
+      final lim = t.endsWith('نها') &&
+          (t.length == 3 || !_arabicWord.hasMatch(t[t.length - 4]));
+      final symbol = lim ? 'نها' : (t.endsWith('∫') ? '∫' : null);
+      final allowed = symbol == '∫' || !next.superscript;
+      if (symbol != null && allowed) {
+        final rest = n.text.substring(0, n.text.length - symbol.length);
+        if (rest.isNotEmpty) out.add(TextNode(rest));
+        var below = <MathNode>[], above = <MathNode>[];
+        (next.superscript ? above : below).addAll(next.body);
+        i++;
+        // ∫ حدّاه معاً — بأيّ ترتيبٍ جاءا.
+        final third = i + 1 < nodes.length ? nodes[i + 1] : null;
+        if (symbol == '∫' &&
+            third is ScriptNode &&
+            third.superscript != next.superscript) {
+          (third.superscript ? above : below).addAll(third.body);
+          i++;
+        }
+        out.add(StackNode(symbol, below, above));
+        continue;
+      }
+    }
+    out.add(n);
+  }
+  return out;
+}
+
+/// ⌨️ مؤشرُ المحرّر — خطٌّ أزرقُ وامض بارتفاع السطر.
+class _EditorCaret extends StatefulWidget {
+  const _EditorCaret({required this.style});
+  final TextStyle style;
+
+  @override
+  State<_EditorCaret> createState() => _EditorCaretState();
+}
+
+class _EditorCaretState extends State<_EditorCaret>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _blink = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1000),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _blink.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = widget.style.fontSize ?? 17;
+    return AnimatedBuilder(
+      animation: _blink,
+      // يظهر نصف الدورة ويغيب نصفها — كمؤشر iOS تماماً.
+      builder: (_, child) =>
+          Opacity(opacity: _blink.value < 0.55 ? 1 : 0, child: child),
+      child: Container(
+        width: 2,
+        height: size * 1.25,
+        margin: const EdgeInsets.symmetric(horizontal: 1),
+        decoration: BoxDecoration(
+          color: const Color(0xFF155DFC),
+          borderRadius: BorderRadius.circular(1),
+        ),
+      ),
+    );
+  }
+}
+
+/// ⬚ خانةٌ فارغة تنتظر أن تُملأ — بسطٌ أو مقامٌ أو أُسٌّ لم يُكتب بعد.
+class _EditorSlot extends StatelessWidget {
+  const _EditorSlot({required this.style});
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = style.fontSize ?? 17;
+    return Container(
+      width: size * 0.72,
+      height: size * 0.95,
+      margin: const EdgeInsets.symmetric(horizontal: 1),
+      decoration: BoxDecoration(
+        color: const Color(0x1A155DFC),
+        border: Border.all(color: const Color(0x80155DFC), width: 1.1),
+        borderRadius: BorderRadius.circular(3),
+      ),
+    );
+  }
+}
 
 /// مقطع متجانس الاتجاه داخل كلمة واحدة.
 class _Run {
@@ -975,6 +1181,29 @@ TextStyle _script(TextStyle s) =>
     s.copyWith(fontSize: (s.fontSize ?? 17) * 0.62);
 
 // ── الكسر: عمود من بسط · خط · مقام، وعرض الخط = عرض الأوسع ──
+/// 📏 **صندوقٌ أعرضُ من السطر يُصغَّر ليسعه — ولا يفيض** (رآه المالك
+///    ٢٠٢٦-٠٩-٣٠ في معامل الارتباط: «RIGHT OVERFLOWED BY 59 PIXELS»).
+///
+/// 🔴 السبب: بسطُ الكسر ومقامُه والجذرُ **صفوفٌ لا تُلفّ** — الكسرُ يقيس
+///    نفسَه بـ`IntrinsicWidth` (عرضُ طرفَيه سطراً واحداً) والجذرُ `Row`
+///    سقفُه فوق مقداره كلِّه. فمقامٌ فيه جذرٌ طويل (ن مجـ س² - (مجـ س)²)
+///    لا مكان له ينكسر فيه، ويخرج عن الشاشة بشرائطِ الخطأ الصفراء.
+///
+/// ✅ `FittedBox(scaleDown)`: ما يسعه السطر يبقى **بحجمه حرفاً بحرف** (لا
+///    تحويل ولا طبقة)، وما لا يسعه يُصغَّر بنسبةٍ واحدة كما تُصغَّر المعادلة
+///    في الكتاب — فلا يُقصّ طرفٌ ولا يُلفّ كسرٌ على سطرين فيفسد معناه.
+///    ولا تمرير أفقيّ ([tables-on-mobile]: المالك رفضه).
+///
+/// ⚖️ **في أعلى السطر وحده** ([nested] = false): الصندوقُ الداخليّ يصغُر مع
+///    أبيه، وتصغيرُه وحدَه كان سيُخلّ النسبة بين البسط والمقام.
+Widget _fitLine(bool nested, Widget box) => nested
+    ? box
+    : FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: AlignmentDirectional.centerStart,
+        child: box,
+      );
+
 class _Fraction extends StatelessWidget {
   const _Fraction({
     required this.numerator,
@@ -1333,9 +1562,15 @@ class _Sqrt extends StatelessWidget {
               Positioned(
                 top: -size * 0.12,
                 right: size * 0.62,
-                child: Text(index,
-                    style: style.copyWith(
-                        fontSize: size * 0.6, fontWeight: FontWeight.w600)),
+                // ⌨️ الدليلُ قد يحمل علامةَ المحرّر (خانةٌ فارغة أو مؤشر).
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _atoms([TextNode(index)],
+                      style.copyWith(
+                          fontSize: size * 0.6, fontWeight: FontWeight.w600),
+                      rule,
+                      nested: true),
+                ),
               ),
             ],
           ),

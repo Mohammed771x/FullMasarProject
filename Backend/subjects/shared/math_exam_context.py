@@ -57,7 +57,8 @@ def conversation_exam(req, sessions: Dict) -> Optional[Dict[str, Any]]:
     if not (year and lesson and branch and shown > 0):
         return None
     # 🛡️ السنةُ والفرعُ يمرّان بـ`safe_segment` داخل الجلب — لا مسارَ خارج البنك.
-    result = get_math_exam_questions(branch, year, lesson, min(shown, EXAM_CONTEXT_CAP))
+    result = get_math_exam_questions(branch, year, lesson, min(shown, EXAM_CONTEXT_CAP),
+                                     req.grade, req.track)
     if not result["questions"]:
         return None
     total = result.get("total", shown)

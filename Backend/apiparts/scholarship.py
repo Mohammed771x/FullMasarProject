@@ -90,10 +90,9 @@ async def scholarship_ask(req: ScholarshipAskRequest, request: Request):
     images = req.all_images()
     if images:
         try:
-            extracted = []
-            for img in images:
-                clean, mime = v3_image_guard.validate(img)
-                extracted.append(await v3_vision.image_to_text(clean, mime, AI_CLIENTS))
+            # 📷 البابُ الوحيد لقراءة الصور — فيه حدُّ الصور اليومي ([core/vision]).
+            extracted = await v3_vision.extract_images(
+                images, AI_CLIENTS, uid=identity["uid"], subject=None)
         except (v3_image_guard.ImageRejected, v3_vision.VisionFailed) as e:
             return _json_response({"answer": str(e), "ok": False}, 200)
         question = v3_vision.merge_into_question(extracted, req.question)

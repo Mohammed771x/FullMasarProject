@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/config/curriculum.dart';
 import 'models/chat_model.dart';
 
 // ==========================================
@@ -86,14 +87,16 @@ class EduSession {
   ///    (نفسُ ما شرحته `openFromSearch`). فتُفتح اللوحةُ ليختار الطالبُ
   ///    درسَه، ولا يُرسَل طلبٌ بدرسٍ فارغ.
   void rememberConversation(ChatConversation c, String uid) {
+    // 📐 فروعُ الرياضيات للثالث وحده — الأولُ والثاني كبقية المواد.
+    final math = Curriculum.usesMathBranches(c.subject, grade: c.grade);
     place = EduPlace(
       uid: uid,
       grade: c.grade,
       track: c.track,
       subject: c.subject,
-      mode: c.subject == "رياضيات" ? "شرح" : c.mode,
-      mathBranch: c.subject == "رياضيات" ? c.branch : "",
-      mathMode: c.subject == "رياضيات" ? c.mode : "",
+      mode: math ? "شرح" : c.mode,
+      mathBranch: math ? c.branch : "",
+      mathMode: math ? c.mode : "",
       conversationId: c.id,
     );
   }

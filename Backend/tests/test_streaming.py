@@ -405,7 +405,7 @@ def test_math_smart_explain_streams(client, monkeypatch):
         return "شرح بلا بثّ"
 
     monkeypatch.setattr(M, "explain_math_lesson", fake_explain)
-    monkeypatch.setattr(M, "load_math_lesson", lambda b, n: {"اسم_الدرس": n})
+    monkeypatch.setattr(M, "load_math_lesson", lambda b, n, *_: {"اسم_الدرس": n})
 
     events = _events(client.post("/ask/stream", headers=HDR, json=_body(
         subject="رياضيات", mode="شرح", unit_name="تفاضل",

@@ -766,7 +766,7 @@ class _ChatWelcome extends StatelessWidget {
 
   /// الوضعُ كما يراه الطالب — الرياضياتُ وضعُها في `mathMode`.
   String get _mode =>
-      c.selectedSubject == "رياضيات" ? c.mathMode : c.selectedMode;
+      c.isMathBranches ? c.mathMode : c.selectedMode;
 
   String get _title => c.isTeacher
       ? "مساعد المعلم الذكي"

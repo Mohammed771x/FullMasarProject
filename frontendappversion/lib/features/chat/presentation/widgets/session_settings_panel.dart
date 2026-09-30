@@ -167,14 +167,14 @@ class SessionSettingsPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (c.selectedSubject != "رياضيات")
+          if (!c.isMathBranches)
             TourAnchor(id: EducationTour.modes, child: _modeSelector(context)),
           // 📊 **مستوى التلخيص تحت الشرائح مباشرةً** (ملاحظة المالك):
           //    كان آخرَ عنصرٍ في اللوحة فلا يُرى إلا بتمرير. ومن اختار
           //    «تلخيص» فأوّلُ ما يريد ضبطه هو مستواه.
-          if (c.selectedMode == "تلخيص" && c.selectedSubject != "رياضيات")
+          if (c.selectedMode == "تلخيص" && !c.isMathBranches)
             _summarySlider(),
-          if (c.selectedSubject == "رياضيات") ...[
+          if (c.isMathBranches) ...[
             const SizedBox(height: 16),
             TourAnchor(id: EducationTour.math, child: _mathBranchSelector()),
             if (c.mathMode == "وزاري" && c.selectedMathBranch.isNotEmpty)
@@ -207,14 +207,14 @@ class SessionSettingsPanel extends StatelessWidget {
               child: _tourExample ?? _lessonsModeArea(),
             ),
           // وضع الوحدات/الصفحات: الواجهة القديمة نفسها + الوزاري كما هو
-          if (c.selectedSubject != "رياضيات" &&
+          if (!c.isMathBranches &&
               (!c.usesContentModes || c.contentMode == "pages"))
             TourAnchor(
               id: EducationTour.lesson,
               child: _tourExample ?? _unitFilterArea(),
             ),
 
-          if (c.selectedSubject != "رياضيات" &&
+          if (!c.isMathBranches &&
               c.selectedMode != "سؤال" &&
               c.selectedMode != "وزاري" &&
               (!c.usesContentModes || c.contentMode == "pages"))
@@ -246,7 +246,7 @@ class SessionSettingsPanel extends StatelessWidget {
   // 📚 والأوضاعُ من `Curriculum.modesFor` لا مكتوبةً هنا — التصميمُ يعرض
   //    خمسةً، والمنهجُ يقرّر ما يظهر لكل مادةٍ وصف.
   Widget _modeSelector(BuildContext context) {
-    if (c.selectedSubject == "رياضيات") return const SizedBox.shrink();
+    if (c.isMathBranches) return const SizedBox.shrink();
 
     // 🎯 **أيقوناتُ المصمّم بأعيانها** — قرأتُها من تصديره مكبّراً:
     //    الكتابُ المفتوح للشرح · **البرق** للتلخيص (لا ورقةً) ·
@@ -458,7 +458,7 @@ class SessionSettingsPanel extends StatelessWidget {
   Widget _mathModeSelector(BuildContext context) => Wrap(
     spacing: 10,
     // 📚 بلا «تلخيص» — [Curriculum.modesFor] تُسقطه للرياضيات أصلاً.
-    children: Curriculum.modesFor("رياضيات", grade: c.grade)
+    children: Curriculum.modesFor(c.selectedSubject, grade: c.grade)
         .map(
           (mode) => ChoiceChip(
             label: Text(mode),
@@ -817,7 +817,7 @@ class SessionSettingsPanel extends StatelessWidget {
   Widget _unitFilterArea() {
     // 🔴 وضع الوزاري
     if (c.selectedMode == "وزاري") {
-      if (c.selectedSubject == "رياضيات") {
+      if (c.isMathBranches) {
         return const SizedBox.shrink();
       }
 

@@ -14,6 +14,7 @@ import '../../../../core/services/voice_text_merge.dart';
 import '../../../../core/quota/quota_repository.dart';
 import '../../../../core/session/user_session.dart';
 import '../../../../core/settings/app_settings.dart';
+import '../../../../core/math_keyboard/math_editor.dart';
 import '../../../../core/error/error_messages.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/storage/chat_storage.dart';
@@ -75,6 +76,30 @@ class ChatController extends ChangeNotifier {
   ///    كيبورد — ومنه كيبوردُ حقلٍ داخلها هي. فصار الطيُّ لمن يكتب في
   ///    المحادثة وحده ([chatInputFocused]).
   final FocusNode inputFocus = FocusNode(debugLabel: 'chat-input');
+
+  /// 🧮 محرّرُ الرياضيات — يعمل على نصّ الحقل نفسِه ([inputController]).
+  late final MathEditor mathEditor = MathEditor(inputController);
+
+  /// ⌨️ هل يُكتب بكيبورد الرياضيات؟ — مادةُ الرياضيات وحدها (أمرُ المالك
+  /// ٢٠٢٦-٠٩-٣٠: «كيبورد خاص بمادة الرياضيات فقط») وباختيار الطالب.
+  bool get mathKeyboardActive =>
+      selectedSubject == "رياضيات" && AppSettings.I.mathKeyboard;
+
+  /// هل كيبوردُ الرياضيات مرفوعٌ الآن؟
+  bool get mathKeyboardOpen => mathKeyboardActive && inputFocus.hasFocus;
+
+  /// ⇄ يبدّل بين الكيبوردين **والحقلُ مركَّزٌ** — فيظهر الآخرُ فوراً مكانه.
+  ///
+  /// ⚠️ الحقلان ودجتان مختلفتان على `FocusNode` واحد: حين يُنزع أحدهما
+  ///    ينفصل عنه التركيز، فيُطلب من جديد بعد أن يُبنى الآخر.
+  Future<void> setMathKeyboard(bool on) async {
+    await AppSettings.I.setMathKeyboard(on);
+    if (on) mathEditor.toEnd();
+    _safeNotify();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      inputFocus.requestFocus();
+    });
+  }
 
   /// هل الطالبُ يكتب في حقل المحادثة الآن؟
   bool get chatInputFocused => inputFocus.hasFocus;
@@ -268,7 +293,16 @@ class ChatController extends ChangeNotifier {
   // 📚 فارغةٌ حتى تصل قائمةُ الوحدات — «الكل» لم تعد خياراً
   //    ([_applyPagesUnits]).
   String selectedUnit = "";
-  final List<String> mathBranches = AppConstants.mathBranches;
+  /// 📐 **رياضيات الثالث بفروعها** — وما عداها (والأولُ والثاني) كبقية المواد.
+  bool get isMathBranches =>
+      Curriculum.usesMathBranches(selectedSubject, grade: grade);
+
+  /// فروعُ الرياضيات **من الخادم** (مجلّداتُ الصف والمسار) — الأدبي غيرُ العلمي.
+  /// وقبل وصولها: فروعُ العلمي المعروفة للعلمي، ولا شيء للأدبي (لا فروعَ غريبة).
+  List<String>? _serverMathBranches;
+  List<String> get mathBranches =>
+      _serverMathBranches ??
+      (track == Track.scientific ? AppConstants.mathBranches : const []);
   String selectedExamYear = "";
   // ===== الصف والمسار (يأتيان من حساب الطالب ويُغيَّران من القائمة الجانبية) =====
   int grade = 3;
@@ -389,7 +423,7 @@ class ChatController extends ChangeNotifier {
     // 📖 الزرُّ البارز لا يظهر إلا ودرسٌ مختار — وإلا لا شيءَ ليُشرح.
     final lessonReady = effectiveContentMode == "lessons"
         ? selectedV3Lesson.isNotEmpty
-        : (selectedSubject == "رياضيات" && selectedLesson.isNotEmpty);
+        : (isMathBranches && selectedLesson.isNotEmpty);
 
     switch (selectedMode) {
       case "تلخيص":
@@ -488,7 +522,7 @@ class ChatController extends ChangeNotifier {
       return null;
     }
 
-    if (selectedSubject == "رياضيات") {
+    if (isMathBranches) {
       if (selectedMathBranch.isEmpty) return "اختر فرع الرياضيات أولاً";
       if (mathMode == "وزاري") {
         // ⚖️ **يُسأل عن المحادثة لا عن زرٍّ ضُغط**: كان علَماً يُضاء عند
@@ -581,7 +615,7 @@ class ChatController extends ChangeNotifier {
   /// هل تظهر واجهة الوضعين؟ (لكل المواد عدا الرياضيات، وليس في الوزاري)
   /// 👨‍🏫 وقسم المعلم **خارجها كلياً**: لا اختيار بين دروس وصفحات — الدروس فقط.
   bool get usesContentModes =>
-      !isTeacher && selectedSubject != "رياضيات" && selectedMode != "وزاري";
+      !isTeacher && !isMathBranches && selectedMode != "وزاري";
 
   /// القيمة المُرسلة للخادم — null يعني «المسار القديم كما هو».
   String? get effectiveContentMode => usesContentModes ? contentMode : null;
@@ -865,7 +899,7 @@ class ChatController extends ChangeNotifier {
 
   /// هل منتقي الوحدة/الدرس فارغٌ الآن (لا محتوى لهذه المادة في هذا الوضع)؟
   bool get lessonPickerEmpty {
-    if (selectedSubject == "رياضيات" || selectedMode == "وزاري") return false;
+    if (isMathBranches || selectedMode == "وزاري") return false;
     if (capsLoading) return false;
     if (usesContentModes && contentMode == "lessons") {
       return v3LessonsUnits.isEmpty;
@@ -937,7 +971,7 @@ class ChatController extends ChangeNotifier {
     //    من القدرات). فكلُّ ما يُعشَّش تحت `caps?.lessonsAvailable` لا يُنفَّذ
     //    لها إطلاقاً — وهنا كان مقتل الفتح الموجَّه.
     if (openLesson != null && openLesson.isNotEmpty) {
-      if (selectedSubject == "رياضيات") {
+      if (isMathBranches) {
         await applyMathDeepLink(openUnit ?? "", openLesson);
       } else if (caps?.lessonsAvailable == true &&
           caps!.lessonsUnits.isNotEmpty) {
@@ -972,7 +1006,7 @@ class ChatController extends ChangeNotifier {
 
     selectedSubject = p.subject;
     _resetModeForSubject();
-    if (selectedSubject == "رياضيات") {
+    if (isMathBranches) {
       selectedMathBranch = p.mathBranch;
       if (p.mathMode.isNotEmpty) {
         mathMode = p.mathMode;
@@ -1211,7 +1245,7 @@ class ChatController extends ChangeNotifier {
       selectedMode = "معلم:${teacherTool!.id}";
       return;
     }
-    if (selectedSubject == "رياضيات") {
+    if (isMathBranches) {
       selectedMathBranch = "";
       mathMode = "شرح";
       selectedMode = "شرح";
@@ -1409,8 +1443,9 @@ class ChatController extends ChangeNotifier {
     //    — أما قسم المعلم فيقرؤها من القدرات كبقية المواد، لأن الخادم يبني لها
     //    شجرة دروس فعلاً (`capabilities.describe`) والمعلّم يحتاج فرعاً ودرساً
     //    كأي مادة. بدون هذا الاستثناء من الاستثناء تصل قائمةُ دروسٍ فارغة.
-    if (selectedSubject == "رياضيات" && !isTeacher) {
+    if (isMathBranches && !isTeacher) {
       caps = null;
+      _serverMathBranches = null; // فروعُ مسارٍ سابق لا تبقى إن فشل الجلب
       // 🧠 ويبقى زرُّ التفكير: قدرةٌ لا شأنَ لها بشجرة الدروس، ومصدرُها
       //    الخادمُ لا قائمةٌ هنا. فتُقرأ وحدَها ويُطرح ما عداها.
       try {
@@ -1421,6 +1456,8 @@ class ChatController extends ChangeNotifier {
         );
         if (_scopeExpired(token)) return;
         _thinkingAvailable = c.thinkingAvailable;
+        // 📐 والفروعُ من شجرة الصف والمسار نفسِها — مجلّداتُها على الخادم.
+        _serverMathBranches = [for (final u in c.lessonsUnits) u.unit];
       } catch (_) {
         if (_scopeExpired(token)) return;
         _thinkingAvailable = false; // 🛟 فشلُ الشبكة يُخفي ولا يُعطّل
@@ -1583,10 +1620,10 @@ class ChatController extends ChangeNotifier {
     grade: grade,
     track: track.key,
     subject: selectedSubject,
-    branch: (!isTeacher && selectedSubject == "رياضيات")
+    branch: (!isTeacher && isMathBranches)
         ? selectedMathBranch
         : "",
-    mode: (!isTeacher && selectedSubject == "رياضيات")
+    mode: (!isTeacher && isMathBranches)
         ? mathMode
         : selectedMode,
   );
@@ -1626,7 +1663,7 @@ class ChatController extends ChangeNotifier {
   ///    شرحَ مخزونَ له أصلاً ([core/lesson_cache]).
   String get _explainScopeKey {
     if (isTeacher || selectedMode != "شرح") return "";
-    if (selectedSubject == "رياضيات") {
+    if (isMathBranches) {
       if (mathMode != "شرح" || selectedLesson.isEmpty) return "";
       return "$grade|${track.key}|رياضيات|$selectedMathBranch|$selectedLesson";
     }
@@ -1821,7 +1858,7 @@ class ChatController extends ChangeNotifier {
     onFadeReplay?.call();
 
     // 6. تحميل البيانات المطلوبة للمادة الجديدة
-    if (selectedSubject != "رياضيات") {
+    if (!isMathBranches) {
       if (selectedMode == "وزاري") {
         loadAvailableYears();
       } else {
@@ -1928,7 +1965,7 @@ class ChatController extends ChangeNotifier {
           ) ??
           teacherTool;
       selectedMode = conversation.mode;
-    } else if (conversation.subject == "رياضيات") {
+    } else if (Curriculum.usesMathBranches(conversation.subject, grade: grade)) {
       selectedMathBranch = conversation.branch;
       mathMode = conversation.mode;
     } else {
@@ -1993,7 +2030,7 @@ class ChatController extends ChangeNotifier {
       if (canUse) contentMode = wanted;
     }
 
-    if (!isTeacher && selectedSubject == "رياضيات") {
+    if (!isTeacher && isMathBranches) {
       // 📐 الرياضياتُ شجرتُها من `/math/lessons` لا من القدرات، وقد لا تكون
       //    وصلت بعد. فنُعيد الدرس كما هو ونترك التحقّق لقائمته حين تصل.
       if (conversation.lesson.isNotEmpty) selectedLesson = conversation.lesson;
@@ -2290,13 +2327,13 @@ class ChatController extends ChangeNotifier {
       subject: selectedSubject,
       // ⚠️ نفس حرس `currentScopeKey` حرفياً: اختلافهما يجعل المحادثة تُحفظ
       //    بمفتاح ولا تُقرأ به — فتختفي من السجلّ فور حفظها.
-      mode: (!isTeacher && selectedSubject == "رياضيات")
+      mode: (!isTeacher && isMathBranches)
           ? mathMode
           : selectedMode,
       messages: chatMessages,
       grade: grade,
       track: track.key,
-      branch: (!isTeacher && selectedSubject == "رياضيات")
+      branch: (!isTeacher && isMathBranches)
           ? selectedMathBranch
           : "",
       // 🧭 وسياقُ الدرس معها — وإلا عادت المحادثةُ بمادتها بلا درسها
@@ -2307,10 +2344,10 @@ class ChatController extends ChangeNotifier {
       //    يُحفظ له `selectedUnit` (وحدةُ الصفحات، فارغةٌ عنده أبداً).
       // 📝 **ووزاريُّ الرياضيات «وحدتُه» سنتُه** — الفرعُ في `branch` والدرسُ
       //    في `lesson`، والحقلُ فارغٌ للرياضيات أصلاً فلا ترحيلَ ولا تعارض.
-      unit: (!isTeacher && selectedSubject == "رياضيات" && mathMode == "وزاري")
+      unit: (!isTeacher && isMathBranches && mathMode == "وزاري")
           ? _wazariYear
           : (_usesLessonTree ? selectedV3Unit : selectedUnit),
-      lesson: (!isTeacher && selectedSubject == "رياضيات")
+      lesson: (!isTeacher && isMathBranches)
           ? (mathMode == "وزاري" ? _wazariLesson : selectedLesson)
           : selectedV3Lesson,
       pages: List<int>.of(_conversationPages),
@@ -2626,7 +2663,7 @@ class ChatController extends ChangeNotifier {
       return path.join(' • ');
     }
 
-    if (selectedSubject == "رياضيات") {
+    if (isMathBranches) {
       if (selectedMathBranch.isNotEmpty) path.add(selectedMathBranch);
       if (selectedLesson.isNotEmpty) path.add(_truncateText(selectedLesson, 4));
     } else if (effectiveContentMode == "lessons") {
@@ -2718,7 +2755,7 @@ class ChatController extends ChangeNotifier {
     }
 
     bool isMathExplain =
-        selectedSubject == "رياضيات" &&
+        isMathBranches &&
         mathMode == "شرح" &&
         selectedLesson.isNotEmpty;
     // 🆕 وضع الدروس: اختيار الدرس يكفي لبدء الشرح بلا كتابة
@@ -2812,7 +2849,7 @@ class ChatController extends ChangeNotifier {
     if (teacherGenerate) {
       messages.add({"role": "user", "text": teacherActionText()});
     } else if (customText == null) {
-      if (selectedSubject == "رياضيات" && mathMode == "شرح" && text.isEmpty) {
+      if (isMathBranches && mathMode == "شرح" && text.isEmpty) {
         messages.add({"role": "user", "text": "شرح درس: $selectedLesson"});
       } else if (hasImage && text.isEmpty) {
         messages.add({
@@ -2833,7 +2870,7 @@ class ChatController extends ChangeNotifier {
           if (hasImage) "images": sendingImages.map((e) => e.path).toList(),
         });
       }
-    } else if (selectedSubject == "رياضيات" && mathMode == "وزاري") {
+    } else if (isMathBranches && mathMode == "وزاري") {
       final parts = text.split('|');
       if (parts.length >= 2) {
         // 📌 **الجلبُ يثبّت سنةَ المحادثة ودرسَها** — بعد كل الحرّاس، فطلبٌ
@@ -2948,13 +2985,13 @@ class ChatController extends ChangeNotifier {
       //    فيبقى لوضع الدروس والرياضيات وحدهما.
       if (cMode == "lessons") {
         finalLessonName = selectedV3Lesson;
-      } else if (selectedSubject == "رياضيات") {
+      } else if (isMathBranches) {
         finalLessonName = mathMode == "وزاري" && _wazariLesson.isNotEmpty
             ? _wazariLesson
             : selectedLesson;
       }
 
-      if (selectedSubject != "رياضيات" &&
+      if (!isMathBranches &&
           selectedMode == "وزاري" &&
           customText == null) {
         finalContentToSend = "$selectedExamYear,$text";
@@ -2996,7 +3033,7 @@ class ChatController extends ChangeNotifier {
                 "summary_level": summaryLevel,
                 "lesson_name": finalLessonName,
                 "content": finalContentToSend,
-                "unit_name": (selectedSubject == "رياضيات")
+                "unit_name": (isMathBranches)
                     ? selectedMathBranch
                     : (cMode == "lessons" ? selectedV3Unit : selectedUnit),
                 "chat_history": chatHistory,
@@ -3009,7 +3046,7 @@ class ChatController extends ChangeNotifier {
                   "selected_pages": selectedPages,
                 // 📝 **سياقُ وزاري الرياضيات من المحادثة** — بها يُعيد الخادمُ
                 //    بناءَ ما عُرض فيها لا ما عُرض في آخر محادثةٍ للطالب.
-                if (selectedSubject == "رياضيات" && mathMode == "وزاري") ...{
+                if (isMathBranches && mathMode == "وزاري") ...{
                   "exam_year": _wazariYear,
                   "exam_shown": mathWazariShown,
                 },

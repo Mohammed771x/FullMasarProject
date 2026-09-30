@@ -149,7 +149,7 @@ def collect_exam_questions_by_years(subject: str, years: List[str], grade: int =
     if not os.path.isdir(exams_dir):
         return found
     for f in os.listdir(exams_dir):
-        if not f.lower().endswith(".json"):
+        if not f.lower().endswith(".json") or f.startswith(("_", ".")):
             continue
         file_year = os.path.splitext(f)[0].strip()
         if "الكل" not in years and file_year not in [str(y) for y in years]:
@@ -202,18 +202,29 @@ def filter_and_rank_exams(questions: list, user_text: str):
 # ℹ️ حُذفت نسخة ثانية متطابقة من normalize_arabic كانت معرّفة هنا
 #    وتطغى على الأولى — سلوك واحد بتعريفين فخّ صامت.
 
-def get_math_exam_years(branch: str):
+def math_exam_branch_dir(branch: str, grade: int = 3, track: str = "علمي") -> str:
+    """مجلد وزاري فرعٍ لصف/مسار — `{بنك الصف}/{الفرع}/{السنة}.json`.
+
+    الثالث العلمي بنكُه المسطّح القديم `رياضيات/exams/{الفرع}/`، والأدبي
+    `رياضيات/exams/grade3/أدبي/{الفرع}/` ([subject_exams_dir]). وقبل هذا كان
+    المسار مكتوباً للعلمي حرفاً — فوزاريُّ الأدبي كان سيقرأ فروعَ العلمي.
+    """
+    return os.path.join(subject_exams_dir("رياضيات", grade, track), branch)
+
+
+def get_math_exam_years(branch: str, grade: int = 3, track: str = "علمي"):
     """يجلب السنوات المتاحة لفرع معين"""
     if not safe_segment(branch):
         return []
-    exams_dir = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", "exams", branch)
+    exams_dir = math_exam_branch_dir(branch, grade, track)
     
     if not os.path.isdir(exams_dir):
         return []
     
     years = []
     for f in os.listdir(exams_dir):
-        if f.endswith(".json"):
+        # القوالبُ والمخفيّ ليست سنوات («_TEMPLATE» ظهر سنةً في الأدبي).
+        if f.endswith(".json") and not f.startswith(("_", ".")):
             year = os.path.splitext(f)[0]
             years.append(year)
     
@@ -221,17 +232,18 @@ def get_math_exam_years(branch: str):
     return years
 
 
-def get_math_exam_lessons(branch: str, year: str):
+def get_math_exam_lessons(branch: str, year: str, grade: int = 3, track: str = "علمي"):
     """يجلب أسماء الدروس من ملف السنة"""
     if not (safe_segment(branch) and safe_segment(year)):
         return []
-    exam_file = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", "exams", branch, f"{year}.json")
+    exam_file = os.path.join(math_exam_branch_dir(branch, grade, track), f"{year}.json")
     
     if not os.path.isfile(exam_file):
         return []
     
     data = load_json_safe(exam_file)
-    if not data:
+    # قائمةٌ لا كائن — ملفُّ سنةٍ نُسخ من القالب بغلافه `{"القالب": [...]}`.
+    if not data or not isinstance(data, list):
         return []
     
     # استخراج أسماء الدروس الفريدة
@@ -239,15 +251,16 @@ def get_math_exam_lessons(branch: str, year: str):
     return lessons
 
 
-def get_math_exam_questions(branch: str, year: str, lesson_name: str, count: int):
+def get_math_exam_questions(branch: str, year: str, lesson_name: str, count: int,
+                            grade: int = 3, track: str = "علمي"):
     if not (safe_segment(branch) and safe_segment(year)):
         return {"questions": [], "total": 0, "has_more": False}
-    exam_file = os.path.join(BASE_SUBJECTS_DIR, "رياضيات", "exams", branch, f"{year}.json")
+    exam_file = os.path.join(math_exam_branch_dir(branch, grade, track), f"{year}.json")
     if not os.path.isfile(exam_file):
         return {"questions": [], "total": 0, "has_more": False}
     
     data = load_json_safe(exam_file)
-    if not data:
+    if not data or not isinstance(data, list):
         return {"questions": [], "total": 0, "has_more": False}
     
     # 🔥 المطابقة الذكية باستخدام الدالة الجديدة
@@ -280,7 +293,7 @@ def get_math_exam_questions(branch: str, year: str, lesson_name: str, count: int
         "remaining": total - len(batch)
     }
 
-def load_math_lesson(branch: str, lesson_name: str):
+def load_math_lesson(branch: str, lesson_name: str, grade: int = 3, track: str = "علمي"):
     """
     branch: تفاضل / تكامل / هندسة / جبر
     lesson_name: اسم الدرس — **باسم الملف أو بالاسم الداخلي `اسم_الدرس`**
@@ -294,7 +307,10 @@ def load_math_lesson(branch: str, lesson_name: str):
        ويُقبل الملف **بلا امتداد `.json`** كما يفعل بناء كتاب الدروس —
        ملف «مبدأ العد (طرائق العد )» بلا امتداد وكان يسقط هنا وحده.
     """
-    base = math_branch_dir(branch)
+    # 🛡️ الفرعُ من جسم الطلب ويُركَّب في مسار — كالسنة ([safe_segment]).
+    if not safe_segment(branch):
+        return None
+    base = math_branch_dir(branch, grade, track)
     if not os.path.isdir(base):
         return None
 

@@ -1,0 +1,1798 @@
+{
+  "الوحدات": [
+    {
+      "اسم_الوحدة": "القواعد",
+      "الدروس": [
+        {
+          "اسم_الدرس": "كون سؤال من الكلمات التي تحتها خط |Make questions of the underlined word",
+          "المحتوى": "قواعد ونماذج لتكوين الأسئلة بناءً على الكلمة المخطوط تحتها، مع توضيح الأدوات المناسبة وترتيب الفعل المساعد.",
+          "القواعد": [
+            {
+              "اسم_القاعدة": "1- Suitable Q-w (أدوات الاستفهام)",
+              "الصيغة": "اختيار الأداة بناءً على ما يُسأل عنه",
+              "أمثلة": [
+                { "الشرح": "what / when / where / which / whose / why / who / whom" },
+                { "الشرح": "How: How many (كم عدد المرات) / How many times / How much / How often (كم الفترة الزمنية) / How long (duration of time) / How far / How deep / How wide" }
+              ]
+            },
+            {
+              "اسم_القاعدة": "2- No change when using: who",
+              "الشرح": "لا يتغير ترتيب الجملة عند السؤال بـ (who) عن الفاعل."
+            },
+            {
+              "اسم_القاعدة": "3- Helping verb before subject",
+              "الشرح": "يجب وضع الفعل المساعد قبل الفاعل في السؤال."
+            },
+            {
+              "اسم_القاعدة": "4- Finite verb (الفعل الأساسي)",
+              "الصيغة": "تحويل الفعل إلى المصدر عند استخدام (do/does/did)",
+              "أمثلة": [
+                { "الفعل_الإيجابي": "do + inf", "الفعل_السلبي": "play" },
+                { "الفعل_الإيجابي": "does + inf", "الفعل_السلبي": "plays" },
+                { "الفعل_الإيجابي": "did + inf", "الفعل_السلبي": "played" }
+              ]
+            }
+          ],
+          "أمثلة_تطبيقية": [
+            { "الجملة_الأصلية": "1. He comes to school by bus.", "السؤال": "How does he come to school?" },
+            { "الجملة_الأصلية": "2. Fatima eats an apple a day.", "السؤال": "Who eats an apple a day?" },
+            { "الجملة_الأصلية": "3. They can meet in Sana'a.", "السؤال": "Where can they meet?" },
+            { "الجملة_الأصلية": "4. The president met the ambassador.", "السؤال": "Whom the president met with?" },
+            { "الجملة_الأصلية": "5. I prefer the yellow color.", "السؤال": "which color do you prefer?" },
+            { "الجملة_الأصلية": "6. This pen is mine.", "السؤال": "whose is this pen?" },
+            { "الجملة_الأصلية": "7. He used the medicine two times a month.", "السؤال": "How often did he use the medicine?" },
+            { "الجملة_الأصلية": "8. They played football every Friday.", "السؤال": "when did they play football?" },
+            { "الجملة_الأصلية": "9. They are teaching English.", "السؤال": "What are they teaching?" },
+            { "الجملة_الأصلية": "10. The tourists will visit the country.", "السؤال": "Who will visit the country?" }
+          ]
+        },
+
+        {
+          "اسم_الدرس": "THE PASSIVE VOICE (المبني للمجهول)",
+          "المحتوى": "يجب أن نراعي زمن الجملة وكذلك المفعول به (مفرد/جمع) عند وضع (verb to be) لصياغة المبني للمجهول.\n\nالصيغة العامة: { Object + be + pp }.\nأفعال الكينونة المستخدمة: { be, am, is, was, are, were, being, been }.",
+          "القواعد": [
+            {
+              "اسم_القاعدة": "1- Present simple",
+              "الصيغة": "{ I + (am) / He/She/It + (is) / You/We/They + (are) } + pp",
+              "أمثلة": [
+                {
+                  "الفعل_الإيجابي": "He/She eats meat every Friday",
+                  "الفعل_السلبي": "Meat is eaten every Friday",
+                  "الشرح": "مضارع بسيط: نستخدم is لأن meat مفرد."
+                },
+                {
+                  "الفعل_الإيجابي": "Many visitors visit Yemen every year",
+                  "الفعل_السلبي": "Yemen is visited by many visitors every year",
+                  "الشرح": "تحويل الجملة للمبني للمجهول مع ذكر الفاعل (by agent)."
+                },
+                {
+                  "الفعل_الإيجابي": "Ali's father drinks three cups of tea every evening",
+                  "الفعل_السلبي": "Three cups of tea are drunk every evening",
+                  "الشرح": "استخدمنا are لأن المفعول به (three cups) جمع."
+                }
+              ]
+            },
+            {
+              "اسم_القاعدة": "2- Past simple",
+              "الصيغة": "{ I/He/She/It + (was) / You/We/They + (were) } + pp",
+              "أمثلة": [
+                {
+                  "الفعل_الإيجابي": "My father bought a new car last week",
+                  "الفعل_السلبي": "A new car was bought last week",
+                  "الشرح": "ماضي بسيط: نستخدم was للمفرد."
+                },
+                {
+                  "الفعل_الإيجابي": "The minister opened four schools in my city",
+                  "الفعل_السلبي": "Four schools were opened in my city",
+                  "الشرح": "استخدمنا were لأن المفعول به جمع."
+                },
+                {
+                  "الفعل_الإيجابي": "Our teacher taught us two lessons last week",
+                  "الفعل_السلبي": "Two lessons were taught to us last week / We were taught two lessons last week",
+                  "الشرح": "إذا جاء مفعولين (us و two lessons)، يمكن الصياغة بطريقتين: إما ببدء الجملة بالمفعول به الثاني أو تحويل المفعول به الأول لضمير فاعل."
+                }
+              ]
+            },
+            {
+              "اسم_القاعدة": "3- Present continuous",
+              "الصيغة": "( I + am being ) ( He/She/It + is being ) ( You/We/They + are being ) + pp",
+              "أمثلة": [
+                {
+                  "الفعل_الإيجابي": "Ali is washing his car now",
+                  "الفعل_السلبي": "His car is being washed now",
+                  "الشرح": "مضارع مستمر: نستخدم being بعد فعل الكينونة."
+                },
+                {
+                  "الفعل_الإيجابي": "Ali is tidying his books at the moment",
+                  "الفعل_السلبي": "His books are being tidied at the moment",
+                  "الشرح": "جمع + being + التصريف الثالث."
+                }
+              ]
+            },
+            {
+              "اسم_القاعدة": "4- Past continuous",
+              "الصيغة": "{ I/He/She/It + (was being) / You/We/They + (were being) } + pp",
+              "أمثلة": [
+                {
+                  "الفعل_الإيجابي": "Sameera was cooking rice yesterday",
+                  "الفعل_السلبي": "Rice was being cooked yesterday",
+                  "الشرح": "ماضي مستمر: للمفرد نستخدم was being."
+                },
+                {
+                  "الفعل_الإيجابي": "Sameera was cleaning the windows",
+                  "الفعل_السلبي": "The windows were being cleaned",
+                  "الشرح": "للجمع نستخدم were being."
+                }
+              ]
+            },
+            {
+              "اسم_القاعدة": "5- Present perfect",
+              "الصيغة": "{ He/She/It + (has been) / I/You/We/They + (have been) } + pp",
+              "أمثلة": [
+                {
+                  "الفعل_الإيجابي": "Omer has lost his new mobile",
+                  "الفعل_السلبي": "His new mobile has been lost",
+                  "الشرح": "مضارع تام: نضع been بين الفعل المساعد والتصريف الثالث."
+                },
+                {
+                  "الفعل_الإيجابي": "Omer has drunk two cups of tea",
+                  "الفعل_السلبي": "Two cups of tea have been drunk",
+                  "الشرح": "المفعول به جمع لذا نستخدم have been."
+                }
+              ]
+            },
+            {
+              "اسم_القاعدة": "6- Past perfect",
+              "الصيغة": "{ object + had been + pp }",
+              "أمثلة": [
+                {
+                  "الفعل_الإيجابي": "He had lost his pen, that's why he couldn't write anything",
+                  "الفعل_السلبي": "His pen had been lost, that's why he couldn't write anything",
+                  "الشرح": "ماضي تام: نستخدم had been."
+                },
+                {
+                  "الفعل_الإيجابي": "He had eaten three eggs before he drank a glass of water",
+                  "الفعل_السلبي": "Three eggs had been eaten before a glass of water was drunk",
+                  "الشرح": "تطبيق القاعدة في جملة مركبة."
+                }
+              ]
+            },
+            {
+              "اسم_القاعدة": "7- Future and the modal verbs",
+              "الصيغة": "{ object + (the modal verb) + be + pp }",
+              "أمثلة": [
+                {
+                  "الفعل_الإيجابي": "They will build a new school",
+                  "الفعل_السلبي": "A new school will be built",
+                  "الشرح": "مع will نستخدم be والمصدر."
+                },
+                {
+                  "الفعل_الإيجابي": "He must write a letter to his father",
+                  "الفعل_السلبي": "A letter must be written to his father",
+                  "الشرح": "تطبيق القاعدة مع الفعل الناقص must."
+                },
+                {
+                  "الفعل_الإيجابي": "They are going to buy a car soon",
+                  "الفعل_السلبي": "A car is going to be bought soon",
+                  "الشرح": "تطبيق القاعدة مع going to."
+                },
+                {
+                  "الفعل_الإيجابي": "They have to visit their friend",
+                  "الفعل_السلبي": "Their friend has to be visited",
+                  "الشرح": "تطبيق القاعدة مع have to."
+                }
+              ]
+            }
+          ]
+        },
+
+
+        
+  {
+    "اسم_الدرس": "Change into passive|حول الجمل إلى المبني للمجهول",
+    "المحتوى": "هذا الدرس يشرح كيفية تحويل الجمل من المبني للمعلوم إلى المبني للمجهول (Passive Voice). يعتمد التحويل على تغيير الفعل المساعد بناءً على زمن الجملة الأصلية، مع استخدام التصريف الثالث للفعل الأساسي (P.P) في جميع الحالات.",
+    "القواعد": [
+      {
+        "اسم_القاعدة": "Past Simple",
+        "الصيغة": "was/were + played",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "She recieved the message yesterday.",
+            "الفعل_السلبي": "The message was recieved yesterday.",
+            "الشرح": "استخدمنا (was) لأن المفعول به (The message) مفرد والجملة في زمن الماضي البسيط."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Modals",
+        "الصيغة": "Modal + be + played (P.P)",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "children should respect their parents.",
+            "الفعل_السلبي": "Their parents should be respected.",
+            "الشرح": "عند وجود الأفعال الناقصة مثل (should)، نضع بعدها (be) ثم التصريف الثالث للفعل."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Present Simple",
+        "الصيغة": "is/are + played",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "The factory makes new things everyday.",
+            "الفعل_السلبي": "New things are made everyday by the factory.",
+            "الشرح": "استخدمنا (are) لأن المفعول به (New things) جمع والجملة في زمن المضارع البسيط."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Going to",
+        "الصيغة": "is/are + going to + be + played (P.P)",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "They are going to buy a new car.",
+            "الفعل_السلبي": "A new car is going to be bought.",
+            "الشرح": "أضفنا (be) بعد (going to) يليه التصريف الثالث للفعل (bought)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Present Perfect",
+        "الصيغة": "have/has + been + played",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "The flood has killed thousands of people.",
+            "الفعل_السلبي": "Thousands of people have been killed by the flood.",
+            "الشرح": "استخدمنا (have been) لأن المفعول به (Thousands of people) جمع في زمن المضارع التام."
+          }
+        ]
+      }
+    ],
+    "المصطلحات": [
+      {
+        "الكلمة": "is/are playing -> is/are being played",
+        "التعريف": "القاعدة الخاصة بتحويل زمن المضارع المستمر إلى المبني للمجهول",
+        "الترجمة": "المضارع المستمر للمجهول"
+      },
+      {
+        "الكلمة": "was/were playing -> was/were being played",
+        "التعريف": "القاعدة الخاصة بتحويل زمن الماضي المستمر إلى المبني للمجهول",
+        "الترجمة": "الماضي المستمر للمجهول"
+      },
+      {
+        "الكلمة": "had played -> had been played",
+        "التعريف": "القاعدة الخاصة بتحويل زمن الماضي التام إلى المبني للمجهول",
+        "الترجمة": "الماضي التام للمجهول"
+      },
+      {
+        "الكلمة": "may, might, can, Could, will, would, Shall, should, must",
+        "التعريف": "مجموعة الأفعال الناقصة التي يضاف لها (+ be + P.P) عند تحويلها للمبني للمجهول",
+        "الترجمة": "الأفعال الناقصة",
+        "مثال": "should be respected"
+      },
+      {
+        "الكلمة": "P.P",
+        "التعريف": "التصريف الثالث للفعل، وهو الشكل الأساسي الذي يجب أن يكون عليه الفعل في جميع جمل المبني للمجهول",
+        "الترجمة": "اسم المفعول",
+        "أمثلة": [
+          "recieved",
+          "respected",
+          "made",
+          "bought",
+          "killed",
+          "played"
+        ]
+      }
+    ]
+  }
+,
+
+        {
+          "اسم_الدرس": "اختر الفعل المناسب من الخيارات التالية | Choose the correct verb from the following options",
+          "المحتوى": "اختيار الفعل الصحيح بناءً على الزمن المناسب والكلمات الدالة الموجودة في الجملة.",
+          "القواعد": [
+            {
+              "اسم_القاعدة": "1- Present Simple (المضارع البسيط)",
+              "الصيغة": "play / s",
+              "الكلمات_الدالة": ["always", "sometimes", "often", "usually", "every day"],
+              "أمثلة": [
+                {
+                  "الفعل_الإيجابي": "My father always (drinks) tea.",
+                  "الشرح": "استخدمنا drinks لأن الفاعل (My father) مفرد ووجود كلمة always تدل على العادة."
+                }
+              ]
+            },
+            {
+              "اسم_القاعدة": "2- Past Simple (الماضي البسيط)",
+              "الصيغة": "played",
+              "الكلمات_الدالة": ["last week", "yesterday", "in 1990", "year ago"],
+              "أمثلة": []
+            },
+            {
+              "اسم_القاعدة": "3- Present Continuous (المضارع المستمر)",
+              "الصيغة": "(is / are / am) + Playing",
+              "الكلمات_الدالة": ["now", "look", "listen", "at the moment"],
+              "أمثلة": [
+                {
+                  "الفعل_الإيجابي": "They are (playing) now.",
+                  "الشرح": "استخدمنا playing لوجود are وكلمة now التي تدل على الاستمرارية."
+                }
+              ]
+            },
+            {
+              "اسم_القاعدة": "4- Present Perfect (المضارع التام)",
+              "الصيغة": "(has / have) + played (P.P)",
+              "الكلمات_الدالة": ["since", "for", "yet", "just", "already", "recently", "since 1990"],
+              "أمثلة": [
+                {
+                  "الفعل_الإيجابي": "He (has) written the letter.",
+                  "الشرح": "نستخدم has مع التصريف الثالث للفعل (written)."
+                },
+                {
+                  "الفعل_الإيجابي": "We (have been working) here for a month.",
+                  "الشرح": "استخدام المضارع التام المستمر لوجود مدة زمنية (for a month)."
+                }
+              ]
+            },
+            {
+              "اسم_القاعدة": "5- Future (المستقبل)",
+              "الصيغة": "will play / (is-are-am) + going to + inf / (is-are-am) + to + inf / (is-are-am) + V+ing",
+              "الكلمات_الدالة": ["tomorrow", "next week"],
+              "أمثلة": [
+                {
+                  "الفعل_الإيجابي": "They (will come) tomorrow.",
+                  "الشرح": "استخدام will للدلالة على المستقبل لوجود كلمة tomorrow."
+                }
+              ]
+            }
+          ],
+          "تمارين_تطبيقية": [
+            {
+              "السؤال": "1. They are (play / played / playing) now.",
+              "الإجابة_الصحيحة": "playing"
+            },
+            {
+              "السؤال": "2. We (have been working / have worked / worked) here for a month. We may finish today.",
+              "الإجابة_الصحيحة": "have been working"
+            },
+            {
+              "السؤال": "3. she (is / am / are) a teacher.",
+              "الإجابة_الصحيحة": "is"
+            },
+            {
+              "السؤال": "4. He (has / have / having) written the letter.",
+              "الإجابة_الصحيحة": "has"
+            },
+            {
+              "السؤال": "5. My father always (drink / drank / drinks) tea.",
+              "الإجابة_الصحيحة": "drinks"
+            },
+            {
+              "السؤال": "6. They (come / will come / coming) tomorrow.",
+              "الإجابة_الصحيحة": "will come"
+            }
+          ]
+        },
+
+        {
+  "اسم_الدرس": "«1» Spot the mistakes| اكتشف الأخطاء",
+  "المحتوى": "تصحيح الأخطاء الشائعة في الجمل الإنجليزية وإعادة كتابتها بشكل صحيح مع شرح القاعدة لكل خطأ.",
+  "القواعد": [
+    {
+      "اسم_القاعدة": "1- Mistake in meaning",
+      "الصيغة": "تصحيح المعلومة بناءً على الحقائق العلمية",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Matter comes in three different states.",
+          "الفعل_السلبي": "Matter comes in four different states.",
+          "الشرح": "المادة لها ثلاث حالات أساسية وليست أربع."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "2- Ability: can vs could",
+      "الصيغة": "can (present) / could (past)",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "He Could ride a horse, when he was young.",
+          "الفعل_السلبي": "He can ride a horse, when he was young.",
+          "الشرح": "استخدام could للقدرة في الماضي."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "3- Verbs of perception",
+      "الصيغة": "See, hear, feel, smell + {inf / v+ing}",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "They heard the woman sing.",
+          "الفعل_السلبي": "They heard the woman sang.",
+          "الشرح": "بعد أفعال الحواس نستخدم المصدر أو ing وليس الماضي."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "4- Verbs followed by (to + inf)",
+      "الصيغة": "Ask / Get / Tell + to + inf",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Ask the boy to clean the room.",
+          "الفعل_السلبي": "Ask the boy clean the room.",
+          "الشرح": "الفعل ask يتطلب وجود to قبل المصدر."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "5- Perfect Tenses",
+      "الصيغة": "{have/has/had} + P.P",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "They have opened the door.",
+          "الفعل_السلبي": "They have open the door.",
+          "الشرح": "يجب استخدام التصريف الثالث بعد have."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "6- Countable vs Non-counted",
+      "الصيغة": "How many (Counted) / much (non Counted)",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "How many apples do you want?",
+          "الفعل_السلبي": "How much apples do you want?",
+          "الشرح": "نستخدم many مع الأسماء المعدودة مثل التفاح."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "7- Questions with 'Who'",
+      "الصيغة": "Who + verb (no change)",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Who lives in this house?",
+          "الفعل_السلبي": "Who does live in this house?",
+          "الشرح": "السؤال عن الفاعل بـ Who لا يحتاج فعل مساعد."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "8- preference with 'would'",
+      "الصيغة": "would prefer/like + to + inf",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "He would prefer to buy a car.",
+          "الفعل_السلبي": "He would prefer buying a car.",
+          "الشرح": "وجود would يجعلنا نستخدم to والمصدر."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "9- The use of 'Same'",
+      "الصيغة": "the same + Noun + as",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Ali is the same height as his brother.",
+          "الفعل_السلبي": "Ali is the same high as his brother.",
+          "الشرح": "نضع الاسم (height) بعد the same وليس الصفة."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "10- Irregular Past",
+      "الصيغة": "wed → wedded",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "The past is « wedded ».",
+          "الفعل_السلبي": "The past of « wed » is weded.",
+          "الشرح": "التصحيح الإملائي للماضي من فعل wed."
+        }
+      ]
+    }
+  ],
+  "المصطلحات": []
+},
+
+
+
+
+
+
+  {
+    "اسم_الدرس": "«2» Spot the mistakes| اكتشف الأخطاء",
+    "المحتوى": "يركز هذا الدرس على اكتشاف الأخطاء النحوية أو المعنوية في الجمل وتصحيحها (Spot the mistakes and rewrite the sentences correctly) بناءً على النقاط المساعدة (Helping points).",
+    "القواعد": [
+      {
+        "اسم_القاعدة": "Ask / Get / Tell",
+        "الصيغة": "Ask / Get / Tell + to + read",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "Ask the boy clean the room.",
+            "الفعل_السلبي": "Ask the boy to clean the room.",
+            "الشرح": "نستخدم (to) مع الفعل في المصدر بعد الأفعال (Ask, Get, Tell). أما الفعل (Have) فيأتي بعده الفعل في المصدر مباشرة بدون to."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "prefer / hate / like / love",
+        "الصيغة": "S + would + like/prefer + to + inf + c.",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "He would prefer buying a car.",
+            "الفعل_السلبي": "He would prefer to buy a car.",
+            "الشرح": "الأفعال (prefer, hate, like, love) يمكن أن يأتي بعدها الفعل مضافاً له ing أو (to + المصدر). لكن عند وجود (would) قبلها، يجب استخدام (to + المصدر)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Same vs As",
+        "الصيغة": "Same + Noun // as + adjective + as",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "Ali is the same high as his brother.",
+            "الفعل_السلبي": "Ali is the same height as his brother.",
+            "الشرح": "نستخدم اسماً (Noun) مثل (height) بعد كلمة (Same)، بينما نستخدم صفة (Adjective) مثل (high) بين (as ... as)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Mistake in meaning",
+        "الصيغة": "تصحيح الخطأ المعنوي",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "Matter comes in four different states.",
+            "الفعل_السلبي": "Matter comes in three different states.",
+            "الشرح": "الخطأ هنا في المعنى وليس القواعد (Mistake in meaning). المادة لها ثلاث حالات وليس أربع."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Helping Verbs: have / has / had",
+        "الصيغة": "have / has / had + P.P",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "They have open the door.",
+            "الفعل_السلبي": "They have opened the door.",
+            "الشرح": "بعد الأفعال المساعدة (have, has, had) يجب استخدام التصريف الثالث للفعل (P.P)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "How many vs How much",
+        "الصيغة": "How many: Counted // How much: non Counted",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "How much apples do you want?",
+            "الفعل_السلبي": "How many apples do you want?",
+            "الشرح": "نستخدم (How many) مع الأسماء المعدودة (Counted) مثل التفاح، ونستخدم (How much) مع الأسماء غير المعدودة."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Question with Who",
+        "الصيغة": "Who -> no change!",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "Who does live in this house?",
+            "الفعل_السلبي": "Who lives in this house?",
+            "الشرح": "عند السؤال عن الفاعل باستخدام (Who)، لا نستخدم أفعالاً مساعدة مثل (does) ولا نغير ترتيب الجملة."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Verbs of Perception (أفعال الحواس)",
+        "الصيغة": "See / hear / feel / smell -> play or playing",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "They heard the woman sang.",
+            "الفعل_السلبي": "They heard the woman sing.",
+            "الشرح": "بعد أفعال الحواس مثل (See, hear, feel, smell) نستخدم الفعل في المصدر أو مضافاً له ing. الخاطئ هو استخدام التصريفات الأخرى."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Spelling rules",
+        "الصيغة": "مضاعفة الحرف الأخير",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "The past of « wed » is weded.",
+            "الفعل_السلبي": "NO, the past is « wedded ».",
+            "الشرح": "عند تحويل الفعل (wed) إلى الماضي، يجب مضاعفة الحرف الأخير ليصبح (wedded) لتكون الكتابة صحيحة."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Can vs Could",
+        "الصيغة": "can -> present ability // could -> past",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "He can ride a horse, when he was young.",
+            "الفعل_السلبي": "He could ride a horse, when he was young.",
+            "الشرح": "نستخدم (can) للقدرة في الحاضر، ونستخدم (could) للقدرة في الماضي. بما أن الجملة في الماضي (when he was young) نستخدم could."
+          }
+        ]
+      }
+    ],
+    "المصطلحات": [
+      {
+        "الكلمة": "Counted",
+        "التعريف": "الأسماء التي يمكن عدها ونستخدم معها How many",
+        "الترجمة": "معدود",
+        "مثال": "apples"
+      },
+      {
+        "الكلمة": "non Counted",
+        "التعريف": "الأسماء التي لا يمكن عدها ونستخدم معها How much",
+        "الترجمة": "غير معدود"
+      },
+      {
+        "الكلمة": "present ability",
+        "التعريف": "القدرة على فعل شيء في الوقت الحاضر، وتُستخدم معها كلمة can",
+        "الترجمة": "القدرة في الحاضر"
+      },
+      {
+        "الكلمة": "Mistake in meaning",
+        "التعريف": "وجود خطأ في المعنى أو في الحقائق المذكورة داخل الجملة وليس خطأً في القواعد",
+        "الترجمة": "خطأ في المعنى"
+      }
+    ]
+  }
+,
+
+
+
+  {
+    "اسم_الدرس": "«3» Spot the mistakes| اكتشف الأخطاء",
+    "المحتوى": "هذا الدرس هو الجزء الثاني من اكتشاف الأخطاء وتصحيحها (Spot the mistakes 2). يركز على تصحيح أخطاء القواعد النحوية، حروف الجر، وترتيب الصفات بناءً على النقاط المساعدة (Helping points).",
+    "القواعد": [
+      {
+        "اسم_القاعدة": "Wish",
+        "الصيغة": "after wish -> Could",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "I wish I can swim in the sea.",
+            "الفعل_السلبي": "I wish I could swim in the sea.",
+            "الشرح": "بعد كلمة (wish) للتمني، نستخدم الفعل في صيغة الماضي (could) بدلاً من (can)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Prepositions with grateful",
+        "الصيغة": "grateful « for »",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "He is grateful in your help.",
+            "الفعل_السلبي": "He is grateful for your help.",
+            "الشرح": "نستخدم حرف الجر (for) دائماً بعد صفة (grateful) وليس (in)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "as well as",
+        "الصيغة": "as well as",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "He speaks English as well arabic.",
+            "الفعل_السلبي": "He speaks English as well as arabic.",
+            "الشرح": "لإضافة معلومة أخرى في وسط الجملة نستخدم (as well as). مثال إضافي: He speaks arabic as well as English."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Same + Noun",
+        "الصيغة": "Same « Noun »",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "My cousin is the same old as me.",
+            "الفعل_السلبي": "My cousin is the same age as me.",
+            "الشرح": "بعد كلمة (Same) يجب استخدام اسم (Noun) مثل (age) ولا يصح استخدام صفة مثل (old)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Question Word Order",
+        "الصيغة": "تقديم الفعل المساعد على الفاعل",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "How I can drive a car?",
+            "الفعل_السلبي": "How can I drive a car?",
+            "الشرح": "في تكوين السؤال المباشر، يجب تقديم الفعل المساعد (can) على الفاعل (I)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Order of adjectives",
+        "الصيغة": "O sash C N M",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "It is a wooden, nice door.",
+            "الفعل_السلبي": "It is a nice, wooden door.",
+            "الشرح": "يجب ترتيب الصفات حسب القاعدة (O sash C N M)، حيث تأتي صفة الرأي (nice) قبل صفة المادة (wooden)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Have vs Ask/Tell/Get",
+        "الصيغة": "Have -> the boy read // ask, tell, Get -> the boy to read",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "Have the boy to do his homework.",
+            "الفعل_السلبي": "Have the boy do his homework.",
+            "الشرح": "الفعل (Have) يأتي بعده الفعل في المصدر بدون (to)، بينما الأفعال (ask, tell, get) تأخذ (to + المصدر)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Since with Present Perfect",
+        "الصيغة": "Since 1990 -> present perfect.",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "They built the house since 2012.",
+            "الفعل_السلبي": "They have built the house since 2012.",
+            "الشرح": "عند وجود كلمة (since)، يجب استخدام زمن المضارع التام (Present perfect) مثل (have built) بدلاً من الماضي البسيط."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Comparatives",
+        "الصيغة": "bigger than / more difficult than",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "I'm young than my brother.",
+            "الفعل_السلبي": "I'm younger than my brother.",
+            "الشرح": "عند المقارنة بين شخصين، نضيف (er) للصفة القصيرة لتصبح (younger)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Look forward to",
+        "الصيغة": "look forward to + v ing",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "We are looking forward to meet you.",
+            "الفعل_السلبي": "We are looking forward to meeting you.",
+            "الشرح": "التعبير (look forward to) حالة استثنائية، يجب إضافة (ing) للفعل الذي يأتي بعده."
+          }
+        ]
+      }
+    ],
+    "المصطلحات": [
+      {
+        "الكلمة": "as well as",
+        "التعريف": "تُستخدم في وسط الجملة للإضافة، ونحذف معها الكلام المكرر",
+        "الترجمة": "وكذلك",
+        "أمثلة": [
+          "He speaks arabic as well as English."
+        ]
+      },
+      {
+        "الكلمة": "as well",
+        "التعريف": "تُستخدم في نهاية الجملة للإضافة، وتأتي بدون حذف المكرر في الجملة السابقة",
+        "الترجمة": "كذلك",
+        "أمثلة": [
+          "He speaks arabic. He speaks English as well."
+        ]
+      },
+      {
+        "الكلمة": "O sash C N M",
+        "التعريف": "اختصار يوضح الترتيب الصحيح للصفات المتعددة في اللغة الإنجليزية عند وصف اسم واحد",
+        "الترجمة": "ترتيب الصفات"
+      }
+    ]
+  },
+
+
+
+
+
+  {
+    "اسم_الدرس": "«4» Spot the mistakes| اكتشف الأخطاء",
+    "المحتوى": "هذا الدرس هو الجزء الثالث من اكتشاف الأخطاء وتصحيحها (Spot the mistakes 3). يركز على تصحيح الأخطاء المتعلقة بحروف الجر، الأسماء الموصولة، الأفعال الناقصة، وصيغ التفضيل والمقارنة، وذلك بالاعتماد على النقاط المساعدة (Helping points).",
+    "القواعد": [
+      {
+        "اسم_القاعدة": "famous for vs famous of",
+        "الصيغة": "famous + for / of",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "Yemen is famous of its kind people.",
+            "الفعل_السلبي": "Yemen is famous for its kind people.",
+            "الشرح": "نستخدم حرف الجر (for) بعد كلمة (famous) وليس (of)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Relative Pronouns (الأسماء الموصولة)",
+        "الصيغة": "who / whom / which / where / when",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "This is the man which I know him.",
+            "الفعل_السلبي": "This is the man whom I know.",
+            "الشرح": "نستخدم (whom) للأشخاص في محل المفعول به بدلاً من (which) المخصصة للأشياء، ونحذف الضمير العائد (him)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Noun vs Adjective",
+        "الصيغة": "rectangle «n» // rectangular «adj»",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "This door has a rectangle shape.",
+            "الفعل_السلبي": "This door has a rectangular shape.",
+            "الشرح": "يجب استخدام الصفة (rectangular) لوصف الشكل بدلاً من الاسم (rectangle)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Certainty vs Uncertainty",
+        "الصيغة": "It must be -> sure // may be / might be / could be -> not sure",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "It may be a lion. I'm certain.",
+            "الفعل_السلبي": "It must be a lion. I'm certain.",
+            "الشرح": "بما أننا متأكدون (certain أو sure) يجب استخدام (must be). أما (may be) فتستخدم عند عدم التأكد."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Questions with did/do/does",
+        "الصيغة": "did / do / does -> S + inf ?",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "Did you went to london last year?",
+            "الفعل_السلبي": "Did you go to london last year?",
+            "الشرح": "في السؤال، بعد الأفعال المساعدة (did, do, does) والفاعل، يجب أن يكون الفعل الأساسي في المصدر (inf) مثل (go)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "How many vs How much",
+        "الصيغة": "many -> معدود // much -> غير معدود",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "How many is the milk?",
+            "الفعل_السلبي": "How much is the milk?",
+            "الشرح": "نستخدم (much) لأن كلمة الحليب (milk) اسم غير معدود، بينما تستخدم (many) للمعدود."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Articles (a / an)",
+        "الصيغة": "a / an",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "I want an banana.",
+            "الفعل_السلبي": "I want a banana.",
+            "الشرح": "نستخدم الأداة (a) قبل الكلمات التي تبدأ بحرف ساكن مثل (banana)، وتستخدم (an) قبل حروف العلة."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Modal verbs",
+        "الصيغة": "model verbs + inf",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "I will saw you on sunday.",
+            "الفعل_السلبي": "I will see you on sunday.",
+            "الشرح": "بعد الأفعال الناقصة مثل (will) يجب استخدام الفعل في المصدر (inf) وهو (see)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Mistake in meaning",
+        "الصيغة": "meaning",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "An apple is rectangular.",
+            "الفعل_السلبي": "An apple is round.",
+            "الشرح": "الخطأ هنا في المعنى (meaning). التفاحة شكلها دائري (round) وليس مستطيلاً."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Past Continuous with while",
+        "الصيغة": "while he is moving ... he throw -> while he was moving ... he threw",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "while the water was boiling, she adds the salt.",
+            "الفعل_السلبي": "while the water was boiling, she added the salt.",
+            "الشرح": "بما أن الحدث الأول في الماضي المستمر (was boiling)، يجب أن يكون الحدث الثاني في الماضي البسيط (added)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Would you mind",
+        "الصيغة": "would you mind + G (v+ing)",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "Would you mind close the door.",
+            "الفعل_السلبي": "Would you mind closing the door.",
+            "الشرح": "التعبير (would you mind) يُتبع دائماً بفعل مضاف إليه (ing)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "The Comparative... the Comparative",
+        "الصيغة": "The deeper the water the greater the pressure.",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "The more you exercise, the fast you run.",
+            "الفعل_السلبي": "The more you exercise, the faster you run.",
+            "الشرح": "يجب استخدام صيغة المقارنة في شطري الجملة، لذا نغير (fast) إلى (faster)."
+          }
+        ]
+      }
+    ],
+    "المصطلحات": [
+      {
+        "الكلمة": "who",
+        "التعريف": "اسم موصول يُستخدم للأشخاص في محل فاعل",
+        "الترجمة": "الذي / التي (للفاعل العاقل)"
+      },
+      {
+        "الكلمة": "whom",
+        "التعريف": "اسم موصول يُستخدم للأشخاص في محل مفعول به",
+        "الترجمة": "الذي / التي (للمفعول به العاقل)"
+      },
+      {
+        "الكلمة": "which",
+        "التعريف": "اسم موصول يُستخدم للأشياء",
+        "الترجمة": "الذي / التي (لغير العاقل)"
+      },
+      {
+        "الكلمة": "where",
+        "التعريف": "اسم موصول يُستخدم للمكان",
+        "الترجمة": "حيث (للمكان)"
+      },
+      {
+        "الكلمة": "when",
+        "التعريف": "اسم موصول يُستخدم للزمان",
+        "الترجمة": "عندما (للزمان)"
+      },
+      {
+        "الكلمة": "some",
+        "التعريف": "تُستخدم في حالة الإثبات",
+        "الترجمة": "بعض",
+        "مثال": "I have some oranges."
+      },
+      {
+        "الكلمة": "any",
+        "التعريف": "تُستخدم في حالة السؤال والنفي",
+        "الترجمة": "أي",
+        "أمثلة": [
+          "Have you any apples?",
+          "we haven't any rice."
+        ]
+      }
+    ]
+  },
+
+
+
+
+  {
+    "اسم_الدرس": "Parts of Speech|أقسام الكلام",
+    "المحتوى": "يركز هذا الدرس على تحديد أقسام الكلام (Parts of speech) للكلمات التي تحتها خط في الجمل. بعض الكلمات في اللغة الإنجليزية يمكن استخدامها كفعل (Verb) في سياق، وكاسم (Noun) في سياق آخر دون تغيير في طريقة كتابتها.",
+    "القواعد": [
+      {
+        "اسم_القاعدة": "Word: Cut",
+        "الصيغة": "Verb vs Noun",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "Sharp knives can cut you.",
+            "الفعل_السلبي": "The cut on his arm was bleeding badly.",
+            "الشرح": "في الجملة الأولى، كلمة (cut) جاءت كفعل (Verb) بمعنى يقطع أو يجرح. وفي الجملة الثانية، جاءت كلمة (cut) كاسم (Noun) بمعنى جُرح."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Word: Ride",
+        "الصيغة": "Noun vs Verb",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "Ali decided to go for a ride on his bicycle.",
+            "الفعل_السلبي": "The horse was too wild to ride.",
+            "الشرح": "في الجملة الأولى، (ride) جاءت كاسم (Noun) بمعنى جولة أو ركبة. وفي الجملة الثانية، جاءت كفعل (Verb) بمعنى يركب."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Word: Drink",
+        "الصيغة": "Noun vs Verb",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "I'd like a soft drink, please.",
+            "الفعل_السلبي": "I want to drink tea.",
+            "الشرح": "في الجملة الأولى، (drink) جاءت كاسم (Noun) بمعنى مشروب. وفي الجملة الثانية، جاءت كفعل (Verb) بمعنى يشرب."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Word: Heat",
+        "الصيغة": "Verb vs Noun",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "If you heat metal, it expands.",
+            "الفعل_السلبي": "I don't like heat.",
+            "الشرح": "في الجملة الأولى، (heat) جاءت كفعل (Verb) بمعنى يُسخّن. وفي الجملة الثانية، جاءت كاسم (Noun) بمعنى الحرارة."
+          }
+        ]
+      }
+    ],
+    "المصطلحات": [
+      {
+        "الكلمة": "Parts of speech",
+        "التعريف": "أقسام الكلام في اللغة الإنجليزية، مثل الاسم والفعل والصفة",
+        "الترجمة": "أقسام الكلام"
+      },
+      {
+        "الكلمة": "Verb",
+        "التعريف": "كلمة تعبر عن حدث أو فعل",
+        "الترجمة": "فعل"
+      },
+      {
+        "الكلمة": "Noun",
+        "التعريف": "كلمة تدل على شخص، مكان، شيء، أو فكرة",
+        "الترجمة": "اسم"
+      }
+    ]
+  },
+
+
+
+  
+  {
+    "اسم_الدرس": "Prefixes and Suffixes|البادئات واللواحق",
+    "المحتوى": "هذا الدرس يشرح البادئات (Prefixes) وهي حروف تُضاف في بداية الكلمة لتغيير معناها (مثل إعطاء العكس)، واللواحق (Suffixes) وهي حروف تُضاف في نهاية الكلمة لتغيير نوعها (مثل تحويل الفعل إلى اسم أو صفة).",
+    "القواعد": [
+      {
+        "اسم_القاعدة": "Prefixes (البادئات)",
+        "الصيغة": "un- / re- / im-",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "unusual, unbelievable",
+            "الفعل_السلبي": "retake, impolite",
+            "الشرح": "البادئات هنا أُضيفت لأول الكلمة. (un) و (im) تعطيان عكس المعنى (غير عادي، غير مهذب، لا يصدق)، بينما (re) تعني إعادة الفعل (إعادة التقاط)."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Suffixes: -ment / -er / -ing",
+        "الصيغة": "Word + suffix",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "enjoyment, movement, advertisement",
+            "الفعل_السلبي": "reporter, greeting",
+            "الشرح": "هذه اللواحق تُضاف لنهاية الفعل لتحويله إلى اسم (Noun). مثل إضافة (ment) للفعل enjoy ليصبح enjoyment."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Suffixes: -ion / -y",
+        "الصيغة": "Word + suffix",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "collection, explanation, suggestion",
+            "الفعل_السلبي": "discovery",
+            "الشرح": "اللاحقة (ion/tion) تُضاف بكثرة للأفعال لتحويلها إلى أسماء (مثل اقتراح، شرح، مجموعة). واللاحقة (y) تحول الفعل discover إلى اسم discovery."
+          }
+        ]
+      },
+      {
+        "اسم_القاعدة": "Suffixes: -ful / -less / -ness",
+        "الصيغة": "Word + suffix",
+        "أمثلة": [
+          {
+            "الفعل_الإيجابي": "careful, successful",
+            "الفعل_السلبي": "careless, darkness",
+            "الشرح": "اللاحقة (ful) تعني مليء بالصفة، و (less) تعني بدون الصفة. أما (ness) فتُضاف للصفة لتحويلها إلى اسم (مثل dark -> darkness)."
+          }
+        ]
+      }
+    ],
+    "المصطلحات": [
+      {
+        "الكلمة": "Prefix",
+        "التعريف": "مجموعة حروف تُضاف في بداية الكلمة لتغيير معناها",
+        "الترجمة": "بادئة",
+        "أمثلة": [
+          "unusual",
+          "impolite"
+        ]
+      },
+      {
+        "الكلمة": "Suffix",
+        "التعريف": "مجموعة حروف تُضاف في نهاية الكلمة لتغيير قسمها النحوي (كتحويل الفعل لاسم)",
+        "الترجمة": "لاحقة",
+        "أمثلة": [
+          "careful",
+          "enjoyment"
+        ]
+      }
+    ]
+  },
+ {
+  "اسم_الدرس": "فهم القطعة والإجابة على الأسئلة | Reading Comprehension",
+  "المحتوى": "في هذا النوع من الأسئلة يُطلب من الطالب قراءة قطعة قصيرة ثم الإجابة على أسئلة مباشرة منها. معظم الأسئلة تكون إجاباتها موجودة داخل القطعة نفسها، لذلك يجب على الطالب أن يتعلم كيف يبحث عن الكلمة المفتاحية داخل النص ثم يأخذ الإجابة مباشرة أو يعيد صياغتها بشكل بسيط.",
+  "القواعد": [
+    {
+      "اسم_القاعدة": "1- فهم فكرة القطعة بسرعة (Skimming)",
+      "الصيغة": "Read the passage quickly to understand the general idea.",
+      "الكلمات_الدالة": ["what", "why", "where", "when", "how"],
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "What do we need for breathing?",
+          "الشرح": "نبحث في بداية القطعة عن كلمة breathing فنجد الجملة: We all need air for breathing لذلك الإجابة تكون air."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "2- البحث عن الكلمة المفتاحية في السؤال",
+      "الصيغة": "Find the keyword in the question then search for it in the passage.",
+      "الكلمات_الدالة": ["acid", "cholesterol", "lungs", "fish", "exercise"],
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "When is lactic acid formed in our muscles?",
+          "الشرح": "الكلمة المفتاحية هي lactic acid لذلك نبحث عنها في القطعة ونجد الجملة: Lactic acid is formed in our muscles when we exercise."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "3- الإجابة تكون غالباً كلمات قصيرة من القطعة",
+      "الصيغة": "Take the answer directly from the passage.",
+      "الكلمات_الدالة": ["what", "how many", "why"],
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "How many acids are used in laboratories?",
+          "الشرح": "في القطعة مكتوب: The most commonly used acids are hydrochloric, sulphuric and nitric acid لذلك العدد هو three."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "4- أسئلة نعم أو لا (Yes / No Questions)",
+      "الصيغة": "If the sentence agrees with the passage write Yes, if not write No.",
+      "الكلمات_الدالة": ["Do", "Does", "Can", "Is", "Are"],
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Can strong acids burn your skin?",
+          "الشرح": "في القطعة مكتوب: Strong acids can cause chemical burns لذلك الإجابة Yes."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "5- أسئلة True أو False",
+      "الصيغة": "Compare the sentence with the passage.",
+      "الكلمات_الدالة": ["True", "False"],
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Apples contain malic acid.",
+          "الشرح": "في القطعة مكتوب: Malic acid is found in apples لذلك الجملة True."
+        },
+        {
+          "الفعل_الإيجابي": "Use goggles to protect your hands.",
+          "الشرح": "القطعة تقول goggles لحماية العين وليس اليد لذلك الجملة False."
+        }
+      ]
+    }
+  ],
+  "تمارين_تطبيقية": [
+    {
+      "السؤال": "1. What do we need for breathing?",
+      "الإجابة_الصحيحة": "air"
+    },
+    {
+      "السؤال": "2. What is cholesterol?",
+      "الإجابة_الصحيحة": "a type of fat found in blood"
+    },
+    {
+      "السؤال": "3. Where does gas exchange take place?",
+      "الإجابة_الصحيحة": "inside the lungs"
+    },
+    {
+      "السؤال": "4. What helps fish to take in oxygen from water?",
+      "الإجابة_الصحيحة": "the gills"
+    },
+    {
+      "السؤال": "5. Why is nitric acid used to sterilize foods?",
+      "الإجابة_الصحيحة": "because it kills bacteria"
+    },
+    {
+      "السؤال": "6. Are these statements True or False: Apples contain malic acid.",
+      "الإجابة_الصحيحة": "True"
+    }
+  ]
+},
+
+
+
+{
+  "اسم_الدرس": "Complete the paragraph | أكمل الفقرة بالكلمات المناسبة",
+  "المحتوى": "في هذا النوع من الأسئلة يُعطى الطالب مجموعة كلمات بين قوسين، ويُطلب منه استخدامها لإكمال فقرة قصيرة تحتوي على فراغات. غالباً عدد الكلمات يساوي عدد الفراغات. الحل يعتمد على فهم معنى الجملة، ومعرفة نوع الكلمة المطلوبة (اسم، صفة، فعل)، وكذلك ملاحظة الكلمات المجاورة التي تدل على الكلمة الصحيحة.",
+  "القواعد": [
+    {
+      "اسم_القاعدة": "1- قراءة الفقرة كاملة قبل الحل",
+      "الصيغة": "Read the whole paragraph first",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Fareeda is .......... and gets on well with people.",
+          "الشرح": "نقرأ الجملة كاملة لنفهم المعنى. الجملة تتكلم عن صفة شخصية، لذلك نحتاج صفة مثل hard-working."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "2- تحديد نوع الكلمة المطلوبة",
+      "الصيغة": "Adjective / Noun / Verb",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "She has two .......... : painting and cooking.",
+          "الشرح": "وجود (two) يدل على اسم جمع، والأنشطة المذكورة هي painting و cooking، لذلك الكلمة المناسبة hobbies."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "3- استخدام الكلمات مرة واحدة فقط",
+      "الصيغة": "Each word is used once",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "( doctors / company / hard-working / business / hobbies )",
+          "الشرح": "كل كلمة من القائمة تستخدم مرة واحدة فقط لإكمال جميع الفراغات."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "4- الانتباه للكلمات الدالة في الجملة",
+      "الصيغة": "Look for meaning clues",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "The very strong .......... will destroy the wooden houses.",
+          "الشرح": "كلمة strong تدل على شيء قوي مثل winds لذلك الإجابة winds."
+        },
+        {
+          "الفعل_الإيجابي": "The .......... rain will make rivers of mud.",
+          "الشرح": "كلمة rain تحتاج صفة تصفها، لذلك الإجابة heavy."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "5- فهم معنى الفقرة بشكل عام",
+      "الصيغة": "Understand the topic of the paragraph",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "My .......... after leaving school is to become a doctor.",
+          "الشرح": "الجملة تتحدث عن الهدف في المستقبل، لذلك الكلمة المناسبة ambition."
+        }
+      ]
+    }
+  ],
+  "تمارين_تطبيقية": [
+    {
+      "السؤال": "1. Fareeda is .......... and gets on well with people. ( hard-working / doctors / hobbies )",
+      "الإجابة_الصحيحة": "hard-working"
+    },
+    {
+      "السؤال": "2. She has two .......... : painting and cooking. ( hobbies / business / company )",
+      "الإجابة_الصحيحة": "hobbies"
+    },
+    {
+      "السؤال": "3. Powerful .......... like hurricanes can cause terrible damage. ( storms / winds / heavy )",
+      "الإجابة_الصحيحة": "storms"
+    },
+    {
+      "السؤال": "4. The very strong .......... will destroy the wooden houses. ( winds / storms / damage )",
+      "الإجابة_الصحيحة": "winds"
+    },
+    {
+      "السؤال": "5. Ali is .......... in his school. ( popular / doctor / parents )",
+      "الإجابة_الصحيحة": "popular"
+    },
+    {
+      "السؤال": "6. My .......... after leaving school is to become a doctor. ( ambition / hospitals / chemistry )",
+      "الإجابة_الصحيحة": "ambition"
+    }
+  ]
+},
+
+
+{
+  "اسم_الدرس": "Circle the different word | اختر الكلمة المختلفة",
+  "المحتوى": "في هذا النوع من الأسئلة يُطلب من الطالب اختيار الكلمة المختلفة عن باقي الكلمات في المجموعة. عادةً تكون ثلاث كلمات تنتمي لنفس الفئة (category) بينما كلمة واحدة تختلف عنها في المعنى أو النوع. الحل يعتمد على فهم معنى الكلمات وتصنيفها إلى مجموعة واحدة، ثم تحديد الكلمة التي لا تنتمي لهذه المجموعة.",
+  "القواعد": [
+    {
+      "اسم_القاعدة": "1- تحديد الفئة المشتركة بين الكلمات",
+      "الصيغة": "Find the common category",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "chemistry / history / geography / valley",
+          "الشرح": "الكلمات الثلاث الأولى مواد دراسية (subjects)، بينما valley مكان جغرافي، لذلك هي الكلمة المختلفة."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "2- الانتباه لنوع الكلمة (اسم – صفة – فعل)",
+      "الصيغة": "Noun vs Adjective",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "rounds / beautiful / nice / good",
+          "الشرح": "beautiful و nice و good صفات (adjectives)، بينما rounds اسم أو شكل، لذلك هي الكلمة المختلفة."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "3- المقارنة بين المواد أو الأشياء",
+      "الصيغة": "Material vs Shape",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "plastic / square / glass / wood",
+          "الشرح": "plastic و glass و wood مواد (materials)، بينما square شكل هندسي، لذلك هي المختلفة."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "4- تحديد نوع الشيء (طعام – شراب – فاكهة)",
+      "الصيغة": "Food vs Drink",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "bananas / milk / tea / soda",
+          "الشرح": "milk و tea و soda مشروبات، بينما bananas فاكهة، لذلك هي المختلفة."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "5- تحديد المجال العلمي أو الطبيعي",
+      "الصيغة": "Science terms",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "acid / solid / liquid / gas",
+          "الشرح": "solid و liquid و gas حالات المادة، بينما acid مادة كيميائية، لذلك هي المختلفة."
+        }
+      ]
+    }
+  ],
+  "تمارين_تطبيقية": [
+    {
+      "السؤال": "1. wool / metal / fur / skin",
+      "الإجابة_الصحيحة": "metal"
+    },
+    {
+      "السؤال": "2. chemistry / history / geography / valley",
+      "الإجابة_الصحيحة": "valley"
+    },
+    {
+      "السؤال": "3. rounds / beautiful / nice / good",
+      "الإجابة_الصحيحة": "rounds"
+    },
+    {
+      "السؤال": "4. famine / earthquake / epidemic / acids",
+      "الإجابة_الصحيحة": "acids"
+    },
+    {
+      "السؤال": "5. bananas / milk / tea / soda",
+      "الإجابة_الصحيحة": "bananas"
+    },
+    {
+      "السؤال": "6. plastic / square / glass / wood",
+      "الإجابة_الصحيحة": "square"
+    }
+  ]
+},
+
+
+{
+  "اسم_الدرس": "Re-order the words | إعادة ترتيب الكلمات لتكوين جملة صحيحة",
+  "المحتوى": "في هذا النوع من الأسئلة يُعطى الطالب مجموعة كلمات غير مرتبة ويُطلب منه ترتيبها لتكوين جملة إنجليزية صحيحة. لحل السؤال يجب معرفة ترتيب الجملة في اللغة الإنجليزية، والذي غالباً يكون: الفاعل (Subject) ثم الفعل (Verb) ثم المفعول به (Object)، وبعدها تأتي الظروف أو الصفات في المكان المناسب.",
+  "القواعد": [
+    {
+      "اسم_القاعدة": "1- ترتيب الجملة الأساسي في الإنجليزية",
+      "الصيغة": "Subject + Verb + Object",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "house / the / big / is",
+          "الفعل_السلبي": "The house is big.",
+          "الشرح": "نبدأ بالفاعل (The house) ثم الفعل (is) ثم الصفة (big)."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "2- الفعل المساعد يأتي بعد الفاعل",
+      "الصيغة": "Subject + helping verb + main verb",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "carefully / is / driving / He / the car",
+          "الفعل_السلبي": "He is driving the car carefully.",
+          "الشرح": "الترتيب الصحيح: الفاعل (He) ثم الفعل المساعد (is) ثم الفعل الأساسي (driving)."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "3- الصفات تأتي قبل الاسم",
+      "الصيغة": "Adjective + Noun",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "has / beautiful / she / hair",
+          "الفعل_السلبي": "She has beautiful hair.",
+          "الشرح": "الصفة beautiful تأتي قبل الاسم hair."
+        },
+        {
+          "الفعل_الإيجابي": "has / she / eyes / brown",
+          "الفعل_السلبي": "She has brown eyes.",
+          "الشرح": "الصفة brown توضع قبل الاسم eyes."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "4- الظروف غالباً تأتي في نهاية الجملة",
+      "الصيغة": "Adverb at the end of sentence",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "quickly / spread / gases",
+          "الفعل_السلبي": "Gases spread quickly.",
+          "الشرح": "الظرف quickly يوضع في نهاية الجملة."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "5- ترتيب العبارات الطويلة",
+      "الصيغة": "Subject + Verb + Complement",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "is called / a very / a forest / wood / large",
+          "الفعل_السلبي": "A very large wood is called a forest.",
+          "الشرح": "نبدأ بالفاعل (A very large wood) ثم الفعل (is called) ثم التكملة (a forest)."
+        }
+      ]
+    }
+  ],
+  "تمارين_تطبيقية": [
+    {
+      "السؤال": "1. carefully / is / driving / He / the car",
+      "الإجابة_الصحيحة": "He is driving the car carefully."
+    },
+    {
+      "السؤال": "2. has / beautiful / she / hair",
+      "الإجابة_الصحيحة": "She has beautiful hair."
+    },
+    {
+      "السؤال": "3. house / the / big / is",
+      "الإجابة_الصحيحة": "The house is big."
+    },
+    {
+      "السؤال": "4. for a job / applied / she",
+      "الإجابة_الصحيحة": "She applied for the job."
+    },
+    {
+      "السؤال": "5. quickly / spread / gases",
+      "الإجابة_الصحيحة": "Gases spread quickly."
+    },
+    {
+      "السؤال": "6. acids / alkalis / neutralize / and / each other",
+      "الإجابة_الصحيحة": "Acids and alkalis neutralize each other."
+    }
+  ]
+},
+
+{
+  "اسم_الدرس": "Write a paragraph using the information given in the table | كتابة فقرة باستخدام معلومات الجدول",
+  "المحتوى": "في هذا النوع من الأسئلة يُعطى الطالب جدول يحتوي على معلومات قصيرة، ويُطلب منه تحويل هذه المعلومات إلى فقرة إنجليزية مترابطة. الحل يعتمد على تحويل كل نقطة في الجدول إلى جملة صحيحة باستخدام أدوات الربط والضمائر المناسبة. غالباً تكون الفقرة في المضارع البسيط أو الماضي البسيط حسب المعلومات الموجودة.",
+  "القواعد": [
+    {
+      "اسم_القاعدة": "1- ابدأ باسم الشيء أو الشخص",
+      "الصيغة": "Subject + is / was",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Smartphone",
+          "الفعل_السلبي": "A smartphone is a mobile phone that can do many things.",
+          "الشرح": "نبدأ الفقرة بتعريف الشيء أو الشخص باستخدام is أو was."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "2- استخدام الماضي مع تاريخ الاختراع أو التقديم",
+      "الصيغة": "was invented / was introduced + date",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "First introduced: in 1992",
+          "الفعل_السلبي": "It was first introduced in 1992.",
+          "الشرح": "عند وجود تاريخ قديم نستخدم الماضي البسيط."
+        },
+        {
+          "الفعل_الإيجابي": "Invention date: 1909",
+          "الفعل_السلبي": "He invented the pH scale in 1909.",
+          "الشرح": "يمكن استخدام invented مع المخترع مباشرة."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "3- استخدام الضمائر لتجنب التكرار",
+      "الصيغة": "It / He / She",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Smartphone ... Smartphone ... Smartphone",
+          "الفعل_السلبي": "A smartphone is useful. It is used for calling.",
+          "الشرح": "بعد ذكر الاسم أول مرة نستخدم الضمير المناسب مثل It أو He."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "4- تحويل معلومات الاستخدام إلى جملة",
+      "الصيغة": "It is used for + V+ing",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Usage: fishing and transportation",
+          "الفعل_السلبي": "It is used for fishing and transportation.",
+          "الشرح": "بعد for نستخدم اسم أو فعل مع ing."
+        },
+        {
+          "الفعل_الإيجابي": "Used for: cutting food, peeling and chopping",
+          "الفعل_السلبي": "It is used for cutting food, peeling and chopping.",
+          "الشرح": "نستخدم صيغة V+ing بعد for."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "5- وصف الشكل أو المادة",
+      "الصيغة": "It is made of / It is ... in shape",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Material: wood",
+          "الفعل_السلبي": "It is made of wood.",
+          "الشرح": "نستخدم made of عند الحديث عن المادة المصنوع منها الشيء."
+        },
+        {
+          "الفعل_الإيجابي": "Shape: light and long",
+          "الفعل_السلبي": "It is light and long in shape.",
+          "الشرح": "يمكن استخدام in shape لوصف الشكل."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "6- تحويل مكان الوجود إلى جملة",
+      "الصيغة": "It can be found in...",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Found: stores or online",
+          "الفعل_السلبي": "It can be found in stores or online.",
+          "الشرح": "نستخدم can be found للتعبير عن مكان وجود الشيء."
+        }
+      ]
+    }
+  ],
+  "تمارين_تطبيقية": [
+    {
+      "السؤال": "1. Write a sentence using: ( Smartphone / calling and messaging )",
+      "الإجابة_الصحيحة": "A smartphone is used for calling and messaging."
+    },
+    {
+      "السؤال": "2. Write a sentence using: ( pH scale / 1909 )",
+      "الإجابة_الصحيحة": "The pH scale was invented in 1909."
+    },
+    {
+      "السؤال": "3. Write a sentence using: ( kayak / made of wood )",
+      "الإجابة_الصحيحة": "A kayak is made of wood."
+    },
+    {
+      "السؤال": "4. Write a sentence using: ( knife / kitchens )",
+      "الإجابة_الصحيحة": "A knife is mostly found in kitchens."
+    },
+    {
+      "السؤال": "5. Write a sentence using: ( used for / cutting food )",
+      "الإجابة_الصحيحة": "It is used for cutting food."
+    },
+    {
+      "السؤال": "6. Write a sentence using: ( can be found / online )",
+      "الإجابة_الصحيحة": "It can be found online."
+    }
+  ]
+},
+
+
+{
+  "اسم_الدرس": "Match to make compound words | وصل الكلمات لتكوين كلمات مركبة",
+  "المحتوى": "في هذا النوع من الأسئلة يُطلب من الطالب توصيل كلمتين لتكوين كلمة مركبة (Compound word). الكلمة المركبة تتكون من كلمتين تعطيان معنى جديداً عند دمجهما. لحل السؤال يجب أن يفهم الطالب معنى الكلمات ويعرف أي الكلمات تُستخدم مع بعضها بشكل صحيح في اللغة الإنجليزية.",
+  "القواعد": [
+    {
+      "اسم_القاعدة": "1- فهم معنى الكلمة المركبة",
+      "الصيغة": "word + word = compound word",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "smart + phone",
+          "الفعل_السلبي": "smartphone",
+          "الشرح": "الكلمتان اتحدتا لتكوين كلمة جديدة معناها هاتف ذكي."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "2- بعض الكلمات المركبة تُكتب كلمة واحدة",
+      "الصيغة": "One word",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "hair + cut",
+          "الفعل_السلبي": "haircut",
+          "الشرح": "بعض الكلمات المركبة تُكتب بدون مسافة."
+        },
+        {
+          "الفعل_الإيجابي": "news + paper",
+          "الفعل_السلبي": "newspaper",
+          "الشرح": "الكلمتان تكونان كلمة واحدة جديدة."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "3- بعض الكلمات المركبة تُفهم من المعنى",
+      "الصيغة": "Meaning connection",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "class + room",
+          "الفعل_السلبي": "classroom",
+          "الشرح": "الكلمتان مرتبطتان بالمعنى لأن classroom تعني غرفة الصف."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "4- الانتباه للكلمات المستخدمة كثيراً في المنهج",
+      "الصيغة": "Common compound words",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "foot + ball",
+          "الفعل_السلبي": "football",
+          "الشرح": "من أشهر الكلمات المركبة في الاختبارات الوزارية."
+        },
+        {
+          "الفعل_الإيجابي": "some + thing",
+          "الفعل_السلبي": "something",
+          "الشرح": "كلمة مركبة شائعة في اللغة الإنجليزية."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "5- تحديد الكلمة المناسبة من النهاية أو البداية",
+      "الصيغة": "Match beginnings and endings",
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "sun + light",
+          "الفعل_السلبي": "sunlight",
+          "الشرح": "نختار النهاية المناسبة لتكوين كلمة صحيحة ذات معنى."
+        }
+      ]
+    }
+  ],
+  "تمارين_تطبيقية": [
+    {
+      "السؤال": "1. smart + phone = ?",
+      "الإجابة_الصحيحة": "smartphone"
+    },
+    {
+      "السؤال": "2. class + room = ?",
+      "الإجابة_الصحيحة": "classroom"
+    },
+    {
+      "السؤال": "3. foot + ball = ?",
+      "الإجابة_الصحيحة": "football"
+    },
+    {
+      "السؤال": "4. news + paper = ?",
+      "الإجابة_الصحيحة": "newspaper"
+    },
+    {
+      "السؤال": "5. sun + light = ?",
+      "الإجابة_الصحيحة": "sunlight"
+    },
+    {
+      "السؤال": "6. some + thing = ?",
+      "الإجابة_الصحيحة": "something"
+    }
+  ]
+},
+
+
+
+{
+  "اسم_الدرس": "Use the suitable linking words | استخدام أدوات الربط المناسبة",
+  "المحتوى": "في هذا النوع من الأسئلة يُطلب من الطالب اختيار أداة الربط المناسبة لإكمال الجملة. أدوات الربط (Linking words) تُستخدم لربط الأفكار والجمل مع بعضها، مثل التوضيح، الإضافة، السبب، المقارنة، أو التناقض. لفهم السؤال بشكل صحيح يجب على الطالب معرفة معنى كل أداة ومتى تُستخدم.",
+  "القواعد": [
+    {
+      "اسم_القاعدة": "1- Because (لأن)",
+      "الصيغة": "because + سبب",
+      "الكلمات_الدالة": ["reason", "cause", "why"],
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "He was punished because he lied.",
+          "الشرح": "نستخدم because عندما نذكر السبب."
+        },
+        {
+          "الفعل_الإيجابي": "They cancelled the trip because the weather was bad.",
+          "الشرح": "الطقس السيئ هو سبب إلغاء الرحلة."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "2- Although (على الرغم من)",
+      "الصيغة": "although + contrast",
+      "الكلمات_الدالة": ["but", "however", "contrast"],
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Although she prepared the food, she didn't eat it.",
+          "الشرح": "نستخدم although عند وجود فكرتين متعاكستين."
+        },
+        {
+          "الفعل_الإيجابي": "Although the restaurant was crowded, they found a table.",
+          "الشرح": "هناك تناقض بين الازدحام ووجود طاولة."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "3- Whereas (بينما)",
+      "الصيغة": "whereas + comparison",
+      "الكلمات_الدالة": ["difference", "compare"],
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Whereas Anwer is hardworking, his brother isn't.",
+          "الشرح": "نستخدم whereas للمقارنة بين شخصين أو فكرتين مختلفتين."
+        },
+        {
+          "الفعل_الإيجابي": "Whereas my mother prefers city life, my father doesn't.",
+          "الشرح": "يوجد اختلاف بين رأي الأم والأب."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "4- Also / As well / Furthermore / In addition",
+      "الصيغة": "addition words",
+      "الكلمات_الدالة": ["extra information", "another idea"],
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "That boy ate sandwiches and pizza as well.",
+          "الشرح": "نستخدم as well أو also لإضافة معلومة جديدة."
+        },
+        {
+          "الفعل_الإيجابي": "Omar is diligent. Furthermore, he is patient.",
+          "الشرح": "Furthermore و In addition تستخدمان لإضافة فكرة أخرى."
+        }
+      ]
+    },
+    {
+      "اسم_القاعدة": "5- Like / Unlike",
+      "الصيغة": "comparison",
+      "الكلمات_الدالة": ["similar", "different"],
+      "أمثلة": [
+        {
+          "الفعل_الإيجابي": "Like my mother, I like listening to radio programmes.",
+          "الشرح": "نستخدم like عند التشابه."
+        },
+        {
+          "الفعل_الإيجابي": "Unlike my brother, I wake up early.",
+          "الشرح": "نستخدم unlike عند الاختلاف."
+        }
+      ]
+    }
+  ],
+  "تمارين_تطبيقية": [
+    {
+      "السؤال": "1. He was absent .......... he was sick. ( because / although )",
+      "الإجابة_الصحيحة": "because"
+    },
+    {
+      "السؤال": "2. .......... he is rich, he is unhappy. ( Although / Because )",
+      "الإجابة_الصحيحة": "Although"
+    },
+    {
+      "السؤال": "3. .......... Ali likes football, his brother likes basketball. ( Whereas / Because )",
+      "الإجابة_الصحيحة": "Whereas"
+    },
+    {
+      "السؤال": "4. I study English .......... mathematics. ( as well as / because )",
+      "الإجابة_الصحيحة": "as well as"
+    },
+    {
+      "السؤال": "5. Omar is smart. .........., he is polite. ( Furthermore / Although )",
+      "الإجابة_الصحيحة": "Furthermore"
+    },
+    {
+      "السؤال": "6. .......... my father, I love reading books. ( Like / Unlike )",
+      "الإجابة_الصحيحة": "Like"
+    }
+  ]
+}
+
+
+      ]
+    }
+  ]
+}

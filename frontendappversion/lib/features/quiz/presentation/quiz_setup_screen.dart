@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/bilingual_label.dart';
 import '../../../core/config/curriculum.dart';
 import '../../../core/session/user_session.dart';
 import '../../../core/theme/app_colors.dart';
@@ -643,9 +644,9 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                         // وحدةُ الدرس تُذكر حين لا تكون الوحدةَ المعروضة
                         // — فلا يبدو الدرسُ مفقوداً ولا مكرَّراً.
                         (_lessonUnit[l] ?? "") == _unit
-                            ? l
-                            : "$l · ${_lessonUnit[l] ?? ''}",
-                        maxLines: 2,
+                            ? bilingualLabel(l)
+                            : "${bilingualLabel(l)} · ${_lessonUnit[l] ?? ''}",
+                        maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 10,
@@ -688,7 +689,7 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
             // ⚠️ RTL: النصُّ أوّلُ ابنٍ ⇒ يميناً، والمربّعُ آخرُه ⇒ يساراً.
             Expanded(
               child: Text(
-                lesson,
+                bilingualLabel(lesson),
                 style: TextStyle(
                   fontSize: 11,
                   height: 1.5,

@@ -90,16 +90,16 @@ async def teacher_ask(req: TeacherAskRequest, request: Request):
     images = req.all_images()
     if images:
         try:
-            extracted = []
-            for img in images:
-                clean, mime = v3_image_guard.validate(img)
-                extracted.append(await v3_vision.image_to_text(clean, mime, AI_CLIENTS))
+            # 📷 البابُ الوحيد لقراءة الصور — فيه حدُّ الصور اليومي ([core/vision]).
+            extracted = await v3_vision.extract_images(
+                images, AI_CLIENTS, uid=identity["uid"], subject=req.subject)
         except (v3_image_guard.ImageRejected, v3_vision.VisionFailed) as e:
             await v3_billing.settle_quota(v3_quota, identity)
             v3_idem.abandon(identity["uid"], req.request_id)
             return _json_response({"answer": str(e), "references": [],
                                    "session_active": False}, 200)
-        req.content = v3_vision.merge_into_question(extracted, req.content)
+        req.content = v3_vision.merge_into_question(
+            extracted, req.content, req.subject)
         image_text = v3_vision.history_text(extracted)
         req.images_base64 = None
         req.image_base64 = None

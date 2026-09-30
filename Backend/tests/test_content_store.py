@@ -60,7 +60,9 @@ def test_each_grade_track_is_isolated():
     assert cs.get_lessons_book(3, "علمي", "رياضيات") is not None   # فيه محتوى
     assert cs.get_lessons_book(1, "عام", "رياضيات") is None        # قالب فقط
     assert cs.get_lessons_book(2, "أدبي", "رياضيات") is None
-    assert cs.get_lessons_book(3, "أدبي", "رياضيات") is None
+    # الثالث الأدبي بفروعه الخاصة (مبدأ العد · الإحصاء · التكامل) — لا فروع العلمي
+    adabi = cs.get_lessons_book(3, "أدبي", "رياضيات")
+    assert cs.lessons_units(adabi) == ["مبدأ العد", "الإحصاء", "التكامل"]
 
 
 def test_grade1_has_no_track_folder():

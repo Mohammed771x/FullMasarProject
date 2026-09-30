@@ -480,7 +480,7 @@ def targets(grade=3, track="علمي") -> dict:
         book = cs.get_lessons_book(grade, track, subject)
         if book:
             entry["lessons_units"] = cs.lessons_units(book)
-        elif subject == cs.MATH_SUBJECT:
+        elif subject == cs.MATH_SUBJECT and (grade, track) == (3, "علمي"):
             entry["lessons_units"] = list(cs.MATH_BRANCHES)
         pages = cs.get_pages_book(grade, track, subject)
         if pages:

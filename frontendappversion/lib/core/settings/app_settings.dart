@@ -20,6 +20,7 @@ class AppSettings extends ChangeNotifier {
   static const _kNotifScholarships = 'settings_notif_scholarships';
   static const _kNotifGeneral = 'settings_notif_general';
   static const _kThinking = 'settings_thinking';
+  static const _kMathKeyboard = 'settings_math_keyboard';
 
   /// حدود حجم خط الإجابة. الأدنى ١٤ لأن ما دونه لا يُقرأ على شاشة صغيرة،
   /// والأعلى ٢٤ ليخدم ضعيف البصر فعلاً لا شكلاً.
@@ -41,6 +42,19 @@ class AppSettings extends ChangeNotifier {
   /// أكثرَ ما يُسأل شرحٌ لا حساب، والطالبُ يشعله للمسائل بضغطةٍ واحدة.
   bool _thinking = false;
 
+  /// ⌨️ **كيبورد الرياضيات أم كيبورد الجوال؟** — في مادة الرياضيات وحدها.
+  /// الافتراضُ كيبورد التطبيق، وزرُّ «أ ب ج» فيه يعيد كيبورد الجوال، ويبقى
+  /// الاختيارُ بعد إغلاق التطبيق (تفضيلُ جهاز كحجم الخط).
+  bool _mathKeyboard = true;
+  bool get mathKeyboard => _mathKeyboard;
+
+  Future<void> setMathKeyboard(bool value) async {
+    _mathKeyboard = value;
+    notifyListeners();
+    await (_prefs ??= await SharedPreferences.getInstance())
+        .setBool(_kMathKeyboard, value);
+  }
+
   double get answerFontSize => _answerFontSize;
   bool get notifScholarships => _notifScholarships;
   bool get notifGeneral => _notifGeneral;
@@ -55,6 +69,7 @@ class AppSettings extends ChangeNotifier {
     _notifScholarships = _prefs!.getBool(_kNotifScholarships) ?? true;
     _notifGeneral = _prefs!.getBool(_kNotifGeneral) ?? true;
     _thinking = _prefs!.getBool(_kThinking) ?? false;
+    _mathKeyboard = _prefs!.getBool(_kMathKeyboard) ?? true;
     notifyListeners();
   }
 

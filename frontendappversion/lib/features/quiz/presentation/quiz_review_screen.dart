@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/bilingual_label.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/fade_in_slide.dart';
 import '../../../core/widgets/masar_markdown.dart';
@@ -152,7 +153,7 @@ class QuizReviewScreen extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Flexible(
-                            child: Text(q.lesson,
+                            child: Text(bilingualInline(q.lesson),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -233,7 +234,7 @@ class QuizReviewScreen extends StatelessWidget {
                       border: Border.all(color: AppColors.quizTagBorder)),
                   // 🖌️ بالرسّام: الموضوع قد يكون صيغةً لا كلمة —
                   //    و[MathOrText] تعود نصّاً عادياً حين لا ترميز.
-                  child: MathOrText("🏷️ ${q.topic}",
+                  child: MathOrText("🏷️ ${bilingualInline(q.topic)}",
                       maxLines: 2,
                       style: TextStyle(
                           fontSize: 10,

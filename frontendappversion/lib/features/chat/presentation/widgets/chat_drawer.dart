@@ -474,7 +474,7 @@ class _ChatDrawerState extends State<ChatDrawer> {
   Widget _scopeChip() {
     final mode = c.isTeacher
         ? c.teacherTool!.label
-        : (c.selectedSubject == "رياضيات" ? c.mathMode : c.selectedMode);
+        : (c.isMathBranches ? c.mathMode : c.selectedMode);
     final text =
         "${c.selectedSubject} · $mode · "
         "${Curriculum.gradeShort(c.grade)}"

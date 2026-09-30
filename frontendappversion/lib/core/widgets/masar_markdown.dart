@@ -500,7 +500,12 @@ class MasarMarkdown extends StatelessWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      // 💬 **`start` لا `stretch`** (المالك ٢٠٢٦-٠٩-٣٠: «ليش الأزرق طوّل
+      //    لليسار؟ رسالة الطالب تكون زي الكلام»). `stretch` كان يفرض على كل
+      //    سطرٍ عرضَ الفقاعة كلَّه، فرسالةٌ قصيرة فيها كسرٌ تمتدّ زرقاءَ حتى
+      //    الحافّة اليسرى — بينما الرسالةُ النصّية (`MarkdownBody` أعلاه)
+      //    تأخذ عرضَ كلامها. و`start` في العربية هو اليمين.
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (final block in _split(prepared, equations: _drawsChemistry))
           if (block.kind == _Kind.table)

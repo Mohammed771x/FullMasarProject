@@ -26,6 +26,12 @@ from datetime import datetime, timezone
 # ── الحدود ──
 STUDENT_DAILY_ASKS = int(os.getenv("QUOTA_ASK", "50"))   # طالب مسجَّل/يوم
 GUEST_TOTAL_ASKS = int(os.getenv("QUOTA_GUEST", "5"))    # الزائر: تجربة كاملة لا يومية
+# 📷 الصور لكل مستخدم يومياً — **في كل الأقسام معاً** (أمرُ المالك ٢٠٢٦-١٠-٠١:
+#    «مثلاً الطالب في اليوم معه عشر صور… من لوحة التحكم… في كل مكان»).
+#    قراءةُ صورة الرياضيات صارت بموديلٍ أغلى (gemini-3.8-flash)، فحدُّ الصور
+#    مستقلٌّ عن حدّ الأسئلة: سؤالٌ نصّيٌّ لا يأكل من الصور، وصورةٌ لا تُعفى
+#    من حدّ الأسئلة.
+DAILY_IMAGES = int(os.getenv("QUOTA_IMAGES", "10"))
 
 # ══════════════ 🧪 حسابات الفحص — بلا حصّة ══════════════
 # 🔴 **العلّة التي حلّها هذا** (تكرّرت في كل جلسة فحص): المحاكي مسجَّلٌ
@@ -139,6 +145,77 @@ def _override_for(uid: str):
         return user_state.get(uid).get("quota_override")
     except Exception:
         return None
+
+
+QUOTA_MESSAGE_IMAGES = (
+    "📷 وصلت حدّك اليومي من الصور ({limit} صور).\n"
+    "يتجدّد بعد منتصف الليل — وتقدر الآن تكتب سؤالك نصّاً ✍️"
+)
+
+
+def image_limit(uid: str = "") -> int:
+    """حدُّ الصور اليومي: من لوحة التحكم (`quota_images`)، وإلا من البيئة.
+
+    🧪 وحساباتُ الفحص المعلنة في البيئة بلا حدّ — كحدّ الأسئلة تماماً.
+    ⚠️ يفشل مفتوحاً على قيمة البيئة: عطلُ قراءةٍ لا يمنع طالباً.
+    """
+    if uid and uid in _unlimited_uids():
+        return UNLIMITED_ASKS
+    try:
+        from . import scholarships
+        value = scholarships.get_settings().get("quota_images")
+        return int(value) if isinstance(value, (int, float)) else DAILY_IMAGES
+    except Exception:
+        return DAILY_IMAGES
+
+
+def image_doc_id(uid: str) -> str:
+    """عدّادُ الصور **يوميٌّ للجميع** — الزائر والمسجَّل — ومستندُه منفصل."""
+    return f"img_{(uid or '?')[:128]}_{_today()}"
+
+
+def image_message(uid: str = "") -> str:
+    return QUOTA_MESSAGE_IMAGES.format(limit=image_limit(uid))
+
+
+def consume_image(uid: str):
+    """يخصم صورةً واحدة — بالمعاملة نفسها التي تحرس الأسئلة من السباق.
+
+    يعيد `(allowed, remaining)`، ويفشل مفتوحاً كـ[check_and_consume].
+    """
+    key = image_doc_id(uid)
+    limit = image_limit(uid)
+    try:
+        db = _firestore()
+        if db is not None:
+            return _consume_firestore(db, key, limit)
+        return _consume_memory(key, limit)
+    except Exception as e:
+        print(f"⚠️ تعذّر احتساب حصة الصور ({e}) — سُمح بالصورة.")
+        return True, -1
+
+
+def refund_image(uid: str) -> None:
+    """يردّ صورةً خُصمت ثم لم تُقرأ (رُفضت أو فشل الموديل)."""
+    key = image_doc_id(uid)
+    try:
+        db = _firestore()
+        if db is not None:
+            _refund_firestore(db, key)
+        else:
+            _refund_memory(key)
+    except Exception as e:
+        print(f"⚠️ تعذّر ردّ حصة الصور ({e}) — بقي الخصم.")
+
+
+async def aconsume_image(uid: str):
+    import asyncio
+    return await asyncio.to_thread(consume_image, uid)
+
+
+async def arefund_image(uid: str) -> None:
+    import asyncio
+    await asyncio.to_thread(refund_image, uid)
 
 
 def message_for(is_guest: bool) -> str:

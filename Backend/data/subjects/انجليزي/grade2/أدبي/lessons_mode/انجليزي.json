@@ -1,0 +1,1740 @@
+{
+  "كتاب": "اللغة الإنجليزية - الصف الثاني الثانوي",
+  "الوحدات": [
+    {
+      "اسم_الوحدة": "Language review 1",
+      "الدروس": [
+        {
+          "اسم_الدرس": "Adjective order | ترتيب الصفات قبل الاسم",
+          "ملخص_قصير": "عندما نستخدم أكثر من صفة قبل الاسم، نرتبها بترتيب ثابت: رأي، حجم، عمر، شكل، لون، جنسية، مادة.",
+          "الأجزاء": [
+            {
+              "نوع": "شرح",
+              "اسم_الجزء": "الفكرة الأساسية",
+              "المحتوى": [
+                "في الإنجليزية الصفة تأتي قبل الاسم (عكس العربية) ← a big house = بيت كبير.",
+                "عندما نصف شيئاً بأكثر من صفة، لا نضعها عشوائياً، بل نتبع ترتيباً معيناً.",
+                "مثال: an interesting old city ✓ وليس an old interesting city ✗.",
+                "القاعدة من الكتاب: When you use more than one adjective to describe someone or something, you usually follow the order in this list."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "ترتيب الصفات (من الكتاب)",
+              "المحتوى": [
+                "1- Opinion (الرأي) ← good, interesting, beautiful, nice, lovely, boring",
+                "2- Size (الحجم) ← big, short, small, tall, long, large",
+                "3- Age (العمر) ← young, old, new, ancient",
+                "4- Shape (الشكل) ← round, thin, square, flat, curly, straight",
+                "5- Colour (اللون) ← blue, green, black, white, red",
+                "6- Nationality (الجنسية / الأصل) ← Yemeni, English, Chinese, Arabic",
+                "7- Material (المادة المصنوع منها) ← plastic, silk, wooden, gold, leather, cotton",
+                "بعد الصفات كلها يأتي الاسم."
+              ]
+            },
+            {
+              "نوع": "ملاحظات",
+              "اسم_الجزء": "طريقة سهلة للحفظ",
+              "المحتوى": [
+                "احفظ الترتيب بهذه الجملة: رأيي في حجم عمر شكل لون جنسية المادة.",
+                "أو بالإنجليزية: O - S - A - Sh - C - N - M (Opinion, Size, Age, Shape, Colour, Nationality, Material).",
+                "القاعدة العامة: صفات الرأي (رأي شخصي) تأتي أولاً، والصفات الحقيقية الثابتة (مثل المادة) تأتي آخراً قرب الاسم.",
+                "عادة لا نستخدم أكثر من ثلاث صفات في نفس الجملة.",
+                "نضع فاصلة بين الصفات أحياناً، خصوصاً إذا كانت من نفس النوع: short, black, curly hair.",
+                "إذا جاءت صفة واحدة تبدأ بحرف علة نستخدم an ← an interesting old city."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة الكتاب مع التحليل",
+              "المحتوى": [
+                "It's an interesting old city. ← interesting (رأي) + old (عمر) + city.",
+                "She has short, black, curly hair. ← short (حجم) + black (لون) + curly (شكل) + hair.",
+                "ملاحظة: حسب ترتيب القائمة يأتي الشكل قبل اللون (short curly black hair)، لكن الكتاب كتبها short, black, curly hair، وكلا الترتيبين مستخدم مع الشعر عند وضع الفواصل.",
+                "He's a young Yemeni reporter. ← young (عمر) + Yemeni (جنسية) + reporter."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "a beautiful old wooden door ← رأي + عمر + مادة",
+                "a big round table ← حجم + شكل",
+                "a lovely red silk dress ← رأي + لون + مادة",
+                "a small new plastic bag ← حجم + عمر + مادة",
+                "an old Yemeni silver jambiya ← عمر + جنسية + مادة",
+                "a nice young English teacher ← رأي + عمر + جنسية",
+                "long black hair ← حجم + لون"
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل: رتب الصفات",
+              "المحتوى": [
+                "1- a (wooden / old / big) box ← a big old wooden box",
+                "2- a (Chinese / beautiful / silk) scarf ← a beautiful Chinese silk scarf",
+                "3- an (red / old / interesting) car ← an interesting old red car",
+                "4- a (round / small / plastic) table ← a small round plastic table",
+                "5- a (tall / young / Yemeni) man ← a tall young Yemeni man"
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: a city interesting ✗ ← الصحيح: an interesting city ✓ (الصفة قبل الاسم).",
+                "خطأ: a Yemeni young reporter ✗ ← الصحيح: a young Yemeni reporter ✓ (العمر قبل الجنسية).",
+                "خطأ: a wooden old box ✗ ← الصحيح: an old wooden box ✓ (المادة آخر شيء).",
+                "خطأ: reds shoes ✗ ← الصحيح: red shoes ✓ (الصفة لا تُجمع)."
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Conditional sentences - النوع الأول Type 1 (شرط محتمل الحدوث)",
+          "ملخص_قصير": "جملة الشرط من النوع الأول: If + مضارع بسيط، will + مصدر. تستخدم لشرط ممكن ونتيجة متوقعة.",
+          "الأجزاء": [
+            {
+              "نوع": "شرح",
+              "اسم_الجزء": "ما هي جملة الشرط؟",
+              "المحتوى": [
+                "جملة الشرط تتكون من جزئين:",
+                "1- جملة الشرط (If clause): تبدأ بـ If (إذا / لو).",
+                "2- جملة الجواب / النتيجة (Main clause): ما سيحدث إذا تحقق الشرط.",
+                "مثال: If I work hard, I will pass the exam. ← إذا اجتهدت، سأنجح في الامتحان."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "النوع الأول Type 1",
+              "المحتوى": [
+                "المعنى من الكتاب: When a condition is likely to be fulfilled, the result is likely to happen. ← عندما يكون الشرط محتمل التحقق، فالنتيجة محتملة الحدوث.",
+                "الصيغة: If + مضارع بسيط, will + المصدر.",
+                "مثال الكتاب: If I work hard, I will pass the exam.",
+                "انتبه: في جملة If نستخدم المضارع البسيط وليس will، حتى لو كان المعنى مستقبلاً.",
+                "مع He / She / It نضيف s للفعل في جملة If ← If he works hard, he will pass.",
+                "يمكن تقديم جملة النتيجة: I will pass the exam if I work hard. (بدون فاصلة إذا جاءت If في الوسط).",
+                "النفي: If you don't hurry, you will miss the bus. / If it rains, we won't go out.",
+                "unless = if not ← Unless you hurry, you will miss the bus.",
+                "يمكن استخدام can / may / might / should بدل will ← If you finish early, you can go home."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "If it rains tomorrow, we will stay at home.",
+                "If you eat too much, you will get fat.",
+                "If she studies hard, she will get good marks.",
+                "If they come early, we will go to the market together.",
+                "I will call you if I have time.",
+                "If you don't sleep early, you will be tired in the morning.",
+                "If you heat ice, it melts. (حقيقة علمية ← مضارع + مضارع، وتسمى Type 0)"
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل",
+              "المحتوى": [
+                "1- If you (study) ..., you (pass) ... ← If you study, you will pass.",
+                "2- If it (be) ... sunny, we (go) ... to the beach. ← If it is sunny, we will go to the beach.",
+                "3- He (be) ... late if he (not / hurry) ... ← He will be late if he doesn't hurry.",
+                "4- If Ali (come) ..., I (tell) ... him. ← If Ali comes, I will tell him."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: If I will work hard, I will pass. ✗ ← الصحيح: If I work hard, I will pass. ✓ (لا will بعد If).",
+                "خطأ: If he work hard ✗ ← الصحيح: If he works hard ✓",
+                "خطأ: If it rains, we stay will at home. ✗ ← الصحيح: we will stay ✓",
+                "خطأ: Unless you don't hurry ✗ ← الصحيح: Unless you hurry ✓ (unless فيها نفي أصلاً)."
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Conditional sentences - النوع الثاني Type 2 (شرط غير محتمل أو مستحيل)",
+          "ملخص_قصير": "جملة الشرط من النوع الثاني: If + ماضي بسيط، would + مصدر. تستخدم لشرط خيالي أو صعب الحدوث.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "النوع الثاني Type 2",
+              "المحتوى": [
+                "المعنى من الكتاب: When a condition is not likely or impossible, the result is not likely to happen. ← عندما يكون الشرط غير محتمل أو مستحيلاً، فالنتيجة غير محتملة الحدوث.",
+                "الصيغة: If + ماضي بسيط, would + المصدر.",
+                "مثال الكتاب: If I had a helicopter, I would fly over the mountains. ← لو كان عندي طائرة هيليكوبتر، لطرت فوق الجبال (لكن ليس عندي).",
+                "انتبه: الفعل في جملة If ماضي، لكن المعنى عن الحاضر أو المستقبل، وهو شيء خيالي.",
+                "مع فعل be نستخدم were مع جميع الضمائر (خصوصاً في الكتابة الرسمية) ← If I were rich, I would buy a big house.",
+                "If I were you, I would ... ← لو كنت مكانك لـ ... (للنصيحة).",
+                "يمكن استخدام could / might بدل would ← If I had money, I could travel.",
+                "النفي: If I didn't have a car, I would walk. / I wouldn't do that if I were you."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "If I had a million riyals, I would build a hospital.",
+                "If I were a bird, I would fly around the world.",
+                "If she lived near the school, she would walk there.",
+                "If I were you, I would study harder.",
+                "If we had more time, we would visit Socotra.",
+                "He would buy a new car if he had enough money."
+              ]
+            },
+            {
+              "نوع": "مقارنة",
+              "اسم_الجزء": "الفرق بين النوع الأول والثاني",
+              "المحتوى": [
+                "Type 1 (ممكن): If I have time, I will visit you. ← عندي احتمال أن يكون لدي وقت.",
+                "Type 2 (خيالي / بعيد): If I had time, I would visit you. ← ليس لدي وقت الآن.",
+                "Type 1: If + present, will + inf.",
+                "Type 2: If + past, would + inf.",
+                "طريقة سهلة: إذا رأيت will في النتيجة فالشرط مضارع، وإذا رأيت would فالشرط ماضي."
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل",
+              "المحتوى": [
+                "1- If I (have) ... wings, I (fly) ... ← If I had wings, I would fly.",
+                "2- If he (be) ... taller, he (play) ... basketball. ← If he were taller, he would play basketball.",
+                "3- If I (be) ... you, I (not / go) ... ← If I were you, I wouldn't go.",
+                "4- They (travel) ... more if they (have) ... more money. ← They would travel more if they had more money."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: If I would have a helicopter, I would fly. ✗ ← الصحيح: If I had a helicopter ✓ (لا would بعد If).",
+                "خطأ: If I had a car, I will drive. ✗ ← الصحيح: I would drive ✓",
+                "خطأ: If I was you ✗ (في الكتابة الرسمية) ← الأفضل: If I were you ✓",
+                "خطأ: I would flew ✗ ← الصحيح: I would fly ✓ (بعد would المصدر)."
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Direct and indirect questions with question words | الأسئلة المباشرة وغير المباشرة بأدوات الاستفهام",
+          "ملخص_قصير": "الفرق في ترتيب الكلمات بين السؤال المباشر (Where do you come from?) وغير المباشر (I'd like to know where you come from).",
+          "الأجزاء": [
+            {
+              "نوع": "شرح",
+              "اسم_الجزء": "الفكرة الأساسية",
+              "المحتوى": [
+                "السؤال المباشر (Direct): سؤال عادي ← Where do you come from?",
+                "السؤال غير المباشر (Indirect): نبدأ بعبارة تمهيدية ثم نضع السؤال بترتيب الجملة العادية ← I'd like to know where you come from.",
+                "مثال الكتاب: Compare the order of the words ← قارن ترتيب الكلمات:",
+                "Direct: Where do you come from?",
+                "Indirect: I'd like to know where you come from.",
+                "لاحظ: في غير المباشر اختفت do، وصار الترتيب: where + الفاعل (you) + الفعل (come).",
+                "نستخدم السؤال غير المباشر لنكون أكثر أدباً، خصوصاً مع الغرباء وفي المواقف الرسمية مثل المقابلات."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "العبارات التمهيدية",
+              "المحتوى": [
+                "I'd like to know ... ← أود أن أعرف ... (جملة خبرية تنتهي بنقطة).",
+                "I wonder ... ← أتساءل ... (تنتهي بنقطة).",
+                "Can you tell me ...? / Could you tell me ...? ← هل تخبرني ...؟ (تنتهي بعلامة استفهام).",
+                "Do you know ...? ← هل تعرف ...؟ (تنتهي بعلامة استفهام).",
+                "Have you any idea ...? ← هل عندك فكرة ...؟"
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "خطوات التحويل",
+              "المحتوى": [
+                "1- نكتب العبارة التمهيدية.",
+                "2- نكتب أداة الاستفهام (what, where, when, why, how, who, which ...).",
+                "3- نكتب الفاعل ثم الفعل (ترتيب الجملة الخبرية).",
+                "4- إذا وُجد فعل مساعد (is, are, can, will, have ...) نضعه بعد الفاعل ← Where is the bank? ← Can you tell me where the bank is?",
+                "5- إذا وُجدت do / does / did نحذفها ونغير الفعل:",
+                "   do ← المصدر: Where do you live? ← I'd like to know where you live.",
+                "   does ← الفعل + s: What does he want? ← Do you know what he wants?",
+                "   did ← الماضي: When did they arrive? ← Can you tell me when they arrived?",
+                "6- أسئلة Yes/No (بدون أداة استفهام) نستخدم فيها if / whether ← Is he at home? ← Do you know if he is at home?"
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "What is your name? ← I'd like to know what your name is.",
+                "How old are you? ← Can you tell me how old you are?",
+                "Where does she work? ← Do you know where she works?",
+                "Why did he leave? ← I wonder why he left.",
+                "When will the plane land? ← Could you tell me when the plane will land?",
+                "How many brothers have you got? ← I'd like to know how many brothers you have got.",
+                "Can he swim? ← Do you know if he can swim?"
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل: حوّل إلى سؤال غير مباشر",
+              "المحتوى": [
+                "1- Where do you live? ← I'd like to know where you live.",
+                "2- What time is it? ← Could you tell me what time it is?",
+                "3- Why did you choose this job? ← I'd like to know why you chose this job.",
+                "4- How much does this book cost? ← Do you know how much this book costs?",
+                "5- Where can I find a taxi? ← Can you tell me where I can find a taxi?"
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: I'd like to know where do you come from. ✗ ← الصحيح: where you come from ✓",
+                "خطأ: Can you tell me where is the bank? ✗ ← الصحيح: where the bank is ✓",
+                "خطأ: Do you know what he want? ✗ ← الصحيح: what he wants ✓",
+                "خطأ: I'd like to know where you live? ✗ ← الصحيح: تنتهي بنقطة ✓ (لأن I'd like to know جملة خبرية)."
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Talking about the past - الماضي البسيط والماضي المستمر",
+          "ملخص_قصير": "متى نستخدم الماضي البسيط (حدث منتهٍ في وقت محدد) ومتى نستخدم الماضي المستمر (حدث مستمر لفترة)، وكيف نجمعهما في جملة واحدة.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "الماضي البسيط Past simple",
+              "المحتوى": [
+                "من الكتاب: Use the Past simple tense for the general past and definite times in the past.",
+                "المعنى: نستخدمه للماضي العام (شيء حدث في وقت ما في الماضي)، وللأوقات المحددة في الماضي.",
+                "الصيغة: الفعل + ed (للمنتظم) أو التصريف الثاني (لغير المنتظم)، ونفس الشكل مع جميع الضمائر.",
+                "مثال الكتاب (ماضٍ عام): My mother taught me to cook. (at some time in the past) ← لا نعرف متى بالضبط.",
+                "مثال الكتاب (وقت محدد): I went there last year.",
+                "النفي: didn't + المصدر ← I didn't go.",
+                "السؤال: Did + الفاعل + المصدر ← Did you go there?",
+                "كلمات دالة: yesterday, last week/year, ago, in 2020, when I was young."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "الماضي المستمر Past continuous",
+              "المحتوى": [
+                "من الكتاب: Use the Past continuous tense for an action that continued for some time and for one that lasted longer than another.",
+                "المعنى: نستخدمه لحدث استمر فترة من الوقت في الماضي، وللحدث الأطول عندما يقطعه حدث أقصر.",
+                "الصيغة: was / were + الفعل مع ing.",
+                "مثال الكتاب (حدث مستمر): My uncle was waiting for me in his car outside the hospital.",
+                "مثال الكتاب (حدث أطول من آخر): When I arrived, he was listening to a football match on the radio.",
+                "في المثال الثاني: was listening (الحدث الطويل المستمر) ← arrived (الحدث القصير الذي حدث في وسطه)."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "استخدام when و while",
+              "المحتوى": [
+                "when + الماضي البسيط (الحدث القصير) ← When I arrived, he was listening to the radio.",
+                "while + الماضي المستمر (الحدث الطويل) ← While he was listening to the radio, I arrived.",
+                "حدثان طويلان في نفس الوقت ← كلاهما ماضٍ مستمر مع while: While I was reading, my sister was watching TV.",
+                "أحداث متتالية (واحد بعد الآخر) ← كلها ماضٍ بسيط: He opened the door, went in and sat down."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "My grandfather built this house in 1980.",
+                "I visited Aden two years ago.",
+                "It was raining all day yesterday.",
+                "I was sleeping when the phone rang.",
+                "While we were having dinner, the lights went out.",
+                "What were you doing at 8 o'clock last night?",
+                "She was cooking while her husband was cleaning the car."
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل",
+              "المحتوى": [
+                "1- I (watch) ... TV when my friend (call) ... ← I was watching TV when my friend called.",
+                "2- She (go) ... to Taiz last week. ← She went to Taiz last week.",
+                "3- While they (play) ... football, it (start) ... to rain. ← While they were playing football, it started to rain.",
+                "4- When the teacher (come) ... in, the students (talk) ... ← When the teacher came in, the students were talking."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: When I was arriving, he listened to the radio. ✗ ← الصحيح: When I arrived, he was listening ✓",
+                "خطأ: I was go there last year. ✗ ← الصحيح: I went there last year. ✓",
+                "خطأ: They was waiting. ✗ ← الصحيح: They were waiting. ✓",
+                "خطأ: Did you went? ✗ ← الصحيح: Did you go? ✓"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Talking about the past - الماضي التام (حدث وقع قبل حدث آخر)",
+          "ملخص_قصير": "استخدام الماضي التام (had + التصريف الثالث) لحدث وقع قبل حدث آخر في الماضي.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "الماضي التام Past perfect",
+              "المحتوى": [
+                "من الكتاب: Use the Past perfect for something that happened earlier than something else.",
+                "المعنى: نستخدمه لشيء حدث في الماضي قبل شيء آخر في الماضي (الماضي قبل الماضي).",
+                "الصيغة: had + التصريف الثالث (past participle) مع جميع الضمائر.",
+                "مثال الكتاب: The fire started because someone had dropped a cigarette.",
+                "التحليل: شخص رمى سيجارة (had dropped) ← هذا حدث أولاً. ثم بدأ الحريق (started) ← هذا حدث ثانياً.",
+                "الحدث الأسبق ← الماضي التام / الحدث اللاحق ← الماضي البسيط.",
+                "النفي: hadn't + pp ← He hadn't finished. / السؤال: Had + الفاعل + pp? ← Had they left?"
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "كلمات تُستخدم كثيراً مع الماضي التام",
+              "المحتوى": [
+                "because ← السبب حدث أولاً: He was tired because he had worked all day.",
+                "before ← الفعل بعد before ماضٍ بسيط: I had finished my homework before my father came.",
+                "after ← الفعل بعد after ماضٍ تام: After she had eaten, she went to bed.",
+                "when ← When we arrived, the film had already started.",
+                "by the time ← By the time the police came, the thief had run away.",
+                "already / just / never ← I had never seen the sea before I went to Aden."
+              ]
+            },
+            {
+              "نوع": "مقارنة",
+              "اسم_الجزء": "الفرق في المعنى",
+              "المحتوى": [
+                "When I arrived, the bus left. ← وصلت ثم غادر الباص (تقريباً في نفس اللحظة).",
+                "When I arrived, the bus had left. ← عندما وصلت كان الباص قد غادر قبلها (لم ألحق به).",
+                "تغيير بسيط في الزمن يغير المعنى تماماً."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "The fire started because someone had dropped a cigarette.",
+                "She couldn't open the door because she had lost her key.",
+                "When I got to the station, the train had already left.",
+                "He failed the exam because he hadn't studied.",
+                "After they had finished their work, they went home.",
+                "I recognized him because I had met him before."
+              ]
+            },
+            {
+              "نوع": "جدول",
+              "اسم_الجزء": "ملخص أزمنة الماضي الثلاثة",
+              "المحتوى": [
+                "Past simple ← حدث منتهٍ في الماضي (وقت محدد أو عام) ← I went there last year.",
+                "Past continuous ← حدث مستمر لفترة أو أطول من حدث آخر ← He was listening to the radio.",
+                "Past perfect ← حدث وقع قبل حدث آخر في الماضي ← Someone had dropped a cigarette."
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل",
+              "المحتوى": [
+                "1- When we got home, someone (break) ... the window. ← had broken",
+                "2- She was sad because she (lose) ... her bag. ← had lost",
+                "3- After he (finish) ... his work, he (go) ... out. ← had finished / went",
+                "4- The streets were wet because it (rain) ... ← had rained"
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: The fire started because someone dropped had a cigarette. ✗ ← الصحيح: had dropped ✓",
+                "خطأ: He had went. ✗ ← الصحيح: He had gone. ✓ (التصريف الثالث وليس الثاني).",
+                "خطأ: استخدام الماضي التام للحدثين ✗ ← الحدث الأول فقط بالماضي التام، والثاني بالماضي البسيط ✓"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Being polite | التحدث بأدب (الطلبات المهذبة)",
+          "ملخص_قصير": "طرق مختلفة لطلب شيء من شخص بأدب، من الأقل رسمية إلى الأكثر أدباً، وكيف نطلب شيئاً ضرورياً بلطف.",
+          "الأجزاء": [
+            {
+              "نوع": "شرح",
+              "اسم_الجزء": "الفكرة الأساسية",
+              "المحتوى": [
+                "الكتاب يعطي نفس الطلب (Come with me) بصيغ مختلفة، كلها مهذبة لكن بدرجات مختلفة.",
+                "فعل الأمر وحده (Come with me!) قد يبدو غير مهذب، لذلك نضيف please أو نستخدم صيغة سؤال."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "صيغ الطلب المهذب (من الكتاب)",
+              "المحتوى": [
+                "1- فعل الأمر + please ← Come with me, please.",
+                "2- Can / Could / Would you + المصدر ..., please? ← Can / Could / Would you come with me, please?",
+                "   Can ← الأقل رسمية (مع الأصدقاء والعائلة).",
+                "   Could و Would ← أكثر أدباً (مع الغرباء والأكبر سناً والمواقف الرسمية).",
+                "3- Would you mind + الفعل مع ing ...? ← Would you mind coming with me? ← هل تمانع أن تأتي معي؟",
+                "   انتبه: بعد Would you mind الفعل مع ing دائماً.",
+                "   الرد بالموافقة: Not at all. / No, of course not. (لأن السؤال: هل تمانع؟)"
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "طلب شيء ضروري بأدب (I'm afraid / I'm sorry)",
+              "المحتوى": [
+                "أحياناً يكون الطلب إجبارياً (مثل الشرطي أو موظف المطار)، لكن نقوله بلطف:",
+                "I'm afraid you'll have to come with me. ← يؤسفني أنك مضطر أن تأتي معي.",
+                "I'm sorry, but you'll have to come with me. ← آسف، لكن يجب أن تأتي معي.",
+                "I'm afraid هنا لا تعني (أنا خائف)، بل تعني (يؤسفني) لتلطيف خبر غير مرغوب.",
+                "you'll have to = you will have to ← ستضطر إلى / يجب عليك."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "Open the window, please.",
+                "Can you pass me the salt, please?",
+                "Could you help me with this bag, please?",
+                "Would you speak more slowly, please?",
+                "Would you mind waiting outside?",
+                "Would you mind closing the door? — Not at all.",
+                "I'm afraid you'll have to wait for an hour.",
+                "I'm sorry, but you'll have to show me your passport.",
+                "I'm afraid I can't come to your party."
+              ]
+            },
+            {
+              "نوع": "ملاحظات",
+              "اسم_الجزء": "ردود مناسبة",
+              "المحتوى": [
+                "للموافقة على Can/Could/Would you ...? ← Certainly. / Of course. / Sure. / No problem.",
+                "للموافقة على Would you mind ...? ← Not at all. / No, of course not.",
+                "للرفض بأدب ← I'm sorry, I can't. / I'm afraid I can't.",
+                "الكتاب يطلب: Do the exercises in your Workbook to practise these language points ← حل تمارين كتاب النشاط للتدرب على هذه القواعد."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: Would you mind to come with me? ✗ ← الصحيح: Would you mind coming with me? ✓",
+                "خطأ: Could you to help me? ✗ ← الصحيح: Could you help me? ✓",
+                "خطأ: الرد على Would you mind بـ Yes عند الموافقة ✗ ← الصحيح: Not at all ✓",
+                "خطأ: I'm afraid you will have come. ✗ ← الصحيح: you'll have to come ✓"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "اسم_الوحدة": "Language review 2",
+      "الدروس": [
+        {
+          "اسم_الدرس": "The Passive - معنى المبني للمجهول ومتى نذكر الفاعل (by)",
+          "ملخص_قصير": "لماذا نستخدم المبني للمجهول، وصيغته العامة be + التصريف الثالث، ومتى نذكر الفاعل بعد by ومتى نحذفه.",
+          "الأجزاء": [
+            {
+              "نوع": "شرح",
+              "اسم_الجزء": "الفكرة الأساسية",
+              "المحتوى": [
+                "من الكتاب: The passive allows us to choose what we want to make more important in a sentence - the doer or the thing done.",
+                "المعنى: المبني للمجهول يسمح لنا أن نختار ما نريد أن نجعله أهم في الجملة: الفاعل (الذي قام بالفعل) أو الشيء الذي وقع عليه الفعل.",
+                "المبني للمعلوم (Active) ← نركز على الفاعل: King William built the central tower.",
+                "المبني للمجهول (Passive) ← نركز على الشيء: The central tower was built by King William.",
+                "ملاحظة: في الكتاب مكتوب (The passive allows as) وهذا خطأ مطبعي، والصحيح allows us."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "الصيغة العامة",
+              "المحتوى": [
+                "be (بالزمن المناسب) + past participle (التصريف الثالث) للفعل الرئيسي.",
+                "فعل be يتغير حسب الزمن وحسب الاسم (مفرد أو جمع): is / are / was / were / been / be / being.",
+                "الفعل الرئيسي دائماً في التصريف الثالث: built, governed, called, seen, opened."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "الفاعل (the doer / agent) و by",
+              "المحتوى": [
+                "من الكتاب: We use by with the doer (or agent). Sometimes we don't have to mention the doer.",
+                "نذكر الفاعل بعد by إذا كان مهماً أو معلومة جديدة ← The central tower was built by King William.",
+                "نحذف الفاعل إذا كان: غير معروف، أو غير مهم، أو واضح من السياق، أو ضميراً عاماً (people, they, we, someone).",
+                "مثال الكتاب بدون فاعل: Railways were built to every part of the kingdom. (no agent) ← لا يهم من بناها.",
+                "أمثلة: My car was stolen. (لا نعرف من سرقها) / English is spoken all over the world. (الفاعل: الناس، عام)."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "خطوات التحويل من المعلوم إلى المجهول",
+              "المحتوى": [
+                "1- نأخذ المفعول به ونجعله في أول الجملة.",
+                "2- نضع فعل be في نفس زمن الفعل الأصلي، ويتفق مع الاسم الجديد (مفرد / جمع).",
+                "3- نحول الفعل الرئيسي إلى التصريف الثالث.",
+                "4- نضيف by + الفاعل إذا كان مهماً، أو نحذفه.",
+                "مثال: A parliament governs the country. ← The country is governed by a parliament."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "Shakespeare wrote Hamlet. ← Hamlet was written by Shakespeare.",
+                "They grow coffee in Yemen. ← Coffee is grown in Yemen.",
+                "Someone broke the window. ← The window was broken.",
+                "Alexander Graham Bell invented the telephone. ← The telephone was invented by Alexander Graham Bell."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: The tower built by King William. ✗ ← الصحيح: The tower was built ✓ (لا بد من be).",
+                "خطأ: The tower was build. ✗ ← الصحيح: was built ✓ (التصريف الثالث).",
+                "خطأ: Coffee is grown in Yemen by people. ✗ ← الأفضل حذف by people ✓",
+                "خطأ: Railways was built. ✗ ← الصحيح: Railways were built ✓ (جمع)."
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "The Passive - المبني للمجهول في الأزمنة والأفعال الناقصة",
+          "ملخص_قصير": "صيغة المبني للمجهول في المضارع والماضي والمضارع التام والمستقبل ومع الأفعال الناقصة (must, should, will, can).",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "1- be + past participle (المضارع والماضي البسيط)",
+              "المحتوى": [
+                "Present simple: am / is / are + pp.",
+                "مثال الكتاب: The country is governed by a parliament.",
+                "Past simple: was / were + pp.",
+                "مثال الكتاب: The central tower was built by King William.",
+                "مثال الكتاب: Railways were built to every part of the kingdom. (no agent)"
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "2- have / has + been + past participle (المضارع التام)",
+              "المحتوى": [
+                "Present perfect: have / has + been + pp.",
+                "مثال الكتاب: Since then it has been called The White Tower.",
+                "has مع المفرد ← The house has been sold. / have مع الجمع ← Many trees have been cut down.",
+                "ملاحظة: الكتاب كتب القاعدة (have/has + be + past participle)، والمقصود been وليس be، كما يظهر في المثال has been called."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "3- must / should / will / can + be + past participle",
+              "المحتوى": [
+                "بعد الأفعال الناقصة و will نضع be (بدون تغيير) ثم التصريف الثالث.",
+                "مثال الكتاب: Children should be seen and (should) not (be) heard. ← الأطفال ينبغي أن يُرَوا ولا يُسمَعوا (مثل إنجليزي قديم معناه أن الطفل يجب أن يكون هادئاً أمام الكبار). الكلمات بين القوسين يمكن حذفها لأنها مفهومة.",
+                "Future: will + be + pp ← A new airport will be opened next year. (مثال الكتاب)",
+                "must ← Homework must be done every day.",
+                "can ← The castle can be seen from far away.",
+                "النفي: should not be / won't be / can't be ← The rules must not be broken."
+              ]
+            },
+            {
+              "نوع": "جدول",
+              "اسم_الجزء": "ملخص بقية الأزمنة",
+              "المحتوى": [
+                "Present continuous: is / are + being + pp ← The road is being repaired.",
+                "Past continuous: was / were + being + pp ← The house was being painted.",
+                "Past perfect: had + been + pp ← The work had been finished.",
+                "going to: is / are going to + be + pp ← A bridge is going to be built."
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل: حوّل إلى المبني للمجهول",
+              "المحتوى": [
+                "1- They make cars in Japan. ← Cars are made in Japan.",
+                "2- The Romans built this bridge. ← This bridge was built by the Romans.",
+                "3- They have opened a new hospital. ← A new hospital has been opened.",
+                "4- We must clean the classroom. ← The classroom must be cleaned.",
+                "5- They will finish the road next month. ← The road will be finished next month."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: It has called The White Tower. ✗ ← الصحيح: It has been called ✓",
+                "خطأ: A new airport will opened. ✗ ← الصحيح: will be opened ✓",
+                "خطأ: Children should are seen. ✗ ← الصحيح: should be seen ✓ (بعد الفعل الناقص be فقط).",
+                "خطأ: The road will be finish. ✗ ← الصحيح: will be finished ✓"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Some tenses - used to (شيء كان يحدث في الماضي ولم يعد)",
+          "ملخص_قصير": "used to + المصدر للتعبير عن عادة أو حالة في الماضي لم تعد موجودة الآن.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "used to + infinitive",
+              "المحتوى": [
+                "من الكتاب: This shows that something happened in the past, but doesn't now.",
+                "المعنى: يوضح أن شيئاً كان يحدث أو كان موجوداً في الماضي، لكنه لم يعد الآن ← (كان ...).",
+                "الصيغة: used to + المصدر، ونفس الشكل مع جميع الضمائر.",
+                "مثال الكتاب: There used to be a market here. (but there isn't now) ← كان هنا سوق (لكن ليس الآن).",
+                "مثال الكتاب: That shop used to be a baker's. (but it isn't now) ← ذلك المحل كان مخبزاً (لكنه لم يعد كذلك).",
+                "a baker's = a baker's shop ← محل الخباز / المخبز."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "النفي والسؤال",
+              "المحتوى": [
+                "النفي: didn't use to + المصدر ← I didn't use to like coffee. (لاحظ: use بدون d بعد didn't).",
+                "السؤال: Did + الفاعل + use to + المصدر? ← Did you use to play football?",
+                "يمكن أيضاً: never used to ← He never used to smoke."
+              ]
+            },
+            {
+              "نوع": "مقارنة",
+              "اسم_الجزء": "used to و be used to (لا تخلط بينهما)",
+              "المحتوى": [
+                "used to + مصدر ← عادة في الماضي انتهت: I used to live in Aden. (كنت أسكن)",
+                "be used to + ing / اسم ← متعود على شيء الآن: I am used to living in Sana'a. (أنا متعود)",
+                "الماضي البسيط يقول إن الشيء حدث فقط، أما used to فتؤكد أنه كان عادة وانتهت: I lived in Aden. / I used to live in Aden (but I don't now)."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "I used to play in the street when I was a child.",
+                "My grandfather used to travel by camel.",
+                "People used to write letters, but now they send messages.",
+                "This building used to be a school.",
+                "She didn't use to wear glasses.",
+                "Did you use to live in the village?"
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: I use to play football when I was young. ✗ ← الصحيح: I used to play ✓",
+                "خطأ: I used to playing. ✗ ← الصحيح: I used to play. ✓",
+                "خطأ: I didn't used to like it. ✗ ← الصحيح: I didn't use to like it. ✓",
+                "خطأ: I used to go to school now. ✗ ← used to للماضي فقط؛ الصحيح: I go to school now. ✓"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Some tenses - التعبير عن المستقبل (will be able to / will have to / going to / be to)",
+          "ملخص_قصير": "كيف نعبر عن القدرة والضرورة في المستقبل، والنوايا والتوقعات، والأحداث الرسمية المؤكدة.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "1- will + be able to + المصدر (مستقبل can)",
+              "المحتوى": [
+                "من الكتاب: Use will + be able to + infinitive to make the future of can.",
+                "السبب: can ليس لها صيغة مستقبل، فلا نقول will can ✗.",
+                "مثال الكتاب: We'll be able to shop from home soon. ← سنتمكن من التسوق من البيت قريباً.",
+                "أمثلة: After this course, you will be able to speak English well. / I won't be able to come tomorrow."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "2- will + have to + المصدر (مستقبل must)",
+              "المحتوى": [
+                "من الكتاب: Use will + have to + infinitive to make the future of must.",
+                "السبب: must ليس لها صيغة مستقبل، فلا نقول will must ✗.",
+                "مثال الكتاب: I'll have to find another job. ← سأضطر أن أجد وظيفة أخرى.",
+                "أمثلة: You will have to wear a uniform. / We won't have to get up early tomorrow. (لن نضطر)."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "3- going to + المصدر (النوايا والتوقعات)",
+              "المحتوى": [
+                "من الكتاب: Use going to + infinitive to talk about intentions or to make predictions about the future.",
+                "النية (خطة قررناها): I'm going to study medicine.",
+                "التوقع (بناءً على دليل الآن): Look at the clouds! It's going to rain.",
+                "مثال الكتاب: We're going to have to move to another town. ← سنضطر أن ننتقل إلى مدينة أخرى (going to + have to معاً)."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "4- be + to + المصدر (حدث مستقبلي مؤكد بأسلوب رسمي)",
+              "المحتوى": [
+                "من الكتاب: Use be + to + infinitive to talk about a certain future event in a formal way.",
+                "مثال الكتاب: The factory is to close. ← سيُغلَق المصنع (قرار رسمي مؤكد).",
+                "يُستخدم كثيراً في الأخبار والإعلانات الرسمية.",
+                "أمثلة: The President is to visit Aden next week. / The new school is to open in September."
+              ]
+            },
+            {
+              "نوع": "جدول",
+              "اسم_الجزء": "ملخص",
+              "المحتوى": [
+                "can (الآن) ← will be able to (مستقبل)",
+                "must (الآن) ← will have to (مستقبل)",
+                "going to ← نية أو توقع بدليل",
+                "be to ← حدث رسمي مؤكد (أخبار)",
+                "will ← مستقبل عام أو قرار لحظي"
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: We will can shop from home. ✗ ← الصحيح: We will be able to shop ✓",
+                "خطأ: I will must find a job. ✗ ← الصحيح: I will have to find ✓",
+                "خطأ: The factory is to closing. ✗ ← الصحيح: is to close ✓",
+                "خطأ: We're going to has to move. ✗ ← الصحيح: going to have to ✓"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Adding information with relative clauses | إضافة معلومات بجمل الوصل (who / which)",
+          "ملخص_قصير": "إضافة معلومة إضافية عن شخص (who) أو شيء (which) داخل فاصلتين.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "القاعدة",
+              "المحتوى": [
+                "من الكتاب: We can give extra information about someone or something with a relative clause.",
+                "المعنى: نستخدم جملة الوصل لإضافة معلومة إضافية عن شخص أو شيء.",
+                "who ← للأشخاص (الذي / التي / الذين).",
+                "which ← للأشياء والحيوانات (الذي / التي).",
+                "The extra information is put inside commas ← المعلومة الإضافية توضع بين فاصلتين.",
+                "إذا حذفنا ما بين الفاصلتين تبقى الجملة صحيحة وكاملة المعنى."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة الكتاب مع التحليل",
+              "المحتوى": [
+                "Queen Victoria, who reigned from 1837 to 1901, had nine children.",
+                "← الجملة الأساسية: Queen Victoria had nine children. / المعلومة الإضافية: who reigned from 1837 to 1901 (التي حكمت من 1837 إلى 1901).",
+                "The cheeses, which weigh about three kilos, go downhill very fast.",
+                "← الجملة الأساسية: The cheeses go downhill very fast. / المعلومة الإضافية: which weigh about three kilos (التي تزن حوالي ثلاثة كيلو).",
+                "(المثال عن مهرجان دحرجة الجبن من أعلى التل في بريطانيا)."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "كيف ندمج جملتين",
+              "المحتوى": [
+                "1- نحدد الاسم المشترك في الجملتين.",
+                "2- نضع بعده مباشرة فاصلة + who / which + المعلومة الإضافية + فاصلة.",
+                "3- نحذف الضمير المكرر (he, she, it, they).",
+                "مثال: Sana'a is the capital of Yemen. It is very old. ← Sana'a, which is very old, is the capital of Yemen.",
+                "مثال: My uncle is a doctor. He lives in Taiz. ← My uncle, who lives in Taiz, is a doctor."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "Ahmed, who is my best friend, lives next door.",
+                "The Nile, which is the longest river in the world, flows through Egypt.",
+                "My mother, who is a teacher, gets up very early.",
+                "Socotra, which is an island in the Arabian Sea, has unusual trees.",
+                "Shakespeare, who wrote Hamlet, was born in 1564."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: Queen Victoria, which reigned ... ✗ ← الصحيح: who ✓ (شخص).",
+                "خطأ: The cheeses, who weigh ... ✗ ← الصحيح: which ✓ (شيء).",
+                "خطأ: My uncle, who he lives in Taiz, ... ✗ ← الصحيح: who lives ✓ (لا نكرر الضمير).",
+                "خطأ: نسيان الفاصلة الثانية ← My uncle, who lives in Taiz is a doctor. ✗"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Forming adjectives | تكوين الصفات بإضافة ous و al",
+          "ملخص_قصير": "تحويل بعض الأسماء إلى صفات بإضافة اللاحقة ous أو al.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "القاعدة",
+              "المحتوى": [
+                "من الكتاب: We can use ous and al to change some nouns into adjectives.",
+                "المعنى: نضيف ous أو al لبعض الأسماء لنحولها إلى صفات.",
+                "مثال الكتاب: fame (شهرة) ← famous (مشهور).",
+                "مثال الكتاب: education (تعليم) ← educational (تعليمي).",
+                "لا توجد قاعدة ثابتة لمعرفة أي كلمة تأخذ ous وأيها al، لذلك يجب حفظها."
+              ]
+            },
+            {
+              "نوع": "جدول",
+              "اسم_الجزء": "كلمات تأخذ ous",
+              "المحتوى": [
+                "fame ← famous (مشهور) ← نحذف e",
+                "danger ← dangerous (خطير)",
+                "poison ← poisonous (سام)",
+                "nerve ← nervous (عصبي / متوتر)",
+                "mountain ← mountainous (جبلي)",
+                "courage ← courageous (شجاع)",
+                "religion ← religious (ديني)",
+                "humour ← humorous (فكاهي)",
+                "glory ← glorious (مجيد) ← y تتحول إلى i"
+              ]
+            },
+            {
+              "نوع": "جدول",
+              "اسم_الجزء": "كلمات تأخذ al",
+              "المحتوى": [
+                "education ← educational (تعليمي)",
+                "nation ← national (وطني)",
+                "tradition ← traditional (تقليدي)",
+                "culture ← cultural (ثقافي)",
+                "nature ← natural (طبيعي) ← نحذف e",
+                "music ← musical (موسيقي)",
+                "history ← historical (تاريخي)",
+                "medicine ← medical (طبي)",
+                "person ← personal (شخصي)",
+                "industry ← industrial (صناعي)"
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة في جمل",
+              "المحتوى": [
+                "Shibam is a famous city in Hadramawt.",
+                "Driving fast is dangerous.",
+                "This is an educational programme.",
+                "We wear traditional clothes on Eid.",
+                "Yemen is a mountainous country.",
+                "Marib has many historical places."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: fameous ✗ ← الصحيح: famous ✓",
+                "خطأ: educationous ✗ ← الصحيح: educational ✓",
+                "خطأ: He is a fame man. ✗ ← الصحيح: He is a famous man. ✓ (قبل الاسم نستخدم الصفة)."
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Expressing hope for the future | التعبير عن الشوق والأمل للمستقبل",
+          "ملخص_قصير": "العبارتان I can't wait for ... و I'm looking forward to ... للتعبير عن الشوق لشيء قادم.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "العبارات",
+              "المحتوى": [
+                "1- I can't wait for + اسم ← أنا متشوق جداً لـ ... (حرفياً: لا أستطيع الانتظار).",
+                "مثال الكتاب: I can't wait for the holidays.",
+                "I can't wait + to + مصدر ← I can't wait to see you.",
+                "2- I'm looking forward to + اسم / فعل مع ing ← أتطلع إلى ...",
+                "مثال الكتاب: I'm looking forward to going to college.",
+                "انتبه: to هنا حرف جر وليست to المصدر، لذلك يأتي بعدها فعل مع ing ← looking forward to going ✓ / looking forward to go ✗.",
+                "I can't wait ← غير رسمية وتدل على حماس قوي.",
+                "I'm looking forward to ← تصلح للرسمي وغير الرسمي، وتُستخدم كثيراً في نهاية الرسائل: I look forward to hearing from you."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "I can't wait for Eid.",
+                "I can't wait to see my new baby brother.",
+                "We're looking forward to the trip.",
+                "She is looking forward to meeting her cousins.",
+                "I look forward to hearing from you soon."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: I'm looking forward to go to college. ✗ ← الصحيح: to going ✓",
+                "خطأ: I'm looking forward the holidays. ✗ ← الصحيح: looking forward to the holidays ✓",
+                "خطأ: I can't wait the holidays. ✗ ← الصحيح: I can't wait for the holidays. ✓"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Expressing opinions | التعبير عن الرأي (for / against / in favour of)",
+          "ملخص_قصير": "كيف نقول إننا مع أو ضد فكرة أو مشروع: I'm for / against ... و Are you in favour of ...?",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "العبارات",
+              "المحتوى": [
+                "I'm for + اسم ← أنا مع / مؤيد لـ ...",
+                "I'm against + اسم ← أنا ضد / معارض لـ ...",
+                "مثال الكتاب: I'm for / against the new supermarket.",
+                "be in favour of + اسم / فعل مع ing ← مؤيد لـ ...",
+                "مثال الكتاب: Are you in favour of the new road? ← هل أنت مؤيد للطريق الجديد؟",
+                "بعد for / against / in favour of يأتي اسم أو فعل مع ing ← I'm against building a new factory here.",
+                "في الإملاء البريطاني: favour، وفي الأمريكي: favor."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "ذكر السبب",
+              "المحتوى": [
+                "من الأفضل ذكر السبب بعد الرأي باستخدام because:",
+                "I'm for the new supermarket because it will give people jobs.",
+                "I'm against the new road because it will destroy the trees.",
+                "عبارات رأي أخرى: I think ... / In my opinion ... / I agree / I disagree."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "محادثات قصيرة",
+              "المحتوى": [
+                "A: Are you in favour of the new road? — B: Yes, I am. It will make travelling easier.",
+                "A: Are you for or against mobile phones in school? — B: I'm against them. They take students' attention.",
+                "A: I'm in favour of longer holidays. — B: I'm against that. We need more time to study."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: I'm in favour the new road. ✗ ← الصحيح: in favour of ✓",
+                "خطأ: I'm against to build a factory. ✗ ← الصحيح: against building ✓",
+                "خطأ: Are you favour of ...? ✗ ← الصحيح: Are you in favour of ...? ✓"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "اسم_الوحدة": "Language review 3",
+      "الدروس": [
+        {
+          "اسم_الدرس": "Word order in statements and questions | ترتيب الكلمات في الجملة الخبرية والسؤال",
+          "ملخص_قصير": "في الجملة الخبرية الفاعل قبل الفعل، وفي السؤال الفعل المساعد قبل الفاعل، وفي السؤال غير المباشر يرجع ترتيب الجملة الخبرية.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "1- الجملة الخبرية Statements",
+              "المحتوى": [
+                "من الكتاب: In statements, the subject comes before the verb ← في الجملة الخبرية الفاعل يأتي قبل الفعل.",
+                "الترتيب: الفاعل + الفعل + المفعول به + باقي الجملة.",
+                "مثال الكتاب: Aisha was happy. ← Aisha (فاعل) + was (فعل).",
+                "مثال الكتاب: Khalid gave Faysal a book. ← Khalid (فاعل) + gave (فعل) + Faysal (مفعول غير مباشر) + a book (مفعول مباشر).",
+                "ملاحظة: عنوان الدرس في الكتاب مكتوب (World order) وهذا خطأ مطبعي، والصحيح Word order (ترتيب الكلمات)."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "2- السؤال Questions",
+              "المحتوى": [
+                "في السؤال: الفعل المساعد يأتي قبل الفاعل، أو يأتي الفاعل بين جزأي الفعل.",
+                "ملاحظة: الكتاب كتب (the subject comes before the verb) في السؤال، والصحيح أن الفاعل يأتي بعد الفعل (the subject comes after the verb) أو بين جزأي الفعل، كما توضح أمثلة الكتاب نفسها.",
+                "مع فعل be: نقدم الفعل على الفاعل ← Aisha was happy. ← Was Aisha happy? (مثال الكتاب)",
+                "مع الأفعال العادية: نضيف do / does / did قبل الفاعل، والفعل يرجع للمصدر ← Khalid gave Faysal a book. ← Did Khalid give Faysal a book? (مثال الكتاب)",
+                "مع الأفعال المركبة (have been, can go, will come): الفاعل يأتي بين جزأي الفعل ← You have been to India. ← Have you been to India? (مثال الكتاب)",
+                "الصيغة: (أداة استفهام) + فعل مساعد + الفاعل + الفعل الرئيسي + باقي الجملة؟"
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "3- أسئلة أدوات الاستفهام Wh- questions",
+              "المحتوى": [
+                "من الكتاب: Questions beginning with question words What, Who, When, Where, Why, How follow the same rule.",
+                "المعنى: الأسئلة التي تبدأ بأدوات الاستفهام تتبع نفس القاعدة، فقط نضع الأداة في البداية.",
+                "مثال الكتاب: Where were you yesterday?",
+                "مثال الكتاب: Why did Shah Jahan build the Taj Mahal?",
+                "استثناء: إذا سألنا بـ Who / What عن الفاعل نفسه، لا نستخدم do/does/did ويبقى الترتيب عادياً ← Who built the Taj Mahal? ✓ (وليس Who did build ✗)."
+              ]
+            },
+            {
+              "نوع": "مقارنة",
+              "اسم_الجزء": "4- مقارنة مع السؤال غير المباشر Indirect questions",
+              "المحتوى": [
+                "من الكتاب: Compare this with the order of words in indirect questions.",
+                "في السؤال غير المباشر يرجع الترتيب مثل الجملة الخبرية: الفاعل قبل الفعل، وبدون do/does/did.",
+                "Direct: Where were you yesterday? ← Indirect: I'd like to know where you were yesterday. (مثال الكتاب)",
+                "Direct: Why did Shah Jahan build the Taj Mahal? ← Indirect: Can you tell me why Shah Jahan built the Taj Mahal? (مثال الكتاب)",
+                "لاحظ: did اختفت، و build صارت built."
+              ]
+            },
+            {
+              "نوع": "جدول",
+              "اسم_الجزء": "ملخص الترتيب",
+              "المحتوى": [
+                "Statement: Subject + Verb ← Aisha was happy.",
+                "Yes/No question: Auxiliary + Subject + Verb ← Was Aisha happy? / Did Khalid give ...?",
+                "Wh- question: Wh-word + Auxiliary + Subject + Verb ← Where were you?",
+                "Indirect question: Intro + Wh-word + Subject + Verb ← I'd like to know where you were."
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل",
+              "المحتوى": [
+                "كوّن سؤالاً:",
+                "1- Ali is a teacher. ← Is Ali a teacher?",
+                "2- They visited Aden. ← Did they visit Aden?",
+                "3- She can swim. ← Can she swim?",
+                "4- He lives in Ibb. (Where) ← Where does he live?",
+                "حوّل إلى سؤال غير مباشر:",
+                "5- When did the Taj Mahal open? ← Do you know when the Taj Mahal opened?"
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: Aisha was happy? ✗ (كسؤال مكتوب) ← الصحيح: Was Aisha happy? ✓",
+                "خطأ: Did Khalid gave Faysal a book? ✗ ← الصحيح: Did Khalid give ✓",
+                "خطأ: Where you were yesterday? ✗ ← الصحيح: Where were you yesterday? ✓",
+                "خطأ: I'd like to know where were you. ✗ ← الصحيح: where you were ✓"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Question tags - المعنى وطريقة التكوين",
+          "ملخص_قصير": "الأسئلة الذيلية: سؤال قصير في آخر الجملة (isn't it? / doesn't she?) نطلب به موافقة المستمع، وطريقة تكوينه.",
+          "الأجزاء": [
+            {
+              "نوع": "شرح",
+              "اسم_الجزء": "ما هو السؤال الذيلي؟",
+              "المحتوى": [
+                "السؤال الذيلي (Question tag): سؤال قصير نضيفه في آخر الجملة الخبرية فتصبح سؤالاً ← أليس كذلك؟",
+                "من الكتاب:",
+                "We can make statements into questions by adding question tags ← نحول الجمل الخبرية إلى أسئلة بإضافة سؤال ذيلي.",
+                "We use these only in spoken or informal written English ← نستخدمها فقط في الكلام أو الكتابة غير الرسمية.",
+                "We use them when we want someone to agree with what we are saying ← نستخدمها عندما نريد أن يوافقنا الشخص على كلامنا.",
+                "ملاحظة: عنوان الكتاب مكتوب (Questions tags) والصحيح Question tags."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "طريقة التكوين Form",
+              "المحتوى": [
+                "من الكتاب: We form a question tag using verbs be, do, have or a modal followed by a pronoun.",
+                "المعنى: السؤال الذيلي = فعل مساعد (be / do / have / فعل ناقص) + ضمير.",
+                "القاعدة 1: If the verb in the statement is positive, the verb in the tag is usually negative ← جملة مثبتة ← سؤال ذيلي منفي.",
+                "القاعدة 2: If the verb in the statement is negative, the verb in the tag is positive ← جملة منفية ← سؤال ذيلي مثبت.",
+                "الضمير في السؤال الذيلي يعود على الفاعل: Amna ← she / The petrol station ← it / Ali and Omar ← they.",
+                "الفعل المساعد في السؤال الذيلي نفس الفعل المساعد في الجملة وبنفس الزمن.",
+                "في السؤال الذيلي المنفي نستخدم الاختصار دائماً: isn't, doesn't, haven't, won't, can't."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "كيف أختار الفعل المساعد؟",
+              "المحتوى": [
+                "إذا كان في الجملة فعل be (am/is/are/was/were) ← نستخدمه: The petrol station is next to the bank, isn't it?",
+                "إذا كان في الجملة فعل ناقص أو will (can/will/should/must) ← نستخدمه: Amna won't be late, will she?",
+                "إذا كان في الجملة have/has/had كفعل مساعد ← نستخدمه: You've been to India, haven't you?",
+                "إذا كان في الجملة فعل عادي بدون مساعد ← نستخدم do / does / did حسب الزمن:",
+                "   مضارع مع he/she/it ← doesn't: She likes reading, doesn't she?",
+                "   مضارع مع I/you/we/they ← don't: They live here, don't they?",
+                "   ماضي ← didn't: He went home, didn't he?"
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة الكتاب مع التحليل",
+              "المحتوى": [
+                "The petrol station is next to the bank, isn't it? (Expects the answer 'Yes.') ← مثبت (is) ← منفي (isn't it).",
+                "Amna won't be late, will she? (Expects the answer 'No.') ← منفي (won't) ← مثبت (will she).",
+                "You've been to India, haven't you? (Expects the answer 'Yes.') ← مثبت (have) ← منفي (haven't you).",
+                "She likes reading, doesn't she? (Expects the answer 'Yes.') ← فعل عادي مضارع مع she ← doesn't she.",
+                "لاحظ: الجملة المثبتة تتوقع الإجابة Yes، والجملة المنفية تتوقع الإجابة No."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "It's hot today, isn't it?",
+                "You are a student, aren't you?",
+                "He can swim, can't he?",
+                "They didn't come, did they?",
+                "Your father works in a bank, doesn't he?",
+                "We should go now, shouldn't we?",
+                "Sara has finished her homework, hasn't she?",
+                "You weren't at school yesterday, were you?"
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل",
+              "المحتوى": [
+                "1- Ali is your brother, ... ? ← isn't he?",
+                "2- They can't speak French, ... ? ← can they?",
+                "3- You like tea, ... ? ← don't you?",
+                "4- She went to Taiz, ... ? ← didn't she?",
+                "5- It will rain, ... ? ← won't it?",
+                "6- You haven't seen my pen, ... ? ← have you?"
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: She likes reading, isn't she? ✗ ← الصحيح: doesn't she? ✓ (likes فعل عادي).",
+                "خطأ: Amna won't be late, will Amna? ✗ ← الصحيح: will she? ✓ (نستخدم الضمير).",
+                "خطأ: He went home, doesn't he? ✗ ← الصحيح: didn't he? ✓ (ماضي).",
+                "خطأ: They didn't come, didn't they? ✗ ← الصحيح: did they? ✓ (منفي ← مثبت).",
+                "خطأ: It is hot, is not it? ✗ ← الصحيح: isn't it? ✓ (نستخدم الاختصار)."
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Question tags - حالات خاصة وطريقة النطق",
+          "ملخص_قصير": "السؤال الذيلي المثبت بعد جملة مثبتة لإظهار الاهتمام، وحالات خاصة مثل I am و Let's و nobody و never.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "سؤال ذيلي مثبت بعد جملة مثبتة",
+              "المحتوى": [
+                "من الكتاب: We can follow a positive statement with a positive question tag to show interest in something or just to be polite.",
+                "المعنى: يمكن أن نضع سؤالاً ذيلياً مثبتاً بعد جملة مثبتة لنُظهر اهتمامنا أو دهشتنا بشيء عرفناه للتو، أو فقط لنكون مهذبين.",
+                "مثال الكتاب: You saw Taha on his motor bike, did you? ← (آه، شفت طه على دراجته؟ أخبرني أكثر!)",
+                "هنا لا نطلب موافقة، بل نُظهر الاهتمام ← So you're a doctor, are you? That's interesting!"
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "حالات خاصة",
+              "المحتوى": [
+                "I am ← aren't I? ← I'm late, aren't I? (وليس amn't I ✗)",
+                "Let's ← shall we? ← Let's go, shall we?",
+                "فعل الأمر ← will you? / won't you? ← Close the door, will you?",
+                "never / nobody / nothing / hardly (كلمات نفي) ← الجملة تعتبر منفية فيكون السؤال مثبتاً ← He never smokes, does he? / Nobody came, did they?",
+                "nobody / everybody / somebody ← نستخدم they ← Everybody likes him, don't they?",
+                "nothing / everything ← نستخدم it ← Nothing happened, did it?",
+                "There is / There are ← نستخدم there ← There is a bank here, isn't there?",
+                "This / That ← it / These / Those ← they ← This is your book, isn't it?"
+              ]
+            },
+            {
+              "نوع": "ملاحظات",
+              "اسم_الجزء": "طريقة النطق Intonation",
+              "المحتوى": [
+                "إذا نزل الصوت في آخر السؤال الذيلي (↘) ← المتكلم متأكد ويريد الموافقة فقط ← It's hot today, isn't it? ↘",
+                "إذا ارتفع الصوت (↗) ← المتكلم غير متأكد ويسأل فعلاً ← You're coming tomorrow, aren't you? ↗"
+              ]
+            },
+            {
+              "نوع": "ملاحظات",
+              "اسم_الجزء": "الإجابة على السؤال الذيلي",
+              "المحتوى": [
+                "نجيب حسب الحقيقة، وليس حسب شكل السؤال:",
+                "Amna won't be late, will she? ← No, she won't. (إذا لن تتأخر) / Yes, she will. (إذا ستتأخر).",
+                "She likes reading, doesn't she? ← Yes, she does. / No, she doesn't."
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل",
+              "المحتوى": [
+                "1- I'm right, ... ? ← aren't I?",
+                "2- Let's have lunch, ... ? ← shall we?",
+                "3- Nobody phoned, ... ? ← did they?",
+                "4- He never eats meat, ... ? ← does he?",
+                "5- There are many people here, ... ? ← aren't there?",
+                "6- Open the window, ... ? ← will you?"
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: I'm late, am not I? ✗ ← الصحيح: aren't I? ✓",
+                "خطأ: He never smokes, doesn't he? ✗ ← الصحيح: does he? ✓ (never نفي).",
+                "خطأ: Let's go, don't we? ✗ ← الصحيح: shall we? ✓",
+                "خطأ: There is a bank here, isn't it? ✗ ← الصحيح: isn't there? ✓"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Joining ideas with the present participle | ربط فكرتين باسم الفاعل (الفعل + ing)",
+          "ملخص_قصير": "استخدام الفعل مع ing لربط حدثين وقعا في نفس الوقت أو تقريباً في نفس الوقت في جملة واحدة.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "القاعدة",
+              "المحتوى": [
+                "من الكتاب: The present participle is a verb + ing ← اسم الفاعل هو الفعل + ing (picking, smiling, running).",
+                "من الكتاب: We can sometimes use it to join two events that happened at the same time or nearly the same time in one sentence.",
+                "المعنى: نستخدمه لربط حدثين حدثا في نفس الوقت (أو تقريباً) في جملة واحدة بدلاً من جملتين.",
+                "الشرط: أن يكون الفاعل واحداً في الجملتين.",
+                "طريقة الربط: نبقي الجملة الأولى، ثم نضع فاصلة، ثم نحذف الفاعل والفعل المساعد من الجملة الثانية ونضع الفعل مع ing."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة الكتاب مع التحليل",
+              "المحتوى": [
+                "جملتان: 'I'll answer it,' he said. He picked up the phone.",
+                "جملة واحدة: 'I'll answer it,' he said, picking up the phone.",
+                "← حذفنا He و picked وضعنا picking. (قال ذلك وهو يرفع السماعة في نفس الوقت).",
+                "جملتان: My father came in. He was smiling.",
+                "جملة واحدة: My father came in, smiling.",
+                "← حذفنا He was وبقي smiling. (دخل أبي وهو يبتسم)."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "خطوات الربط",
+              "المحتوى": [
+                "1- تأكد أن الفاعل في الجملتين نفس الشخص.",
+                "2- اكتب الجملة الأولى كما هي، ثم ضع فاصلة.",
+                "3- في الجملة الثانية: احذف الفاعل (He / She / They).",
+                "4- إذا كان الفعل ماضياً بسيطاً (picked) حوّله إلى ing (picking).",
+                "5- إذا كان الفعل ماضياً مستمراً (was smiling) احذف was/were وأبقِ الفعل مع ing (smiling).",
+                "يمكن أن يأتي الجزء الذي فيه ing في أول الجملة أيضاً ← Picking up the phone, he said, 'I'll answer it.'"
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "She walked into the room. She was carrying a big box. ← She walked into the room, carrying a big box.",
+                "The boy ran out of the house. He shouted for help. ← The boy ran out of the house, shouting for help.",
+                "My mother sat by the window. She was reading a book. ← My mother sat by the window, reading a book.",
+                "He opened the door. He looked surprised. ← Opening the door, he looked surprised.",
+                "The children left the school. They were laughing. ← The children left the school, laughing."
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل: اربط الجملتين",
+              "المحتوى": [
+                "1- Ali sat down. He was smiling. ← Ali sat down, smiling.",
+                "2- She left the house. She closed the door behind her. ← She left the house, closing the door behind her.",
+                "3- The man stood at the door. He was waiting for the bus. ← The man stood at the door, waiting for the bus.",
+                "4- 'Come in,' she said. She opened the door. ← 'Come in,' she said, opening the door."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: My father came in, he smiling. ✗ ← الصحيح: My father came in, smiling. ✓ (نحذف الفاعل).",
+                "خطأ: He said, picked up the phone. ✗ ← الصحيح: picking up ✓",
+                "خطأ: ربط جملتين فاعلهما مختلف ← My father came in, my mother smiling. ✗ (الفاعل يجب أن يكون واحداً).",
+                "الكتاب يطلب: Do the exercises in your Workbook to practise these language points ← حل تمارين كتاب النشاط."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "اسم_الوحدة": "Language review 4",
+      "الدروس": [
+        {
+          "اسم_الدرس": "Expressing obligation and necessity - must و have to في الحاضر والماضي والمستقبل",
+          "ملخص_قصير": "التعبير عن الإلزام والضرورة بـ must و have to، ولماذا نستخدم had to في الماضي و will have to في المستقبل.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "القاعدة الأساسية",
+              "المحتوى": [
+                "من الكتاب: We use have to and must + the infinitive of a main verb to express obligation and necessity in the present and the future. We cannot use must in the past.",
+                "المعنى: نستخدم have to و must + المصدر للتعبير عن الإلزام (يجب) والضرورة (لازم) في الحاضر والمستقبل، ولا يمكن استخدام must في الماضي.",
+                "must + المصدر (بدون to) مع جميع الضمائر ← I must go / He must go.",
+                "have to / has to + المصدر ← I have to go / He has to go.",
+                "must لا تتغير ولا تأخذ s ولا ed."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "في الحاضر",
+              "المحتوى": [
+                "مثال الكتاب: Drivers must stop when the traffic lights are red. ← قانون / قاعدة.",
+                "مثال الكتاب: I must / have to walk to school because I've missed the bus. ← ضرورة.",
+                "must ← غالباً إلزام من المتكلم نفسه أو من القوانين والتعليمات المكتوبة.",
+                "have to ← غالباً إلزام من ظروف خارجية أو من شخص آخر.",
+                "في كثير من الجمل يمكن استخدام الاثنين بنفس المعنى تقريباً."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "في الماضي: had to فقط",
+              "المحتوى": [
+                "must ليس لها ماضٍ، لذلك نستخدم had to مع جميع الضمائر.",
+                "مثال الكتاب: I had to walk to school because I missed the bus this morning.",
+                "النفي: didn't have to ← I didn't have to go to school yesterday. (لم أكن مضطراً).",
+                "السؤال: Did you have to ...? ← Did you have to wait long?"
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "في المستقبل: must أو will have to",
+              "المحتوى": [
+                "مثال الكتاب: You must / will have to stay in bed if you want to get well.",
+                "لا نقول will must ✗، بل will have to ✓.",
+                "أمثلة: We will have to leave early tomorrow. / You'll have to study harder next year."
+              ]
+            },
+            {
+              "نوع": "جدول",
+              "اسم_الجزء": "ملخص",
+              "المحتوى": [
+                "الحاضر: must / have to / has to",
+                "الماضي: had to (فقط)",
+                "المستقبل: must / will have to",
+                "السؤال في الحاضر: Must I ...? / Do I have to ...? / Does he have to ...?"
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "Students must wear a uniform at school.",
+                "My father has to work on Thursdays.",
+                "I must remember to call my grandmother.",
+                "We had to stay at home because it was raining.",
+                "She had to take her brother to the doctor yesterday.",
+                "You will have to show your passport at the airport."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: I must to go. ✗ ← الصحيح: I must go. ✓",
+                "خطأ: He musts go. ✗ ← الصحيح: He must go. ✓",
+                "خطأ: I musted walk yesterday. ✗ ← الصحيح: I had to walk. ✓",
+                "خطأ: He have to go. ✗ ← الصحيح: He has to go. ✓",
+                "خطأ: You will must stay. ✗ ← الصحيح: You will have to stay. ✓"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Expressing obligation and necessity - الفرق بين mustn't و don't have to",
+          "ملخص_قصير": "mustn't تعني ممنوع، و don't have to تعني غير ضروري (أنت حر).",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "القاعدة",
+              "المحتوى": [
+                "من الكتاب: Note that must not doesn't mean the same as don't have to ← لاحظ أن must not لا تعني نفس معنى don't have to.",
+                "mustn't (must not) ← ممنوع / لا يجوز. الشيء غير مسموح.",
+                "مثال الكتاب: You mustn't eat in class. ← ممنوع الأكل في الفصل.",
+                "don't have to / doesn't have to ← ليس ضرورياً / لست مضطراً. أنت حر، تفعل أو لا تفعل.",
+                "مثال الكتاب: You don't have to wear a uniform if you don't want to. ← لست مضطراً أن تلبس الزي إذا لم ترد."
+              ]
+            },
+            {
+              "نوع": "مقارنة",
+              "اسم_الجزء": "مقارنة واضحة",
+              "المحتوى": [
+                "You mustn't smoke here. ← ممنوع التدخين (إذا دخنت تخالف).",
+                "You don't have to come tomorrow. ← لا داعي أن تأتي غداً (إذا جئت لا مشكلة).",
+                "You mustn't tell anyone. ← ممنوع تخبر أحداً (سر).",
+                "You don't have to tell me. ← لا يلزم أن تخبرني (إذا تحب).",
+                "طريقة سهلة للتذكر: mustn't = لا (ممنوع) / don't have to = مش لازم."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "You mustn't use your mobile phone in the exam.",
+                "Drivers mustn't drive fast near schools.",
+                "We don't have to go to school on Friday.",
+                "She doesn't have to cook today. Her mother is cooking.",
+                "You mustn't be late for the exam.",
+                "I didn't have to pay. It was free."
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل: اختر mustn't أو don't have to",
+              "المحتوى": [
+                "1- You ... park here. It's for the police only. ← mustn't",
+                "2- You ... bring food. We have a lot. ← don't have to",
+                "3- Students ... cheat in exams. ← mustn't",
+                "4- He ... get up early. It's a holiday. ← doesn't have to",
+                "5- You ... touch the wires. They're dangerous. ← mustn't"
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: استخدام mustn't بمعنى (مش لازم) ← You mustn't come tomorrow. ✗ (إذا كان المقصود لا داعي) ← الصحيح: You don't have to come. ✓",
+                "خطأ: He don't have to go. ✗ ← الصحيح: He doesn't have to go. ✓",
+                "خطأ: You mustn't to eat. ✗ ← الصحيح: You mustn't eat. ✓"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Sense verbs | أفعال الحواس (look / sound / taste / feel / smell)",
+          "ملخص_قصير": "أفعال الحواس الخمس ويأتي بعدها صفة وليس ظرفاً.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "القاعدة",
+              "المحتوى": [
+                "من الكتاب: We have five senses: sight, hearing, taste, touch and smell ← لدينا خمس حواس: البصر، السمع، التذوق، اللمس، الشم.",
+                "الأفعال التي تعبر عن الحواس:",
+                "sight (البصر) ← look (يبدو / شكله)",
+                "hearing (السمع) ← sound (يبدو / صوته)",
+                "taste (التذوق) ← taste (طعمه)",
+                "touch (اللمس) ← feel (ملمسه / يشعر)",
+                "smell (الشم) ← smell (رائحته)",
+                "من الكتاب: They are usually followed by adjectives ← يأتي بعدها عادة صفة (وليس ظرف).",
+                "الصيغة: الفاعل + فعل الحاسة + صفة ← It smells great!",
+                "ملاحظة: في الكتاب مكتوب (The verbs that expresses) والصحيح express لأن verbs جمع."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة الكتاب",
+              "المحتوى": [
+                "The old houses look wonderful. ← البيوت القديمة تبدو رائعة.",
+                "That word doesn't sound right. ← تلك الكلمة لا تبدو صحيحة (عند سماعها).",
+                "This meat tastes very good. ← هذا اللحم طعمه جيد جداً.",
+                "Don't you feel well? ← ألا تشعر أنك بخير؟ (well هنا صفة بمعنى بصحة جيدة).",
+                "What's for dinner? It smells great! ← رائحته رائعة!"
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "صفة وليس ظرف",
+              "المحتوى": [
+                "نقول: It tastes good. ✓ وليس It tastes well. ✗",
+                "نقول: She looks beautiful. ✓ وليس She looks beautifully. ✗",
+                "نقول: The music sounds loud. ✓ وليس sounds loudly. ✗",
+                "السبب: فعل الحاسة هنا يصف حالة الشيء (مثل فعل be)، والصفة تصف الفاعل.",
+                "استثناء: well بمعنى (بصحة جيدة) صفة، لذلك نقول I feel well. ✓"
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "look like / sound like / smell like ...",
+              "المحتوى": [
+                "إذا جاء بعد فعل الحاسة اسم (وليس صفة) نضيف like:",
+                "It looks like rain. ← يبدو أنها ستمطر.",
+                "That sounds like a good idea. ← تبدو فكرة جيدة.",
+                "This tastes like chicken. ← طعمه مثل الدجاج.",
+                "It feels like silk. ← ملمسه مثل الحرير."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "You look tired today.",
+                "Your idea sounds interesting.",
+                "This coffee tastes bitter.",
+                "The bread smells fresh.",
+                "The baby's skin feels soft.",
+                "I feel happy when I see my family."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: This meat tastes very well. ✗ ← الصحيح: tastes very good ✓",
+                "خطأ: It smells greatly. ✗ ← الصحيح: It smells great. ✓",
+                "خطأ: That sounds a good idea. ✗ ← الصحيح: sounds like a good idea ✓",
+                "خطأ: The meat taste good. ✗ ← الصحيح: tastes ✓ (مفرد في المضارع)."
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Giving advice and making suggestions | تقديم النصيحة والاقتراح (الأمر / Why not / should / could)",
+          "ملخص_قصير": "استخدام صيغة الأمر للنصيحة والإعلانات، وصيغ أخف منها: Why not ...? / You should ... / You could ...",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "1- صيغة الأمر The imperative",
+              "المحتوى": [
+                "من الكتاب: We can use the imperative structure to give advice or make suggestions. This pattern is often used in advertisements. The verb is in the infinitive form. There is no subject.",
+                "المعنى: نستخدم صيغة الأمر للنصيحة أو الاقتراح، وتُستخدم كثيراً في الإعلانات. الفعل في المصدر ولا يوجد فاعل.",
+                "مثال الكتاب: Come to Green Stores. Our vegetables are the best in town!",
+                "مثال الكتاب: Aim for the best jobs. ← اطمح لأفضل الوظائف.",
+                "النفي: Don't + المصدر ← Don't miss this offer!"
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "2- صيغ أخف من الأمر",
+              "المحتوى": [
+                "من الكتاب: We can also use these patterns. They are not quite as strong as the imperative ← صيغ أخرى ليست بنفس قوة الأمر.",
+                "Why not + المصدر ...? ← Why not set up your own business? ← لماذا لا تؤسس مشروعك الخاص؟ (تنتهي بعلامة استفهام).",
+                "You should + المصدر ← You should set up your own business. ← ينبغي لك أن ... (نصيحة).",
+                "You could + المصدر ← You could set up your own business. ← يمكنك أن ... (اقتراح لطيف، الأخف).",
+                "set up a business ← يؤسس / يبدأ مشروعاً تجارياً.",
+                "الترتيب من الأقوى للأخف: الأمر ← You should ← Why not ...? ← You could."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "Visit Socotra - the most beautiful island in the world!",
+                "Drink more water every day.",
+                "Don't forget to bring your camera.",
+                "Why not study engineering? You're good at maths.",
+                "You should see a doctor.",
+                "You could ask your teacher for help.",
+                "Why don't you join the football club? (صيغة أخرى بمعنى Why not)"
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: You come to Green Stores! ✗ (في الإعلان) ← الصحيح: Come to Green Stores! ✓ (بدون فاعل).",
+                "خطأ: Why not to set up ...? ✗ ← الصحيح: Why not set up ...? ✓",
+                "خطأ: You should to see a doctor. ✗ ← الصحيح: You should see a doctor. ✓",
+                "خطأ: Why not setting up ...? ✗ ← الصحيح: Why not set up ...? ✓"
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Sequence words | كلمات الترتيب (First / Next / Then / After that / Finally)",
+          "ملخص_قصير": "كلمات نستخدمها لترتيب الأحداث أو الخطوات عند وصفها.",
+          "الأجزاء": [
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "القاعدة",
+              "المحتوى": [
+                "من الكتاب: When we describe a sequence of events, we can use these words to introduce the events: First, Next, Then, After that, Finally.",
+                "المعنى: عندما نصف أحداثاً متتالية (قصة، خطوات عمل، وصفة طبخ)، نستخدم هذه الكلمات لتقديم كل حدث.",
+                "First ← أولاً / Next ← بعد ذلك / Then ← ثم / After that ← بعد ذلك / Finally ← أخيراً.",
+                "من الكتاب: We must begin with First and end with Finally; the others can be in any order.",
+                "أي: لا بد أن نبدأ بـ First وننتهي بـ Finally، أما Next و Then و After that فيمكن أن تأتي بأي ترتيب.",
+                "نضع فاصلة بعد First و Next و After that و Finally غالباً، و Then بدون فاصلة غالباً."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "مثال: خطوات عمل الشاي",
+              "المحتوى": [
+                "First, boil some water.",
+                "Next, put the tea in the pot.",
+                "Then pour the hot water on the tea.",
+                "After that, wait for three minutes.",
+                "Finally, add sugar and milk and drink it."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "مثال: وصف يوم",
+              "المحتوى": [
+                "First, I got up at six o'clock and prayed.",
+                "Next, I had breakfast with my family.",
+                "Then I went to school.",
+                "After that, I studied in the library.",
+                "Finally, I came home and did my homework."
+              ]
+            },
+            {
+              "نوع": "ملاحظات",
+              "اسم_الجزء": "كلمات أخرى مفيدة",
+              "المحتوى": [
+                "Firstly / To begin with ← بدل First.",
+                "Secondly / Afterwards / Later ← في الوسط.",
+                "In the end / Lastly ← بدل Finally.",
+                "انتبه: In the end (في النهاية بعد انتظار) تختلف قليلاً عن At the end of (في نهاية شيء) ← at the end of the lesson."
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: البدء بـ Finally أو وضعها في الوسط ✗ ← Finally آخر خطوة دائماً ✓",
+                "خطأ: At first, ... (بمعنى أولاً في الخطوات) ← الأفضل First, ✓ (at first تعني في البداية كانت الحال كذا ثم تغيرت).",
+                "خطأ: After that I finally, ... ✗ (تكرار كلمتي ترتيب في نفس الخطوة)."
+              ]
+            }
+          ]
+        },
+        {
+          "اسم_الدرس": "Word signposts | الكلمات الإرشادية للتضاد والنتيجة (However / On the other hand / Therefore / As a result)",
+          "ملخص_قصير": "كلمات ربط تخبرك بما سيأتي: However و On the other hand للتضاد، و Therefore و Because of this و As a result للنتيجة.",
+          "الأجزاء": [
+            {
+              "نوع": "شرح",
+              "اسم_الجزء": "ما هي الكلمات الإرشادية؟",
+              "المحتوى": [
+                "من الكتاب: When you are reading, look out for words that act like signposts - they tell you what is coming next. Use them in your writing too.",
+                "المعنى: عند القراءة، انتبه للكلمات التي تعمل مثل اللافتات على الطريق، فهي تخبرك بما سيأتي بعدها. واستخدمها في كتابتك أيضاً.",
+                "فائدتها: تساعدك على فهم النص بسرعة، وتجعل كتابتك مترابطة ومنظمة."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "1- كلمات التضاد (Contrast)",
+              "المحتوى": [
+                "من الكتاب: However and On the other hand introduce a contrast. What follows is likely to contrast with what came before.",
+                "المعنى: However (ومع ذلك / لكن) و On the other hand (من ناحية أخرى) تقدمان فكرة مخالفة لما قبلها.",
+                "مثال الكتاب: My dream is to have my own boat. However, unlike my brother, I won't have a crew. ← حلمي أن يكون لي قارب خاص. لكن، بخلاف أخي، لن يكون لدي طاقم.",
+                "مثال الكتاب: Rashid is very clever. On the other hand, he is very lazy. ← راشد ذكي جداً. من ناحية أخرى، هو كسول جداً.",
+                "تأتي غالباً في بداية جملة جديدة وبعدها فاصلة.",
+                "الفرق بين However و but: but تربط داخل نفس الجملة (He is clever but lazy)، أما However فتبدأ جملة جديدة."
+              ]
+            },
+            {
+              "نوع": "قاعدة",
+              "اسم_الجزء": "2- كلمات النتيجة (Result)",
+              "المحتوى": [
+                "من الكتاب: Therefore, Because of this and As a result introduce a result.",
+                "المعنى: Therefore (لذلك) و Because of this (بسبب هذا) و As a result (نتيجة لذلك) تقدم نتيجة لما قبلها.",
+                "مثال الكتاب: I don't have a car. Therefore / Because of this / As a result, I'll have to travel by bus or taxi.",
+                "← ليس لدي سيارة (السبب). لذلك سأضطر أن أسافر بالباص أو التاكسي (النتيجة).",
+                "تأتي في بداية جملة جديدة وبعدها فاصلة.",
+                "الفرق بين Therefore و so: so تربط داخل نفس الجملة (I don't have a car, so I take the bus)."
+              ]
+            },
+            {
+              "نوع": "أمثلة",
+              "اسم_الجزء": "أمثلة إضافية",
+              "المحتوى": [
+                "Living in the city is exciting. However, it is very noisy.",
+                "Mobile phones are useful. On the other hand, they can waste our time.",
+                "It rained heavily. As a result, the roads were closed.",
+                "He didn't study. Therefore, he failed the exam.",
+                "The factory closed. Because of this, many people lost their jobs."
+              ]
+            },
+            {
+              "نوع": "تدريب",
+              "اسم_الجزء": "تدريب مع الحل: اختر However أو Therefore",
+              "المحتوى": [
+                "1- The test was difficult. ..., most students passed. ← However",
+                "2- I was ill. ..., I stayed at home. ← Therefore",
+                "3- The car is old. ..., it's very reliable. ← However",
+                "4- There was no bus. ..., we walked. ← As a result / Therefore"
+              ]
+            },
+            {
+              "نوع": "أخطاء_شائعة",
+              "اسم_الجزء": "أخطاء يقع فيها الطلاب",
+              "المحتوى": [
+                "خطأ: Rashid is clever. Therefore, he is lazy. ✗ (المعنى متضاد وليس نتيجة) ← الصحيح: However / On the other hand ✓",
+                "خطأ: I don't have a car. However, I travel by bus. ✗ (هذه نتيجة) ← الصحيح: Therefore ✓",
+                "خطأ: On other hand ✗ ← الصحيح: On the other hand ✓",
+                "الكتاب يطلب: Do the exercises in your Workbook to practise these language points ← حل تمارين كتاب النشاط."
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

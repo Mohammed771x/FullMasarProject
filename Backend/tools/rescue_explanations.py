@@ -57,8 +57,8 @@ def missing_lessons():
             for unit, name, lesson in lessons_of(book):
                 src = serialize_lesson(lesson, unit, subject=s)
                 fp = src
-                if s == "رياضيات":
-                    m = load_math_lesson(unit, name)
+                if s == "رياضيات" and g == 3:
+                    m = load_math_lesson(unit, name, g, t)
                     if m is None:
                         continue
                     fp = LC.math_source(m)

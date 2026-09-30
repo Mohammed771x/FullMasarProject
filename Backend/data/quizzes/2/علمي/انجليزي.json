@@ -932,8 +932,8 @@
     "why": "A passive sentence must have be + the third form, and the time is past: was destroyed."
    },
    {
-    "id": "311f9096a087",
-    "q": "Why is the doer not mentioned in *My wallet was taken from my bag.* ?",
+    "id": "bc6e0b03a83d",
+    "q": "Why is the doer not mentioned in *My wallet was taken from my bag*?",
     "options": [
      "Because the doer is a famous person everybody knows",
      "Because the sentence has no past participle",
@@ -2285,8 +2285,8 @@
     "why": "After 'She asked me' the words follow statement order: 'where the nearest hospital is'."
    },
    {
-    "id": "7bd396c0abcf",
-    "q": "What is the difference between *When did they arrive?* and *I wonder when they arrived.*?",
+    "id": "7c6e497d1c9d",
+    "q": "What is the difference between *When did they arrive?* and *I wonder when they arrived*?",
     "options": [
      "The first is a direct question; the second is indirect with statement word order.",
      "The first is indirect; the second is a direct question.",
@@ -3802,8 +3802,8 @@
     "why": "The softer suggestion is “You could + the infinitive”, with no “to” and no extra helping verb."
    },
    {
-    "id": "69305c2e81aa",
-    "q": "What is the difference in form between *Why not take the bus?* and *You should take the bus.*?",
+    "id": "343529882213",
+    "q": "What is the difference in form between *Why not take the bus?* and *You should take the bus*?",
     "options": [
      "The first is a question with no subject; the second has a subject and a modal verb.",
      "The first is an imperative; the second is a question.",
@@ -3819,8 +3819,8 @@
     "why": "“Why not + infinitive?” is a question without a subject, while “You should + infinitive” has the subject “You” and the modal “should”."
    },
    {
-    "id": "3ef3007588b8",
-    "q": "Why is there no subject in the advice *Wash your hands before eating.*?",
+    "id": "4a751d203dcb",
+    "q": "Why is there no subject in the advice *Wash your hands before eating*?",
     "options": [
      "Because it is in the imperative, which has no subject and uses the infinitive.",
      "Because the missing subject must be 'it'.",
@@ -7493,8 +7493,8 @@
     "why": "A command alone may sound impolite, so we add 'please' or use a question form."
    },
    {
-    "id": "83461afb5e5b",
-    "q": "Make this command polite with 'Could you ... ?': *Open the window.*",
+    "id": "016162e67c35",
+    "q": "Make this command polite with 'Could you ...?': *Open the window.*",
     "options": [
      "Could you opening the window?",
      "Could you to open the window?",

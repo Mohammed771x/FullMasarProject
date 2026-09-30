@@ -35,9 +35,9 @@ async def salvage_marker_only() -> None:
                 continue
             unit, name, lesson = hit
             fp = serialize_lesson(lesson, unit, subject=subject)
-            if subject == "رياضيات":
+            if subject == "رياضيات" and int(grade) == 3:
                 from subjects.common import load_math_lesson
-                m = load_math_lesson(unit, name)
+                m = load_math_lesson(unit, name, int(grade), track)
                 if m is None:
                     keep[key] = e
                     continue
@@ -85,9 +85,9 @@ async def rescan_all() -> None:
                 still += 1
                 continue
             fp = source
-            if subject == "رياضيات":
+            if subject == "رياضيات" and int(grade) == 3:
                 from subjects.common import load_math_lesson
-                m = load_math_lesson(unit, name)
+                m = load_math_lesson(unit, name, int(grade), track)
                 if m is None:
                     keep[key] = e
                     continue

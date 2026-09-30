@@ -563,11 +563,11 @@ async def _dispatch_subject(req):
     if subject in NEW_SUBJECT_HANDLERS:
         return await NEW_SUBJECT_HANDLERS[subject](req, AI_CLIENTS)
 
-    # ── 🆕 مسارا النسخة الثالثة (اختياريان — لا يمسّان التدفق القديم) ──
-    # الرياضيات تبقى على معالجها الأصلي دائماً (هي وضع دروس بطبيعتها)
-    if req.content_mode == "lessons" and subject != "رياضيات" and req.mode != "وزاري":
+    # ── 🆕 مسارا v3. 📐 رياضيات الثالث بفروعها، والأول والثاني كالفيزياء.
+    math_branches = v3_curriculum.uses_math_branches(subject, req.grade, req.track)
+    if req.content_mode == "lessons" and not math_branches and req.mode != "وزاري":
         return await v3_lesson_mode.handle(req, AI_CLIENTS)
-    if req.content_mode == "pages" and subject != "رياضيات" and req.mode != "وزاري":
+    if req.content_mode == "pages" and not math_branches and req.mode != "وزاري":
         # الأحياء (الثالث العلمي) لها معالجها الأصلي المجرّب — نبقيه كما هو
         if not (subject == "احياء" and req.grade == 3 and req.track == "علمي"):
             return await v3_pages_mode.handle(req, AI_CLIENTS)
@@ -576,8 +576,8 @@ async def _dispatch_subject(req):
     # 🚧 حارس الصفوف: ما دون الثالث العلمي لا يُسلَّم للمعالجات القديمة
     # ══════════════════════════════════════════════════════════
     # (راجع LEGACY_CONTENT_SCOPE أعلاه). نحاول خدمته من طبقة v3 المحكومة
-    # بالصف — وإن لم يوجد ملف لصفّه، رسالة «قيد الإضافة» لا محتوى غيره.
-    if not _is_legacy_content_scope(req.grade, req.track):
+    # بالصف — وإلا «قيد الإضافة». 📐 ورياضيات الثالث الأدبي تعبره إلى معالجها.
+    if not _is_legacy_content_scope(req.grade, req.track) and not math_branches:
         if req.mode != "وزاري":
             _g, _t = v3_curriculum.normalize_grade_track(req.grade, req.track)
             _caps = v3_capabilities.describe(_g, _t, subject)
@@ -676,10 +676,9 @@ async def _ask_guards(req, request: Request):
     image_text = ""
     if req.all_images():
         try:
-            extracted = []
-            for img in req.all_images():
-                clean, mime = v3_image_guard.validate(img)
-                extracted.append(await v3_vision.image_to_text(clean, mime, AI_CLIENTS))
+            # 📷 البابُ الوحيد لقراءة الصور — فيه حدُّ الصور اليومي ([core/vision]).
+            extracted = await v3_vision.extract_images(
+                req.all_images(), AI_CLIENTS, uid=identity["uid"], subject=req.subject)
         except (v3_image_guard.ImageRejected, v3_vision.VisionFailed) as e:
             await v3_billing.settle_quota(v3_quota, identity)
             v3_idem.abandon(identity["uid"], req.request_id)
@@ -689,7 +688,8 @@ async def _ask_guards(req, request: Request):
         # ونحتفظ بنسختين إضافيتين: نظيفة للبحث، وأصلية لأرقام الصفحات.
         req.student_text = req.content or ""
         req.search_text = v3_vision.search_text(extracted, req.content)
-        req.content = v3_vision.merge_into_question(extracted, req.content)
+        req.content = v3_vision.merge_into_question(
+            extracted, req.content, req.subject)
         # ⭐ ويعود للعميل كي **يخزّنه مع رسالة الطالب**: بدونه تُنسى الصورة
         #    في السؤال التالي، لأن التاريخ نصٌّ لا صور ([32§5]).
         image_text = v3_vision.history_text(extracted)

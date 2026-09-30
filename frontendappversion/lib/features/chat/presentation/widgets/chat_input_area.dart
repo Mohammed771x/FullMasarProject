@@ -10,6 +10,8 @@ import '../controllers/chat_controller.dart';
 import '../../../../core/media/image_editor_screen.dart';
 import '../../../../core/widgets/voice_recording_bar.dart';
 import '../../../../core/widgets/input_bar_metrics.dart';
+import '../../../../core/widgets/math_text.dart';
+import '../../../../core/math_keyboard/math_input_field.dart';
 import '../../../../core/tour/tour_anchor.dart';
 import '../../../future_masar/presentation/tours/education_tour.dart';
 
@@ -197,6 +199,34 @@ class ChatInputArea extends StatelessWidget {
             // ⛔ **زرّ الإعدادات (`tune`) أُزيل من هنا**: لوحة الجلسة صارت
             //    بطاقةً في أعلى الشاشة لها رأسٌ يطويها ويفتحها — فزرٌّ
             //    ثانٍ لنفس الوظيفة تكرار.
+            // 👁️ **معاينةٌ مرسومة** — كُتبت كسورٌ بكيبورد الرياضيات ثم انتقل
+            //    الطالب إلى كيبورد الجوال: الحقلُ يعرض الترميز خاماً، وهذه
+            //    ترسمه كما سيُرسل.
+            if (!controller.mathKeyboardActive &&
+                !controller.isRecording &&
+                hasMathMarkup(controller.inputController.text))
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                alignment: AlignmentDirectional.centerStart,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceWhite,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.inputBarBorder),
+                ),
+                child: MathText(
+                  controller.inputController.text,
+                  style: TextStyle(
+                    fontSize: kInputFontSize,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.inputBarText,
+                    height: 1.5,
+                  ),
+                ),
+              ),
             if (controller.isRecording)
               VoiceRecordingBar(
                 onDelete: () => controller.deleteVoiceRecording(),
@@ -257,76 +287,109 @@ class ChatInputArea extends StatelessWidget {
                           ),
                         ),
                       Expanded(
-                        child: TextField(
-                          controller: controller.inputController,
-                          // ⌨️ تركيزُه وحده يطوي بطاقةَ الإعدادات، ونقرةٌ على
-                          //    المحادثة تُسقطه ([ChatController.inputFocus]).
-                          focusNode: controller.inputFocus,
-                          // ⌨️ يبقى مفتوحاً أثناء البثّ: الطالب يُحضّر سؤاله
-                          //    التالي وهو يقرأ. المنعُ على **الإرسال** وحده.
-                          enabled:
-                              !controller.isLoading ||
-                              controller.messages.isEmpty,
-                          minLines: 1,
-                          maxLines: 4,
-                          onChanged: (_) => controller.refresh(),
-                          // 🔠 **16 لا 12.5** (ملاحظة المالك ٢٠٢٦-٠٩-٢٣: «الكتابة
-                          //    في مربع الإرسال صغيرة جداً — خلّها زي ChatGPT
-                          //    وClaude»). ١٦ مقاسُ حقول الكتابة فيهما، وهو
-                          //    أيضاً **الحدُّ الذي لا يُكبّر iOS الصفحةَ دونه**
-                          //    عند التركيز في الويب — فالقراءةُ مريحةٌ بلا
-                          //    تكبير. والتلميحُ بالمقاس نفسِه كي لا يقفز
-                          //    السطرُ حين يبدأ الطالبُ الكتابة.
-                          style: TextStyle(
-                            fontSize: kInputFontSize,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.inputBarText,
-                          ),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            // 🩹 **بلا تعبئة.** سمةُ التطبيق العامة
-                            //    (`inputDecorationTheme`) تملأ كلَّ حقلٍ بلونٍ
-                            //    رمادي، فظهر لوحٌ داخل الشريط الأبيض. وفي
-                            //    التصميم الشريطُ **أبيضُ متّصل** من المايك إلى
-                            //    الكاميرا — قِستُ بكسلاته: 255 بلا انقطاع.
-                            filled: false,
-                            // 🚦 **التلميحُ يقول ما ينقص** قبل أن يُضغط شيء:
-                            //    «اختر الدرس أولاً» أوضحُ من زرٍّ باهتٍ صامت.
-                            hintText: controller.isCleaningVoice
-                                ? "✨ جارٍ ترتيب النص..."
-                                : (blocker != null
-                                      ? "$blocker ☝️"
-                                      : controller.awaitingTeacherConcept
-                                      // 💡 التبسيطُ: أولُ رسالةٍ هي المفهوم.
-                                      ? "اكتب المفهوم الذي تريد تبسيطه..."
-                                      : "اسأل مسار أو اكتب مسألتك هنا..."),
-                            hintMaxLines: 1,
-                            hintStyle: TextStyle(
-                              fontSize: kInputFontSize,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.inputBarIcon,
-                            ),
-                            // 📏 **9 لا 12**: السطرُ صار أطول (١٦×١٫٦ ≈ ٢٦)،
-                            //    فتبقى مراكزُ الحقل والكاميرا ودائرة الإرسال
-                            //    على خطٍّ واحد (٩ + ١٣ = ٢٢ ≈ نصفُ ٤٢ + هامش).
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: kInputVPad,
-                            ),
-                            // ⚠️ **الأربعةُ جميعاً.** `border` وحدها لا تكفي:
-                            //    فلاتر تأخذ `enabledBorder` و`focusedBorder`
-                            //    من سمة التطبيق حين لا تُذكر هنا — فبقي إطارٌ
-                            //    رماديٌّ مستديرٌ حول الحقل داخل الشريط الأبيض.
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            disabledBorder: InputBorder.none,
-                          ),
-                          onSubmitted: (_) {
-                            if (canSend) controller.processRequest();
-                          },
-                        ),
+                        child: controller.mathKeyboardActive
+                            // 🧮 **حقلٌ يرسم ما يُكتب** بكيبورد الرياضيات —
+                            //    والتلميحُ والبوّابةُ هما هما.
+                            ? MathInputField(
+                                editor: controller.mathEditor,
+                                focusNode: controller.inputFocus,
+                                enabled:
+                                    !controller.isLoading ||
+                                    controller.messages.isEmpty,
+                                hint: blocker != null
+                                    ? "$blocker ☝️"
+                                    : "اكتب مسألتك هنا...",
+                                style: TextStyle(
+                                  fontSize: kInputFontSize + 1,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.inputBarText,
+                                  height: 1.5,
+                                ),
+                                hintStyle: TextStyle(
+                                  fontSize: kInputFontSize,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.inputBarIcon,
+                                ),
+                              )
+                            : TextField(
+                                controller: controller.inputController,
+                                // ⌨️ تركيزُه وحده يطوي بطاقةَ الإعدادات، ونقرةٌ على
+                                //    المحادثة تُسقطه ([ChatController.inputFocus]).
+                                focusNode: controller.inputFocus,
+                                // ⌨️ يبقى مفتوحاً أثناء البثّ: الطالب يُحضّر سؤاله
+                                //    التالي وهو يقرأ. المنعُ على **الإرسال** وحده.
+                                enabled:
+                                    !controller.isLoading ||
+                                    controller.messages.isEmpty,
+                                minLines: 1,
+                                maxLines: 4,
+                                onChanged: (_) => controller.refresh(),
+                                // 🔠 **16 لا 12.5** (ملاحظة المالك ٢٠٢٦-٠٩-٢٣: «الكتابة
+                                //    في مربع الإرسال صغيرة جداً — خلّها زي ChatGPT
+                                //    وClaude»). ١٦ مقاسُ حقول الكتابة فيهما، وهو
+                                //    أيضاً **الحدُّ الذي لا يُكبّر iOS الصفحةَ دونه**
+                                //    عند التركيز في الويب — فالقراءةُ مريحةٌ بلا
+                                //    تكبير. والتلميحُ بالمقاس نفسِه كي لا يقفز
+                                //    السطرُ حين يبدأ الطالبُ الكتابة.
+                                style: TextStyle(
+                                  fontSize: kInputFontSize,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.inputBarText,
+                                ),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  // 🩹 **بلا تعبئة.** سمةُ التطبيق العامة
+                                  //    (`inputDecorationTheme`) تملأ كلَّ حقلٍ بلونٍ
+                                  //    رمادي، فظهر لوحٌ داخل الشريط الأبيض. وفي
+                                  //    التصميم الشريطُ **أبيضُ متّصل** من المايك إلى
+                                  //    الكاميرا — قِستُ بكسلاته: 255 بلا انقطاع.
+                                  filled: false,
+                                  // 🚦 **التلميحُ يقول ما ينقص** قبل أن يُضغط شيء:
+                                  //    «اختر الدرس أولاً» أوضحُ من زرٍّ باهتٍ صامت.
+                                  hintText: controller.isCleaningVoice
+                                      ? "✨ جارٍ ترتيب النص..."
+                                      : (blocker != null
+                                            ? "$blocker ☝️"
+                                            : controller.awaitingTeacherConcept
+                                            // 💡 التبسيطُ: أولُ رسالةٍ هي المفهوم.
+                                            ? "اكتب المفهوم الذي تريد تبسيطه..."
+                                            : "اسأل مسار أو اكتب مسألتك هنا..."),
+                                  hintMaxLines: 1,
+                                  hintStyle: TextStyle(
+                                    fontSize: kInputFontSize,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.inputBarIcon,
+                                  ),
+                                  // 📏 **9 لا 12**: السطرُ صار أطول (١٦×١٫٦ ≈ ٢٦)،
+                                  //    فتبقى مراكزُ الحقل والكاميرا ودائرة الإرسال
+                                  //    على خطٍّ واحد (٩ + ١٣ = ٢٢ ≈ نصفُ ٤٢ + هامش).
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: kInputVPad,
+                                  ),
+                                  // ⚠️ **الأربعةُ جميعاً.** `border` وحدها لا تكفي:
+                                  //    فلاتر تأخذ `enabledBorder` و`focusedBorder`
+                                  //    من سمة التطبيق حين لا تُذكر هنا — فبقي إطارٌ
+                                  //    رماديٌّ مستديرٌ حول الحقل داخل الشريط الأبيض.
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
+                                ),
+                                onSubmitted: (_) {
+                                  if (canSend) controller.processRequest();
+                                },
+                              ),
                       ),
+                      // 🧮 **العودةُ إلى كيبورد الرياضيات** — في مادة الرياضيات
+                      //    حين اختار الطالبُ كيبورد الجوال («أ ب ج» في كيبورد
+                      //    الرياضيات هو الاتجاهُ المعاكس).
+                      if (!isGenerating &&
+                          controller.selectedSubject == "رياضيات" &&
+                          !controller.mathKeyboardActive)
+                        _MathToggle(
+                          onTap: () => controller.setMathKeyboard(true),
+                        ),
                       // 🎤 المايك
                       if (!isGenerating)
                         controller.isCleaningVoice
@@ -660,6 +723,35 @@ class _RoundIcon extends StatelessWidget {
         width: size,
         height: kInputSideBox,
         child: Icon(icon, size: 20, color: color),
+      ),
+    ),
+  );
+}
+
+/// 🧮 زرُّ كيبورد الرياضيات — «√س» بحجم أيقونات الشريط.
+class _MathToggle extends StatelessWidget {
+  const _MathToggle({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: SizedBox(
+        width: 36,
+        height: kInputSideBox,
+        child: Center(
+          child: Text(
+            "√س",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
       ),
     ),
   );

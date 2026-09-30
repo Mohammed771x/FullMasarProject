@@ -42,6 +42,9 @@ _DATA_ROOT = os.path.realpath(BASE_SUBJECTS_DIR)
 
 MATH_SUBJECT = "رياضيات"
 MATH_BRANCHES = ["تفاضل", "تكامل", "جبر", "هندسة", "احتمالات"]
+# ترتيبُ العرض وحده — الفروعُ نفسُها مجلّداتٌ على القرص. العلمي أولاً ثم الأدبي
+# (مبدأ العد · الإحصاء · التكامل)، وما ليس هنا يأتي بعدها أبجدياً.
+MATH_UNIT_ORDER = MATH_BRANCHES + ["مبدأ العد", "الإحصاء", "التكامل"]
 
 LESSONS_DIR = "lessons_mode"
 UNIT_DIR = "unit_mode"
@@ -217,7 +220,7 @@ def get_lessons_book(grade, track, subject):
     built = _lessons_book_from_dir(root, subject)
     if built is not None:
         if subject == MATH_SUBJECT:
-            order = {b: i for i, b in enumerate(MATH_BRANCHES)}
+            order = {b: i for i, b in enumerate(MATH_UNIT_ORDER)}
             built["الوحدات"].sort(key=lambda u: order.get(u["اسم_الوحدة"], len(order)))
         return built
     return None
