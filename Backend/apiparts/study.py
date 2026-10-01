@@ -94,7 +94,7 @@ async def quiz_generate(req: QuizRequest, request: Request):
             {"answer": v3_quota.message_for(identity["is_guest"]),
              "quota_exceeded": True, "is_guest": identity["is_guest"]}, 429)
     identity["_quota_reservation"] = reservation
-    v3_billing.start()
+    v3_billing.start(identity["uid"], "quiz")
 
     result = None
     try:
@@ -131,6 +131,11 @@ async def voice_clean(req: VoiceCleanRequest, request: Request):
                               v3_ratelimit.VOICE_LIMIT, v3_ratelimit.VOICE_WINDOW):
         return JSONResponse(status_code=429, content={"answer": v3_ratelimit.RATE_LIMIT_MESSAGE})
 
+    if not v3_ratelimit.check_user(identity["uid"], v3_ratelimit.VOICE_DAILY,
+                                   v3_ratelimit.VOICE_DAY, scope="voice_day"):
+        # 🎤 السقفُ اليومي: النصُّ الخام كما التقطه الجهاز — بلا خطأٍ ولا نداء.
+        return {"text": req.text, "cleaned": False, "daily_limit": True}
+    v3_billing.start(identity["uid"], "voice")   # 💰 لسطر التكلفة وحده
     return await v3_voice_clean.clean(req.text, AI_CLIENTS, req.subject)
 
 
@@ -155,6 +160,7 @@ async def chat_title(req: TitleRequest, request: Request):
         return JSONResponse(status_code=429,
                             content={"answer": v3_ratelimit.RATE_LIMIT_MESSAGE})
 
+    v3_billing.start(uid, "title")   # 💰 لسطر التكلفة وحده
     title = await v3_chat_title.make_title(
         req.question, AI_CLIENTS, answer=req.answer,
         subject=req.subject, section=req.section)

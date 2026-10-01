@@ -29,7 +29,7 @@
 
 import asyncio
 
-from . import streaming
+from . import ai_usage, streaming
 import re
 import threading
 import time
@@ -580,7 +580,7 @@ async def try_prompt(tool: str, kind: str, prompt_text: str, question: str,
     _think = reasoning_kwargs(model_name, "chat", _want)
 
     try:
-        response = await asyncio.wait_for(
+        response = ai_usage.record_response(await asyncio.wait_for(   # 💰 ويُسجَّل ثمنه
             client.chat.completions.create(
                 model=model_name,
                 messages=[{"role": "system", "content": system},
@@ -590,7 +590,7 @@ async def try_prompt(tool: str, kind: str, prompt_text: str, question: str,
                 max_tokens=_budget[0], temperature=0.3, **_think,
             ),
             timeout=_budget[1],
-        )
+        ), model_name, "admin_try")
         # نفس التنظيف: اللوحة يجب أن ترى **ما سيراه المعلّم حرفياً**.
         return {"answer": clean_math(response.choices[0].message.content, subject),
                 "ok": True}

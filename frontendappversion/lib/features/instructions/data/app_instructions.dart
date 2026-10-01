@@ -131,7 +131,7 @@ class AppInstructions {
   static Map<String, String> forSubject(String subject,
           {required int grade, required Track track}) =>
       {
-        "video_url": _g(subject).video,
+        "video_url": "", // 🎬 روابطُ يوتيوب حُذفت (٢٠٢٦-١٠-٠١) — الجولةُ تغني عنها
         "text": _compose(subject, grade, track),
       };
 
@@ -157,7 +157,6 @@ class AppInstructions {
     // ───────────────── العلمية ─────────────────
     "احياء": _Guide(
       title: "الأحياء",
-      video: "https://youtu.be/ZaRPocBpnok?si=J85bBuwG-CObfXVv",
       lead: "مادةٌ تراكيبُها ومصطلحاتُها كثيرة — والشرحُ هنا يربط التركيب بوظيفته "
           "لا يسردهما.",
       method: """1️⃣ اشرح الدرس أولاً حتى تفهم الفكرة العامة.
@@ -187,7 +186,6 @@ class AppInstructions {
 
     "فيزياء": _Guide(
       title: "الفيزياء",
-      video: "https://youtu.be/Jos6lfckYBs?si=O05rvK9pMfQ998kz",
       lead: "قوانينُ ومسائل — والتطبيقُ يكتب المعادلات والرموز مرسومةً كما في "
           "الكتاب، لا حروفاً متراصّة.",
       method: """1️⃣ افهم القانون ومعنى كل رمزٍ فيه أولاً.
@@ -206,7 +204,6 @@ class AppInstructions {
 
     "كيمياء": _Guide(
       title: "الكيمياء",
-      video: "https://youtu.be/t3DsL4WAFJU?si=dGLC0fcTYlDJHfL0",
       lead: "معادلاتٌ ورموزٌ وتفاعلات — وتُكتب لك بالصيغة الصحيحة: الدليل "
           "منخفضاً، والشرطُ فوق السهم، والحلقاتُ مرسومة.",
       method: """1️⃣ ابدأ بالمفاهيم والتعريفات قبل المعادلات.
@@ -225,7 +222,6 @@ class AppInstructions {
 
     "رياضيات": _Guide(
       title: "الرياضيات",
-      video: "https://youtu.be/1PCKDLGmqcE?si=2s6GnbS6GW2nsYaS",
       lead: "دروسٌ تُشرح بأمثلتها — والحلولُ تُكتب بخطوات، والكسورُ والجذور "
           "تُرسم كما في الكتاب.",
       method: """1️⃣ ذاكر درساً واحداً في كل جلسة ولا تخلط الدروس.
@@ -243,7 +239,6 @@ class AppInstructions {
     // ───────────────── اللغات ─────────────────
     "عربي": _Guide(
       title: "اللغة العربية",
-      video: "https://youtu.be/hUf1n1a8Ejo?si=kO26OOAvTLOySEEm",
       lead: "نحوٌ وصرفٌ وأدبٌ ونصوصٌ وتعبير — ولكل بابٍ منها طريقةُ مذاكرةٍ "
           "تختلف عن الآخر.",
       method: """1️⃣ **النحو والصرف:** افهم القاعدة ثم أعرِب أمثلةً عليها.
@@ -265,7 +260,6 @@ class AppInstructions {
 
     "انجليزي": _Guide(
       title: "اللغة الإنجليزية",
-      video: "https://youtu.be/IJeM6jKZFp4?si=D2OblwII5_Qzz8zO",
       lead: "قواعدُ ومفرداتٌ ونصوص — **والشرحُ والإجابات كلُّها بالعربية** "
           "لتسهيل الفهم.",
       method: """1️⃣ **التعاريف والمفردات:** ابدأ من «ملخصات الإنجليزي» في قسم
@@ -524,7 +518,6 @@ class _Guide {
     required this.ask,
     this.exam = "",
     this.method = "",
-    this.video = "",
     this.notes = const {},
   });
 
@@ -543,9 +536,6 @@ class _Guide {
 
   /// وضعُ الوزاري — **لا يُعرض إلا للثالث** ([Curriculum.modesFor]).
   final String exam;
-
-  /// فيديو «كيف تستعمل هذا القسم» — واحدٌ للمادة يشرحها لكل الصفوف.
-  final String video;
 
   /// ملاحظاتٌ يخصّ كلٌّ منها صفّاً بعينه (حقيقةُ محتوىً لا تعميم).
   final Map<int, String> notes;

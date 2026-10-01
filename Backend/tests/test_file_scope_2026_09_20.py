@@ -155,6 +155,7 @@ def test_the_route_table_is_whole():
                  "/chat/title"):
         assert must in paths, f"مسارٌ ضاع في التفكيك: {must}"
     # 🏷️ ٨٣ ⇐ ٨٤ (٢٠٢٦-٠٩-٢٤): `/chat/title` — اسمُ المحادثة من أول سؤال.
-    assert len(api.app.routes) == 84, (
+    # 🏷️ ٨٤ ⇐ ٨٥ (٢٠٢٦-١٠-٠٢): `/admin/ai-usage` — التوكنات والتكلفة الفعلية.
+    assert len(api.app.routes) == 85, (
         f"تغيّر عددُ المسارات: {len(api.app.routes)} — إن كانت إضافةً مقصودةً "
         "فحدّث الرقم، وإلا فجزءٌ لم يُستورد أو استُورد مرّتين")

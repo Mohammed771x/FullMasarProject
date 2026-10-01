@@ -452,6 +452,7 @@ class AdminSettingsRequest(BaseModel):
     """⚙️ الإعدادات العامة القابلة للتحرير من اللوحة."""
     quota_ask: Optional[int] = Field(default=None, ge=1, le=1000)
     quota_guest: Optional[int] = Field(default=None, ge=0, le=100)
+    quota_guest_pool: Optional[int] = Field(default=None, ge=0, le=100000)  # كل الزوّار/يوم
     # 📷 صورُ كلّ مستخدمٍ يومياً في كل الأقسام — ٠ يعني إيقافَ الصور كلياً.
     quota_images: Optional[int] = Field(default=None, ge=0, le=200)
 

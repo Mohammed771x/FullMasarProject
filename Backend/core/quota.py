@@ -219,6 +219,10 @@ async def arefund_image(uid: str) -> None:
 
 
 def message_for(is_guest: bool) -> str:
+    if is_guest:
+        from . import guest_pool
+        if guest_pool.exhausted():          # 🧪 نفدت ميزانية الزوّار المشتركة
+            return guest_pool.POOL_MESSAGE
     tpl = QUOTA_MESSAGE_GUEST if is_guest else QUOTA_MESSAGE_STUDENT
     return tpl.format(limit=limit_for(is_guest))
 
@@ -322,11 +326,22 @@ def check_and_consume(uid: str, is_guest: bool = False):
     """
     key = doc_id(uid, is_guest)
     limit = limit_for(is_guest, uid)
+    # 🧪 الزائر يمرّ أولاً بميزانية الزوّار المشتركة — حدُّه الفردي وحده كان
+    #    يُتخطّى بصنع حسابٍ مجهولٍ جديد ([core/guest_pool]).
+    pooled = is_guest and limit < UNLIMITED_ASKS
+    if pooled:
+        from . import guest_pool
+        if not guest_pool.take():
+            return False, 0
     try:
         db = _firestore()
         if db is not None:
-            return _consume_firestore(db, key, limit)
-        return _consume_memory(key, limit)
+            allowed, remaining = _consume_firestore(db, key, limit)
+        else:
+            allowed, remaining = _consume_memory(key, limit)
+        if pooled and not allowed:
+            guest_pool.give_back()          # تجربتُه نفدت: لا تأكل من الميزانية
+        return allowed, remaining
     except Exception as e:
         print(f"⚠️ تعذّر احتساب الحصة ({e}) — سُمح بالطلب.")
         return True, -1
@@ -388,6 +403,12 @@ def refund(uid: str, is_guest: bool = False) -> None:
     الاستثناء كان سيكلّفه الجوابَ كلَّه.
     """
     key = doc_id(uid, is_guest)
+    if is_guest and uid not in _unlimited_uids():
+        try:
+            from . import guest_pool
+            guest_pool.give_back()
+        except Exception:
+            pass
     try:
         db = _firestore()
         if db is not None:

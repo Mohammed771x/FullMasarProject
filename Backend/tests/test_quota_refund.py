@@ -232,7 +232,12 @@ def test_the_client_is_told_when_the_question_was_given_back():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     src = open(os.path.join(root, "api.py"), encoding="utf-8").read()
     settle = src.split("async def _dispatch_and_settle")[1].split("\n@app")[0]
-    assert "settle_quota" in settle
+    # 🆓 التسويةُ تمرّ بـ[core/free_requests.settle] (الحجزُ المؤجَّل للوزاري)،
+    #    وهي تنادي `settle_quota` لكل طلبٍ محجوز كما كان.
+    assert "v3_free.settle(" in settle
+    free_src = open(os.path.join(root, "core", "free_requests.py"),
+                    encoding="utf-8").read()
+    assert "billing.settle_quota(" in free_src and '"quota_refunded"' in free_src
     billing_src = open(os.path.join(root, "core", "billing.py"),
                        encoding="utf-8").read()
     assert '"quota_refunded"' in billing_src, "الردُّ يقع ولا يُخبر العميل"

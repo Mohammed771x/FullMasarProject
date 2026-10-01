@@ -70,10 +70,26 @@ def _read_now(uid: str) -> dict:
         if db is None:
             return dict(EMPTY)
         snap = db.collection("users").document(uid).get()
-        return _shape(snap.to_dict() if snap.exists else None)
+        state = _shape(snap.to_dict() if snap.exists else None)
     except Exception as e:                       # noqa: BLE001 — الفشل مفتوح عمداً
         print(f"⚠️ تعذّرت قراءة users/{uid} ({e}) — مُرّ بلا قيد.")
         return dict(EMPTY)
+
+    # 🔒 قراراتُ الإدارة من مجموعةٍ لا يحذفها الطالب ([core/user_controls]) —
+    #    تُطبَّق **ولو حُذف `users/{uid}`**: `exists` يبقى كاذباً (لا صفّ ولا
+    #    دور)، لكن الحظر والحدّ الخاص يبقيان.
+    try:
+        from . import user_controls
+        ctrl = user_controls.read(db, uid)
+    except Exception as e:                       # noqa: BLE001 — الفشل مفتوح عمداً
+        print(f"⚠️ تعذّرت قراءة user_controls/{uid} ({e}) — يُعتمد users/ وحده.")
+        ctrl = None
+    if ctrl:
+        merged = _shape(user_controls.apply(
+            {"banned": state["banned"], "quota_override": state["quota_override"]}, ctrl))
+        state["banned"] = merged["banned"]
+        state["quota_override"] = merged["quota_override"]
+    return state
 
 
 def get(uid: str) -> dict:

@@ -64,7 +64,7 @@ from core import image_guard as v3_image_guard
 from core import vision as v3_vision
 from core import firebase_auth as v3_auth
 from core import quota as v3_quota
-from core import billing as v3_billing
+from core import billing as v3_billing, free_requests as v3_free  # 🆓 وزاريٌّ بلا حصة
 from core import smalltalk as v3_smalltalk
 from core import user_state as v3_user_state
 from core import idempotency as v3_idem
@@ -122,17 +122,8 @@ load_dotenv(override=True)
 
 
 
-
-
-# =====================
-# زيادة مسارات المعالجة (Threads) لمنع التجمد
-# =====================
-executor = concurrent.futures.ThreadPoolExecutor(
-    max_workers=8,
-    thread_name_prefix="worker"
-)
-loop = asyncio.get_event_loop()
-loop.set_default_executor(executor)
+# 🧵 بركةُ الانتظار الشبكيّ (٤٨ خيطاً لا ٨) → [core/blocking_pool.py]
+from core import blocking_pool as v3_pool  # noqa: E402
 
 
 
@@ -144,6 +135,7 @@ async def lifespan(app: FastAPI):
     """🔥 عند الإقلاع: تُبنى/تُحمَّل كل فهارس FAISS مسبقاً في خيط خلفي،
     فلا يبني طالبٌ فهرساً أثناء سؤاله ([ADR-012] · core/warmup.py).
     الخادم يستقبل الطلبات فوراً — الإحماء لا يحجبه."""
+    v3_pool.install()   # 🧵 بالحلقة الجارية فعلاً ([core/blocking_pool.install])
     v3_warmup.start_background()
     yield
 
@@ -156,6 +148,8 @@ async def root():
 
 from core.body_limit import BodyLimitMiddleware  # 📦 سقف حجم الطلب قبل قراءته — داخل CORS
 app.add_middleware(BodyLimitMiddleware)
+from core.app_check import AppCheckMiddleware  # 📱 نداءُ موديلٍ من تطبيقنا وحده — قبل الجسم
+app.add_middleware(AppCheckMiddleware)
 # ══════════════════════════════════════════════════
 # 🌐 CORS — قائمةُ سماحٍ لا نجمة
 # ══════════════════════════════════════════════════
@@ -658,6 +652,8 @@ async def _ask_guards(req, request: Request):
             {"answer": v3_idem.IN_FLIGHT_MESSAGE, "references": [],
              "session_active": False, "in_flight": True}, 202)
 
+    if v3_free.data_only(req):          # 🆓 جلبُ الوزاري من الملف — بلا معاملتَي الحصة
+        return v3_free.defer(identity), "", None
     # 🎟️ الحصة — البوابة الوحيدة على فاتورة الـAI بعد حذف الأكواد.
     reservation = await v3_quota.areserve(identity["uid"], identity["is_guest"])
     if not reservation.allowed:
@@ -670,7 +666,7 @@ async def _ask_guards(req, request: Request):
 
     # 🧾 عدّادُ نداءات الموديل لهذا الطلب — عليه يقوم ردُّ الحصة إن لم
     #    يُنادَ موديلٌ أصلاً ([core/billing.py] · قرار المالك 2026-09-14).
-    v3_billing.start()
+    v3_billing.start(identity["uid"], "ask")
 
     # 📷 الصورة → نص (Gemini لكل المواد) قبل أي توجيه.
     image_text = ""
@@ -712,9 +708,7 @@ async def _dispatch_and_settle(req, identity):
         result = await _dispatch_ask(req)
         return result
     finally:
-        # 📣 يوسم القاموس إن رُدّت الحصة، والاستثناء قبل أي model call يُسوّى
-        # هنا أيضاً بدل أن يترك خصماً يتيمًا.
-        await v3_billing.settle_quota(v3_quota, identity, result, meter)
+        await v3_free.settle(v3_quota, identity, result, meter)  # 📣 [core/free_requests.settle]
 
 
 @app.post("/ask")

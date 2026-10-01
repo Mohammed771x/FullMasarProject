@@ -23,9 +23,11 @@ import contextvars
 _meter = contextvars.ContextVar("masar_model_meter", default=None)
 
 
-def start() -> dict:
-    """يفتح عدّاداً لهذا الطلب ويعيده — يُنادى من الحارس قبل التوزيع."""
-    meter = {"model_calls": 0}
+def start(uid: str = "", route: str = "") -> dict:
+    """يفتح عدّاداً لهذا الطلب ويعيده — يُنادى من الحارس قبل التوزيع.
+
+    `uid` و`route` لسطر التكلفة في [core/ai_usage]: من دفع، وفي أيّ قسم."""
+    meter = {"model_calls": 0, "uid": uid or "", "route": route or ""}
     _meter.set(meter)
     return meter
 

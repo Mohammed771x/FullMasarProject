@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../error/exceptions.dart';
+import '../security/app_check_service.dart';
 
 // ==========================================
 // 🌐 عميل الشبكة المركزي
@@ -26,10 +27,17 @@ class ApiClient {
 
   /// ترويسات مع توكن Firebase — بوابة الباك اند الجديدة ([27§5 شريحة أ]).
   /// غياب التوكن مسموح مؤقتاً: الخادم يقبل الكود القديم حتى ينتقل الجميع.
-  static Map<String, String> authHeaders(String? idToken) => {
-        ...jsonHeaders,
-        if (idToken != null && idToken.isNotEmpty) "Authorization": "Bearer $idToken",
-      };
+  ///
+  /// 📱 ومعه توكنُ App Check إن وصل — الخادمُ يقرؤه قبل أي نداء موديل
+  ///    ([AppCheckService] · `Backend/core/app_check.py`).
+  static Map<String, String> authHeaders(String? idToken) {
+    final appCheck = AppCheckService.token;
+    return {
+      ...jsonHeaders,
+      if (idToken != null && idToken.isNotEmpty) "Authorization": "Bearer $idToken",
+      if (appCheck != null && appCheck.isNotEmpty) "X-Firebase-AppCheck": appCheck,
+    };
+  }
 
   // GET يرجع الـ Response خام (مع الهيدر والمهلة الموحّدة)
   Future<http.Response> getRaw(String url, {Duration? timeout}) {

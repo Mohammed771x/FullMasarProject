@@ -7,11 +7,14 @@
 """
 import asyncio
 import re
+import threading
 import faiss
+from collections import OrderedDict
 from typing import List, Optional
 from config import QA_TOP_K
 from .boot import embed_model
 from .boot import embed_model
+from .boot import encode, run_embedding, token_ids
 from .content import get_build_semaphore, index_store
 
 
@@ -45,8 +48,7 @@ _SENTENCE_SPLIT = re.compile(r'(?<=[.؟!:…؛])\s+|\n+')
 
 def _token_len(text: str) -> int:
     """طولُ النصّ بمقياس الموديل نفسِه لا بالحروف — الحرفُ العربي رمزٌ ونصف."""
-    return len(embed_model.tokenizer.encode(text, add_special_tokens=False,
-                                            verbose=False))
+    return len(token_ids(text, add_special_tokens=False, verbose=False))
 
 
 def split_for_embedding(text: str) -> List[str]:
@@ -113,13 +115,85 @@ def page_title(text: str) -> str:
     return ""
 
 
+# ══════════════════════════════════════════════════
+# 🗄️ كاشُ المقاطع — الوحدةُ لا تتغيّر بين سؤالين
+# ══════════════════════════════════════════════════
+# 🔴 **ما قِيس (2026-10-02):** `hybrid_rank` كان يُعيد تقطيعَ الوحدة كلِّها
+#    **مع كل سؤال** — ~١١ms للوحدة و٧٠٠–٨٤٠ms لكتابٍ كامل، على حلقة
+#    الأحداث، فيتجمّد كلُّ طالبٍ آخر طوالها. ونتيجتُه دالّةٌ في النصوص
+#    وحدها، فالحسابُ الثاني هدرٌ محض.
+#
+# 🔑 المفتاح **بصمةُ المحتوى** ([index_store.fingerprint]) — نفسُ ما يُمفتِح
+#    الفهرس: تعديلُ حرفٍ في الكتاب ⇒ بصمةٌ جديدة ⇒ تقطيعٌ جديد، بلا مهلة.
+#    والإحماءُ يمرّ بها لكل وحدة، فيصل أولُ طالبٍ والكاشُ ممتلئ.
+#
+# 📏 والسقفُ ضعفُ سقف الفهارس ([index_store.MAX_MEM_INDEXES]) — أقدمُها
+#    استعمالاً يخرج أولاً، فالذاكرةُ محدودةٌ مهما تعدّدت الصفوف.
+MAX_CORPUS_CACHE = 256
+
+_corpus_cache = OrderedDict()   # {بصمة: (مقاطع, أصحاب)}
+_corpus_lock = threading.Lock()
+
+
+def _corpus_cached(fp: str):
+    """`(مقاطع, أصحاب)` **نسخةً** من الكاش — أو None.
+
+    ⚠️ نسخةٌ لا القائمةُ نفسها: من يُعدّل ما أخذه لا يُفسد سؤالَ غيره.
+    """
+    with _corpus_lock:
+        hit = _corpus_cache.get(fp)
+        if hit is None:
+            return None
+        _corpus_cache.move_to_end(fp)
+    return list(hit[0]), list(hit[1])
+
+
+def _corpus_store(fp: str, chunks: List[str], owners: List[int]) -> None:
+    with _corpus_lock:
+        _corpus_cache[fp] = (tuple(chunks), tuple(owners))
+        _corpus_cache.move_to_end(fp)
+        while len(_corpus_cache) > MAX_CORPUS_CACHE:
+            _corpus_cache.popitem(last=False)
+
+
+def clear_corpus_cache() -> None:
+    with _corpus_lock:
+        _corpus_cache.clear()
+
+
 def embedding_corpus(texts: List[str]):
     """`(مقاطع, صاحبُ كلِّ مقطع)` — مصدرٌ واحد للبحث وللإحماء معاً.
 
     ⚠️ **والإحماءُ يجب أن يستعمل هذه بعينها**: بصمةُ الفهرس تُحسب من
        النصوص، فلو أحمى الخادمُ فهرسَ الصفحات وبحث في فهرس المقاطع لبنى
        كلُّ سؤالٍ أولَ فهرسِه أثناء انتظار الطالب.
+
+    🗄️ مُكاشةٌ ببصمة المحتوى (راجع أعلاه) — والناتجُ هو نفسُه حرفاً بحرف.
     """
+    fp = index_store.fingerprint(texts)
+    hit = _corpus_cached(fp)
+    if hit is not None:
+        return hit
+    chunks, owners = _split_corpus(texts)
+    _corpus_store(fp, chunks, owners)
+    return list(chunks), list(owners)
+
+
+async def embedding_corpus_async(texts: List[str]):
+    """نفسُ [embedding_corpus] لمسارات الطلب — **والحسابُ خارج حلقة الأحداث**.
+
+    ⚠️ الإصابةُ تعود فوراً بلا خيط. أمّا الإخفاق فيمرّ بالمُقطِّع، والمُقطِّعُ
+       خلف قفلٍ قد يمسكه بناءُ فهرسٍ ثوانيَ — وانتظارُه على الحلقة يُجمّد
+       الخادمَ كلَّه لا الطالبَ وحده.
+    """
+    hit = _corpus_cached(index_store.fingerprint(texts))
+    if hit is not None:
+        return hit
+    return await run_embedding(embedding_corpus, texts)
+
+
+def _split_corpus(texts: List[str]):
+    """التقطيعُ الفعليّ بلا كاش — لا يُنادى إلا من [embedding_corpus]."""
     chunks: List[str] = []
     owners: List[int] = []
     for i, text in enumerate(texts):
@@ -153,7 +227,7 @@ def embedding_corpus(texts: List[str]):
 def build_index_sync(texts: List[str]):
     """بناء فهرس FAISS من نصوص — متزامن كي يُستدعى من الإحماء ومن الخيط معاً."""
     index_store.mark_build()
-    emb = embed_model.encode(texts, convert_to_numpy=True, batch_size=32, show_progress_bar=False)
+    emb = encode(texts, convert_to_numpy=True, batch_size=32, show_progress_bar=False)
     faiss.normalize_L2(emb)
     index = faiss.IndexFlatIP(emb.shape[1])
     index.add(emb)
@@ -179,7 +253,7 @@ async def get_index(texts: List[str], meta: Optional[dict] = None):
         index = index_store.get_mem(fp)          # فحص ثانٍ بعد الانتظار
         if index is None:
             index = await asyncio.wait_for(
-                asyncio.to_thread(build_index_sync, texts), timeout=90.0)
+                run_embedding(build_index_sync, texts), timeout=90.0)
             index_store.put_mem(fp, index)
             index_store.save_disk(fp, index, meta)
     return index
@@ -194,7 +268,7 @@ async def faiss_search(texts: List[str], query: str, top_k: int = QA_TOP_K, meta
         index = await get_index(texts, meta)
 
         def _search_only():
-            q_emb = embed_model.encode(
+            q_emb = encode(
                 [query],
                 convert_to_numpy=True,
                 show_progress_bar=False
@@ -207,7 +281,7 @@ async def faiss_search(texts: List[str], query: str, top_k: int = QA_TOP_K, meta
         #  الدرجات كذلك، لأن الترتيب الهجين يحتاج قيمةً لا رتبة.)
 
         I_indices = await asyncio.wait_for(
-            asyncio.to_thread(_search_only),
+            run_embedding(_search_only),
             timeout=15.0
         )
 

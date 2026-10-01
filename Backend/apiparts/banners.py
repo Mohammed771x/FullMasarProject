@@ -18,6 +18,7 @@ from api import (  # noqa: E402
     v3_quota, v3_ratelimit, v3_scholarships, v3_teacher, v3_teacher_prompts,
 )
 from .admin import _admin_gate, _admin_run  # noqa: E402
+from core import guest_pool as _guest_pool  # noqa: E402
 
 
 # ══════════════ 👨‍🏫 برومبتات المعلم في اللوحة ══════════════
@@ -158,7 +159,9 @@ async def admin_settings_get(request: Request):
                 "quota_ask": v3_quota.limit_for(False),
                 "quota_guest": v3_quota.limit_for(True),
                 "quota_images": v3_quota.image_limit(),
+                "quota_guest_pool": _guest_pool.limit(),
             },
+            "guest_pool_today": _guest_pool.status(),
             "ranges": {k: list(v) for k, v in v3_scholarships.SETTINGS_FIELDS.items()},
             "text_fields": dict(v3_scholarships.SETTINGS_TEXT_FIELDS),
         }

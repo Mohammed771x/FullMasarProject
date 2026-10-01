@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:ye_student_tutor/features/chat/data/repositories/ask_stream.dart';
+import 'package:ye_student_tutor/features/chat/presentation/controllers/chat_controller.dart';
 import 'package:ye_student_tutor/features/chat/presentation/controllers/stick_to_bottom.dart';
 
 /// عميل يسلّم بايتات SSE على دفعاتٍ نتحكّم بها — لمحاكاة تقطيع الشبكة.
@@ -30,20 +31,28 @@ class _SseClient extends http.BaseClient {
 }
 
 Future<List<AskEvent>> _collect(_SseClient client) => AskStream(client)
-    .open(url: Uri.parse("http://x/ask/stream"), headers: const {}, body: const {})
+    .open(
+      url: Uri.parse("http://x/ask/stream"),
+      headers: const {},
+      body: const {},
+    )
     .toList();
 
 void main() {
   group('🌊 فكّ أحداث SSE', () {
     test('أجزاءٌ متتابعة ثم نهاية', () async {
-      final events = await _collect(_SseClient([
-        'data: {"t":"delta","v":"الأكسدة "}\n\n',
-        'data: {"t":"delta","v":"هي فقدان الإلكترونات."}\n\n',
-        'data: {"t":"done","answer":"الأكسدة هي فقدان الإلكترونات.","references":["الوحدة الأولى"]}\n\n',
-      ]));
+      final events = await _collect(
+        _SseClient([
+          'data: {"t":"delta","v":"الأكسدة "}\n\n',
+          'data: {"t":"delta","v":"هي فقدان الإلكترونات."}\n\n',
+          'data: {"t":"done","answer":"الأكسدة هي فقدان الإلكترونات.","references":["الوحدة الأولى"]}\n\n',
+        ]),
+      );
 
-      expect(events.whereType<AskDelta>().map((e) => e.text).toList(),
-          ["الأكسدة ", "هي فقدان الإلكترونات."]);
+      expect(events.whereType<AskDelta>().map((e) => e.text).toList(), [
+        "الأكسدة ",
+        "هي فقدان الإلكترونات.",
+      ]);
       final done = events.last as AskDone;
       expect(done.payload["answer"], "الأكسدة هي فقدان الإلكترونات.");
       expect(done.payload["references"], ["الوحدة الأولى"]);
@@ -54,20 +63,24 @@ void main() {
       //    الشبكة تسلّم بايتاتٍ لا رسائل، فيصل نصف سطر `data:` في حزمة
       //    والنصف الآخر في التالية. وقراءةُ كل حزمة كحدثٍ كامل كانت
       //    ستُسقط أجزاءً عشوائية من الشرح — عند طلابنا لا عندنا.
-      final events = await _collect(_SseClient([
-        'data: {"t":"del',
-        'ta","v":"نصٌّ مقسوم"}\n\n',
-        'data: {"t":"done","answer":"نصٌّ مقسوم"}\n\n',
-      ]));
+      final events = await _collect(
+        _SseClient([
+          'data: {"t":"del',
+          'ta","v":"نصٌّ مقسوم"}\n\n',
+          'data: {"t":"done","answer":"نصٌّ مقسوم"}\n\n',
+        ]),
+      );
 
       expect(events.whereType<AskDelta>().single.text, "نصٌّ مقسوم");
     });
 
     test('عدة أحداث في حزمةٍ واحدة تُفكّ كلها', () async {
-      final events = await _collect(_SseClient([
-        'data: {"t":"delta","v":"أ"}\n\ndata: {"t":"delta","v":"ب"}\n\n'
-            'data: {"t":"done","answer":"أب"}\n\n',
-      ]));
+      final events = await _collect(
+        _SseClient([
+          'data: {"t":"delta","v":"أ"}\n\ndata: {"t":"delta","v":"ب"}\n\n'
+              'data: {"t":"done","answer":"أب"}\n\n',
+        ]),
+      );
       expect(events.whereType<AskDelta>().length, 2);
       expect(events.last, isA<AskDone>());
     });
@@ -75,48 +88,62 @@ void main() {
     test('💓 النبضة تُتجاهَل ولا تُحسب حدثاً', () async {
       // بروكسيات كثيرة تقطع اتصالاً صامتاً، فالنبضة تُبقيه حيّاً — وعلى
       // العميل أن يتجاهلها كما ينصّ بروتوكول SSE.
-      final events = await _collect(_SseClient([
-        ': keep-alive\n\n',
-        'data: {"t":"delta","v":"نص"}\n\n',
-        ': keep-alive\n\n',
-        'data: {"t":"done","answer":"نص"}\n\n',
-      ]));
+      final events = await _collect(
+        _SseClient([
+          ': keep-alive\n\n',
+          'data: {"t":"delta","v":"نص"}\n\n',
+          ': keep-alive\n\n',
+          'data: {"t":"done","answer":"نص"}\n\n',
+        ]),
+      );
       expect(events.length, 2);
     });
 
     test('🛟 حدثٌ مشوّه يُتجاهل ولا يُسقط بقية البثّ', () async {
-      final events = await _collect(_SseClient([
-        'data: {{{ليس JSON\n\n',
-        'data: {"t":"delta","v":"وصل رغم ذلك"}\n\n',
-        'data: {"t":"done","answer":"وصل رغم ذلك"}\n\n',
-      ]));
+      final events = await _collect(
+        _SseClient([
+          'data: {{{ليس JSON\n\n',
+          'data: {"t":"delta","v":"وصل رغم ذلك"}\n\n',
+          'data: {"t":"done","answer":"وصل رغم ذلك"}\n\n',
+        ]),
+      );
       expect(events.whereType<AskDelta>().single.text, "وصل رغم ذلك");
       expect(events.last, isA<AskDone>());
     });
 
     test('حدث الخطأ يصل برسالته العربية', () async {
-      final events = await _collect(_SseClient([
-        'data: {"t":"delta","v":"بداية"}\n\n',
-        'data: {"t":"error","v":"⚠️ انقطع الاتصال أثناء الإجابة."}\n\n',
-      ]));
+      final events = await _collect(
+        _SseClient([
+          'data: {"t":"delta","v":"بداية"}\n\n',
+          'data: {"t":"error","v":"⚠️ انقطع الاتصال أثناء الإجابة."}\n\n',
+        ]),
+      );
       expect((events.last as AskFailure).message, contains("انقطع"));
     });
   });
 
   group('🛂 الرفض يصل كردٍّ عادي لا كتدفّق', () {
     test('202 قيد المعالجة ليس إجابة نهائية', () async {
-      final events = await _collect(_SseClient(const [],
+      final events = await _collect(
+        _SseClient(
+          const [],
           status: 202,
-          body: '{"answer":"قيد المعالجة","in_flight":true}'));
+          body: '{"answer":"قيد المعالجة","in_flight":true}',
+        ),
+      );
       expect(events.single, isA<AskPending>());
     });
 
     test('429 برسالة الحصة ⇒ يُعامل كنهايةٍ عادية', () async {
       // الخادم يفرض الحرّاس **قبل** بدء البثّ كي يصل رمز الحالة الصحيح.
       // ورسالةُ الحصة يجب أن تُعرض للطالب كما هي لا كعطل شبكة.
-      final events = await _collect(_SseClient(const [],
+      final events = await _collect(
+        _SseClient(
+          const [],
           status: 429,
-          body: '{"answer":"🎟️ وصلت حدّك اليومي","quota_exceeded":true}'));
+          body: '{"answer":"🎟️ وصلت حدّك اليومي","quota_exceeded":true}',
+        ),
+      );
 
       final done = events.single as AskDone;
       expect(done.payload["answer"], contains("حدّك اليومي"));
@@ -124,8 +151,9 @@ void main() {
     });
 
     test('خطأ خادمٍ بلا رسالة ⇒ فشلٌ مفهوم', () async {
-      final events =
-          await _collect(_SseClient(const [], status: 503, body: "boom"));
+      final events = await _collect(
+        _SseClient(const [], status: 503, body: "boom"),
+      );
       expect(events.single, isA<AskFailure>());
     });
   });
@@ -153,14 +181,14 @@ void main() {
 
     test('🔴 الطالب صعد ليقرأ ⇒ ينفكّ الالتصاق', () {
       final s = StickToBottom(threshold: 80);
-      s.update(pixels: 200, maxExtent: 1000);   // بعيدٌ عن القاع
+      s.update(pixels: 200, maxExtent: 1000); // بعيدٌ عن القاع
       expect(s.isStuck, isFalse);
     });
 
     test('🧲 عاد إلى القاع بنفسه ⇒ يستأنف تلقائياً بلا زر', () {
       final s = StickToBottom(threshold: 80);
       s.update(pixels: 200, maxExtent: 1000);
-      s.update(pixels: 990, maxExtent: 1000);   // ضمن العتبة
+      s.update(pixels: 990, maxExtent: 1000); // ضمن العتبة
       expect(s.isStuck, isTrue);
     });
 
@@ -168,10 +196,10 @@ void main() {
       // `maxScrollExtent` يتغيّر مع كل حرفٍ يُضاف، والتمرير السلس يقف قريباً
       // من القاع لا عليه. فمساواةٌ تامة تعني التصاقاً لا يبدأ أبداً.
       final s = StickToBottom(threshold: 80);
-      s.update(pixels: 940, maxExtent: 1000);   // ٦٠ بكسل
+      s.update(pixels: 940, maxExtent: 1000); // ٦٠ بكسل
       expect(s.isStuck, isTrue);
 
-      s.update(pixels: 900, maxExtent: 1000);   // ١٠٠ بكسل
+      s.update(pixels: 900, maxExtent: 1000); // ١٠٠ بكسل
       expect(s.isStuck, isFalse);
     });
 
@@ -202,7 +230,7 @@ void main() {
       final s = StickToBottom(threshold: 80);
       expect(s.isStuck, isTrue);
 
-      s.beginUserDrag();          // الإصبع نزل ولم يتحرّك بعد
+      s.beginUserDrag(); // الإصبع نزل ولم يتحرّك بعد
       expect(s.isStuck, isFalse, reason: "بقي ملتصقاً فسيُعاد للقاع");
       expect(s.isDragging, isTrue);
     });
@@ -254,16 +282,44 @@ void main() {
     //    فيتجاوز [StickToBottom] ولا يُفلت القارئ ولو وضع إصبعه. والحارسُ
     //    بالكود لا بالتعليق، لأن التعليقَ هو ما جعل استثناءَ البثّ يبدو
     //    مقصوداً فلا يُراجَع ([[streaming-design]]).
-    test('📌 الطابعةُ تتبع قاعدةَ التمرير كالبثّ — لا قفزَ مطلق', () {
-      final src = File('lib/features/chat/presentation/widgets/'
-              'chat_list_view.dart')
-          .readAsStringSync();
-      final typing = src.substring(src.indexOf('onTyping:'),
-          src.indexOf('onStopped:'));
-      expect(typing.contains('followBottom'), isTrue,
-          reason: 'الطابعةُ لا تمرّ بقاعدة الالتصاق');
-      expect(typing.contains('jumpTo'), isFalse,
-          reason: 'قفزٌ مطلقٌ يسحب الشاشة من تحت القارئ');
+    // 📌 أمرُ المالك (٢٠٢٦-١٠-٠١): الردُّ يُكتب تحت ولا يسحب الشاشة — لا
+    //    البثّ ولا الطابعة، ولو كان الطالب في القاع.
+    test('📌 الطابعةُ والبثّ لا يتبعان الأسفل — الطالب يقرأ حيث هو', () {
+      final list = File(
+        'lib/features/chat/presentation/widgets/'
+        'chat_list_view.dart',
+      ).readAsStringSync();
+      expect(
+        list.contains('onTyping:'),
+        isFalse,
+        reason: 'الطابعةُ تحرّك الشاشة مع كل حرف',
+      );
+      expect(list.contains('followBottom'), isFalse);
+      final ctrl = File(
+        'lib/features/chat/presentation/controllers/'
+        'chat_controller.dart',
+      ).readAsStringSync();
+      expect(
+        ctrl.contains('followBottom('),
+        isFalse,
+        reason: 'البثُّ يتبع الأسفل',
+      );
+    });
+
+    test('📌 بدءُ الردّ يفكّ الالتصاق ويُظهر «الرد يُكتب…»', () {
+      final c = ChatController();
+      addTearDown(c.dispose);
+      c.stick.stick();
+      c.messages.add({"role": "user", "text": "سؤال"});
+      // ⏳ قبل أوّل حرف: النقاطُ تحت والطالبُ يقرأ فوق — فالزرُّ ظاهرٌ منذ الإرسال.
+      c.isLoading = true;
+      expect(c.isWritingReply, isTrue);
+      c.isLoading = false;
+      expect(c.isWritingReply, isFalse);
+      c.messages.add({"role": "ai", "text": "", "animating": true});
+      expect(c.isWritingReply, isTrue);
+      c.messages.last["animating"] = false;
+      expect(c.isWritingReply, isFalse);
     });
   });
 }
@@ -280,7 +336,8 @@ class _NeverClient extends http.BaseClient {
 
 /// مقاييس تمريرٍ بسيطة — `endUserDrag` تحتاج `ScrollMetrics` وحدها.
 class _Metrics implements ScrollMetrics {
-  const _Metrics({required this.pixels, required double max}) : maxScrollExtent = max;
+  const _Metrics({required this.pixels, required double max})
+    : maxScrollExtent = max;
 
   @override
   final double pixels;

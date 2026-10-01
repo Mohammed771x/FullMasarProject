@@ -1,3 +1,4 @@
+import 'dart:io';
 // مركز الموارد يتبع الصف والمسار: مواده = مواد الصف، وروابطه من resources.dart.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,17 +9,21 @@ import 'package:ye_student_tutor/features/chat/presentation/widgets/chat_dialogs
 
 /// يفتح نافذة الموارد لصف/مسار معيّن ويعيد التحكّم بعد استقرار الأنيميشن.
 Future<void> _openResources(WidgetTester tester, int grade, Track track) async {
-  await tester.pumpWidget(MaterialApp(
-    builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
-    home: Builder(
-      builder: (context) => Scaffold(
-        body: ElevatedButton(
-          onPressed: () => ChatDialogs.showResources(context, grade: grade, track: track),
-          child: const Text("افتح"),
+  await tester.pumpWidget(
+    MaterialApp(
+      builder: (context, child) =>
+          Directionality(textDirection: TextDirection.rtl, child: child!),
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: ElevatedButton(
+            onPressed: () =>
+                ChatDialogs.showResources(context, grade: grade, track: track),
+            child: const Text("افتح"),
+          ),
         ),
       ),
     ),
-  ));
+  );
   await tester.tap(find.text("افتح"));
   await tester.pumpAndSettle();
 }
@@ -34,7 +39,11 @@ void main() {
 
     test('كل مادة في الثالث العلمي لها روابط', () {
       for (final s in Curriculum.subjectsFor(3, Track.scientific)) {
-        expect(Resources.forSubject(3, Track.scientific, s), isNotEmpty, reason: s);
+        expect(
+          Resources.forSubject(3, Track.scientific, s),
+          isNotEmpty,
+          reason: s,
+        );
       }
     });
 
@@ -45,7 +54,9 @@ void main() {
   });
 
   group('مركز الموارد — النافذة', () {
-    testWidgets('الثالث العلمي: مواد الصف الست بلا شارة «قريباً»', (tester) async {
+    testWidgets('الثالث العلمي: مواد الصف الست بلا شارة «قريباً»', (
+      tester,
+    ) async {
       await _openResources(tester, 3, Track.scientific);
 
       expect(find.text("الثالث الثانوي · علمي"), findsOneWidget);
@@ -71,6 +82,41 @@ void main() {
     testWidgets('الأول الثانوي: بلا مسار في الشارة', (tester) async {
       await _openResources(tester, 1, Track.scientific);
       expect(find.text("الأول الثانوي"), findsOneWidget);
+    });
+  });
+
+  // 📖 أمرُ المالك (٢٠٢٦-١٠-٠١): «في كل مكان كتاب… وأحط الرابط». سطرُ
+  //    «كتاب …» جاهزٌ لكل مادةٍ في كل صف — والفارغُ منها لا يظهر للطالب.
+  group('📖 خاناتُ الكتب', () {
+    test('لكل مادةٍ في كل صفٍّ ومسار سطرُ كتاب', () {
+      final src = File('lib/core/config/resources.dart').readAsStringSync();
+      for (final (g, t) in [
+        (1, Track.none),
+        (2, Track.scientific),
+        (2, Track.literary),
+        (3, Track.scientific),
+        (3, Track.literary),
+      ]) {
+        final key = Resources.scopeKey(g, t);
+        final from = src.indexOf('"$key": {');
+        final block = src.substring(from, src.indexOf('\n    },', from));
+        final subjects = Curriculum.subjectsFor(g, t);
+        expect(
+          'ResourceLink("كتاب '.allMatches(block).length,
+          subjects.length,
+          reason: key,
+        );
+        for (final s in subjects) {
+          expect(block.contains('"$s": ['), isTrue, reason: "$key · $s");
+        }
+      }
+    });
+
+    test('الكتابُ بلا رابط لا يُعرض — ولا يُفسد «قريباً»', () {
+      for (final l in Resources.forSubject(3, Track.scientific, "احياء")) {
+        expect(l.url, isNotEmpty);
+      }
+      expect(Resources.forSubject(2, Track.literary, "تاريخ"), isEmpty);
     });
   });
 }

@@ -22,7 +22,6 @@ import '../../../../core/settings/app_settings.dart';
 import '../../../saved/data/saved_storage.dart';
 import '../controllers/chat_controller.dart';
 import '../../../teacher/data/teacher_tool.dart';
-import '../controllers/stick_to_bottom.dart';
 import '../../../../core/widgets/phosphor.dart';
 import '../../../../core/widgets/masar_notice.dart';
 import '../../../../core/tour/tour_anchor.dart';
@@ -359,33 +358,10 @@ class ChatListView extends StatelessWidget {
                                         text: msg["fullText"] ?? msg["text"],
                                         stopNotifier:
                                             controller.stopTypingNotifier,
-                                        // 📌 **والطابعةُ تتبع قاعدةَ التمرير كالبثّ
-                                        //    تماماً** (أمرُ المالك 2026-09-19):
-                                        //    «لو جات رسالة من المخزون تو على طول
-                                        //    ينزل بآخر شيء… أنا أبغاه نفس لو أرسلت
-                                        //    رسالة للمودل ويجيبها».
-                                        //
-                                        // 🔴 وكان هنا `jumpTo(maxScrollExtent)`
-                                        //    **بلا شرط** مع كل حرف — يتجاوز
-                                        //    [StickToBottom] كلَّه. فالشرحُ المخزون
-                                        //    (وهو وحده ما يُكتب بالطابعة) كان يسحب
-                                        //    الشاشةَ من تحت القارئ ولا يُفلتها، ولو
-                                        //    وضع إصبعَه عليها. والبثُّ من الموديل
-                                        //    يحترمها منذ 2026-09-09
-                                        //    ([chat_controller._flushStream]) —
-                                        //    فاختلف المساران في شيءٍ يراه الطالب.
-                                        //
-                                        // ⏱️ وبعد إطارٍ واحد: `maxScrollExtent` لا
-                                        //    يعرف الحرفَ الجديد قبل أن يُخطَّط.
-                                        onTyping: () {
-                                          WidgetsBinding.instance
-                                              .addPostFrameCallback((_) {
-                                                controller.scrollController
-                                                    .followBottom(
-                                                      controller.stick,
-                                                    );
-                                              });
-                                        },
+                                        // 📌 **والطابعةُ لا تسحب الشاشة** كالبثّ
+                                        //    تماماً (أمرُ المالك ٢٠٢٦-١٠-٠١): الردُّ
+                                        //    يُكتب تحت والطالب يقرأ حيث هو
+                                        //    ([ChatController.isWritingReply]).
                                         onStopped: (stoppedText) {
                                           msg["text"] =
                                               "$stoppedText\n\n⏹️ *تم الإيقاف*";

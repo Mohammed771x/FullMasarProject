@@ -1,0 +1,37 @@
+# 🔒 ما لا يدخل صورة الخادم أبداً (فحص 2026-10-01).
+#
+# ☢️ `COPY . /app` في الـDockerfile ينسخ **كلَّ** ما في المجلد. وبلا هذا الملف
+#    كان `.env` (مفاتيح OpenAI/Gemini/DeepSeek/Groq ومفتاح الإدارة) يُخبَز في
+#    الصورة — والـSpace على Hugging Face **عام**: ملفّاته تُقرأ من تبويب Files.
+#    وقد رُفع الـSpace الحالي يدوياً (فيه `__pycache__`)، فـ.gitignore لم يحمِه.
+#
+# الأسرار تصل الخادمَ من «Secrets» في إعدادات الـSpace — لا من ملف.
+
+# الأسرار والبيئة
+.env
+.env.*
+*.pem
+*service-account*.json
+*-firebase-adminsdk-*.json
+
+# بيئة بايثون ومخلّفاتها
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# بيانات وسجلّات محلية
+.dev_store.json
+*.log
+data/_ingest/
+.DS_Store
+
+# أدوات المالك واختباراته — لا تعمل في الخادم
+tests/
+tools/
+ingest.html
+all_code.txt
+subjects/all_code.txt
+chat.html
+chat1.html

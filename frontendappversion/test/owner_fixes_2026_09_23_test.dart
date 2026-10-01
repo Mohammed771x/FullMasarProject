@@ -68,7 +68,7 @@ class _Content extends TutorContentRepository {
       const ["2019", "2020"];
 
   @override
-  Future<String> getStoredExplanation(String subject, String unit, String lesson,
+  Future<String?> getStoredExplanation(String subject, String unit, String lesson,
           int grade, String track) async =>
       "";
 }

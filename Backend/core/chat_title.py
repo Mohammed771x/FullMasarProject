@@ -14,6 +14,8 @@
 #    وبطولٍ محدود — وأيُّ شذوذٍ أو فشل يعيد `None` فيبقى الاسمُ المؤقّت.
 
 import asyncio
+
+from . import ai_usage
 import re
 
 _AI_TIMEOUT = 10
@@ -98,6 +100,7 @@ async def make_title(question: str, clients: dict, answer: str = "",
             ),
             timeout=_AI_TIMEOUT,
         )
+        ai_usage.record_response(response, "gemini-3.1-flash-lite", "title")
         return _clean(response.choices[0].message.content or "")
     except Exception:
         return None

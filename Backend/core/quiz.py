@@ -23,7 +23,7 @@ from . import quiz_bank
 from .curriculum import (model_route, normalize_grade_track,
                          is_valid_subject, call_budget, reasoning_kwargs)
 from .serializer import serialize_lesson
-from . import billing, quiz_prompt
+from . import ai_usage, billing, quiz_prompt
 
 MAX_LESSONS = 3                 # سقف اختيار الطالب (قرار المالك)
 ALLOWED_COUNTS = (5, 10, 15)
@@ -349,6 +349,7 @@ async def _call_model(client_key, model_name, messages, clients):
         ),
         timeout=wait,
     )
+    ai_usage.record_response(response, model_name, "quiz")
     return response.choices[0].message.content
 
 

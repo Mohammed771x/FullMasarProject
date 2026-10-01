@@ -49,16 +49,20 @@ class TutorContentRepository {
   ///
   /// 🔒 لا تنادي موديلاً ولا تخصم حصة، ولا ترمي عند الفشل: السحبُ المسبق
   ///    راحةٌ لا وظيفة. فإن تعذّر مضى الطالبُ في `/ask` كما كان بلا أن يشعر.
-  Future<String> getStoredExplanation(
+  ///
+  /// ⚖️ **فراغٌ = لا شرحَ مخزوناً، و`null` = تعذّرت الرحلة** — فالمتحكّمُ
+  ///    يعيد المحاولة في الثانية لا في الأولى (وإلا سحب درساً بلا شرحٍ مع
+  ///    كل إعادة بناء).
+  Future<String?> getStoredExplanation(
       String subject, String unit, String lesson, int grade, String track) async {
     try {
       final res = await _client.getRaw(ApiEndpoints.lessonExplanation(
           subject, unit, lesson, grade, track));
-      if (res.statusCode != 200) return "";
+      if (res.statusCode != 200) return null;
       final data = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       return data["found"] == true ? (data["answer"] ?? "").toString() : "";
     } catch (_) {
-      return "";
+      return null;
     }
   }
 

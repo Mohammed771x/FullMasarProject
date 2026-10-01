@@ -321,4 +321,23 @@ void main() {
       expect(server.bodies.last["exam_shown"], 5);
     });
   });
+
+  // ⏹️ المالك (٢٠٢٦-١٠-٠١): «إيقاف» ثم «وضّح السؤال ٥» ⇒ عاد «أكمل / إيقاف».
+  group('⏹️ الإيقاف يبقى نافذاً', () {
+    Map<String, dynamic> u(String t) => {'role': 'user', 'text': t};
+    Map<String, dynamic> a(String t) => {'role': 'ai', 'text': t};
+    final fetch = u('جلب أسئلة وزاري: نهايات الدوال (2024)');
+
+    test('سؤالٌ بعد الإيقاف لا يعيد الأزرار', () {
+      expect(wazariStoppedIn([fetch, a('📌 السؤال ١:'), u('وقف'), a('✅ تم'),
+          u('وضح لي السؤال ٥'), a('الحل…')]), isTrue);
+    });
+    test('و«كمل» أو جلبٌ جديد بعده يعيدها', () {
+      expect(wazariStoppedIn([fetch, u('وقف'), u('كمل')]), isFalse);
+      expect(wazariStoppedIn([u('وقف'), fetch]), isFalse);
+    });
+    test('بلا إيقاف لا شيء يتغيّر', () {
+      expect(wazariStoppedIn([fetch, a('📌 السؤال ١:'), u('وضح السؤال ١')]), isFalse);
+    });
+  });
 }

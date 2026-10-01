@@ -21,6 +21,7 @@ from api import (  # noqa: E402
     v3_image_guard, v3_media, v3_notify, v3_ratelimit, v3_sch_assistant,
     v3_scholarships, v3_teacher,
 )
+from core import ai_usage as v3_ai_usage  # noqa: E402
 
 
 # ══════════════════════════════════════════════════
@@ -214,6 +215,7 @@ async def admin_scholarship_try(request: Request, sch_id: str, body: Scholarship
             response = await client.chat.completions.create(
                 model=v3_sch_assistant.MODEL, messages=messages,
                 max_tokens=900, temperature=0.4)
+            v3_ai_usage.record_response(response, v3_sch_assistant.MODEL, "admin_try")
             return _json_response(
                 {"answer": (response.choices[0].message.content or "").strip(), "ok": True})
         except Exception as e:

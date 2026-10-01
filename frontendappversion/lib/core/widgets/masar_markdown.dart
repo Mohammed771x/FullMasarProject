@@ -34,7 +34,7 @@ import 'math_text.dart';
 //
 // ⚠️ ولا يمسّ ما يرسمه التطبيق: `\frac` · `\sqrt` · `\chem` · `\ring`.
 const Map<String, String> _latexSymbols = {
-  r'\iint': '∬', r'\oint': '∮', r'\int': '∫',
+  r'\iint': '∬', r'\oint': '∮', r'\int': '∫', r'\lim': 'نها',
   r'\sum': 'Σ', r'\prod': '∏', r'\infty': '∞',
   r'\theta': 'θ', r'\alpha': 'α', r'\beta': 'β', r'\gamma': 'γ',
   r'\delta': 'δ', r'\Delta': 'Δ', r'\lambda': 'λ', r'\mu': 'μ',
@@ -253,8 +253,178 @@ String arabizeDigits(String text) {
 bool _needsMath(String line) => hasMathMarkup(line);
 
 /// يرفع الكسور الرقمية البحتة إلى ترميز `\frac` قبل الفحص والرسم.
-String _prepare(String text) =>
-    liftNumericFractions(stripUnsupportedLatex(unwrapEquationChem(text)));
+String _prepare(String text) => liftNumericFractions(soloZeroStop(
+    stackLimitNotation(stripUnsupportedLatex(unwrapEquationChem(text)))));
+
+/// 🔴 **«٠.» تُقرأ صفرين** (المالك ٢٠٢٦-١٠-٠١: «صفر ولا صفرين؟»): الصفرُ العربيّ
+///    نقطةٌ بخطّ التطبيق، ونقطةُ الجملة بعده نقطةٌ ثانية بجانبها. فتُحذف نقطةُ
+///    آخرِ الجملة **بعد الصفر وحده** — والعشريُّ «٠.٥» يبقى (يليه رقم).
+final RegExp _zeroStop = RegExp(r'٠\.(?![٠-٩0-9.])');
+String soloZeroStop(String text) =>
+    text.contains('٠.') ? text.replaceAll(_zeroStop, '٠') : text;
+
+// ⬇️ **النهايةُ كما في الكتاب المطبوع: «نها» والحدُّ تحتها** (طلبُ المالك
+//    2026-10-01: «عدّل في كل مكان موضوع النهايات»).
+//
+// 📊 المسحُ وجد الصيغةَ مكتوبةً بخمسة أشكال في الكتب والشروح والاختبارات:
+//    «نهـ (س←٠)» · «نهـ(س←∞)» · «نها (ن ← ∞)» · «نها س←\frac{١}{٢} …»
+//    · و«نهـ» وحدها بعد أن ذُكر الحدّ — والموديلُ ينقلها كما قرأها، ويكتب
+//    أحياناً `\lim_{x \to 0}`. كلُّها تصير `نها\sub{س←٠}` فيرسمها
+//    [MathText] مكدّسة ([StackNode]).
+//
+// ⚖️ **عند العرض لا في المصدر** — كالأرقام الفارسية: يشمل المخزونَ كلَّه
+//    وردودَ الموديل الحيّة، بلا إبطال بصمةِ درسٍ فيبطل شرحُه المخزون.
+//
+// 🔒 **حدودُ الكلمة**: «منها» و«نهاية» و«نهار» ليست نهاية — فالحرفُ قبل
+//    «نه» ليس عربياً، والحرفُ بعد «نها/نهـ» ليس حرفاً.
+final RegExp _limitHead =
+    RegExp(r'(?<![\u0621-\u064A\u0640])نه(?:ـ+|ا)(?![\u0621-\u064A\u0640])');
+final RegExp _limitArrow = RegExp(r'^\s*(←|→|⟵|⟶|->|<-)\s*');
+final RegExp _limitVar = RegExp(r'^\s*([\u0621-\u064Aa-zA-Z])');
+
+String stackLimitNotation(String text) {
+  if (!text.contains('نه')) return text;   // 🚀 الغالبية تخرج فوراً
+  final b = StringBuffer();
+  var from = 0;
+  for (final m in _limitHead.allMatches(text)) {
+    if (m.start < from) continue;
+    b.write(text.substring(from, m.start));
+    from = m.end;
+    b.write('نها');
+    final spec = _limitSpec(text, m.end);
+    if (spec != null) {
+      b.write('\\sub{${spec.$1}}');
+      from = spec.$2;
+      if (from < text.length && !RegExp(r'[\s.،,:؛)]').hasMatch(text[from])) {
+        b.write(' ');
+      }
+      continue;
+    }
+    // ↪️ **الحدُّ بعد المقدار**: «نها \frac{جا س}{س} عندما س ← ٠ = ١» —
+    //    صيغةُ الوزاري وبعض الشروح (~٨٥ موضعاً). يُنقل تحت «نها» ويبقى
+    //    المقدارُ وما بعده كما هو.
+    final trailing = _trailingLimit(text, m.end);
+    if (trailing != null) {
+      b.write('\\sub{${trailing.$1}} ');
+      b.write(trailing.$2);
+      from = trailing.$3;
+      continue;
+    }
+    // 🔗 دليلٌ مكتوبٌ أصلاً (`\sub{…}` أو `_{…}`) — يُلصق بالرمز، فالفراغُ
+    //    بينهما يعني عند الرسّام أن الدليل ليس له.
+    final rest = text.substring(m.end);
+    final glued = RegExp(r'^\s+(?=\\sub\{|_)').firstMatch(rest);
+    if (glued != null) from = m.end + glued.end;
+  }
+  b.write(text.substring(from));
+  return b.toString();
+}
+
+final RegExp _limitWhen = RegExp(r'^\s*عند(?:ما)?\s+');
+final RegExp _trailingWhen = RegExp(
+    r'\s+عند(?:ما)?\s+([\u0621-\u064Aa-zA-Z])\s*'
+    r'(←|→|⟵|⟶|->|<-|(?:تؤول|تقترب|تسعى|تتجه)\s+(?:إلى|الى|من|لـ|ل)\s*)\s*');
+
+/// 🔴 و«عند س ← ٠.» كانت تُقرأ «صفرين»: الصفرُ العربيّ نقطةٌ، ونقطةُ الجملة
+///    بعده مباشرة (المالك ٢٠٢٦-١٠-٠١). فـ«عند» كـ«عندما» تُنقل تحت «نها».
+/// 🗣️ «عندما س تؤول إلى ٠» — الصيغةُ بالكلمات (~٦٠ موضعاً في الشروح). والقيمةُ
+///    هنا رقمٌ أو ∞ أو π أو أمرٌ أو حرفٌ واحد — لا «ما لا نهاية» ولا كلمة.
+final RegExp _wordLimitValue =
+    RegExp(r'^[-+±]?(?:[٠-٩0-9]|∞|π|\\|[\u0621-\u064A](?![\u0621-\u064A]))');
+
+/// «نها EXPR عندما س ← ٠ …» ⇒ (`س←٠`، المقدار، موضعُ ما بعد الحدّ) — أو null.
+///
+/// 🔒 في السطر نفسه، وقبل نهايةِ جملة، وقبل «نها» أخرى، وفي مدى ١٢٠ محرفاً —
+///    وإلا فـ«عندما» تلك لا تخصّ هذه النهاية.
+(String, String, int)? _trailingLimit(String text, int at) {
+  var end = text.indexOf('\n', at);
+  if (end < 0) end = text.length;
+  final next = _limitHead.firstMatch(text.substring(at, end));
+  if (next != null) end = at + next.start;
+  final window = text.substring(at, (at + 120).clamp(at, end));
+  final m = _trailingWhen.firstMatch(window);
+  if (m == null) return null;
+  final expr = window.substring(0, m.start).trim();
+  if (expr.isEmpty || RegExp(r'[.؟!:]').hasMatch(expr)) return null;
+  // القيمةُ بقاعدة الصيغة بلا قوس: رمزٌ واحد أو أمرٌ بأقواسه.
+  final after = text.substring(at + m.end);
+  final arrow = m.group(2)!.trim();
+  if (!'←→⟵⟶->'.contains(arrow) && !_wordLimitValue.hasMatch(after)) return null;
+  final spec = _limitSpec('${m.group(1)}←$after', 0);
+  if (spec == null) return null;
+  final consumed = spec.$2 - '${m.group(1)}←'.length;
+  return (spec.$1, expr, at + m.end + consumed);
+}
+
+/// «(س←٠)» أو «س←٠» بعد الرمز ⇒ (`س←٠`، موضعُ ما بعدها) — أو null.
+(String, int)? _limitSpec(String text, int at) {
+  var i = at;
+  while (i < text.length && (text[i] == ' ' || text[i] == '\u00A0')) {
+    i++;
+  }
+  final paren = i < text.length && text[i] == '(';
+  if (paren) i++;
+  // «نها (عندما ن ← ∞) مجـ …» — «عندما» داخل القوس.
+  final when = _limitWhen.firstMatch(text.substring(i));
+  if (when != null) i += when.end;
+  final v = _limitVar.firstMatch(text.substring(i));
+  if (v == null) return null;
+  i += v.end;
+  final arrow = _limitArrow.firstMatch(text.substring(i));
+  if (arrow == null) return null;
+  i += arrow.end;
+  final start = i;
+  if (paren) {
+    // القيمةُ حتى القوس المُغلِق المطابق — وقد تحوي قوساً: «(س←(π/٢))».
+    var depth = 0;
+    while (i < text.length && text[i] != '\n') {
+      final c = text[i];
+      if (c == '(' || c == '{') depth++;
+      if (c == ')' || c == '}') {
+        if (depth == 0) break;
+        depth--;
+      }
+      i++;
+    }
+    if (i >= text.length || text[i] != ')' || i - start > 30) return null;
+    final value = text.substring(start, i).trim();
+    if (value.isEmpty) return null;
+    return ('${v.group(1)}←$value', i + 1);
+  }
+  // بلا قوس: القيمةُ رمزٌ واحد — إشارةٌ ثم رقمٌ/حرف، أو أمرٌ بأقواسه كاملةً.
+  if (i < text.length && '-+±'.contains(text[i])) i++;
+  if (text.startsWith('\\', i)) {
+    final cmd = RegExp(r'^\\[a-zA-Z]+').firstMatch(text.substring(i));
+    if (cmd == null) return null;
+    i += cmd.end;
+    if (i < text.length && text[i] == '[') {
+      final close = text.indexOf(']', i);
+      if (close < 0) return null;
+      i = close + 1;
+    }
+    while (i < text.length && text[i] == '{') {
+      var depth = 0;
+      for (; i < text.length; i++) {
+        if (text[i] == '{') depth++;
+        if (text[i] == '}' && --depth == 0) break;
+      }
+      if (i >= text.length) return null;
+      i++;
+    }
+  } else {
+    while (i < text.length && !RegExp(r'[\s)،,:؛؟!(\\]').hasMatch(text[i])) {
+      // النقطةُ آخرَ الجملة ليست من القيمة — والعشريةُ «٠.٥» منها.
+      if (text[i] == '.' &&
+          (i + 1 == text.length || !RegExp(r'[٠-٩0-9]').hasMatch(text[i + 1]))) {
+        break;
+      }
+      i++;
+    }
+  }
+  final value = text.substring(start, i);
+  if (value.isEmpty || value.length > 30) return null;
+  return ('${v.group(1)}←$value', i);
+}
 
 /// هل يحتاج النصّ كلّه رسّام الرياضيات؟ (فحص رخيص قبل أي تقسيم)
 bool containsMath(String text) => _needsMath(_prepare(text));

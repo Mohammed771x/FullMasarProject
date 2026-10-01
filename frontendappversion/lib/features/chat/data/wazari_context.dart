@@ -65,3 +65,23 @@ final RegExp _fetchBubble = RegExp(r'^جلب أسئلة وزاري: (.+) \(([^()
   }
   return null;
 }
+
+/// أوامرُ إيقاف الوزاري كما يرسلها زرُّ «إيقاف» أو يكتبها الطالب.
+const Set<String> _stopWords = {'وقف', 'خلاص', 'إلغاء', 'شكرا'};
+
+/// ⏹️ **هل أوقف الطالبُ الوزاريَّ في هذه المحادثة بعد آخر جلبٍ أو «كمل»؟**
+///
+/// 🔴 شكوى المالك (٢٠٢٦-١٠-٠١): جلب أسئلة، ضغط «إيقاف»، ثم سأل «وضّح لي
+///    السؤال ٥» — فعاد «أكمل / إيقاف» تحت الجواب. الخادمُ يبني السياقَ من
+///    المحادثة (الأسئلةُ المعروضة وكم بقي) ولا يعرف أنها أُوقفت، فيعيد
+///    `session_active`. والإيقافُ مكتوبٌ في الرسائل نفسِها — فيُقرأ منها،
+///    ويبقى بعد إعادة فتح المحادثة. و«كمل» أو جلبٌ جديد بعده يعيد الأزرار.
+bool wazariStoppedIn(List<Map<String, dynamic>> messages) {
+  for (final m in messages.reversed) {
+    if (m['role'] != 'user') continue;
+    final text = (m['text'] ?? '').toString().trim();
+    if (_stopWords.contains(text)) return true;
+    if (text == 'كمل' || _fetchBubble.hasMatch(text)) return false;
+  }
+  return false;
+}

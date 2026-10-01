@@ -30,6 +30,22 @@ from api import (  # noqa: E402
 )
 from .admin import _admin_gate, _admin_run  # noqa: E402
 
+# 🛡️ ترويساتُ صفحتَي الإدارة — طبقةٌ ثانية خلف تنقية [admin.html].
+#    `connect-src 'self'`: سكربتٌ دخيل لا يُرسل مفتاح الإدارة إلى خادمٍ آخر
+#    بـfetch. و`frame-ancestors 'none'`: لا تُؤطَّر اللوحة لخداع النقر.
+#    و`'unsafe-inline'` باقٍ لأن الصفحتين تعتمدان معالجاتٍ مضمّنة.
+_PAGE_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; "
+        "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; "
+        "form-action 'self'; object-src 'none'"),
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "Cache-Control": "no-store",
+}
+
 
 # ══════════════════════════════════════════════════
 # 📥 أداة الإدخال — صور الدرس ← JSON بالقالب
@@ -44,7 +60,7 @@ async def ingest_page():
     if not os.path.isfile(path):
         return HTMLResponse("<h1>ingest.html غير موجود</h1>", status_code=404)
     with open(path, encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+        return HTMLResponse(f.read(), headers=_PAGE_HEADERS)
 
 
 @app.get("/ingest/targets")
@@ -132,7 +148,7 @@ async def admin_page():
     if not os.path.isfile(path):
         return HTMLResponse("<h1>admin.html غير موجود</h1>", status_code=404)
     with open(path, encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+        return HTMLResponse(f.read(), headers=_PAGE_HEADERS)
 
 
 # =====================

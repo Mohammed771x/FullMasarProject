@@ -43,6 +43,7 @@ from .shared.boot import (  # noqa: F401
     SentenceTransformer, asyncio, hashlib, math, time, BASE_SUBJECTS_DIR,
     QA_TOP_K, EXAMS_BATCH_SIZE, MAX_PAGES_EXPLAIN_SUMMARY, MAX_PAGES_EXAMS,
     UNIT_BATCH_PAGES, RELEVANCE_FLOOR, RELEVANCE_SURE, embed_model,
+    embed_lock, encode, token_ids, EMBED_EXECUTOR, run_embedding,
 )
 
 # ── مواضعُ الكتب وقراءتُها ──
@@ -59,8 +60,10 @@ from .shared.content import (  # noqa: F401
 # ── التقطيعُ والفهرسة ──
 from .shared.indexing import (  # noqa: F401
     _CHUNK_TOKENS, _CHUNK_OVERLAP_TOKENS, _SENTENCE_SPLIT, _token_len,
-    split_for_embedding, _TITLE_TOKENS, page_title, embedding_corpus,
-    build_index_sync, get_index, faiss_search,
+    split_for_embedding, _TITLE_TOKENS, page_title, MAX_CORPUS_CACHE,
+    _corpus_cache, _corpus_lock, _corpus_cached, _corpus_store,
+    clear_corpus_cache, embedding_corpus, embedding_corpus_async,
+    _split_corpus, build_index_sync, get_index, faiss_search,
 )
 
 # ── الترتيبُ الهجين ──

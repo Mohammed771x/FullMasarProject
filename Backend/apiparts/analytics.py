@@ -34,6 +34,13 @@ async def admin_analytics(request: Request, days: int = 30, segment: str = "all"
         days=days, segment=segment, subject=subject, force=bool(refresh)))
 
 
+@app.get("/admin/ai-usage")
+async def admin_ai_usage(request: Request, days: int = 7):
+    """💰 التوكنات الفعلية والتكلفة — مجاميعُ يومية وآخرُ النداءات ([core/ai_usage])."""
+    from core import ai_usage
+    return _admin_run(request, lambda: ai_usage.summary(days))
+
+
 @app.get("/admin/segments")
 async def admin_segments(request: Request):
     """الشرائح المعرّفة مرّةً واحدة — تبني منها اللوحة كل قوائمها."""

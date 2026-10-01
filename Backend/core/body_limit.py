@@ -29,6 +29,46 @@ PATH_LIMITS = (
 TOO_LARGE_MESSAGE = "📦 الطلب أكبر من المسموح. صغّر الصورة أو اختصر الرسالة وحاول مجدداً."
 
 
+# ══════════════════════════════════════════════════
+# 📥 أداةُ الإدخال — مقفلةٌ قبل قراءة الجسم
+# ══════════════════════════════════════════════════
+# ☢️ **الثغرة (فحص 2026-10-01):** `/ingest/run` يقبل ٣٢٤MB متعدّدة الأجزاء،
+#    وFastAPI يحلّلها **قبل** أن يصل المعالجَ فيسأل عن مفتاح الإدارة — بمكتبة
+#    `python-multipart` لها ثغراتُ حرمانٍ معلنة. فأيُّ أحدٍ بلا حساب يملأ
+#    ذاكرةَ الحاوية الوحيدة وقرصَها بطلباتٍ قليلة.
+#
+# ✅ والقفلُ هنا لأنه **الموضع الوحيد قبل التحليل**:
+#    • مُطفأةٌ ما لم يُضبط `INGEST_ENABLED=1` ⇒ 404 لكل `/ingest*` (والإنتاجُ
+#      لا يضبطه: الأداةُ تكتب في `data/` وتُشغَّل على جهاز المالك).
+#    • ومُشغَّلةً: كلُّ `/ingest/…` يحمل `X-Admin-Key` صحيحاً **قبل أول بايت**،
+#      وإلا 401. والصفحةُ نفسها (`GET /ingest`) تُقدَّم بلا مفتاح — فيها يُكتب.
+#    ويبقى حارسُ المعالج (`_admin_gate`) خلفه كما كان: طبقتان لا طبقة.
+
+def ingest_enabled() -> bool:
+    """يُقرأ عند كل طلب لا عند الاستيراد — فالاختبار يبدّله ويرى أثره."""
+    return os.getenv("INGEST_ENABLED", "").strip() == "1"
+
+
+def _ingest_denial(scope):
+    """`None` إن مُرّ، أو `(status, payload)` للرفض الفوري."""
+    path = scope.get("path", "")
+    if path != "/ingest" and not path.startswith("/ingest/"):
+        return None
+    if not ingest_enabled():
+        return 404, {"detail": "Not Found"}
+    if path == "/ingest":
+        return None
+    key = ""
+    for name, value in scope.get("headers") or []:
+        if name == b"x-admin-key":
+            key = value.decode("latin-1")
+            break
+    from . import admin                 # كسولٌ: admin يستورد quota وFirestore
+    if not admin.key_matches(key):
+        return 401, {"error": "⛔ صلاحية الإدارة مطلوبة."}
+    return None
+
+
 def limit_for(path: str) -> int:
     for prefix, cap in PATH_LIMITS:
         if path.startswith(prefix):
@@ -45,6 +85,10 @@ class BodyLimitMiddleware:
     async def __call__(self, scope, receive, send):
         if scope.get("type") != "http":
             return await self.app(scope, receive, send)
+
+        denied = _ingest_denial(scope)
+        if denied is not None:
+            return await _reject(send, *denied)
 
         cap = limit_for(scope.get("path", ""))
 
@@ -75,11 +119,11 @@ class BodyLimitMiddleware:
         return await self.app(scope, limited_receive, send)
 
 
-async def _reject(send):
+async def _reject(send, status: int = 413, payload: dict | None = None):
     import json
-    body = json.dumps({"answer": TOO_LARGE_MESSAGE, "session_active": False},
-                      ensure_ascii=False).encode("utf-8")
-    await send({"type": "http.response.start", "status": 413,
+    payload = payload or {"answer": TOO_LARGE_MESSAGE, "session_active": False}
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    await send({"type": "http.response.start", "status": status,
                 "headers": [(b"content-type", b"application/json"),
                             (b"content-length", str(len(body)).encode()),
                             (b"connection", b"close")]})

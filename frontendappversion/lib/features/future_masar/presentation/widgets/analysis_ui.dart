@@ -450,10 +450,13 @@ class AnalysisReviewCard extends StatelessWidget {
                 width: 46,
                 height: 46,
                 alignment: Alignment.center,
+                // 🌙 الدائرةُ بيضاءُ في الوضعين، فالسهمُ **حبرٌ ثابت** لا
+                //    `headingInk` — ذاك يُفتَّح في الداكن فصار أبيضَ على أبيض
+                //    ودائرةً فارغة (المالك ٢٠٢٦-١٠-٠١).
                 decoration: const BoxDecoration(
                     color: Colors.white, shape: BoxShape.circle),
                 child: Icon(PI.arrowLeft.bold,
-                    size: 20, color: AppColors.headingInk),
+                    size: 20, color: const Color(0xFF21302A)),
               ),
             ],
           ),

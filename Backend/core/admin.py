@@ -43,7 +43,10 @@ def is_admin_identity(identity: dict) -> bool:
     if not identity:
         return False
     email = (identity.get("email") or "").strip().lower()
-    if email and email in ADMIN_EMAILS:
+    # 📧 **والبريد موثَّقٌ لا مكتوبٌ فقط** (فحص 2026-09-24 · أُغلق 2026-10-01):
+    #    حسابُ «بريد/كلمة سر» يحمل في توكنه أيَّ بريدٍ كتبه صاحبه قبل أن يفتح
+    #    رابط التحقق. فمن سجّل ببريدٍ في القائمة لم يُستعمل بعد صار مديراً.
+    if email and email in ADMIN_EMAILS and identity.get("email_verified") is True:
         return True
 
     db = quota._firestore()
@@ -138,24 +141,15 @@ def _day_str(d: datetime) -> str:
 
 
 def _read_usage(db):
-    """يقرأ مجموعة `usage` مرّة واحدة ويفكّ مفاتيحها.
-
-    يعيد (يومي, زوّار) حيث:
+    """يعيد (يومي, زوّار) حيث:
       يومي  = {uid: {يوم: عدد}}
       زوّار = {uid: عدد تراكمي}
+
+    📇 من [core/usage_index] — كانت كلُّ صفحةٍ (حتى تفصيلُ طالبٍ واحد) تمسح
+       المجموعة كلَّها، وهي تنمو مستنداً لكل طالبٍ في كل يوم.
     """
-    daily = defaultdict(dict)
-    guests = {}
-    for doc in db.collection("usage").stream():
-        asks = int((doc.to_dict() or {}).get("asks", 0) or 0)
-        key = doc.id
-        if key.startswith("guest_"):
-            guests[key[len("guest_"):]] = asks
-            continue
-        m = _DAILY_KEY.match(key)
-        if m:
-            daily[m.group("uid")][m.group("day")] = asks
-    return daily, guests
+    from . import usage_index
+    return usage_index.read(db)
 
 
 def _series(daily, days: int, uid: str | None = None):
@@ -225,10 +219,14 @@ def list_users(search: str = "", limit: int = 200, segment: str = "all",
     needle = (search or "").strip().lower()
     segment = aud.validate(segment or "all")
 
+    from . import user_controls
+    controls = user_controls.read_all(db)
+
     rows = []
     for doc in db.collection("users").stream():
-        d = doc.to_dict() or {}
         uid = doc.id
+        # 🔒 الحظر والحدّ الخاص من [user_controls] لا من مستندٍ يكتبه صاحبه.
+        d = user_controls.apply(doc.to_dict(), controls.get(uid))
         name = str(d.get("name", ""))
         email = str(d.get("email", ""))
         if needle and needle not in name.lower() \
@@ -289,7 +287,8 @@ def user_detail(uid: str, days: int = 30) -> dict:
     if not snap.exists:
         raise AdminError(f"❌ لا يوجد مستخدم بالمعرّف «{uid}».")
 
-    d = snap.to_dict() or {}
+    from . import user_controls
+    d = user_controls.apply(snap.to_dict(), user_controls.read(db, uid))
     daily, _ = _read_usage(db)
     per = daily.get(uid, {})
 
@@ -347,11 +346,17 @@ def set_banned(uid: str, banned: bool) -> dict:
     ⚠️ الحظر يُكتب في `users/{uid}.banned`، و`api._authenticate` يمنعه
     عند أول طلب — فلا يكفي أن يظهر في اللوحة وحدها.
     """
+    from . import user_controls
     db = _db()
     ref = db.collection("users").document(uid)
-    if not ref.get().exists:
+    has_doc = ref.get().exists
+    # المحظورُ الذي حذف مستنده يبقى قابلاً لرفع الحظر أو تجديده: قرارُه هنا.
+    if not has_doc and user_controls.read(db, uid) is None:
         raise AdminError(f"❌ لا يوجد مستخدم بالمعرّف «{uid}».")
-    ref.set({"banned": bool(banned)}, merge=True)
+    # 🔒 الحَكَم أولاً — ثم نسخةُ العرض. لو فشلت الثانية بقي الحظرُ سارياً.
+    user_controls.write(db, uid, banned=bool(banned))
+    if has_doc:
+        ref.set({"banned": bool(banned)}, merge=True)
     # ⚡ يسري **فوراً** لا بعد دقيقة: الأدمن يحظر ثم يتحقق في ثوانٍ، وكاشٌ
     #    لا يُسقَط هنا يجعله يظن الحظر لم يعمل فيضغط الزر مراراً.
     _forget_cached(uid)
@@ -361,13 +366,17 @@ def set_banned(uid: str, banned: bool) -> dict:
 
 def set_quota(uid: str, limit) -> dict:
     """حدّ يومي خاص بمستخدم. `None` يعيده للحدّ العام."""
+    from . import user_controls
     db = _db()
     ref = db.collection("users").document(uid)
-    if not ref.get().exists:
+    has_doc = ref.get().exists
+    if not has_doc and user_controls.read(db, uid) is None:
         raise AdminError(f"❌ لا يوجد مستخدم بالمعرّف «{uid}».")
 
     if limit is None:
-        ref.set({"quota_override": None}, merge=True)
+        user_controls.write(db, uid, quota_override=None)
+        if has_doc:
+            ref.set({"quota_override": None}, merge=True)
         _forget_cached(uid)
         _refresh_analytics()
         return {"uid": uid, "quota_override": None}
@@ -379,7 +388,9 @@ def set_quota(uid: str, limit) -> dict:
     if not (0 <= value <= 100000):
         raise AdminError("❌ الحدّ خارج المدى المسموح (0 إلى 100000).")
 
-    ref.set({"quota_override": value}, merge=True)
+    user_controls.write(db, uid, quota_override=value)
+    if has_doc:
+        ref.set({"quota_override": value}, merge=True)
     _forget_cached(uid)
     _refresh_analytics()
     return {"uid": uid, "quota_override": value}

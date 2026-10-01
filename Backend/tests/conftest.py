@@ -145,11 +145,13 @@ DEFAULT_TEST_IDENTITY = {
 @pytest.fixture(autouse=True)
 def signed_in_by_default(monkeypatch):
     from core import firebase_auth as fa
-    from core import user_state, idempotency
+    from core import user_state, idempotency, guest_pool
 
     # 🧹 كاشات عابرة للاختبارات: بقاؤها يجعل اختباراً يُفسد تاليه.
+    #    (وميزانيةُ الزوّار يوميةٌ في الذاكرة: بلا تصفيرٍ تنفد في منتصف الجلسة.)
     user_state.reset()
     idempotency.reset()
+    guest_pool.reset()
 
     def _token(request):
         header = (request.headers.get("authorization", "")

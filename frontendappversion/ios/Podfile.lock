@@ -29,6 +29,11 @@ PODS:
   - Firebase/Messaging (12.18.0):
     - Firebase/CoreOnly
     - FirebaseMessaging (~> 12.18.0)
+  - firebase_app_check (0.4.8):
+    - Firebase/CoreOnly (~> 12.18.0)
+    - firebase_core
+    - FirebaseAppCheck (~> 12.18.0)
+    - Flutter
   - firebase_auth (6.6.1):
     - Firebase/Auth (= 12.18.0)
     - firebase_core
@@ -40,6 +45,12 @@ PODS:
     - Firebase/Messaging (= 12.18.0)
     - firebase_core
     - Flutter
+  - FirebaseAppCheck (12.18.0):
+    - AppCheckCore (~> 11.3)
+    - FirebaseAppCheckInterop (~> 12.18.0)
+    - FirebaseCore (~> 12.18.0)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/UserDefaults (~> 8.1)
   - FirebaseAppCheckInterop (12.18.0)
   - FirebaseAuth (12.18.0):
     - FirebaseAppCheckInterop (~> 12.18.0)
@@ -199,6 +210,7 @@ PODS:
 
 DEPENDENCIES:
   - cloud_firestore (from `.symlinks/plugins/cloud_firestore/ios`)
+  - firebase_app_check (from `.symlinks/plugins/firebase_app_check/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - firebase_messaging (from `.symlinks/plugins/firebase_messaging/ios`)
@@ -222,6 +234,7 @@ SPEC REPOS:
     - CwlCatchException
     - CwlCatchExceptionSupport
     - Firebase
+    - FirebaseAppCheck
     - FirebaseAppCheckInterop
     - FirebaseAuth
     - FirebaseAuthInterop
@@ -255,6 +268,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   cloud_firestore:
     :path: ".symlinks/plugins/cloud_firestore/ios"
+  firebase_app_check:
+    :path: ".symlinks/plugins/firebase_app_check/ios"
   firebase_auth:
     :path: ".symlinks/plugins/firebase_auth/ios"
   firebase_core:
@@ -299,9 +314,11 @@ SPEC CHECKSUMS:
   CwlCatchException: 7acc161b299a6de7f0a46a6ed741eae2c8b4d75a
   CwlCatchExceptionSupport: 54ccab8d8c78907b57f99717fb19d4cc3bce02dc
   Firebase: 5523dd53ebe603451b4e1befcd99fa20a5c015cd
+  firebase_app_check: 58e36939699827f3364c7bf39300b8c73683956e
   firebase_auth: 4c0f66df5d18671fd5ce6d6e9eb5ebdb653e03e5
   firebase_core: 22b31970001508f6e63945bedcb7b9de68819aa5
   firebase_messaging: e0eae0e66bd04d3c1856ad08ad84ac75e0673a55
+  FirebaseAppCheck: 06fc2eca9cc0499dc393f9d4320faeb373b24851
   FirebaseAppCheckInterop: 8c2fe8b563377bd948ee6acc2871fe2dfb3a034a
   FirebaseAuth: 389097b0c63059262aa02800cb0b93c9fab09130
   FirebaseAuthInterop: 32c03820809ddc9e63dfaaf3711ce2ac8da7e6ae

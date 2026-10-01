@@ -12,6 +12,7 @@
 #   - stateless تجاه الأخطاء: أي عطل داخلي → السماح بالمرور (fail-open)
 #     كي لا يعطّل نظام الحماية الخدمةَ نفسها.
 
+import os
 import time
 import threading
 
@@ -22,6 +23,11 @@ CONTENT_LIMIT = 120     # طلبات المحتوى (GET) أخف كلفة
 CONTENT_WINDOW = 60.0
 VOICE_LIMIT = 15        # تنظيف الصوت: نداء Flash-Lite قصير — أرخص من /ask وأغلى من GET
 VOICE_WINDOW = 60.0
+# 🎤 سقفٌ يومي فوق حدّ الدقيقة (٢٠٢٦-١٠-٠١): حدُّ الدقيقة وحده كان يسمح
+#    بـ٢١٦٠٠ نداءً في اليوم لحسابٍ واحد. ٢٠٠ تسجيلٍ يومياً فوق أيّ استعمالٍ
+#    حقيقي، وتجاوزُها يُبقي النصَّ الخام لا يرفضه ([apiparts/study.voice_clean]).
+VOICE_DAILY = int(os.getenv("VOICE_DAILY_LIMIT", "200"))
+VOICE_DAY = 86400.0
 # 🏷️ اسمُ المحادثة: نداءٌ واحدٌ لكل محادثة، بلا حصة — فحدّان: الدقيقةُ للسكربت
 #    السريع، والساعةُ لمن يتّخذه موديلاً مجانياً ببطء ([core/chat_title]).
 TITLE_LIMIT = 10
@@ -33,6 +39,9 @@ _MAX_KEYS = 10_000      # سقف الذاكرة — لكل مخزنٍ على ح�
 _buckets: dict = {}     # دلاء الـIP  (مسارات بلا هوية)  {key: [timestamps]}
 _user_buckets: dict = {}  # دلاء الهوية الموثَّقة (المسارات المدفوعة)
 _lock = threading.Lock()
+# ⏳ نافذةُ كل مفتاح — كي لا يكنس التنظيفُ (بنافذة الدقيقة) دلواً يومياً أو
+#    ساعياً بعد دقيقتين من الخمول، فيُصفَّر الحدّ لمن ينتظر قليلاً.
+_windows: dict = {}
 _last_sweep = 0.0
 
 # ══════════════════════════════════════════════════
@@ -82,9 +91,11 @@ def _sweep(now: float, window: float):
         return
     _last_sweep = now
     for st in (_buckets, _user_buckets):
-        dead = [k for k, ts in st.items() if not ts or now - ts[-1] > window * 2]
+        dead = [k for k, ts in st.items()
+                if not ts or now - ts[-1] > _windows.get(k, window) * 2]
         for k in dead:
             st.pop(k, None)
+            _windows.pop(k, None)
 
 
 def _evict_oldest(store: dict) -> None:
@@ -92,6 +103,7 @@ def _evict_oldest(store: dict) -> None:
     victims = sorted(store, key=lambda k: store[k][-1] if store[k] else 0.0)
     for k in victims[: max(1, _MAX_KEYS // 4)]:
         store.pop(k, None)
+        _windows.pop(k, None)
 
 
 def _hit(store: dict, key: str, limit: int, window: float) -> bool:
@@ -101,6 +113,7 @@ def _hit(store: dict, key: str, limit: int, window: float) -> bool:
         if key not in store and len(store) >= _MAX_KEYS:
             _evict_oldest(store)
         ts = store.setdefault(key, [])
+        _windows[key] = window
         cutoff = now - window
         while ts and ts[0] < cutoff:
             ts.pop(0)
@@ -149,3 +162,4 @@ def reset() -> None:
     with _lock:
         _buckets.clear()
         _user_buckets.clear()
+        _windows.clear()

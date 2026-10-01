@@ -53,7 +53,7 @@ async def _teacher_guards(req, request: Request):
              "session_active": False, "quota_exceeded": True,
              "is_guest": identity["is_guest"]}, 429)
     identity["_quota_reservation"] = reservation
-    v3_billing.start()
+    v3_billing.start(identity["uid"], "teacher")
 
     return identity, None
 
@@ -109,5 +109,6 @@ async def _scholarship_guards(req, request: Request):
                 {"answer": v3_quota.message_for(identity["is_guest"]),
                  "quota_exceeded": True, "is_guest": identity["is_guest"],
                  "ok": False}, 429), None
+        v3_billing.start(identity["uid"], "scholarship")   # 💰 لسطر التكلفة وحده
 
     return identity, sch, None, canned

@@ -207,6 +207,12 @@ service cloud.firestore {
     match /scholarship_prompts/{docId} {
       allow read, write: if false;
     }
+    // 🔒 قرارات الإدارة (الحظر · الحدّ الخاص) — [Backend/core/user_controls.py].
+    //    كانت في `users/{uid}` وحده، وصاحبُه **يحذفه** فيسقط حظرُه (٢٠٢٦-١٠-٠١).
+    //    الخادمُ وحده يقرأ ويكتب هنا، والرفضُ صريحٌ لا ضمنيٌّ كي لا يفتحه تعديلٌ لاحق.
+    match /user_controls/{uid} {
+      allow read, write: if false;
+    }
 
     // ═════════ 🎟️ عدّادات الحصة ═════════
     // يكتبها الباك اند وحده (Admin SDK). الطالب يقرأ عدّاده ليرى المتبقي،

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/storage/prefs_keys.dart';
 import '../../../core/theme/app_colors.dart';
@@ -363,7 +362,6 @@ class _GuideCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int c = colorSlot;
-    final bool hasVideo = videoUrl.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -398,30 +396,18 @@ class _GuideCard extends StatelessWidget {
           const SizedBox(width: 12),
           // ▶️ مربّعُ التشغيل — في **يسار** البطاقة كما في التصميم.
           //    ⚠️ فآخرُ أبناء `Row` في RTL هو أقصى اليسار.
-          Material(
-            color: AppColors.guideTiles[c],
-            borderRadius: BorderRadius.circular(10),
-            child: InkWell(
+          // 🎬 **أيقونةٌ لا رابط** (أمرُ المالك ٢٠٢٦-١٠-٠١): روابطُ يوتيوب
+          //    حُذفت لأن جولةَ الشرح بالروبوت داخل التطبيق تغني عنها،
+          //    والأيقونةُ نفسُها تبقى في كل بطاقة شكلاً.
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.guideTiles[c],
               borderRadius: BorderRadius.circular(10),
-              onTap: hasVideo
-                  ? () async {
-                      final uri = Uri.parse(videoUrl);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri,
-                            mode: LaunchMode.externalApplication);
-                      }
-                    }
-                  : null,
-              child: SizedBox(
-                width: 36,
-                height: 36,
-                child: Icon(
-                  hasVideo ? PI.play.regular : PI.info.regular,
-                  size: 17,
-                  color: AppColors.guideAccents[c],
-                ),
-              ),
             ),
+            child: Icon(PI.play.regular,
+                size: 17, color: AppColors.guideAccents[c]),
           ),
         ],
       ),

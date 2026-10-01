@@ -264,6 +264,10 @@
       <div class="cards" id="cards"></div>
       <h2>📈 الأسئلة اليومية</h2>
       <div class="card"><div id="chart"></div></div>
+      <h2>💰 تكلفة الذكاء الاصطناعي <span class="muted" style="font-size:13px">— التوكنات من المزوّد نفسه</span></h2>
+      <div class="cards" id="aiCards"></div>
+      <div class="card"><div class="muted" style="font-size:12px">التكلفة اليومية بالسنت</div><div id="aiChart"></div></div>
+      <div class="card" style="margin-top:12px;overflow-x:auto"><div id="aiBreakdown"></div></div>
     </section>
 
     <!-- ═══════════ 👥 المستخدمون ═══════════ -->
@@ -450,6 +454,14 @@
             <input id="s_guest" type="number" min="0" max="100" dir="ltr">
             <span class="hint">أسئلة الزائر <b>كلها</b> لا يومياً. الفعّال الآن:
               <b id="s_guest_now">—</b></span>
+          </div>
+          <div class="field">
+            <label>🧪 ميزانية الزوّار — يومياً لهم جميعاً</label>
+            <input id="s_guest_pool" type="number" min="0" max="100000" dir="ltr">
+            <span class="hint">سقفٌ واحد لكل الزوّار معاً — يمنع من يصنع حساباتٍ
+              مجهولةً بلا نهاية. لا يمسّ المسجَّلين. ٠ يوقف أسئلة الزوّار.
+              الفعّال الآن: <b id="s_guest_pool_now">—</b> · المستهلك اليوم:
+              <b id="s_guest_pool_used">—</b></span>
           </div>
           <div class="field">
             <label>📷 الصور — يومياً لكل مستخدم</label>
@@ -1245,10 +1257,10 @@ function renderBanList(items){
           </div>
         </div>
         <div class="row">
-          <button class="ghost" onclick="editBanner('${b.id}')">✏️ تعديل</button>
-          <button class="ghost" onclick="toggleBanner(this,'${b.id}', ${b.enabled === false})">
+          <button class="ghost" onclick="editBanner(${jsArg(b.id)})">✏️ تعديل</button>
+          <button class="ghost" onclick="toggleBanner(this,${jsArg(b.id)}, ${b.enabled === false})">
             ${b.enabled === false ? '👁️ إظهار' : '🚫 إخفاء'}</button>
-          <button class="danger" onclick="deleteBanner(this,'${b.id}')">🗑️</button>
+          <button class="danger" onclick="deleteBanner(this,${jsArg(b.id)})">🗑️</button>
         </div>
       </div>
     </div>`).join('');
@@ -1653,6 +1665,10 @@ async function loadSettings(){
     // الحقل الفارغ يعني «اتبع قيمة البيئة» — نُظهرها كتلميح لا كقيمة محفوظة.
     $('s_ask').placeholder = d.effective.quota_ask;
     $('s_guest').placeholder = d.effective.quota_guest;
+    $('s_guest_pool').value = d.stored.quota_guest_pool ?? '';
+    $('s_guest_pool').placeholder = d.effective.quota_guest_pool;
+    $('s_guest_pool_now').textContent = num(d.effective.quota_guest_pool);
+    $('s_guest_pool_used').textContent = num((d.guest_pool_today || {}).used);
   }catch(e){ fail(e); }
 }
 
@@ -1663,6 +1679,8 @@ async function saveSettings(btn){
   if(ask !== '') body.quota_ask = Number(ask);
   if(guest !== '') body.quota_guest = Number(guest);
   if(images !== '') body.quota_images = Number(images);
+  const pool = $('s_guest_pool').value.trim();
+  if(pool !== '') body.quota_guest_pool = Number(pool);
   if(!Object.keys(body).length){
     info('ℹ️ لم تغيّر شيئاً — اكتب رقماً في أحد الحقول.'); return;
   }
@@ -1682,6 +1700,17 @@ function esc(s){
   return String(s ?? '').replace(/[&<>"']/g,
     c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
+/// 🛡️ قيمةٌ تُمرَّر **وسيطاً لدالةٍ داخل `onclick="…"`** — لا `esc` وحدها.
+///
+/// ☢️ المتصفح يفكّ كيانات HTML داخل السمة **قبل** تشغيل الجافاسكربت، فـ
+///    `'${esc(x)}'` و`JSON.stringify(x).replace(/"/g,'&quot;')` كلاهما
+///    يُعيد للمهاجم علامةَ الاقتباس: اسمُ طالبٍ مثل `&quot;);…;//` في
+///    `users/{uid}.name` كان يُنفَّذ في اللوحة عند نقرة «أضِف» (فحص
+///    ٢٠٢٦-١٠-٠١) فيقرأ مفتاح الإدارة من sessionStorage.
+/// ✅ والصحيح طبقتان بترتيبهما: JSON يصنع نصّاً جافاسكربتياً سليماً، ثم
+///    `esc` يحميه من فكّ السمة — فيصل الجافاسكربتَ حرفاً بحرف.
+function jsArg(v){ return esc(JSON.stringify(v ?? null)); }
 
 // ══════════════ 📈 التحليلات ══════════════
 // 🔴 **لا رقمَ مُختلَق في هذا القسم.** ما لا مصدر له يُعرض كحالةٍ صريحة:
@@ -1964,7 +1993,7 @@ async function notifSearch(){
               ${u.banned ? '· <span style="color:var(--bad)">محظور</span>' : ''}</div>
           </div>
           <button class="mini ${notifChosen.has(u.uid) ? 'ghost' : ''}"
-            onclick="toggleNotifUser('${esc(u.uid)}', ${JSON.stringify(u.name).replace(/"/g,'&quot;')}, ${JSON.stringify(u.email || '').replace(/"/g,'&quot;')})">
+            onclick="toggleNotifUser(${jsArg(u.uid)}, ${jsArg(u.name)}, ${jsArg(u.email || '')})">
             ${notifChosen.has(u.uid) ? '✓ مُختار' : '＋ أضِف'}</button>
         </div>`).join('')
       : '<p class="hint">لا نتائج لهذا البحث.</p>';
@@ -1984,7 +2013,7 @@ function renderNotifChosen(){
   $('n_chosen').innerHTML = notifChosen.size
     ? [...notifChosen.entries()].map(([uid, u]) =>
         `<button class="chip on" title="${esc(u.email || uid)}"
-           onclick="toggleNotifUser('${esc(uid)}', ${JSON.stringify(u.name).replace(/"/g,'&quot;')}, ${JSON.stringify(u.email || '').replace(/"/g,'&quot;')})">
+           onclick="toggleNotifUser(${jsArg(uid)}, ${jsArg(u.name)}, ${jsArg(u.email || '')})">
            ${esc(u.name)} ✕</button>`).join('')
     : '<p class="hint">لم تختر أحداً بعد — ابحث أعلاه وأضِف.</p>';
 }
@@ -2065,7 +2094,7 @@ function renderNotifList(items){
         </div>
         <div class="row">
           ${STATUS[x.status] || esc(x.status)}
-          <button class="mini danger" onclick="deleteNotification(this,'${esc(x.id)}')">🗑️</button>
+          <button class="mini danger" onclick="deleteNotification(this,${jsArg(x.id)})">🗑️</button>
         </div>
       </div>
     </div>`).join('');
@@ -2234,7 +2263,7 @@ function renderAccess(d){
         </div>
       </div>
       <div class="row" style="margin-top:10px">
-        <button class="ok mini" onclick="saveAccessSection(this,'${esc(sec.key)}')">💾 حفظ الوضع العام</button>
+        <button class="ok mini" onclick="saveAccessSection(this,${jsArg(sec.key)})">💾 حفظ الوضع العام</button>
       </div>
 
       <h3 style="margin:18px 0 6px">🎯 قواعد الشرائح</h3>
@@ -2245,9 +2274,9 @@ function renderAccess(d){
       </p>
       <div id="ar_${sec.key}" class="listedit"></div>
       <div class="row" style="margin-top:10px">
-        <button class="addrow" onclick="addAccessRule('${esc(sec.key)}')">＋ إضافة قاعدة</button>
+        <button class="addrow" onclick="addAccessRule(${jsArg(sec.key)})">＋ إضافة قاعدة</button>
         <span class="sp"></span>
-        <button class="ok mini" onclick="saveAccessRules(this,'${esc(sec.key)}')">💾 حفظ القواعد</button>
+        <button class="ok mini" onclick="saveAccessRules(this,${jsArg(sec.key)})">💾 حفظ القواعد</button>
       </div>
 
       <h3 style="margin:18px 0 6px">👁️ الأثر الفعلي الآن</h3>
@@ -2357,6 +2386,39 @@ async function loadOverview(){
     ).join('');
     drawChart(d.series);
   }catch(e){ fail(e); }
+  loadAiUsage();
+}
+
+/// 💰 التكلفة الفعلية ([core/ai_usage]) — قراءةٌ لكل يوم لا مسحُ مجموعة.
+async function loadAiUsage(){
+  try{
+    const days = document.getElementById('days').value;
+    const d = await api('/admin/ai-usage?days=' + Math.min(90, Number(days) || 7));
+    const t = d.total || {};
+    const usd = v => '$' + Number(v || 0).toFixed(v >= 1 ? 2 : 4);
+    document.getElementById('aiCards').innerHTML = [
+      ['💵', usd(t.usd), `تكلفة آخر ${num(d.days)} يوماً`],
+      ['🔁', num(t.calls), 'نداء موديل'],
+      ['🧮', usd(t.usd_per_call), 'متوسط النداء'],
+      ['📥', num(t.input), 'توكن إدخال (منها ' + num(t.cached) + ' من الكاش)'],
+      ['📤', num(t.output), 'توكن إخراج (منها ' + num(t.reasoning) + ' تفكير)'],
+    ].map(([e,n,l]) =>
+      `<div class="card"><div class="n">${e} ${n}</div><div class="l">${esc(l)}</div></div>`
+    ).join('') + (t.unpriced_calls ? `<div class="card"><div class="n">⚠️ ${num(t.unpriced_calls)}</div>
+      <div class="l">نداء بموديلٍ ليس في جدول الأسعار — توكناته محسوبة وثمنه لا</div></div>` : '');
+    // 📈 بالسنت: المحاور تُقرّب لأعداد صحيحة، والدولار اليومي كسورٌ صغيرة
+    lineChart('aiChart', (d.series || []).map(p => ({x: p.day, y: Math.round(p.usd * 100)})), '#22c55e');
+    const rows = (title, obj) => Object.entries(obj || {})
+      .sort((a, b) => (b[1].usd || 0) - (a[1].usd || 0))
+      .map(([k, b]) => `<tr><td>${esc(title)}</td><td dir="ltr">${esc(k)}</td><td>${num(b.calls)}</td>
+        <td>${num(b.input)}</td><td>${num(b.output)}</td><td dir="ltr">${usd(b.usd)}</td></tr>`).join('');
+    document.getElementById('aiBreakdown').innerHTML =
+      `<table><thead><tr><th>النوع</th><th>الاسم</th><th>نداءات</th><th>إدخال</th><th>إخراج</th><th>التكلفة</th></tr></thead>
+       <tbody>${rows('موديل', d.models)}${rows('قسم', d.purposes)}</tbody></table>`;
+  }catch(e){
+    document.getElementById('aiCards').innerHTML =
+      `<div class="empty">تعذّرت قراءة التكلفة: ${esc(e.message)}</div>`;
+  }
 }
 
 // رسم يدوي بـSVG — بلا أي مكتبة رسوم.
@@ -2505,10 +2567,10 @@ function renderRow(u){
     <td>${status}</td>
     <td class="row">
       <button class="mini ${u.banned?'ghost':'danger'}"
-              onclick="toggleBan(this,'${esc(u.uid)}', ${u.banned})">
+              onclick="toggleBan(this,${jsArg(u.uid)}, ${u.banned === true})">
         ${u.banned ? 'رفع الحظر' : 'حظر'}
       </button>
-      <button class="mini ghost" onclick="editQuota(this,'${esc(u.uid)}', ${u.quota_override ?? 'null'})">
+      <button class="mini ghost" onclick="editQuota(this,${jsArg(u.uid)}, ${jsArg(typeof u.quota_override === 'number' ? u.quota_override : null)})">
         الحدّ
       </button>
     </td>
@@ -2595,12 +2657,12 @@ function renderSchRow(s, i){
     <td>${s.enabled === false ? '<span class="tag bad">مخفية</span>'
                               : '<span class="tag ok">ظاهرة</span>'}</td>
     <td class="row">
-      <button class="mini" onclick="openEditor('${esc(s.id)}')">تحرير</button>
-      <button class="mini ghost" onclick="toggleEnabled(this,'${esc(s.id)}', ${s.enabled !== false})">
+      <button class="mini" onclick="openEditor(${jsArg(s.id)})">تحرير</button>
+      <button class="mini ghost" onclick="toggleEnabled(this,${jsArg(s.id)}, ${s.enabled !== false})">
         ${s.enabled === false ? 'إظهار' : 'إخفاء'}
       </button>
-      <button class="mini ghost" onclick="move(this,'${esc(s.id)}', -1)" ${i === 0 ? 'disabled' : ''}>↑</button>
-      <button class="mini ghost" onclick="move(this,'${esc(s.id)}', 1)"
+      <button class="mini ghost" onclick="move(this,${jsArg(s.id)}, -1)" ${i === 0 ? 'disabled' : ''}>↑</button>
+      <button class="mini ghost" onclick="move(this,${jsArg(s.id)}, 1)"
               ${i === schs.length - 1 ? 'disabled' : ''}>↓</button>
     </td>
   </tr>`;

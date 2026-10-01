@@ -15,7 +15,7 @@
 
 import asyncio
 
-from . import billing
+from . import ai_usage, billing
 
 _AI_TIMEOUT = 30
 _MAX_TOKENS = 1500
@@ -136,6 +136,8 @@ async def image_to_text(image_b64: str, mime: str, clients: dict,
             ),
             timeout=_AI_TIMEOUT,
         )
+        ai_usage.record_response(response, MATH_VISION_MODEL if math else VISION_MODEL,
+                                 "vision")
         text = (response.choices[0].message.content or "").strip()
     except asyncio.TimeoutError:
         raise VisionFailed("📷 قراءة الصورة استغرقت وقتاً طويلاً. حاول مجدداً.")

@@ -26,6 +26,7 @@ from config import (BASE_SUBJECTS_DIR, GEMINI_API_KEY, DEEPSEEK_API_KEY)
 from .curriculum import normalize_grade_track, is_valid_subject, subjects_for
 from . import content_store as cs
 from . import textnorm
+from . import ai_usage
 
 
 class IngestError(Exception):
@@ -129,6 +130,7 @@ async def _transcribe_batch(client, model, images, first_page):
                   {"role": "user", "content": parts}],
         temperature=0,
     )
+    ai_usage.record_response(res, model, "ingest")
     return (res.choices[0].message.content or "").strip(), res.usage
 
 
@@ -240,6 +242,7 @@ async def structure(raw_text: str, subject: str, mode: str, lesson_name: str = "
         temperature=0,
         response_format={"type": "json_object"},
     )
+    ai_usage.record_response(res, model, "ingest")
     text = (res.choices[0].message.content or "").strip()
     try:
         data = json.loads(text)
@@ -298,6 +301,7 @@ async def math_audit(data, model: str = "") -> dict:
         temperature=0,
         response_format={"type": "json_object"},
     )
+    ai_usage.record_response(res, model or MATH_MODEL, "ingest")
     text = (res.choices[0].message.content or "").strip()
     try:
         parsed = json.loads(text)

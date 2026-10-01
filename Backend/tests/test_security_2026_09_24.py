@@ -301,13 +301,21 @@ def test_largest_legitimate_request_still_passes(client):
     assert r.status_code != 413
 
 
-def test_ingest_tool_keeps_its_larger_ceiling(client):
-    """أداةُ الإدخال للأدمن (٤٠ صفحة) لا تُرفض بسقف الطالب."""
+def test_ingest_tool_keeps_its_larger_ceiling(client, monkeypatch):
+    """أداةُ الإدخال للأدمن (٤٠ صفحة) لا تُرفض بسقف الطالب.
+
+    ⚠️ ومنذ 2026-10-01 لا تصلها الأجسامُ إلا مُشغَّلةً وبمفتاح الإدارة
+       ([core/body_limit._ingest_denial]) — فالفحصُ بهما، وإلا كان 401/404
+       يُمرِّر الاختبار بلا أن يمسّ السقف أصلاً."""
+    from core import admin as adm
+    monkeypatch.setenv("INGEST_ENABLED", "1")
+    monkeypatch.setattr(adm, "ADMIN_KEY", "k-test")
     assert body_limit.limit_for("/ingest/run") > 40 * 8 * 1024 * 1024
     big = b"x" * (body_limit.MAX_BODY_BYTES + 1024)
     r = client.post("/ingest/run", content=big,
-                    headers={"content-type": "multipart/form-data; boundary=zz"})
-    assert r.status_code != 413
+                    headers={"content-type": "multipart/form-data; boundary=zz",
+                             "X-Admin-Key": "k-test"})
+    assert r.status_code not in (401, 404, 413)
 
 
 def test_streaming_answers_still_flow_through_the_middleware(client):

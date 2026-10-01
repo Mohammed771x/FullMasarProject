@@ -597,7 +597,8 @@ class _MainChatScreenState extends State<MainChatScreen>
                               //    الطالب ليقرأ (قرار المالك)، فيلزمه طريقٌ
                               //    صريحٌ للعودة — لكنه لا يجلس فوق النصّ
                               //    يحجبه ما دام يقرأ (ملاحظة المالك).
-                              if (!_c.stick.isStuck && _c.messages.isNotEmpty)
+                              if ((!_c.stick.isStuck || _c.isWritingReply) &&
+                                  _c.messages.isNotEmpty)
                                 Positioned(
                                   bottom: 12 + bottomExtra,
                                   left: 0,
@@ -605,7 +606,9 @@ class _MainChatScreenState extends State<MainChatScreen>
                                   child: Center(
                                     child: _AutoHideScrollButton(
                                       controller: _c,
-                                      streaming: _c.isStreaming,
+                                      // ✍️ «الرد يُكتب…» ظاهرٌ طوال الكتابة —
+                                      //    بثّاً أو طابعةً — فالشاشةُ لا تنزل وحدها.
+                                      streaming: _c.isWritingReply,
                                     ),
                                   ),
                                 ),

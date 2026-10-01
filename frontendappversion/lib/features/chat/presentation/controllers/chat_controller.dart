@@ -200,6 +200,22 @@ class ChatController extends ChangeNotifier {
   /// هل يُكتب ردٌّ الآن؟ (تراه الفقاعة لتُظهر التلاشي والمؤشّر)
   bool isStreaming = false;
 
+  /// ✍️ ردٌّ يُكتب الآن — بثّاً من الموديل أو بالطابعة من المخزون.
+  ///    ⏳ **والانتظارُ قبل أوّل حرفٍ منه**: النقاطُ الثلاث تحت، والطالبُ
+  ///    يقرأ فوق فلا يراها — فبلا هذا يبقى بلا علامةٍ أن شيئاً قادم
+  ///    (رُئي في المحاكي ٢٠٢٦-١٠-٠١: ردٌّ كامل كُتب تحت ولم يظهر الزرّ).
+  bool get isWritingReply =>
+      isLoading ||
+      isStreaming ||
+      (messages.isNotEmpty && messages.last["animating"] == true);
+
+  /// 📌 **الردُّ يُكتب تحت ولا يسحب الشاشة** (أمرُ المالك ٢٠٢٦-١٠-٠١):
+  ///    «نبقى نقرأ اللي فوق… تنكتب تنكتب تحت ومكتوب يكتب الآن… أنا لو
+  ///    بغيت أنزل بنزل» — كما في ChatGPT. فلحظةَ يبدأ الردّ يُفكّ الالتصاق،
+  ///    ولا تتبع الشاشةُ البثَّ ولا الطابعة ولو كان الطالب في القاع؛ وزرُّ
+  ///    «الرد يُكتب…» ظاهرٌ حتى ينتهي، وهو طريقُه إن أراد النزول.
+  void _replyStarts() => stick.release();
+
   /// 👆 لمس الطالب الشاشة — يفكّ الالتصاق فوراً ويمنع أي قفزٍ حتى يرفع.
   void onUserDragStart() {
     final was = stick.isStuck;
@@ -293,6 +309,7 @@ class ChatController extends ChangeNotifier {
   // 📚 فارغةٌ حتى تصل قائمةُ الوحدات — «الكل» لم تعد خياراً
   //    ([_applyPagesUnits]).
   String selectedUnit = "";
+
   /// 📐 **رياضيات الثالث بفروعها** — وما عداها (والأولُ والثاني) كبقية المواد.
   bool get isMathBranches =>
       Curriculum.usesMathBranches(selectedSubject, grade: grade);
@@ -1620,12 +1637,8 @@ class ChatController extends ChangeNotifier {
     grade: grade,
     track: track.key,
     subject: selectedSubject,
-    branch: (!isTeacher && isMathBranches)
-        ? selectedMathBranch
-        : "",
-    mode: (!isTeacher && isMathBranches)
-        ? mathMode
-        : selectedMode,
+    branch: (!isTeacher && isMathBranches) ? selectedMathBranch : "",
+    mode: (!isTeacher && isMathBranches) ? mathMode : selectedMode,
   );
 
   // ══════════════════════════════════════════════════
@@ -1673,11 +1686,37 @@ class ChatController extends ChangeNotifier {
     return "$grade|${track.key}|$selectedSubject|$selectedV3Unit|$selectedV3Lesson";
   }
 
+  // ⏱️ **الرحلةُ الجارية نفسُها** — لا مجرّدُ أنها طُلبت. شكوى المالك
+  //    (٢٠٢٦-١٠-٠١): «مرة يجيبها بسرعة ومرة يتأخر ثانيتين». السببُ: من
+  //    يضغط «اشرح لي» قبل أن تعود الرحلة (ثانيةٌ على خادم HF) كان يُرسَل
+  //    إلى `/ask` بحرّاسه ومعاملتَي الحصة — ثانيتان لشرحٍ في الطريق إليه.
+  //    ورحلةٌ فشلت مرّةً لم تكن تُعاد أبداً. فالضغطةُ الآن **تنتظر الرحلة**
+  //    ([_awaitStoredExplanation]) وتعيد الفاشلة.
+  Future<void>? _prefetchInFlight;
+  bool _prefetchFailed = false;
+
   void _maybePrefetchExplanation() {
     final key = _explainScopeKey;
     if (key.isEmpty || key == _prefetchKey) return;
     _prefetchKey = key;
-    unawaited(_pullStoredExplanation(key));
+    _prefetchInFlight = _pullStoredExplanation(key);
+  }
+
+  /// قبل أن يُرسَل «اشرح لي» إلى `/ask`: الرحلةُ الجارية تُنتظر، والفاشلةُ تُعاد.
+  Future<void> _awaitStoredExplanation() async {
+    final key = _explainScopeKey;
+    if (key.isEmpty || _readyExplanation != null || _answerCount > 0) return;
+    if (key != _prefetchKey || _prefetchFailed) {
+      _prefetchKey = key;
+      _prefetchInFlight = _pullStoredExplanation(key);
+    }
+    final pending = _prefetchInFlight;
+    if (pending == null) return;
+    try {
+      await pending.timeout(const Duration(seconds: 6));
+    } catch (_) {
+      // المهلةُ مضت — يمضي في `/ask` كما كان.
+    }
   }
 
   Future<void> _pullStoredExplanation(String key) async {
@@ -1690,7 +1729,8 @@ class ChatController extends ChangeNotifier {
       int.tryParse(parts[0]) ?? grade,
       parts[1],
     );
-    if (_disposed || answer.isEmpty) return;
+    if (key == _prefetchKey) _prefetchFailed = answer == null;
+    if (_disposed || answer == null || answer.isEmpty) return;
     // ⏱️ وقد يكون الطالبُ بدّل درسَه أثناء الرحلة — فالنتيجةُ تُنسب لمفتاحها.
     _prefetchedFor = key;
     _prefetchedAnswer = answer;
@@ -1965,7 +2005,10 @@ class ChatController extends ChangeNotifier {
           ) ??
           teacherTool;
       selectedMode = conversation.mode;
-    } else if (Curriculum.usesMathBranches(conversation.subject, grade: grade)) {
+    } else if (Curriculum.usesMathBranches(
+      conversation.subject,
+      grade: grade,
+    )) {
       selectedMathBranch = conversation.branch;
       mathMode = conversation.mode;
     } else {
@@ -2327,15 +2370,11 @@ class ChatController extends ChangeNotifier {
       subject: selectedSubject,
       // ⚠️ نفس حرس `currentScopeKey` حرفياً: اختلافهما يجعل المحادثة تُحفظ
       //    بمفتاح ولا تُقرأ به — فتختفي من السجلّ فور حفظها.
-      mode: (!isTeacher && isMathBranches)
-          ? mathMode
-          : selectedMode,
+      mode: (!isTeacher && isMathBranches) ? mathMode : selectedMode,
       messages: chatMessages,
       grade: grade,
       track: track.key,
-      branch: (!isTeacher && isMathBranches)
-          ? selectedMathBranch
-          : "",
+      branch: (!isTeacher && isMathBranches) ? selectedMathBranch : "",
       // 🧭 وسياقُ الدرس معها — وإلا عادت المحادثةُ بمادتها بلا درسها
       //    ([ChatConversation.unit]). والوحدةُ تتبع الوضع: وضعُ الدروس
       //    له شجرتُه، ووضعُ الصفحات له وحداتُه، والرياضيات فرعٌ ودرس.
@@ -2701,7 +2740,8 @@ class ChatController extends ChangeNotifier {
   /// فقاعةُ «جلب الأسئلة» مقروءةً — العربي: سنة|قسم|نوع|عدد، والإنجليزي: سنة|نوع|عدد.
   String _wazariBubble(String raw) {
     final p = raw.split('|').map((e) => e.trim()).toList();
-    if (p.length >= 4) return "جلب أسئلة وزاري: ${p[1]} — ${p[2]} × ${p[3]} (${p[0]})";
+    if (p.length >= 4)
+      return "جلب أسئلة وزاري: ${p[1]} — ${p[2]} × ${p[3]} (${p[0]})";
     if (p.length == 3) return "جلب أسئلة وزاري: ${p[1]} × ${p[2]} (${p[0]})";
     return raw;
   }
@@ -2755,9 +2795,7 @@ class ChatController extends ChangeNotifier {
     }
 
     bool isMathExplain =
-        isMathBranches &&
-        mathMode == "شرح" &&
-        selectedLesson.isNotEmpty;
+        isMathBranches && mathMode == "شرح" && selectedLesson.isNotEmpty;
     // 🆕 وضع الدروس: اختيار الدرس يكفي لبدء الشرح بلا كتابة
     bool isV3LessonReady =
         effectiveContentMode == "lessons" &&
@@ -2941,6 +2979,21 @@ class ChatController extends ChangeNotifier {
         !hasImage &&
         !questionNeedsTypedText &&
         (text.isEmpty || text == explainLessonText)) {
+      await _awaitStoredExplanation();
+      // ⏹️ أوقفه الطالبُ أثناء الانتظار — فلا شيءَ يُعرض بعده، والدورةُ
+      //    تُغلق كما يغلقها `finally` في الطريق الطويل.
+      if (_disposed || _isResponseCancelled) {
+        _requestInFlight = false;
+        _busySince = null;
+        final finished = _requestFinished;
+        _requestFinished = null;
+        if (finished != null && !finished.isCompleted) finished.complete();
+        if (!_disposed) {
+          isLoading = false;
+          _safeNotify();
+        }
+        return;
+      }
       final ready = _readyExplanation;
       if (ready != null) {
         isLoading = false;
@@ -2955,8 +3008,8 @@ class ChatController extends ChangeNotifier {
           "fullText": ready,
         });
         sessionActive = false;
+        _replyStarts();
         _safeNotify();
-        scrollToBottom();
         // 🗄️ والحفظُ لا يحجب العرض: الشرحُ أمام الطالب قبل أن يلمس القرصَ
         //    أحد، وعطلُ التخزين لا يجوز أن يبتلع جواباً وصل.
         try {
@@ -2991,9 +3044,7 @@ class ChatController extends ChangeNotifier {
             : selectedLesson;
       }
 
-      if (!isMathBranches &&
-          selectedMode == "وزاري" &&
-          customText == null) {
+      if (!isMathBranches && selectedMode == "وزاري" && customText == null) {
         finalContentToSend = "$selectedExamYear,$text";
       }
 
@@ -3114,11 +3165,12 @@ class ChatController extends ChangeNotifier {
           "fullText": response.answer,
           if (response.offTopic) "offTopic": true,
         });
+        if (!quiet) _replyStarts();
       }
-      sessionActive = response.sessionActive;
+      // ⏹️ «إيقاف» الطالب يبقى نافذاً على أسئلته التالية ([wazariStoppedIn]).
+      sessionActive = response.sessionActive && !wazariStoppedIn(messages);
       _safeNotify();
       await saveCurrentConversation();
-      scrollToBottom();
 
       // 🎟️ العدّاد يتحرّك فور نجاح السؤال — تقديرٌ محليّ بلا رحلة شبكة.
       //    وعند تجاوز الحصة نسأل الخادم فوراً كي يظهر «٠» لا رقمٌ قديم.
@@ -3371,6 +3423,7 @@ class ChatController extends ChangeNotifier {
         "animating": false,
       });
       _streamIndex = messages.length - 1;
+      _replyStarts();
       _safeNotify();
     }
 
@@ -3389,15 +3442,7 @@ class ChatController extends ChangeNotifier {
     _pending.clear();
     _safeNotify();
 
-    // 📌 هنا القرار كله: نتبع الأسفل **إن كان الطالب هناك**، وإلا لا نلمس
-    //    موضعه. و`jumpTo` لا `animateTo`: أنيميشن مع كل دفعةٍ يُلغي سابقه
-    //    فيهتزّ العرض بلا توقّف.
-    //
-    // ⏱️ وبعد إطارٍ واحد: `maxScrollExtent` لا يعرف النصّ الجديد قبل أن
-    //    يُخطَّط، فالقفز الفوري يقف **دون** آخر سطرٍ وصل ويتخلّف تدريجياً.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_disposed) scrollController.followBottom(stick);
-    });
+    // 📌 **لا تتبّع**: الردُّ يُكتب تحت والطالب حيث هو ([_replyStarts]).
   }
 
   /// يُغلق فقاعة بثٍّ لم تكتمل — يوقف المؤشّر ويُبقي ما وصل.

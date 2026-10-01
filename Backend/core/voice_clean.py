@@ -10,6 +10,8 @@
 
 import asyncio
 
+from . import ai_usage
+
 _AI_TIMEOUT = 12          # قصير: تنظيف نص لا يستحق انتظاراً طويلاً
 _MAX_TOKENS = 500
 MAX_VOICE_TEXT = 1200     # سقف نص التسجيل الواحد (دقيقة كلام ≈ 500-800 حرف)
@@ -84,6 +86,7 @@ async def clean(text: str, clients: dict, subject: str = "") -> dict:
             ),
             timeout=_AI_TIMEOUT,
         )
+        ai_usage.record_response(response, "gemini-3.1-flash-lite", "voice")
         cleaned = (response.choices[0].message.content or "").strip()
         # حراسة الناتج: فارغ أو منتفخ بشكل مريب → نعيد الخام
         if not cleaned or len(cleaned) > len(raw) * 3 + 80:

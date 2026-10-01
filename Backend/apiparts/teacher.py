@@ -81,7 +81,7 @@ async def teacher_ask(req: TeacherAskRequest, request: Request):
              "session_active": False, "quota_exceeded": True,
              "is_guest": identity["is_guest"]}, 429)
     identity["_quota_reservation"] = reservation
-    v3_billing.start()
+    v3_billing.start(identity["uid"], "teacher")
 
     # 📷 الصورة → نص: نفس مسار `/ask` وحارسه بلا ازدواج. الاستعمال الحقيقي
     #    هنا: صفحة كتاب مصوّرة · ورقة إجابة طالب · سؤال مكتوب بخط اليد.

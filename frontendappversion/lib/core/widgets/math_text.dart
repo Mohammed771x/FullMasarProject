@@ -623,9 +623,48 @@ _Dir _dirOfNodes(List<MathNode> nodes) {
 
 /// ذرّة واحدة مع اتجاهها.
 class _Atom {
-  const _Atom(this.widget, this.dir);
+  const _Atom(this.widget, this.dir, {this.gluesNext = false});
   final Widget widget;
   final _Dir dir;
+
+  /// ⬇️ «نها» المكدّسة لا تُترك آخرَ السطر ومقدارُها في الذي يليه ([_glueStacks]).
+  final bool gluesNext;
+}
+
+/// 🔗 **النهايةُ ومقدارُها ذرّةٌ واحدة** — كما الأساسُ وأُسُّه: `Wrap` يلفّ بين
+///    ذرّتين، فكانت «(٢) نها» تنتهي السطرَ والكسرُ يبدأ الذي يليه (رآه المالك
+///    في الوزاري ٢٠٢٦-١٠-٠١). و`FittedBox` يُصغّر الاثنين معاً إن ضاق السطر عنهما
+///    فلا فيضان.
+List<_Atom> _glueStacks(List<_Atom> atoms, TextDirection line) {
+  if (!atoms.any((a) => a.gluesNext)) return atoms;
+  final out = <_Atom>[];
+  for (var i = 0; i < atoms.length; i++) {
+    final a = atoms[i];
+    final gap = i + 1 < atoms.length && atoms[i + 1].dir == _Dir.space;
+    final j = gap ? i + 2 : i + 1;
+    if (!a.gluesNext || j >= atoms.length || atoms[j].dir == _Dir.space) {
+      out.add(a);
+      continue;
+    }
+    out.add(_Atom(
+      FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          textDirection: line,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            a.widget,
+            if (gap) atoms[i + 1].widget,
+            atoms[j].widget,
+          ],
+        ),
+      ),
+      atoms[j].dir,
+    ));
+    i = j;
+  }
+  return out;
 }
 
 /// ⚠️ علّة bidi الثالثة — **بين الكلمات**:
@@ -864,7 +903,12 @@ List<_Atom> _build(List<MathNode> nodes, TextStyle style, Color rule,
 
       case StackNode(:final symbol, :final below, :final above):
         final integral = symbol == '∫';
-        final small = _script(style);
+        // 🔎 حدُّ النهاية «س←١» سطرٌ كاملٌ لا رقمٌ واحد — فبحجم الأُسّ (٠٫٦٢)
+        //    صار سهمُه نقطةً لا تُقرأ (رآه المالك في الوزاري ٢٠٢٦-١٠-٠١). وأكبرُ من ٠٫٦٨
+        //    يُعرّض الحدَّ فينزل المقدارُ بعده إلى سطرٍ وحده.
+        final small = integral
+            ? _script(style)
+            : style.copyWith(fontSize: (style.fontSize ?? 17) * 0.68);
         Widget part(List<MathNode> n) => Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               children: _atoms(n, small, rule,
@@ -894,6 +938,7 @@ List<_Atom> _build(List<MathNode> nodes, TextStyle style, Color rule,
             ],
           ),
           _Dir.neutral,
+          gluesNext: !integral,
         ));
 
       case ScriptNode(:final body, :final superscript):
@@ -940,7 +985,7 @@ List<_Atom> _build(List<MathNode> nodes, TextStyle style, Color rule,
     }
     prev = node;
   }
-  return out;
+  return _glueStacks(out, line);
 }
 
 

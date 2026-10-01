@@ -66,6 +66,7 @@ dependencies:
   #    iOS ← قدرة Push Notifications ومفتاح APNs في Firebase Console.
   #    راجع docs/06-admin.md — بلا مفتاح APNs لا يصل إشعارٌ واحد لآيفون.
   firebase_messaging: ^16.6.0
+  firebase_app_check: ^0.4.8
 dev_dependencies:
   flutter_test:
     sdk: flutter

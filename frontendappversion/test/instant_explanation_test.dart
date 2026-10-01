@@ -21,15 +21,24 @@ const String _stored = "### 🎯 الفكرة الكبرى\nشرحٌ مخزون�
 
 /// مستودعُ محتوى يسلّم شرحاً مخزوناً — ويَعدّ كم مرّة سُئل.
 class _FakeContent extends TutorContentRepository {
+  _FakeContent({this.delay = Duration.zero, this.failFirst = false});
+
   final String answer = _stored;
+  final Duration delay;
+  bool failFirst;
   int pulls = 0;
   final List<String> asked = [];
 
   @override
-  Future<String> getStoredExplanation(String subject, String unit,
+  Future<String?> getStoredExplanation(String subject, String unit,
       String lesson, int grade, String track) async {
     pulls++;
     asked.add("$grade|$track|$subject|$unit|$lesson");
+    await Future<void>.delayed(delay);
+    if (failFirst) {
+      failFirst = false;
+      return null; // رحلةٌ تعذّرت
+    }
     return answer;
   }
 }
@@ -165,6 +174,39 @@ void main() {
   });
 
   group('⚡ الضغطةُ تعرض من الذاكرة', () {
+    // ⏱️ شكوى المالك (٢٠٢٦-١٠-٠١): «مرة بسرعة ومرة يتأخر ثانيتين».
+    test('ضغطةٌ قبل عودة الرحلة تنتظرها — لا تذهب إلى `/ask`', () async {
+      final content = _FakeContent(delay: const Duration(milliseconds: 300));
+      final chat = _ForbiddenChat();
+      final c = _controller(content, chat: chat);
+      addTearDown(c.dispose);
+
+      c.setV3Unit("الجهاز العصبي");
+      c.setV3Lesson("الخلية العصبية");
+      // يضغط فوراً — والرحلةُ لم تعد بعد.
+      await c.processRequest(customText: ChatController.explainLessonText);
+
+      expect(chat.calls, 0, reason: 'ذهب إلى /ask والشرحُ في الطريق');
+      expect(content.pulls, 1, reason: 'رحلةٌ ثانية بدل انتظار الأولى');
+      expect(c.messages.last["cached"], isTrue);
+    });
+
+    test('ورحلةٌ فشلت تُعاد عند الضغط', () async {
+      final content = _FakeContent(failFirst: true);
+      final chat = _ForbiddenChat();
+      final c = _controller(content, chat: chat);
+      addTearDown(c.dispose);
+
+      c.setV3Unit("الجهاز العصبي");
+      c.setV3Lesson("الخلية العصبية");
+      await Future<void>.delayed(Duration.zero);
+      await c.processRequest(customText: ChatController.explainLessonText);
+
+      expect(content.pulls, 2);
+      expect(chat.calls, 0);
+      expect(c.messages.last["cached"], isTrue);
+    });
+
     test('«اشرح لي» تعرض المخزونَ بلا نداءِ الخادم أصلاً', () async {
       final content = _FakeContent();
       final chat = _ForbiddenChat();

@@ -12,7 +12,8 @@ from typing import List, Optional
 from .boot import embed_model
 from .boot import embed_model
 from .content import _normalize_for_search, extract_all_texts_and_metas
-from .indexing import embedding_corpus, get_index
+from .boot import encode, run_embedding
+from .indexing import embedding_corpus_async, get_index
 from .retrieval import NO_MATCH_NOTE, Ranked, WEAK_MATCH_NOTE, _KEYWORD_WEIGHT, expand_truncated_neighbours, is_continuation_request, lexical_denominator, query_terms, term_weights
 from .render_rules import draw_reminder
 
@@ -64,7 +65,8 @@ async def hybrid_rank(texts: List[str], query: str, top_k: int,
 
     # ✂️ البحثُ على **مقاطع** لا صفحات — نافذة الموديل ١٢٨ رمزاً والصفحة
     #    وسطها ٤٥٤، فالفهرسةُ على الصفحة كانت تُسقط ثلثيها ([embedding_corpus]).
-    chunks, owners = embedding_corpus(texts)
+    #    والتقطيعُ مُكاشٌ ببصمة المحتوى وخارجَ حلقة الأحداث ([embedding_corpus_async]).
+    chunks, owners = await embedding_corpus_async(texts)
 
     # ① الدلاليّ لكل المقاطع (الفهرس مسطّح ودقيق بلا تقريب)
     sem = await faiss_scores(chunks, query, meta=meta)
@@ -115,12 +117,12 @@ async def faiss_scores(texts: List[str], query: str,
         index = await get_index(texts, meta)
 
         def _score_all():
-            q_emb = embed_model.encode([query], convert_to_numpy=True,
-                                       show_progress_bar=False)
+            q_emb = encode([query], convert_to_numpy=True,
+                           show_progress_bar=False)
             faiss.normalize_L2(q_emb)
             return index.search(q_emb, k=index.ntotal)
 
-        D, I = await asyncio.wait_for(asyncio.to_thread(_score_all), timeout=15.0)
+        D, I = await asyncio.wait_for(run_embedding(_score_all), timeout=15.0)
         return {int(i): float(d) for d, i in zip(D[0], I[0]) if 0 <= i < len(texts)}
     except asyncio.TimeoutError:
         print("⚠️ FAISS timeout (scores)")

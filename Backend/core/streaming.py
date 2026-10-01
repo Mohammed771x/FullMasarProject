@@ -36,7 +36,7 @@
 import asyncio
 import json
 
-from . import billing
+from . import ai_usage, billing
 
 # ⏱️ نبضةٌ كل ١٥ ثانية حين لا يصل شيء من الموديل.
 #
@@ -116,6 +116,7 @@ async def complete(client, *, model, messages, sink=None, timeout=50.0, **kwargs
             client.chat.completions.create(
                 model=model, messages=messages, **kwargs),
             timeout=timeout)
+        ai_usage.record_response(response, model)
         return response.choices[0].message.content or ""
 
     try:
@@ -132,20 +133,35 @@ async def complete(client, *, model, messages, sink=None, timeout=50.0, **kwargs
             client.chat.completions.create(
                 model=model, messages=messages, **kwargs),
             timeout=timeout)
+        ai_usage.record_response(response, model)
         text = response.choices[0].message.content or ""
         await sink.push(text)
         return text
 
 
 async def _stream_into(client, model, messages, sink, timeout, kwargs):
-    """يفتح بثّ المزوّد ويدفع كل جزء إلى المصرف."""
+    """يفتح بثّ المزوّد ويدفع كل جزء إلى المصرف.
+
+    💰 `include_usage` يجعل المزوّد يرسل `usage` في آخر قطعة (بلا `choices`)
+       — هي التوكنات الفعلية التي يحاسبنا عليها ([core/ai_usage]). جُرّب حيّاً
+       على جيميناي وديب سيك (٢٠٢٦-١٠-٠١). وإن انقطع البثّ قبلها (أغلق الطالب
+       الشاشة) لم يُسجَّل ما وُلّد حتى الانقطاع — لا نخمّن رقماً.
+    """
     stream = await asyncio.wait_for(
         client.chat.completions.create(
-            model=model, messages=messages, stream=True, **kwargs),
+            model=model, messages=messages, stream=True,
+            stream_options={"include_usage": True}, **kwargs),
         timeout=timeout)
+
+    # ☢️ جيميناي يرسل `usage` **تراكمياً في كل قطعة** لا في الأخيرة وحدها
+    #    (قيس حيّاً: نداءٌ واحد سُجّل سبع مرّات). فنحفظ آخرها ونسجّله مرّةً بعد البثّ.
+    last_usage = []
 
     async def _pump():
         async for chunk in stream:
+            usage = getattr(chunk, "usage", None)
+            if usage is not None:
+                last_usage[:] = [usage]
             choices = getattr(chunk, "choices", None)
             if not choices:
                 continue
@@ -157,6 +173,8 @@ async def _stream_into(client, model, messages, sink, timeout, kwargs):
     # ⏱️ مهلةٌ على **البثّ كله** لا على كل جزء: مهلةُ الجزء الواحد كانت
     #    ستقطع شرحاً طويلاً يعمل بلا عطل.
     await asyncio.wait_for(_pump(), timeout=CHUNK_TIMEOUT)
+    if last_usage:
+        ai_usage.record(model, last_usage[0])
     return sink.text
 
 

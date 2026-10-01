@@ -91,9 +91,11 @@ def _pct(part: int, whole: int) -> float:
 # ══════════════ القراءة الخام ══════════════
 
 def _read_users(db) -> list:
+    from . import user_controls
+    controls = user_controls.read_all(db)    # 🔒 الحظر/الحدّ الخاص — الحَكَم
     out = []
     for doc in db.collection("users").stream():
-        d = doc.to_dict() or {}
+        d = user_controls.apply(doc.to_dict(), controls.get(doc.id))
         out.append({
             "uid": doc.id,
             "name": str(d.get("name", "")),
@@ -141,20 +143,10 @@ def _notif_on(d: dict, kind: str = "any") -> bool:
 
 
 def _read_usage(db):
-    """`{uid: {يوم: عدد}}` للطلاب، و`{uid: عدد}` للزوّار."""
-    from .admin import _DAILY_KEY
-    daily = defaultdict(dict)
-    guests = {}
-    for doc in db.collection("usage").stream():
-        asks = int(_num((doc.to_dict() or {}).get("asks", 0)))
-        key = doc.id
-        if key.startswith("guest_"):
-            guests[key[len("guest_"):]] = asks
-            continue
-        m = _DAILY_KEY.match(key)
-        if m:
-            daily[m.group("uid")][m.group("day")] = asks
-    return daily, guests
+    """`{uid: {يوم: عدد}}` للطلاب، و`{uid: عدد}` للزوّار — من [core/usage_index]:
+    مسحٌ واحدٌ في عمر الخادم ثم ما تغيّر وحده، لا المجموعةُ كلُّها في كل نظرة."""
+    from . import usage_index
+    return usage_index.read(db)
 
 
 def _owner_uid(doc) -> str:
