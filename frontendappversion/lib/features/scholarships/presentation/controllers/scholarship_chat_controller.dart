@@ -243,7 +243,7 @@ class ScholarshipChatController extends ChangeNotifier {
   Future<String?> startVoiceRecording() async {
     if (isRecording || isBusy) return null;
     final started = await SttService.I.start();
-    if (!started) return "🎤 التعرف على الكلام غير متاح على هذا الجهاز";
+    if (!started) return SttService.I.unavailableMessage();
     isRecording = true;
     notifyListeners();
     return null;

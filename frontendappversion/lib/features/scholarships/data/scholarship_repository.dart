@@ -431,6 +431,9 @@ class SchAskStream {
             pending = true;
           case AskFailure(message: final m):
             failure = m;
+            // ⚖️ رفضُ الخادم (٤٠٣ · ٤٠٤ · ٤٢٩) صار [AskFailure] في البثّ
+            //    العام، وهنا يبقى كما كان: نصُّ الخادم وأعلامُه يُعرضان.
+            if (ev.serverMessage.isNotEmpty) done = ev.payload;
         }
       }
 

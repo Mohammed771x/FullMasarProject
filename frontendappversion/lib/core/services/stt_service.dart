@@ -22,7 +22,6 @@ class SttService {
 
   final stt.SpeechToText _speech = stt.SpeechToText();
 
-  bool _initialized = false;
   bool _available = false;
 
   /// الطالب يريد الاستمرار — يبقى true حتى يضغط إيقاف/حذف.
@@ -41,9 +40,11 @@ class SttService {
 
   bool get isAvailable => _available;
 
+  /// 🔁 **النجاحُ يُحفظ والفشلُ لا** (فحص أندرويد ٢٠٢٦-١٠-٠٣): كان أوّلُ
+  ///    رفضٍ لإذن الميكروفون يُحفظ للجلسة كلّها — فيسمح الطالبُ من الإعدادات
+  ///    ويبقى يقرأ «غير متاح على هذا الجهاز» حتى يُغلق التطبيق.
   Future<bool> init() async {
-    if (_initialized) return _available;
-    _initialized = true;
+    if (_available) return true;
     try {
       _available = await _speech.initialize(
         onStatus: _onStatus,
@@ -53,6 +54,17 @@ class SttService {
       _available = false;
     }
     return _available;
+  }
+
+  /// رسالةُ فشل [start] — تفرّق رفضَ الإذن (يُصلحه الطالب) عن غياب المحرّك.
+  Future<String> unavailableMessage() async {
+    bool denied = false;
+    try {
+      denied = !await _speech.hasPermission;
+    } catch (_) {}
+    return denied
+        ? "🎤 اسمح لمسار باستخدام الميكروفون من إعدادات الجهاز، ثم حاول مجدداً."
+        : "🎤 التعرف على الكلام غير متاح على هذا الجهاز";
   }
 
   void _onStatus(String status) {

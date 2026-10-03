@@ -427,7 +427,7 @@ class ChatInputArea extends StatelessWidget {
                           child: InkWell(
                             onTap: () {
                               if (isGenerating) {
-                                controller.stopCurrentRequest();
+                                controller.stopFromButton();
                               } else if (canSend) {
                                 controller.processRequest();
                               } else {

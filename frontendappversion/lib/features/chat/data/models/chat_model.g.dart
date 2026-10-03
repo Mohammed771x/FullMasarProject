@@ -24,13 +24,14 @@ class ChatMessageAdapter extends TypeAdapter<ChatMessage> {
       imagePath: fields[4] == null ? '' : fields[4] as String,
       imagePaths: fields[5] == null ? [] : (fields[5] as List).cast<String>(),
       imageText: fields[6] == null ? '' : fields[6] as String,
+      status: fields[7] == null ? '' : fields[7] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, ChatMessage obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.role)
       ..writeByte(1)
@@ -44,7 +45,9 @@ class ChatMessageAdapter extends TypeAdapter<ChatMessage> {
       ..writeByte(5)
       ..write(obj.imagePaths)
       ..writeByte(6)
-      ..write(obj.imageText);
+      ..write(obj.imageText)
+      ..writeByte(7)
+      ..write(obj.status);
   }
 
   @override

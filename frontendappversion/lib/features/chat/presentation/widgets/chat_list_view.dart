@@ -142,8 +142,12 @@ class ChatListView extends StatelessWidget {
         // ⚠️ وهي **خارج صفّ الفقاعة** لا داخله: الصفُّ يحاذي أبناءه من
         //    الأسفل، فلو دخلت فيه لانزلقت صورةُ الروبوت إلى أسفل آخر سهم
         //    بدل أن تلازم الفقاعة. رأيتُه في المحاكي.
+        final bool isError = msg["isError"] == true;
+        // ⚠️ **ولا متابعةَ لعطل**: «بسّط لي» تحت «تعذّر الاتصال» تطلب تبسيطَ
+        //    رسالة الخطأ نفسها.
         final bool showFollowUps =
             !isUser &&
+            !isError &&
             isLast &&
             msg["streaming"] != true &&
             msg["animating"] != true &&
@@ -460,8 +464,29 @@ class ChatListView extends StatelessWidget {
                                         ),
                                       ),
 
+                                    // 🏷️ **جوابٌ لم يكتمل** — انقطع أو أُوقف أو
+                                    //    غادر الطالبُ قبل نهايته. بلا الوسم يُقرأ
+                                    //    كاملاً ويُحفظ كأنه كذلك.
+                                    if (!isUser &&
+                                        msg["partial"] == true &&
+                                        msg["streaming"] != true)
+                                      const _PartialTag(),
+
+                                    // 🔁 **فقاعةُ العطل**: زرُّ إعادةٍ حيث يُجدي، ولا
+                                    //    «حفظ» — رسالةُ خطأ ليست جواباً يُراجَع.
+                                    if (!isUser && isError) ...[
+                                      if (isLast &&
+                                          msg["canRetry"] == true &&
+                                          msg["retry"] != null &&
+                                          !controller.isBusy) ...[
+                                        const SizedBox(height: 12),
+                                        _RetryButton(
+                                          onTap: controller.retryFailed,
+                                        ),
+                                      ],
+                                    ]
                                     // 👇 زر النسخ للذكاء الاصطناعي 👇
-                                    if (!isUser) ...[
+                                    else if (!isUser) ...[
                                       const SizedBox(height: 12),
                                       _tourMark(
                                         isLast,
@@ -819,4 +844,71 @@ class _ChatWelcome extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// 🏷️ وسمُ «جوابٌ غير مكتمل» تحت ردٍّ انقطع قبل نهايته.
+class _PartialTag extends StatelessWidget {
+  const _PartialTag();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Container(
+          key: const ValueKey("partialTag"),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: AppColors.errorTint,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            "⚠️ جوابٌ غير مكتمل",
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      );
+}
+
+/// 🔁 «أعد المحاولة» — على آخر فقاعة عطلٍ تُجدي إعادتُه.
+class _RetryButton extends StatelessWidget {
+  const _RetryButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: "أعد المحاولة",
+        excludeSemantics: true,
+        child: InkWell(
+          key: const ValueKey("retryButton"),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.refresh_rounded, size: 16, color: Colors.white),
+                SizedBox(width: 6),
+                Text(
+                  "أعد المحاولة",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }

@@ -91,6 +91,19 @@ class QuizRepository {
     }
 
     if (res.statusCode != 200 && res.statusCode != 429) {
+      // 🛂 **الرفضُ برسالةٍ ليس عطلَ شبكة** (فحص أندرويد ٢٠٢٦-١٠-٠٣):
+      //    حظرٌ (403) أو رفضُ App Check (401) يحملان رسالةً عربية جاهزة،
+      //    وكان الطالب يقرأ بدلها «تأكد من الإنترنت» والإنترنتُ يعمل.
+      if (res.statusCode == 401 || res.statusCode == 403) {
+        try {
+          final body =
+              jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+          final msg = (body["answer"] ?? "").toString().trim();
+          if (msg.isNotEmpty) {
+            return QuizGeneration(questions: const [], message: msg);
+          }
+        } catch (_) {}
+      }
       throw HttpException("Server error: ${res.statusCode}");
     }
 

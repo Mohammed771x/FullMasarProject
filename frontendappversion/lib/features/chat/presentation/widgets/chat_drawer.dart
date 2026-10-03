@@ -206,8 +206,9 @@ class _ChatDrawerState extends State<ChatDrawer> {
   }
 
   // ───────────────────────── الرأس ─────────────────────────
-  Widget _header() => SizedBox(
-    height: 53,
+  // 📐 حدٌّ أدنى لا ارتفاعٌ ثابت — عند أكبر خطّ فاض السطران ٥ بكسل.
+  Widget _header() => ConstrainedBox(
+    constraints: const BoxConstraints(minHeight: 53),
     child: Row(
       children: [
         // 🌀 الشعار في **بداية** السطر (يمين RTL) كما في التصميم.

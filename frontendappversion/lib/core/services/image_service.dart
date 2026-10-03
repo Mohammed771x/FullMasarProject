@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -47,12 +48,25 @@ class ImageService {
   /// يلتقط صورة ويضغطها ويحفظها محلياً. يرجع null إن ألغى الطالب.
   /// يرمي [ImageException] برسالة عربية عند الفشل.
   Future<PickedImage?> pick({required bool fromCamera}) async {
-    final XFile? shot = await _picker.pickImage(
-      source: fromCamera ? ImageSource.camera : ImageSource.gallery,
-      maxWidth: _maxDimension.toDouble(),
-      maxHeight: _maxDimension.toDouble(),
-      imageQuality: 80, // ضغط أولي من المنتقي، ثم ضغطنا الدقيق أدناه
-    );
+    final XFile? shot;
+    try {
+      shot = await _picker.pickImage(
+        source: fromCamera ? ImageSource.camera : ImageSource.gallery,
+        maxWidth: _maxDimension.toDouble(),
+        maxHeight: _maxDimension.toDouble(),
+        imageQuality: 80, // ضغط أولي من المنتقي، ثم ضغطنا الدقيق أدناه
+      );
+    } on PlatformException catch (e) {
+      // 🔒 **رفضُ الإذن ليس عطلاً** (فحص أندرويد ٢٠٢٦-١٠-٠٣): بعد الرفض
+      //    الثاني لا يسأل النظامُ ثانيةً، وكان الطالب يقرأ «تعذّر فتح الصورة»
+      //    أبداً بلا سببٍ ولا طريق.
+      if (e.code == "camera_access_denied" || e.code == "photo_access_denied") {
+        throw ImageException(fromCamera
+            ? "📷 اسمح لمسار باستخدام الكاميرا من إعدادات الجهاز، ثم حاول مجدداً."
+            : "🖼️ اسمح لمسار بالوصول إلى الصور من إعدادات الجهاز، ثم حاول مجدداً.");
+      }
+      rethrow;
+    }
     if (shot == null) return null; // ألغى الطالب — ليس خطأ
 
     try {

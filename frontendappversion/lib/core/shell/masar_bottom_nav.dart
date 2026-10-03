@@ -111,7 +111,13 @@ class MasarBottomNav extends StatelessWidget {
             color: active ? AppColors.surfaceWhite : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Column(
+          // 🔠 **يصغر ليتّسع ولا يفيض** — خطُّ النظام المكبَّر كان يفيض
+          //    الشريطَ ١٩ بكسلاً ويقصّ «اختبر نفسك» إلى «اختبر» (فحص
+          //    ٢٠٢٦-١٠-٠٢). عند الحجم العاديّ لا أثر له.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Stack(
@@ -146,6 +152,7 @@ class MasarBottomNav extends StatelessWidget {
                     color: active ? AppColors.primary : AppColors.navInk,
                   )),
             ],
+          ),
           ),
         ),
       )),

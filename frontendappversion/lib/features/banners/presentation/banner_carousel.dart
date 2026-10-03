@@ -178,7 +178,18 @@ class _BannerCarouselState extends State<BannerCarousel> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(96, 8, 8, 8),
-              child: Column(
+              // 🔠 **البطاقةُ بارتفاعٍ ثابت (صفحةُ دوّار)، فالنصُّ يصغر ولا
+              //    يفيض.** العرضُ يبقى عرضَها فيلتفّ السطرُ كما هو، والمقياسُ
+              //    لا يتدخّل إلا حين يزيد الطولُ على البطاقة — أي عند تكبير
+              //    خطّ النظام (فاضت ١٠–٢٤px في فحص ٢٠٢٦-١٠-٠٢).
+              child: LayoutBuilder(
+                builder: (context, box) => FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: SizedBox(
+                    width: box.maxWidth,
+                    child: Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -210,6 +221,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     ),
                   ],
                 ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ],

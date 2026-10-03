@@ -107,6 +107,8 @@ class ConversationSync {
         if (m.allImages.isNotEmpty) "images_count": m.allImages.length,
         // ★ النصّ يُرفع (لا الصورة): به تبقى المحادثة مفهومة على جهاز جديد.
         if (m.imageText.isNotEmpty) "image_text": m.imageText,
+        // 🏷️ فقاعةُ العطل والجوابُ المقطوع يبقيان كذلك على جهازٍ جديد.
+        if (m.status.isNotEmpty) "status": m.status,
       };
 
   static ChatMessage messageFromMap(Map<String, dynamic> m) => ChatMessage(
@@ -115,6 +117,7 @@ class ConversationSync {
         refs: List<String>.from(m["refs"] ?? const []),
         timestamp: DateTime.tryParse((m["ts"] ?? "").toString()) ?? DateTime.now(),
         imageText: (m["image_text"] ?? "").toString(),
+        status: (m["status"] ?? "").toString(),
       );
 
   /// يقصّ **أقدم** الرسائل حتى يدخل المستند ضمن حدّين معاً:

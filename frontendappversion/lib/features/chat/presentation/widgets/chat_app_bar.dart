@@ -43,8 +43,10 @@ class ChatGlassAppBar extends StatelessWidget {
           bottom: 8,
           left: 24,
           right: 24),
-      child: SizedBox(
-        height: 50,
+      // 📐 **حدٌّ أدنى لا ارتفاعٌ ثابت** (فحص أندرويد ٢٠٢٦-١٠-٠٣): عند
+      //    أكبر خطّ (×١٫٣ بعد السقف) فاض العنوانُ وشارةُ الحصة ٤ بكسل.
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 50),
         child: Row(
           children: [
             // 📐 ترتيب RTL: القائمة أولاً (يمين) والمصباح أخيراً (يسار).

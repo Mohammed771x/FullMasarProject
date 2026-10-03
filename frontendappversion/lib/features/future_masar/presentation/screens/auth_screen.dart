@@ -72,7 +72,14 @@ import 'onboarding_screen.dart';
 //    فالحقلان يحمرّان (كما طلب المالك) ولا يقول أيُّهما الخطأ (كما يوجب
 //    الأمان) — والشكلُ والأمانُ لا يتعارضان هنا.
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({super.key, this.openSignup = false});
+
+  /// 🚀 «أنشئ حسابك» في آخر الترحيب: الدخولُ يبقى الشاشةَ الأساس، والتسجيلُ
+  /// يُفتح فوقه — فالرجوعُ منه يجد «تسجيل الدخول» لا شاشةً فارغة.
+  ///
+  /// 🔴 كان الزرّ يفتح «تسجيل الدخول» وحده (فحص ٢٠٢٦-١٠-٠٢): الطالبُ الجديد
+  ///    ضغط «أنشئ حسابك» فطُلب منه بريدٌ وكلمةُ مرورٍ لحسابٍ لا يملكه.
+  final bool openSignup;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -81,6 +88,20 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final _email = TextEditingController();
   final _pass = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.openSignup) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SignUpFlow()),
+        );
+      });
+    }
+  }
 
   /// 🎯 **لماذا مفاتيح؟** حين تظهر رسالةُ خطأٍ تحت حقلٍ خرج من الشاشة
   ///    (لوحةُ المفاتيح مفتوحة، أو جهازٌ قصير) لا يراها الطالب فيظنّ أن

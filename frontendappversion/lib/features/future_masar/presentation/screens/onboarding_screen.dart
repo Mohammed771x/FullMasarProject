@@ -97,7 +97,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 600),
-        pageBuilder: (_, _, _) => const AuthScreen(),
+        pageBuilder: (_, _, _) => const AuthScreen(openSignup: true),
         transitionsBuilder: (_, a, _, c) =>
             FadeTransition(opacity: a, child: c),
       ),
@@ -123,7 +123,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ThemeScope(
+    // ↩️ **رجوعُ أندرويد يرجع صفحةً لا يُغلق التطبيق** (فحص أندرويد
+    //    ٢٠٢٦-١٠-٠٣): من الصفحة الثانية كان يُخرج الطالبَ من «مسار» كلّه.
+    return PopScope(
+      canPop: _page == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _back();
+      },
+      child: ThemeScope(
       builder: (context) => Scaffold(
         backgroundColor: AppColors.bgLight,
         body: SafeArea(
@@ -163,6 +170,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

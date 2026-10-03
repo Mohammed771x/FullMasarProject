@@ -4,6 +4,7 @@ import '../core/notifications/push_router.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/theme_controller.dart';
+import '../core/widgets/text_scale_clamp.dart';
 
 // ==========================================
 // 🌟 جذر التطبيق (MaterialApp + الثيم + RTL + الوضع الداكن)
@@ -27,7 +28,8 @@ class MasarApp extends StatelessWidget {
             child: _RebuildOnThemeChange(
               child: Directionality(
                 textDirection: TextDirection.rtl,
-                child: child!,
+                // 🔠 خطُّ النظام يُكبَّر حتى ×١٫٣ لا أكثر ([TextScaleClamp]).
+                child: TextScaleClamp(child: child!),
               ),
             ),
           ),

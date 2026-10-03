@@ -181,7 +181,14 @@ class _MasarShellState extends State<MasarShell> {
         // 🔄 قواعد الأقسام تصل من الخادم بعد أول رسم — وبلا الاستماع يبقى
         //    قسمٌ أُقفل مفتوحاً حتى يعيد الطالب فتح التطبيق.
         listenable: AccessRepository.I,
-        builder: (context, _) => Scaffold(
+        // ↩️ **رجوعُ أندرويد من تبويبٍ غير الرئيسية يعود إليها** (فحص
+        //    أندرويد ٢٠٢٦-١٠-٠٣): كان يُغلق التطبيق من «المنح» و«اختبر نفسك».
+        builder: (context, _) => PopScope(
+          canPop: _tab == MasarTab.home,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) _onTap(MasarTab.home);
+          },
+          child: Scaffold(
           backgroundColor: AppColors.bgLight,
           body: IndexedStack(
             index: switch (_tab) {
@@ -206,6 +213,7 @@ class _MasarShellState extends State<MasarShell> {
             onTap: _onTap,
             lockedHint: _locked,
           ),
+        ),
         ),
       ),
     );

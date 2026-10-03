@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
+import '../../features/chat/data/repositories/ask_stream.dart';
+
 // ==========================================
 // 🛡️ تحويل الأخطاء إلى رسائل عربية مفهومة للطالب
 // ==========================================
@@ -62,8 +64,104 @@ class ErrorMessages {
 
   /// نصّ الفقاعة الذي يراه الطالب عند فشل الإرسال.
   static String forSendFailure(Object error) {
+    if (error is StreamInterrupted) {
+      return forAskError(error.kind, error.message);
+    }
     if (error is TimeoutException) return askTimeout;
     if (isConnectivity(error)) return askNoConnection;
     return askUnexpected;
   }
+
+  /// هل يُعرض زرّ «أعد المحاولة» على فقاعة هذا العطل؟
+  static bool canRetrySend(Object error) {
+    if (error is StreamInterrupted) return retryableKind(error.kind);
+    return isRetryable(error);
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🏷️ عطلُ الإرسال بنوعه ([AskErrorKind]) — لا «غير متوقع» لعطلٍ معروف
+  // ══════════════════════════════════════════════════
+  // 🔴 **العطل الذي أوجب هذا الباب (فحص ٢٠٢٦-١٠-٠٢):** `AskStream` صار
+  //    يحوّل كلَّ عطلٍ إلى `StreamInterrupted`، و[forSendFailure] لم تعرف
+  //    هذا النوع — فانقطاعُ النت و٤٠١ و٥٠٠ كلُّها «حدث خطأ غير متوقع»
+  //    بلا زرّ إعادة. أي أن العطلَ الذي يصفه رأسُ هذا الملف **عاد**.
+
+  static const String askUnauthorized =
+      "🔐 **انتهت جلستك**\n\nأغلق التطبيق وافتحه، وإن تكرّر فسجّل الدخول من جديد.";
+  static const String askForbidden =
+      "⛔ **لا يمكن إرسال هذا الطلب**\n\nهذا القسم غير متاح لحسابك حالياً.";
+  static const String askQuota =
+      "🎟️ **انتهت أسئلتك المتاحة**\n\nتتجدّد الحصة قريباً.";
+  static const String askRateLimited =
+      "⏳ **أرسلت أسئلةً كثيرة بسرعة**\n\nانتظر دقيقةً ثم حاول مجدداً.";
+  static const String askTooLarge =
+      "📦 **سؤالك أطول من المسموح**\n\nاختصر الرسالة أو صغّر الصورة وحاول مجدداً.";
+  static const String askBadRequest =
+      "⚠️ **تعذّر قبول الطلب**\n\nتأكد من اختيار الدرس وحاول مجدداً.";
+  static const String askNotFound =
+      "🛠️ **الخدمة غير متاحة الآن**\n\nقد يحتاج التطبيق إلى تحديث، أو أن الخادم في صيانة.";
+  // ⚖️ **بلا «لم يُخصم سؤالك»** (فحص أندرويد ٢٠٢٦-١٠-٠٣): الخادمُ يثبّت
+  //    الخصمَ متى نودي الموديل ولو فشل بعدها ([Backend/core/billing]) —
+  //    فالتطبيقُ لا يعرف ذلك فلا يَعِد به.
+  static const String askServer =
+      "🛠️ **الخادم يواجه مشكلةً مؤقتة**\n\nحاول مجدداً بعد قليل.";
+  static const String askEmpty =
+      "🤔 **لم يصل ردٌّ هذه المرة**\n\nحاول مجدداً.";
+
+  /// نصُّ فقاعة العطل حسب نوعه. [serverMessage] نصُّ الخادم — يُعرض في
+  /// الحظر والحصة والإبطاء حيث يحمل سبباً لا يعرفه التطبيق (موعدُ التجدّد،
+  /// سببُ الإقفال)، ويُتجاهل فيما سواها: رسائلُ التحقق تحمل أسماءَ حقولٍ
+  /// إنجليزية («content») لا تعني الطالب شيئاً.
+  static String forAskError(AskErrorKind kind, [String serverMessage = ""]) {
+    final server = serverMessage.trim();
+    final usable = server.isNotEmpty && !_looksTechnical(server);
+    return switch (kind) {
+      AskErrorKind.offline => askNoConnection,
+      AskErrorKind.timeout => askTimeout,
+      AskErrorKind.interrupted => askStreamStalled,
+      AskErrorKind.unauthorized => askUnauthorized,
+      AskErrorKind.forbidden => usable ? server : askForbidden,
+      AskErrorKind.quota => usable ? server : askQuota,
+      AskErrorKind.rateLimited => usable ? server : askRateLimited,
+      AskErrorKind.tooLarge => askTooLarge,
+      AskErrorKind.badRequest => askBadRequest,
+      AskErrorKind.notFound => askNotFound,
+      AskErrorKind.server => askServer,
+      AskErrorKind.empty => askEmpty,
+    };
+  }
+
+  /// هل تُجدي إعادةُ المحاولة لهذا النوع؟ الحظرُ والحصةُ والطولُ لا تتغيّر
+  /// بضغطة — زرٌّ هناك وعدٌ كاذب.
+  static bool retryableKind(AskErrorKind kind) => switch (kind) {
+        AskErrorKind.offline ||
+        AskErrorKind.timeout ||
+        AskErrorKind.interrupted ||
+        AskErrorKind.unauthorized ||
+        AskErrorKind.rateLimited ||
+        AskErrorKind.notFound ||
+        AskErrorKind.server ||
+        AskErrorKind.empty =>
+          true,
+        AskErrorKind.forbidden ||
+        AskErrorKind.quota ||
+        AskErrorKind.tooLarge ||
+        AskErrorKind.badRequest =>
+          false,
+      };
+
+  /// عطلٌ عابر يُعاد تلقائياً مرةً واحدة قبل أن يراه الطالب.
+  static bool transientKind(AskErrorKind kind) => switch (kind) {
+        AskErrorKind.offline ||
+        AskErrorKind.timeout ||
+        AskErrorKind.interrupted ||
+        AskErrorKind.server =>
+          true,
+        _ => false,
+      };
+
+  /// نصٌّ تقنيّ لا يُعرض للطالب: لاتينيةٌ في رسالةٍ عربية أو بلا عربية.
+  static bool _looksTechnical(String s) =>
+      RegExp(r'[A-Za-z_]{3,}').hasMatch(s) ||
+      !RegExp(r'[؀-ۿ]').hasMatch(s);
 }

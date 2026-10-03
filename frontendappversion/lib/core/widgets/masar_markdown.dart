@@ -659,6 +659,8 @@ class MasarMarkdown extends StatelessWidget {
             : (math ? prepared : data)),
         styleSheet: _withHeadings(styleSheet, context),
         selectable: selectable,
+        // ☢️ **إلزاميٌّ مع `selectable`** — راجع [_ignoreSelection].
+        onSelectionChanged: _ignoreSelection,
         softLineBreak: true,
         inlineSyntaxes: kMasarInlineSyntaxes,
         builders: kMasarBuilders,
@@ -703,6 +705,7 @@ class MasarMarkdown extends StatelessWidget {
                   : block.text),
               styleSheet: _withHeadings(styleSheet, context),
               selectable: selectable,
+              onSelectionChanged: _ignoreSelection,
               softLineBreak: true,
               inlineSyntaxes: kMasarInlineSyntaxes,
               builders: kMasarBuilders,
@@ -713,6 +716,16 @@ class MasarMarkdown extends StatelessWidget {
 }
 
 double _atLeastZero(double v) => v > 0 ? v : 0;
+
+/// ☢️ **مستمعُ تحديدٍ فارغ — وغيابُه استثناءٌ مع كل نقرة.**
+///
+/// 🔴 `flutter_markdown` (0.6.x) يبني `SelectableText.rich` بنداءٍ
+///    `onSelectionChanged!(…)` غيرِ مشروط حين يكون النصُّ قابلاً للتحديد.
+///    فكلُّ نقرةٍ أو ضغطةٍ مطوّلة على نصّ جوابٍ كانت ترمي
+///    `Null check operator used on a null value` (رُصد في سجلّ `flutter run`
+///    ٢٠٢٦-١٠-٠٢) — التحديدُ يعمل، والسجلُّ يمتلئ، ومراقبةُ الأعطال تُغرق.
+void _ignoreSelection(String? text, TextSelection selection,
+    SelectionChangedCause? cause) {}
 
 /// 📊 **جدولُ المحتوى — يرسمه التطبيق لا الماركداون.**
 ///

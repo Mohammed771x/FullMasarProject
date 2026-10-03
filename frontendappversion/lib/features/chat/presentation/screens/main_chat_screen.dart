@@ -477,7 +477,16 @@ class _MainChatScreenState extends State<MainChatScreen>
               final bool mathKeyboard = _c.mathKeyboardOpen;
               final bool keyboardOpen =
                   MediaQuery.viewInsetsOf(context).bottom > 0 || mathKeyboard;
-              return Scaffold(
+              // ↩️ **رجوعُ أندرويد يُغلق كيبورد الرياضيات أولاً** (فحص
+              //    أندرويد ٢٠٢٦-١٠-٠٣): كيبوردُ النظام يُغلقه النظامُ نفسه،
+              //    أمّا هذا فودجتٌ في الشاشة — فكان الرجوعُ يُخرج الطالبَ من
+              //    قسم التعليم كلّه وهو يكتب مسألته.
+              return PopScope(
+                canPop: !mathKeyboard,
+                onPopInvokedWithResult: (didPop, _) {
+                  if (!didPop) _c.inputFocus.unfocus();
+                },
+                child: Scaffold(
                 key: _scaffoldKey,
                 backgroundColor: AppColors.bgLight,
                 drawer: ChatDrawer(
@@ -663,6 +672,7 @@ class _MainChatScreenState extends State<MainChatScreen>
                       ],
                     ),
                   ],
+                ),
                 ),
               );
             },

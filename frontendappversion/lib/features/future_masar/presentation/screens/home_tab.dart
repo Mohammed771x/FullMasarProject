@@ -257,8 +257,10 @@ class _HomeTabState extends State<HomeTab> {
   // ══════════════════════════════════════════════════
   Widget _header() {
     final s = UserSession.I;
-    return SizedBox(
-      height: 59,
+    // 🔠 **حدٌّ أدنى لا ارتفاعٌ ثابت** — الخطُّ المكبَّر يمدّه ولا يقصّه
+    //    ([TextScaleClamp]). وكذلك كلُّ ارتفاعٍ من Figma في هذه الشاشة.
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 59),
       // 📐 **ترتيب RTL:** أول ابنٍ في `Row` هو **الأيمن**. والتصميم يضع
       //    الصورة في أقصى اليمين (x=314) ثم الاسم، والجرسَ والإعدادات في
       //    أقصى اليسار (x=72 و24) — فهذا ترتيبُ الأبناء بالضبط.
@@ -283,43 +285,53 @@ class _HomeTabState extends State<HomeTab> {
             ),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    "مرحباً 👋",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.greetInk,
+          // 📏 **يأخذ ما بقي ويقصّ ما زاد** — اسمٌ طويل أو خطٌّ مكبَّر كان
+          //    يدفع الجرسَ والإعدادات خارج الشاشة.
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      "مرحباً 👋",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.greetInk,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    s.name,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.headingInk,
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        s.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.headingInk,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                "الصف ${s.gradeLabel}${Curriculum.hasTracks(s.grade) ? ' — ${s.track}' : ''}",
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary900,
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  "الصف ${s.gradeLabel}${Curriculum.hasTracks(s.grade) ? ' — ${s.track}' : ''}",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary900,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           ListenableBuilder(
             listenable: NotificationsRepository.I,
             builder: (_, _) => TourAnchor(
@@ -409,9 +421,12 @@ class _HomeTabState extends State<HomeTab> {
     final subjects = conversations.map((c) => c.subject).toSet().length;
     final saved = SavedStorage.count(UserSession.I.uid, scope: scope);
 
-    return SizedBox(
-      height: 85,
-      child: Row(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 85),
+      // ↕️ البطاقاتُ الثلاث بطولٍ واحد مهما كبر الخط.
+      child: IntrinsicHeight(
+        child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _stat(
             PI.chats.fill,
@@ -436,6 +451,7 @@ class _HomeTabState extends State<HomeTab> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -452,6 +468,7 @@ class _HomeTabState extends State<HomeTab> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.rowBorder),
       ),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -513,21 +530,24 @@ class _HomeTabState extends State<HomeTab> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        SizedBox(
-          height: 30,
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 30),
           // 📐 التصميم: العنوان في اليمين (ينتهي عند 366) و«عرض الكل»
           //    في اليسار (x=24) — فالعنوان أولُ ابنٍ في RTL.
           child: Row(
             children: [
-              Text(
+              Expanded(
+                child: Text(
                 "الدروس التي تحتاج تركيز",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                   color: AppColors.headingInk,
                 ),
+                ),
               ),
-              const Spacer(),
               // 🔗 **«عرض الكل» تختفي وحدها حين لا شيءَ يُعرض** — رابطٌ
               //    يفتح شاشةً فارغة يبدو عطلاً، والبطاقةُ تحته تقول
               //    للطالب ما يفعل بدلاً منه.
@@ -661,7 +681,8 @@ class _HomeTabState extends State<HomeTab> {
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
                   width: 150,
-                  height: 27,
+                  constraints: const BoxConstraints(minHeight: 27),
+                  padding: const EdgeInsets.symmetric(vertical: 3),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: AppColors.primaryFill,
@@ -794,7 +815,7 @@ class _EduCard extends StatelessWidget {
     onTap: onTap,
     borderRadius: BorderRadius.circular(14),
     child: Container(
-      height: 102,
+      constraints: const BoxConstraints(minHeight: 102),
       clipBehavior: Clip.hardEdge,
       // ⚠️ **لا حشوة على البطاقة** — الحشوةُ للنصّ وحده. وحشوةٌ عامّة
       //    تقصّ من ارتفاع الرسم فيصغر عن التصميم (ملاحظة المالك).
@@ -833,7 +854,8 @@ class _EduCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Container(
                     width: 150,
-                    height: 27,
+                    constraints: const BoxConstraints(minHeight: 27),
+                    padding: const EdgeInsets.symmetric(vertical: 3),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: AppColors.primaryFill,
@@ -889,7 +911,7 @@ class _AnalysisCard extends StatelessWidget {
     onTap: onTap,
     borderRadius: BorderRadius.circular(14),
     child: Container(
-      height: 131,
+      constraints: const BoxConstraints(minHeight: 131),
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: AppColors.analysisCardSurface,
@@ -928,7 +950,8 @@ class _AnalysisCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Container(
                     width: 150,
-                    height: 27,
+                    constraints: const BoxConstraints(minHeight: 27),
+                    padding: const EdgeInsets.symmetric(vertical: 3),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: AppColors.secondaryFill,

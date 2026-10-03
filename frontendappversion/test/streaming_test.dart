@@ -134,9 +134,11 @@ void main() {
       expect(events.single, isA<AskPending>());
     });
 
-    test('429 برسالة الحصة ⇒ يُعامل كنهايةٍ عادية', () async {
+    test('429 برسالة الحصة ⇒ فشلٌ بنوع «الحصة» ورسالةُ الخادم معه', () async {
       // الخادم يفرض الحرّاس **قبل** بدء البثّ كي يصل رمز الحالة الصحيح.
-      // ورسالةُ الحصة يجب أن تُعرض للطالب كما هي لا كعطل شبكة.
+      // ⚠️ **وهو فشلٌ لا جواب** (فحص ٢٠٢٦-١٠-٠٢): كان يخرج `AskDone` فيُرسم
+      //    فقاعةَ موديلٍ عادية بزرّ «حفظ» ويُخصم. ورسالةُ الحصة تبقى تُعرض
+      //    للطالب كما هي — في فقاعة العطل لا كعطل شبكة.
       final events = await _collect(
         _SseClient(
           const [],
@@ -145,9 +147,20 @@ void main() {
         ),
       );
 
-      final done = events.single as AskDone;
-      expect(done.payload["answer"], contains("حدّك اليومي"));
-      expect(done.payload["quota_exceeded"], isTrue);
+      final failure = events.single as AskFailure;
+      expect(failure.kind, AskErrorKind.quota);
+      expect(failure.status, 429);
+      expect(failure.serverMessage, contains("حدّك اليومي"));
+      expect(failure.payload["quota_exceeded"], isTrue);
+    });
+
+    test('403 برسالة ⇒ فشلٌ بنوع «ممنوع» لا جواب', () async {
+      final events = await _collect(
+        _SseClient(const [], status: 403, body: '{"answer":"⛔ موقوف"}'),
+      );
+      final failure = events.single as AskFailure;
+      expect(failure.kind, AskErrorKind.forbidden);
+      expect(failure.serverMessage, "⛔ موقوف");
     });
 
     test('خطأ خادمٍ بلا رسالة ⇒ فشلٌ مفهوم', () async {
@@ -155,6 +168,7 @@ void main() {
         _SseClient(const [], status: 503, body: "boom"),
       );
       expect(events.single, isA<AskFailure>());
+      expect((events.single as AskFailure).kind, AskErrorKind.server);
     });
   });
 

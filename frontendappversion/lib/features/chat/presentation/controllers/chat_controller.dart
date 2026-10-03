@@ -40,7 +40,7 @@ import '../../../../core/utils/safe_cut.dart';
 // يحمل كامل حالة الشاشة ومنطقها (نفس منطق _MainChatScreenState الأصلي حرفياً)،
 // بينما تبقى آثار الواجهة (Snackbars / Dialogs / الأنيميشن) في طبقة الويدجت
 // عبر دوال رد النداء (callbacks) أدناه — فصلٌ نظيف دون أي تغيير في السلوك.
-class ChatController extends ChangeNotifier {
+class ChatController extends ChangeNotifier with WidgetsBindingObserver {
   ChatController({
     ChatRepository? chatRepository,
     TutorContentRepository? contentRepository,
@@ -52,6 +52,78 @@ class ChatController extends ChangeNotifier {
     // ⌨️ البطاقةُ تُطوى حين **يكتب في المحادثة** لا حين يرتفع أيُّ كيبورد
     //    ([chatInputFocused]) — فتغيّرُ التركيز حالةٌ تُعيد رسمها.
     inputFocus.addListener(_safeNotify);
+    _binding?.addObserver(this);
+  }
+
+  /// الربطُ إن وُجد — اختباراتُ المنطق الخالص تبني المتحكّم بلا ربط.
+  static WidgetsBinding? get _binding {
+    try {
+      return WidgetsBinding.instance;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ══════════════════════════════════════════════════
+  // 💾 **التطبيقُ يغادر الشاشة ⇒ ما وصل يُكتب على القرص الآن**
+  // ══════════════════════════════════════════════════
+  // 🔴 **فقدُ بياناتٍ مقيس (فحص ٢٠٢٦-١٠-٠٢):** سؤالٌ أُرسل، والردُّ يُبثّ،
+  //    ثم أُغلق التطبيق — فلا السؤالُ في المخزن ولا ما وصل من الجواب. لأن
+  //    المحادثة لا تُحفظ إلا حين ينتهي الطلب، والتطبيقُ كلُّه بلا مراقبٍ
+  //    لدورة الحياة. وiOS يقتل التطبيقَ في الخلفية بلا إنذار: الطالبُ الذي
+  //    يفتح واتساب أثناء جوابٍ يستغرق ٣٠ ثانية هو الحالةُ الشائعة.
+  //
+  // ✅ ثلاثُ طبقات: السؤالُ يُحفظ لحظةَ إرساله ([processRequest])، واللقطةُ
+  //    تتجدّد أثناء البثّ ([_maybeSnapshot])، ومغادرةُ التطبيق تكتب فوراً
+  //    هنا. والجوابُ المبثوث يُحفظ **«غير مكتمل»** حتى يصل `done` فيُكتب
+  //    فوقه كاملاً.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_disposed) return;
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _snapshotNow();
+    }
+  }
+
+  /// يكتب حالَ المحادثة كما هي الآن — محلياً وحده، بلا رفعٍ ولا تسمية.
+  void _snapshotNow() {
+    if (currentConversationId == null || messages.isEmpty) return;
+    _drainPending();
+    _lastSnapshot = DateTime.now();
+    unawaited(
+      saveCurrentConversation(snapshot: true).catchError((Object _) {}),
+    );
+  }
+
+  DateTime _lastSnapshot = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// كلُّ [snapshotEvery] أثناء البثّ: إن قُتل التطبيقُ بلا إنذار (نفادُ
+  /// ذاكرة، `SIGKILL`) بقي على القرص ما لا يتجاوز عمرُه هذه المدة.
+  static const Duration snapshotEvery = Duration(seconds: 4);
+
+  Timer? _snapshotTimer;
+
+  /// لقطةٌ إن مضت [snapshotEvery] على آخر لقطة — **وإلا لقطةٌ مؤجَّلةٌ إلى
+  /// نهايتها**.
+  ///
+  /// 🔴 **رُئي في المحاكي بعد الإصلاح الأول:** البثُّ أوصل ثلاثَ ثوانٍ ونصفاً
+  ///    ثم تجمّد، وقُتل التطبيق — فبقي السؤالُ وضاع الجزء. اللقطةُ كانت
+  ///    تُنادى مع كل جزءٍ يصل، والبثُّ المتجمّد **لا جزءَ بعده** يناديها.
+  ///    فالمؤجَّلةُ تُكتب ولو صمت البثّ.
+  void _maybeSnapshot() {
+    final since = DateTime.now().difference(_lastSnapshot);
+    if (since >= snapshotEvery) {
+      _snapshotTimer?.cancel();
+      _snapshotTimer = null;
+      _snapshotNow();
+      return;
+    }
+    _snapshotTimer ??= Timer(snapshotEvery - since, () {
+      _snapshotTimer = null;
+      if (!_disposed && isStreaming) _snapshotNow();
+    });
   }
 
   final ChatRepository _chat;
@@ -241,14 +313,45 @@ class ChatController extends ChangeNotifier {
   /// زرّ «انزل للأسفل» — يعيد الالتصاق وينزل بحركةٍ ناعمة.
   void jumpToBottomAndStick() {
     stick.stick();
-    if (scrollController.hasClients) {
-      scrollController.animateTo(
-        scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
-    }
     _safeNotify();
+    unawaited(settleAtBottom());
+  }
+
+  // ══════════════════════════════════════════════════
+  // ⬇️ **القاعُ الحقيقيّ لا القاعُ المقدَّر**
+  // ══════════════════════════════════════════════════
+  // 🔴 **رُئي في المحاكي (٢٠٢٦-١٠-٠٢):** في محادثةٍ طويلة احتاج «انزل للأسفل»
+  //    ثلاثَ نقراتٍ ثم **اختفى قبل القاع**، وإعادةُ فتح المحادثة تبدأ من
+  //    منتصفها. السبب: القائمةُ كسولة (`ListView.builder`)، فـ`maxScrollExtent`
+  //    **تقديرٌ** من الفقاعات المبنيّة — يكبر كلّما بُنيت فقاعاتٌ جديدة في
+  //    الطريق. فالحركةُ نحوه تقف عند قاعٍ قديم، والالتصاقُ قد أُعلن فاختفى
+  //    الزرّ.
+  //
+  // ✅ فالنزولُ يتكرّر إطاراً بعد إطار حتى يثبت الموضعُ عند القاع **بعد**
+  //    البناء: الأولى حركةٌ ناعمة، وما بعدها قفزاتٌ صغيرة لا تُرى.
+
+  /// ينزل إلى آخر المحادثة فعلاً — ويقف إن لمس الطالبُ الشاشة في الأثناء.
+  Future<void> settleAtBottom({bool animate = true}) async {
+    for (var i = 0; i < 24 && !_disposed; i++) {
+      if (stick.isDragging) return;
+      if (!scrollController.hasClients) {
+        await WidgetsBinding.instance.endOfFrame;
+        continue;
+      }
+      final p = scrollController.position;
+      final target = p.maxScrollExtent;
+      if (i > 0 && (target - p.pixels).abs() < 1) return;
+      if (animate && i == 0 && (target - p.pixels).abs() > 1) {
+        await scrollController.animateTo(
+          target,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+        );
+      } else {
+        scrollController.jumpTo(target);
+      }
+      await WidgetsBinding.instance.endOfFrame;
+    }
   }
 
   /// ⏸️ ضغط الطالب «إيقاف» بينما الردّ في الطريق.
@@ -1358,7 +1461,7 @@ class ChatController extends ChangeNotifier {
     }
     final started = await SttService.I.start();
     if (!started) {
-      onVoiceNotice?.call("🎤 التعرف على الكلام غير متاح على هذا الجهاز");
+      onVoiceNotice?.call(await SttService.I.unavailableMessage());
       _safeNotify();
       return;
     }
@@ -1792,6 +1895,21 @@ class ChatController extends ChangeNotifier {
   //    يجتمع مع «تبديلُ السياق ينتظر الإلغاء»: طلبٌ لا يُلغى أبداً يُبقي
   //    الشاشة مقفلةً على قرارِ الطالب أن يمضي. فصار الإيقاف إلغاءً حقيقياً
   //    في الحالتين، والحقلُ باقٍ `false` دائماً حتى تُحسم الحالة الثالثة.
+  /// 👆 **زرُّ الإيقاف وحده يمرّ من هنا** — لا الإلغاءُ البرمجيّ.
+  ///
+  /// 🔴 (فحص أندرويد ٢٠٢٦-١٠-٠٣): زرُّ الإرسال **يصير** زرَّ الإيقاف في
+  ///    مكانه، فالنقرةُ المزدوجة على «إرسال» كانت تُرسل ثم توقف فوراً: سؤالٌ
+  ///    بلا جواب، والخادمُ قد خصمه. نقرةُ إيقافٍ في أوّل [_stopGrace] بعد
+  ///    الإرسال ارتدادُ إصبعٍ لا قرار — فتُهمل.
+  void stopFromButton() {
+    final sent = _sentAt;
+    if (sent != null && DateTime.now().difference(sent) < _stopGrace) return;
+    stopCurrentRequest();
+  }
+
+  static const Duration _stopGrace = Duration(milliseconds: 700);
+  DateTime? _sentAt;
+
   void stopCurrentRequest() {
     final bool isAnimating =
         messages.isNotEmpty && messages.last["animating"] == true;
@@ -2259,6 +2377,10 @@ class ChatController extends ChangeNotifier {
             // ★ يعود مع المحادثة المستعادة: الصورة قد تكون فُقدت، والنصّ
             //   وحده يُبقي المتابعة مفهومة.
             if (m.imageText.isNotEmpty) 'imageText': m.imageText,
+            // 🏷️ العطلُ يعود عطلاً (لا جواباً يُحفظ ويُرسَل للموديل)،
+            //    والمقطوعُ يعود موسوماً «غير مكتمل».
+            if (m.isError) 'isError': true,
+            if (m.isPartial) 'partial': true,
           },
         )
         .toList();
@@ -2278,9 +2400,10 @@ class ChatController extends ChangeNotifier {
       unawaited(revealMessage(revealIndex, position: revealPosition));
       return;
     }
-    // محادثةٌ فُتحت للتوّ ⇒ ابدأ من آخرها حتماً، ثم الالتصاق من جديد.
+    // محادثةٌ فُتحت للتوّ ⇒ ابدأ من آخرها **فعلاً**، ثم الالتصاق من جديد.
+    //    (كانت `scrollToBottom` تنزل إلى قاعٍ مقدَّر فتُفتح من منتصفها.)
     stick.stick();
-    scrollToBottom(force: true);
+    unawaited(settleAtBottom(animate: false));
   }
 
   // ══════════════════════════════════════════════════
@@ -2326,7 +2449,10 @@ class ChatController extends ChangeNotifier {
     _safeNotify();
   }
 
-  Future<void> saveCurrentConversation() async {
+  /// [snapshot]: لقطةٌ محليةٌ أثناء طلبٍ جارٍ ([_snapshotNow]) — تُكتب على
+  /// القرص وحده: لا رفعَ للسحابة (البثُّ يلتقط كل ثوانٍ، ولكلِّ رفعٍ كلفة)
+  /// ولا تسمية ولا تحديثَ للقائمة. الحفظُ النهائيُّ بعد الطلب يتولّاها.
+  Future<void> saveCurrentConversation({bool snapshot = false}) async {
     if (currentConversationId == null || messages.isEmpty) return;
     // 🎭 **ردُّ جولة الشرح التوضيحيّ لا يُحفظ أبداً** ([EducationTour.demoMessages])
     //    — حارسٌ أخير لو أُغلقت الشاشةُ والجولةُ فوقها.
@@ -2361,6 +2487,7 @@ class ChatController extends ChangeNotifier {
             refs: List<String>.from(m['refs'] ?? []),
             imagePaths: List<String>.from(m['images'] ?? const []),
             imageText: (m['imageText'] ?? "").toString(),
+            status: _statusOf(m),
           ),
         )
         .toList();
@@ -2392,12 +2519,27 @@ class ChatController extends ChangeNotifier {
       pages: List<int>.of(_conversationPages),
     );
     await ChatStorage.saveConversation(conversation, ownerUid: ownerUid);
+    if (snapshot) return;
     // ☁️ نسخة سحابية بلا انتظار: الطالب لا يشعر بها، وفشلها يُسجَّل للإعادة.
     SyncService.I.pushConversation(conversation);
     loadConversations();
-    if (ConversationTitler.shouldName(messages)) {
+    // 🏷️ فقاعةُ العطل ليست «ردّاً» يُسمّى منه: محادثةٌ أوّلُ ردٍّ فيها عطلٌ
+    //    كانت تُسمّى من نصّ «حدث خطأ».
+    if (ConversationTitler.shouldName(
+      messages.where((m) => m["isError"] != true).toList(),
+    )) {
       unawaited(_nameOnce(conversation));
     }
+  }
+
+  /// حالةُ الرسالة على القرص ([ChatMessage.status]): العطلُ عطل، وما زال
+  /// يُبثّ أو انقطع قبل `done` جوابٌ **غير مكتمل**.
+  static String _statusOf(Map<String, dynamic> m) {
+    if (m["isError"] == true) return ChatMessage.statusError;
+    if (m["partial"] == true || m["streaming"] == true) {
+      return ChatMessage.statusPartial;
+    }
+    return "";
   }
 
   /// محادثاتٌ طُلب اسمُها — الحفظُ يتكرّر، والتسميةُ مرّةً واحدة.
@@ -2412,7 +2554,9 @@ class ChatController extends ChangeNotifier {
     if (!_namedConversations.add(conversation.id)) return;
     final provisional = conversation.title;
     final user = messages.firstWhere((m) => m["role"] == "user");
-    final ai = messages.firstWhere((m) => m["role"] == "ai");
+    final ai = messages.firstWhere(
+      (m) => m["role"] == "ai" && m["isError"] != true,
+    );
     final answer = (ai["fullText"] ?? ai["text"] ?? "").toString();
     if (answer.trim().isEmpty) {
       _namedConversations.remove(conversation.id); // ردٌّ لم يكتمل — لاحقاً
@@ -2634,9 +2778,13 @@ class ChatController extends ChangeNotifier {
     //    («ليس في وحدتك»)، ثم سأل الطالب عن الغدة النخامية — فجاء الجواب
     //    صحيحاً **ثم اعتذر عن قانون نيوتن**. الموديل رأى في السجلّ سؤالاً
     //    بلا جواب فحاول إكماله. والرفضُ يبقى معروضاً للطالب على الشاشة.
+    //
+    // ⚠️ **وفقاعةُ العطل كذلك** (فحص ٢٠٢٦-١٠-٠٢): «حدث خطأ…» كانت تصل
+    //    الموديلَ ردّاً منه على السؤال — فيظنّه أجاب. تُحذف هي وسؤالُها،
+    //    والطالبُ يُعيد السؤالَ نفسَه بزرّ «أعد المحاولة».
     final kept = <Map<String, dynamic>>[];
     for (final m in messages) {
-      if (m["offTopic"] == true) {
+      if (m["offTopic"] == true || m["isError"] == true) {
         // نحذف السؤال الذي أثاره أيضاً — وإلا بقي معلّقاً بلا جواب.
         if (kept.isNotEmpty && (kept.last["role"] ?? "") == "user") {
           kept.removeLast();
@@ -2766,6 +2914,12 @@ class ChatController extends ChangeNotifier {
   }) async {
     // ✅ حماية 1: تحقق من الشروط الأساسية
     var text = customText ?? inputController.text.trim();
+    // 🔁 ما أُرسل كما أُرسل — تعيده «أعد المحاولة» حرفياً ([retryFailed]).
+    final Map<String, dynamic> retrySpec = {
+      "typed": inputController.text,
+      "custom": customText,
+      "teacher": teacherGenerate,
+    };
 
     final bool hasImage = hasAttachments;
 
@@ -2942,6 +3096,7 @@ class ChatController extends ChangeNotifier {
 
     inputController.clear();
     _requestInFlight = true;
+    _sentAt = DateTime.now();
     _requestFinished = Completer<void>();
     isLoading = true;
     _markBusy();
@@ -2960,6 +3115,14 @@ class ChatController extends ChangeNotifier {
     _safeNotify();
 
     scrollToBottom();
+
+    // 💾 **السؤالُ على القرص قبل أن يغادر الجهاز** — لو قُتل التطبيقُ أثناء
+    //    الانتظار أو البثّ يجده الطالبُ حين يعود ولا يكتبه من جديد
+    //    ([didChangeAppLifecycleState]). لقطةٌ محلية: الرفعُ بعد الجواب.
+    try {
+      _lastSnapshot = DateTime.now();
+      await saveCurrentConversation(snapshot: true);
+    } catch (_) {}
 
     // ══════════════════════════════════════════════════
     // ⚡ الشرحُ المخزون في اليد ⇒ يُعرض بلا رحلةِ شبكة
@@ -3243,10 +3406,17 @@ class ChatController extends ChangeNotifier {
           "animating": false,
           "isError": true,
           // ★ يسمح للواجهة بعرض زرّ «أعد المحاولة» على هذه الفقاعة وحدها.
-          "canRetry": ErrorMessages.isRetryable(e),
+          "canRetry": ErrorMessages.canRetrySend(e),
+          "retry": retrySpec,
         });
         _safeNotify();
         scrollToBottom();
+        _afterFailedSend(e);
+        // 💾 والعطلُ يُحفظ **عطلاً** ([ChatMessage.statusError]) — فلا يعود
+        //    بعد إعادة الفتح جواباً، ولا يدخل سجلَّ الموديل.
+        try {
+          await saveCurrentConversation();
+        } catch (_) {}
       }
     } finally {
       // 🔪 تحرير موارد الاتصال
@@ -3263,6 +3433,47 @@ class ChatController extends ChangeNotifier {
         _safeNotify();
       }
     }
+  }
+
+  /// 🎟️ **حصةُ العطل** — لا خصمَ محلياً لطلبٍ فاشل (الخادمُ يردّ ما خصمه
+  /// [core/billing.py])، ولكن:
+  ///  • نفادُ الحصة يُبلَغ به كما كان يُبلَغ حين كان ردّاً عادياً، والعدّادُ
+  ///    يُسأل فوراً كي يظهر «٠» لا رقمٌ قديم.
+  ///  • والجوابُ الفارغ قد دُفع على الخادم — فالعدّادُ يُسأل ولا يُقدَّر.
+  void _afterFailedSend(Object e) {
+    if (e is! StreamInterrupted) return;
+    if (e.kind == AskErrorKind.quota) {
+      unawaited(QuotaRepository.I.refresh(force: true));
+      onQuotaExceeded?.call(e.payload["is_guest"] == true);
+    } else if (e.kind == AskErrorKind.empty) {
+      unawaited(QuotaRepository.I.refresh(force: true));
+    }
+  }
+
+  /// 🔁 **«أعد المحاولة»** على فقاعة العطل الأخيرة — يُرسل الطلبَ نفسَه.
+  ///
+  /// تُزال فقاعةُ العطل وسؤالُها ثم يمضي [processRequest] بما أُرسل أوّل
+  /// مرة ([retrySpec]): النصُّ المكتوب، أو زرُّ الوزاري، أو توليدُ المعلّم.
+  /// والصورةُ عادت إلى خانة الإرفاق عند الفشل فتُرسل معه.
+  Future<void> retryFailed() async {
+    if (messages.isEmpty || isBusy) return;
+    final last = messages.last;
+    if (last["isError"] != true || last["canRetry"] != true) return;
+    final spec = last["retry"];
+    if (spec is! Map) return;
+    messages.removeLast();
+    if (messages.isNotEmpty && messages.last["role"] == "user") {
+      messages.removeLast();
+    }
+    _safeNotify();
+    final custom = spec["custom"] as String?;
+    if (custom == null) {
+      inputController.text = (spec["typed"] ?? "").toString();
+    }
+    await processRequest(
+      customText: custom,
+      teacherGenerate: spec["teacher"] == true,
+    );
   }
 
   // ══════════════════════════════════════════════════
@@ -3284,7 +3495,7 @@ class ChatController extends ChangeNotifier {
     required Map<String, dynamic> body,
     List<String> imagesBase64 = const [],
   }) async {
-    final token = await UserSession.I.idToken();
+    var token = await UserSession.I.idToken();
     // لقطةٌ ثابتة للمحاولة: لا نعيد قراءة النص/الصور/السياق أثناء retry.
     final attemptBody = <String, dynamic>{
       "user_id": userId,
@@ -3300,6 +3511,7 @@ class ChatController extends ChangeNotifier {
       thinking ? AppConfig.askTimeoutThinking : AppConfig.askTimeout,
     );
     var transientRetries = 0;
+    var authRetried = false;
     // ⏳ **والاستعلامُ يتباطأ** ([AskPending]): الحمولة نفسُها تُرسل في كل
     //    مرة — تاريخُ المحادثة كاملاً، وقد تحمل معه صورةً بـbase64. وردُّ
     //    الخادم لا يأتي إلا بعد أن يفرغ من التوليد (٢٠–٤٠ ثانية)، فسؤالٌ
@@ -3310,7 +3522,7 @@ class ChatController extends ChangeNotifier {
 
     while (true) {
       Map<String, dynamic>? finished;
-      String? failure;
+      AskFailure? failure;
       var pending = false;
 
       await for (final ev in _stream.open(
@@ -3327,13 +3539,13 @@ class ChatController extends ChangeNotifier {
             finished = p;
           case AskPending():
             pending = true;
-          case AskFailure(message: final m):
-            failure = m;
+          case AskFailure():
+            failure = ev;
         }
       }
 
       if (_disposed || _isResponseCancelled) throw const RequestCancelled();
-      if (finished != null) return AskResponse.fromJson(finished);
+      if (finished != null) return _responseOrEmpty(finished);
 
       // 202 يعني أن **نفس** request_id يعمل في الخادم. ننتظر ثم نستعلم
       // بنفس الحمولة؛ لا نعرض رسالة «قيد المعالجة» كأنها جواب ولا نخصم محلياً.
@@ -3344,16 +3556,32 @@ class ChatController extends ChangeNotifier {
         continue;
       }
 
-      // عطلٌ قبل أول حرف يمكن إعادته مرةً واحدة بأمان لأن request_id ثابت.
-      if (failure != null &&
-          _streamIndex == null &&
-          transientRetries++ == 0 &&
-          DateTime.now().isBefore(deadline)) {
-        await Future<void>.delayed(const Duration(milliseconds: 250));
-        continue;
+      final f = failure;
+      if (f != null && _streamIndex == null && DateTime.now().isBefore(deadline)) {
+        // 🔐 **٤٠١ قبل أول حرف ⇒ توكنٌ جديد ومحاولةٌ واحدة بصمت.** التوكنُ
+        //    يعيش ساعة، والطالبُ الذي ترك التطبيق مفتوحاً يعود بتوكنٍ ميت —
+        //    وليس ذنبُه ليقرأ «انتهت جلستك».
+        if (f.kind == AskErrorKind.unauthorized && !authRetried) {
+          authRetried = true;
+          // ⏱️ **بمهلة** (فحص أندرويد ٢٠٢٦-١٠-٠٣): علِق التجديدُ مرّةً بعد
+          //    عودة الشبكة، والطالبُ أمام نقاطٍ تتحرّك بلا نهاية. بعد المهلة
+          //    نُعيد بالتوكن القديم فيصل «انتهت جلستك» بزرّ إعادة.
+          try {
+            token = await UserSession.I
+                .idToken(refresh: true)
+                .timeout(const Duration(seconds: 10));
+          } catch (_) {}
+          continue;
+        }
+        // 🔁 عطلٌ **عابر** قبل أول حرف يُعاد مرةً واحدة بأمان لأن request_id
+        //    ثابت. أما الرفضُ (٤٠٣ · الحصة · الطول) فإعادتُه تكرارٌ لا علاج.
+        if (ErrorMessages.transientKind(f.kind) && transientRetries++ == 0) {
+          await Future<void>.delayed(const Duration(milliseconds: 250));
+          continue;
+        }
       }
 
-      if (failure == null) {
+      if (f == null) {
         throw const StreamInterrupted(ErrorMessages.askStreamStalled);
       }
       // 🛟 انقطاعٌ **بعد** وصول جزءٍ من الشرح: نُبقي ما وصل ونُلحق سبب
@@ -3363,12 +3591,49 @@ class ChatController extends ChangeNotifier {
           ? ""
           : (messages[_streamIndex!]["text"] ?? "").toString();
       if (partial.trim().isNotEmpty) {
-        _finalizePartialStream(suffix: "\n\n$failure");
-        throw StreamInterrupted(failure, hasPartial: true);
+        final why = f.kind == AskErrorKind.interrupted ||
+                f.kind == AskErrorKind.offline
+            ? f.message
+            : ErrorMessages.forAskError(f.kind, f.serverMessage);
+        _finalizePartialStream(suffix: "\n\n$why");
+        throw StreamInterrupted(
+          why,
+          hasPartial: true,
+          kind: f.kind,
+          payload: f.payload,
+        );
       }
       _finalizePartialStream();
-      throw StreamInterrupted(failure);
+      throw StreamInterrupted(
+        ErrorMessages.forAskError(f.kind, f.serverMessage),
+        kind: f.kind,
+        payload: f.payload,
+      );
     }
+  }
+
+  /// 🤔 **`done` بنصٍّ فارغ ليس جواباً** (فحص ٢٠٢٦-١٠-٠٢): كان يُرسم فقاعةً
+  /// فارغةً بزرّي «نسخ» و«حفظ» ويُخصم من العدّاد كأيّ نجاح.
+  ///
+  /// ⚖️ إلا أن يكون البثُّ قد أوصل نصّاً: النهائيُّ الفارغ عندها عطلٌ في
+  ///    التنظيف لا في الجواب، والمبثوثُ هو ما قرأه الطالب — فيُعتمد.
+  AskResponse _responseOrEmpty(Map<String, dynamic> done) {
+    if ((done["answer"] ?? "").toString().trim().isNotEmpty) {
+      return AskResponse.fromJson(done);
+    }
+    _drainPending();
+    final streamed = _streamIndex == null
+        ? ""
+        : (messages[_streamIndex!]["text"] ?? "").toString();
+    if (streamed.trim().isNotEmpty) {
+      return AskResponse.fromJson({...done, "answer": streamed});
+    }
+    _finalizePartialStream();
+    throw StreamInterrupted(
+      ErrorMessages.askEmpty,
+      kind: AskErrorKind.empty,
+      payload: done,
+    );
   }
 
   // ══════════════════════════════════════════════════
@@ -3441,6 +3706,7 @@ class ChatController extends ChangeNotifier {
         "${messages[_streamIndex!]["text"] ?? ""}${_pending.toString()}";
     _pending.clear();
     _safeNotify();
+    _maybeSnapshot(); // 💾 ما وصل لا يضيع إن قُتل التطبيقُ الآن
 
     // 📌 **لا تتبّع**: الردُّ يُكتب تحت والطالب حيث هو ([_replyStarts]).
   }
@@ -3455,6 +3721,9 @@ class ChatController extends ChangeNotifier {
 
     final m = messages[i];
     m["streaming"] = false;
+    // 🏷️ ما انقطع قبل `done` جوابٌ **غير مكتمل** — يُوسم ويُحفظ كذلك
+    //    ([ChatMessage.statusPartial]) فلا يُقرأ بعد إعادة الفتح كاملاً.
+    if ((m["text"] ?? "").toString().trim().isNotEmpty) m["partial"] = true;
     if (suffix.isNotEmpty) m["text"] = "${m["text"] ?? ""}$suffix";
     m["fullText"] = m["text"];
     _safeNotify();
@@ -3499,6 +3768,7 @@ class ChatController extends ChangeNotifier {
   void dispose() {
     // 🪑 **قبل كل شيء**: المكانُ يُلتقط من حالةٍ حيّة، وما بعده يُفكّكها.
     _rememberPlace();
+    _binding?.removeObserver(this);
     SyncService.I.revision.removeListener(_onRemoteConversations);
     UserSession.I.removeListener(_onSessionScopeChanged);
     try {
@@ -3523,6 +3793,7 @@ class ChatController extends ChangeNotifier {
       //      ما جاءت لأجله. فصار الرفعُ **بعد** الحفظ ومربوطاً به.
       _drainPending();
       _flushTimer?.cancel();
+      _snapshotTimer?.cancel();
 
       if (currentConversationId != null && messages.isNotEmpty) {
         // ⚠️ `dispose` متزامنة فلا تُنتظر: الجزءُ الحرج (بناءُ الرسائل من

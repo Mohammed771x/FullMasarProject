@@ -31,6 +31,21 @@ class ChatMessage {
   @HiveField(6, defaultValue: "")
   final String imageText;
 
+  /// 🏷️ **حالةُ ردّ المساعد**: `""` جوابٌ كامل · [statusError] فقاعةُ عطل ·
+  /// [statusPartial] جوابٌ انقطع قبل أن يكتمل.
+  ///
+  /// 🔴 بلا هذا الحقل كانت فقاعةُ العطل تعود بعد إعادة الفتح **جواباً عادياً**:
+  ///    بزرّ «حفظ»، وتدخل سجلَّ المحادثة المرسَل للموديل. والجوابُ المقطوع
+  ///    يعود كأنه كامل لا علامةَ عليه.
+  @HiveField(7, defaultValue: "")
+  final String status;
+
+  static const String statusError = "error";
+  static const String statusPartial = "partial";
+
+  bool get isError => status == statusError;
+  bool get isPartial => status == statusPartial;
+
   /// كل الصور موحّدةً من الحقلين (الجديد أولاً ثم القديم).
   List<String> get allImages =>
       imagePaths.isNotEmpty ? imagePaths : (imagePath.isEmpty ? const [] : [imagePath]);
@@ -47,6 +62,7 @@ class ChatMessage {
     this.imagePath = "",
     this.imagePaths = const [],
     this.imageText = "",
+    this.status = "",
   }) : timestamp = timestamp ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
@@ -57,6 +73,7 @@ class ChatMessage {
     'imagePath': imagePath,
     'imagePaths': imagePaths,
     'imageText': imageText,
+    if (status.isNotEmpty) 'status': status,
   };
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
@@ -67,6 +84,7 @@ class ChatMessage {
     imagePath: json['imagePath'] ?? "",
     imagePaths: List<String>.from(json['imagePaths'] ?? const []),
     imageText: json['imageText'] ?? "",
+    status: (json['status'] ?? "").toString(),
   );
 }
 

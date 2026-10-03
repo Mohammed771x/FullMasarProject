@@ -8,6 +8,7 @@ import '../firebase_options.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../core/access/access_repository.dart';
+import '../core/monitoring/crash_reporter.dart';
 import '../core/security/app_check_service.dart';
 import '../core/notifications/notifications_repository.dart';
 import '../core/notifications/push_router.dart';
@@ -48,6 +49,9 @@ class AppBootstrap {
     //    فشل التهيئة لا يُسقط التطبيق — يبقى العمل المحلي (Hive) قائماً.
     try {
       await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+      // 🧯 مراقبةُ الأعطال **أوّلاً** — قبل أي شيءٍ قد يرمي في الإقلاع
+      //    نفسِه. مطفأةٌ في التصحيح، ولا ترفع محتوى الطالب ([CrashReporter]).
+      await CrashReporter.start();
       // 📲 معالج الخلفية يُسجَّل **قبل أي استعمال للرسائل** وبعد تهيئة
       //    Firebase مباشرةً — تسجيلُه لاحقاً يُفوّت رسائل وصلت والتطبيق
       //    مغلق، وهو الوضع الأشيع لا الأندر.
